@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/navbar";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Post, insertMediaPostSchema } from "@shared/schema";
+import { Post, insertMediaPostSchema, insertCommentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -26,19 +26,29 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { ThumbsUp, ThumbsDown, Flag, Loader2, Coffee, SmilePlus } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, Loader2, Coffee, SmilePlus, MessageCircle, UserCircle } from "lucide-react";
 import { format } from "date-fns";
 import * as z from 'zod';
 import { Report } from "@shared/schema";
+
+type PostWithAuthor = Post & {
+  author: { username: string };
+  comments: Array<{
+    id: number;
+    content: string;
+    author: { username: string };
+    createdAt: string;
+  }>;
+};
 
 export default function EntertainmentPage() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const { data: posts, isLoading } = useQuery<Post[]>({
+  const { data: posts, isLoading } = useQuery<PostWithAuthor[]>({
     queryKey: ["/api/posts", "entertainment"],
     queryFn: async () => {
-      const res = await fetch("/api/posts?category=entertainment");
+      const res = await fetch("/api/posts?category=entertainment&include=author,comments");
       if (!res.ok) throw new Error("Failed to fetch posts");
       return res.json();
     },
@@ -56,7 +66,6 @@ export default function EntertainmentPage() {
 
   const createPostMutation = useMutation<Post, Error, FormData>({
     mutationFn: async (data) => {
-      // Create FormData for file upload
       const formData = new FormData();
       formData.append("title", data.title);
       formData.append("content", data.content);
@@ -81,6 +90,20 @@ export default function EntertainmentPage() {
       toast({
         title: "Post created",
         description: "Your entertainment post has been shared successfully.",
+      });
+    },
+  });
+
+  const createCommentMutation = useMutation({
+    mutationFn: async ({ postId, content }: { postId: number; content: string }) => {
+      const res = await apiRequest("POST", "/api/comments", { postId, content });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "entertainment"] });
+      toast({
+        title: "Comment added",
+        description: "Your comment has been posted successfully.",
       });
     },
   });
@@ -217,7 +240,13 @@ export default function EntertainmentPage() {
                 <Card key={post.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle>{post.title}</CardTitle>
+                      <div>
+                        <CardTitle>{post.title}</CardTitle>
+                        <div className="flex items-center space-x-2 mt-2 text-sm text-muted-foreground">
+                          <UserCircle className="h-4 w-4" />
+                          <span>{post.author.username}</span>
+                        </div>
+                      </div>
                       <Badge variant="outline" className="text-primary">
                         Fun
                       </Badge>
@@ -245,6 +274,62 @@ export default function EntertainmentPage() {
                         ) : null}
                       </div>
                     )}
+
+                    {/* Comments Section */}
+                    <div className="mt-6 space-y-4">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4" />
+                        Comments
+                      </h3>
+
+                      {/* Comment Form */}
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Write a comment..."
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                              createCommentMutation.mutate({
+                                postId: post.id,
+                                content: (e.target as HTMLInputElement).value.trim()
+                              });
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const input = (document.activeElement as HTMLInputElement);
+                            if (input?.value?.trim()) {
+                              createCommentMutation.mutate({
+                                postId: post.id,
+                                content: input.value.trim()
+                              });
+                              input.value = '';
+                            }
+                          }}
+                        >
+                          Post
+                        </Button>
+                      </div>
+
+                      {/* Comments List */}
+                      <div className="space-y-3">
+                        {post.comments?.map((comment) => (
+                          <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <UserCircle className="h-4 w-4" />
+                              <span className="text-sm font-medium">{comment.author.username}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(comment.createdAt), "PPp")}
+                              </span>
+                            </div>
+                            <p className="text-sm">{comment.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
                     <div className="flex items-center space-x-4">
