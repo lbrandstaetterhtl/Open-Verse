@@ -90,6 +90,7 @@ export class MemStorage implements IStorage {
       id,
       karma: 5,
       createdAt: new Date(),
+      emailVerified: false,
     };
     this.users.set(id, user);
     return user;

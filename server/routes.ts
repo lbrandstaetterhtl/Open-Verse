@@ -41,15 +41,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Posts
   app.get("/api/posts", async (req, res) => {
-    const category = req.query.category as string | undefined;
-    const posts = await storage.getPosts(category);
-    res.json(posts);
+    try {
+      const category = req.query.category as string | undefined;
+      const posts = await storage.getPosts(category);
+
+      // Get authors for each post
+      const postsWithAuthors = await Promise.all(posts.map(async (post) => {
+        const author = await storage.getUser(post.authorId);
+        const comments = await storage.getComments(post.id);
+        const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
+          const commentAuthor = await storage.getUser(comment.authorId);
+          return {
+            ...comment,
+            author: { username: commentAuthor?.username || 'Unknown' }
+          };
+        }));
+        return {
+          ...post,
+          author: { username: author?.username || 'Unknown' },
+          comments: commentsWithAuthors
+        };
+      }));
+
+      res.json(postsWithAuthors);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      res.status(500).send("Failed to fetch posts");
+    }
   });
 
   app.get("/api/posts/:id", async (req, res) => {
-    const post = await storage.getPost(parseInt(req.params.id));
-    if (!post) return res.status(404).send("Post not found");
-    res.json(post);
+    try {
+      const post = await storage.getPost(parseInt(req.params.id));
+      if (!post) return res.status(404).send("Post not found");
+
+      const author = await storage.getUser(post.authorId);
+      const comments = await storage.getComments(post.id);
+      const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
+        const commentAuthor = await storage.getUser(comment.authorId);
+        return {
+          ...comment,
+          author: { username: commentAuthor?.username || 'Unknown' }
+        };
+      }));
+
+      res.json({
+        ...post,
+        author: { username: author?.username || 'Unknown' },
+        comments: commentsWithAuthors
+      });
+    } catch (error) {
+      console.error('Error fetching post:', error);
+      res.status(500).send("Failed to fetch post");
+    }
   });
 
   app.post("/api/posts", isAuthenticated, upload.single("media"), async (req, res) => {
@@ -79,29 +123,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(201).json(post);
   });
 
-  app.post("/api/posts/:id/karma", isAuthenticated, async (req, res) => {
-    const { karma } = req.body;
-    if (typeof karma !== "number") return res.status(400).send("Invalid karma value");
-
-    const post = await storage.updatePostKarma(parseInt(req.params.id), karma);
-    res.json(post);
-  });
-
   // Comments
   app.get("/api/posts/:postId/comments", async (req, res) => {
-    const comments = await storage.getComments(parseInt(req.params.postId));
-    res.json(comments);
+    try {
+      const comments = await storage.getComments(parseInt(req.params.postId));
+      const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
+        const author = await storage.getUser(comment.authorId);
+        return {
+          ...comment,
+          author: { username: author?.username || 'Unknown' }
+        };
+      }));
+      res.json(commentsWithAuthors);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      res.status(500).send("Failed to fetch comments");
+    }
   });
 
   app.post("/api/comments", isAuthenticated, async (req, res) => {
     const result = insertCommentSchema.safeParse(req.body);
     if (!result.success) return res.status(400).json(result.error);
 
-    const comment = await storage.createComment({
-      ...result.data,
-      authorId: req.user!.id,
-    });
-    res.status(201).json(comment);
+    try {
+      const comment = await storage.createComment({
+        ...result.data,
+        authorId: req.user!.id,
+      });
+
+      const author = await storage.getUser(comment.authorId);
+      const commentWithAuthor = {
+        ...comment,
+        author: { username: author?.username || 'Unknown' }
+      };
+
+      res.status(201).json(commentWithAuthor);
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      res.status(500).send("Failed to create comment");
+    }
+  });
+
+  app.post("/api/posts/:id/karma", isAuthenticated, async (req, res) => {
+    const { karma } = req.body;
+    if (typeof karma !== "number") return res.status(400).send("Invalid karma value");
+
+    const post = await storage.updatePostKarma(parseInt(req.params.id), karma);
+    res.json(post);
   });
 
   app.post("/api/comments/:id/karma", isAuthenticated, async (req, res) => {
