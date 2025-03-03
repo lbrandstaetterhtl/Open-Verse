@@ -10,6 +10,10 @@ deploymentTarget = "cloudrun"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
+[env]
+SESSION_SECRET = "$SESSION_SECRET"
+DATABASE_URL = "$DATABASE_URL"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
