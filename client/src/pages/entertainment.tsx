@@ -62,11 +62,9 @@ export default function EntertainmentPage() {
       formData.append("content", data.content);
       formData.append("category", data.category);
 
-      if (data.mediaUrl) {
-        const mediaFile = form.getValues("mediaFile");
-        if (mediaFile) {
-          formData.append("media", mediaFile[0]);
-        }
+      const mediaFile = form.getValues("mediaFile");
+      if (mediaFile?.[0]) {
+        formData.append("media", mediaFile[0]);
       }
 
       const res = await fetch("/api/posts", {

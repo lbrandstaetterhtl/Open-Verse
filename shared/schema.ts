@@ -56,7 +56,7 @@ export const insertDiscussionPostSchema = basePostSchema.extend({
 // News and entertainment post schema (with media)
 export const insertMediaPostSchema = basePostSchema.extend({
   category: z.enum(["news", "entertainment"]),
-  mediaUrl: z.string().optional(),
+  mediaFile: z.any().optional(), // File input field
   mediaType: z.enum(["image", "video"]).optional(),
 });
 
