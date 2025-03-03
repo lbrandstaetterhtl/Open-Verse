@@ -104,16 +104,23 @@ export function setupAuth(app: Express) {
         return res.status(400).send("Email already registered");
       }
 
+      // Create the user first
       const user = await storage.createUser({
         ...req.body,
         password: await hashPassword(req.body.password),
         emailVerified: false,
       });
 
-      // Generate and send verification token
-      const verificationToken = await createVerificationToken(user.id);
-      await sendVerificationEmail(user.email, user.username, verificationToken);
+      // Try to send verification email, but don't block registration if it fails
+      try {
+        const verificationToken = await createVerificationToken(user.id);
+        await sendVerificationEmail(user.email, user.username, verificationToken);
+      } catch (emailErr) {
+        console.error('Error sending verification email:', emailErr);
+        // Continue with registration even if email fails
+      }
 
+      // Log the user in
       req.login(user, (err) => {
         if (err) return res.status(500).send(err.message);
         res.status(201).json(user);
