@@ -133,7 +133,7 @@ export class MemStorage implements IStorage {
     const newPost: Post = {
       ...post,
       id,
-      karma: 5,
+      karma: 0,
       createdAt: new Date(),
       mediaUrl: post.mediaUrl || null,
       mediaType: post.mediaType || null,
@@ -230,7 +230,7 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...user, emailVerified: true };
     this.users.set(userId, updatedUser);
   }
-    async createPostLike(userId: number, postId: number): Promise<void> {
+  async createPostLike(userId: number, postId: number): Promise<void> {
     const key = `${userId}-${postId}`;
     const id = this.currentIds.postLikes++;
     this.postLikes.set(key, {

@@ -26,7 +26,7 @@ export const posts = pgTable("posts", {
   content: text("content").notNull(),
   authorId: integer("author_id").notNull(),
   category: text("category").notNull(), // 'discussion', 'news', 'entertainment'
-  karma: integer("karma").notNull().default(5),
+  karma: integer("karma").notNull().default(0),
   mediaUrl: text("media_url"),
   mediaType: text("media_type"), // 'image' or 'video'
   createdAt: timestamp("created_at").notNull().defaultNow(),
