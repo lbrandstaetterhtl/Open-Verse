@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/navbar";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Post, insertDiscussionPostSchema } from "@shared/schema";
+import { Post, insertDiscussionPostSchema, insertCommentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -25,20 +25,30 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ThumbsUp, ThumbsDown, Flag, Loader2 } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, UserCircle } from "lucide-react";
 import { format } from "date-fns";
 import * as z from 'zod';
 import { Report } from "@shared/schema";
+
+type PostWithAuthor = Post & {
+  author: { username: string };
+  comments: Array<{
+    id: number;
+    content: string;
+    author: { username: string };
+    createdAt: string;
+  }>;
+};
 
 export default function DiscussionsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Query for discussion posts
-  const { data: posts, isLoading } = useQuery<Post[]>({
+  // Query for discussion posts with author and comments
+  const { data: posts, isLoading } = useQuery<PostWithAuthor[]>({
     queryKey: ["/api/posts", "discussion"],
     queryFn: async () => {
-      const res = await fetch("/api/posts?category=discussion");
+      const res = await fetch("/api/posts?category=discussion&include=author,comments");
       if (!res.ok) throw new Error("Failed to fetch posts");
       return res.json();
     },
@@ -65,6 +75,20 @@ export default function DiscussionsPage() {
       toast({
         title: "Post created",
         description: "Your discussion has been posted successfully.",
+      });
+    },
+  });
+
+  const createCommentMutation = useMutation({
+    mutationFn: async ({ postId, content }: { postId: number; content: string }) => {
+      const res = await apiRequest("POST", "/api/comments", { postId, content });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
+      toast({
+        title: "Comment added",
+        description: "Your comment has been posted successfully.",
       });
     },
   });
@@ -166,13 +190,77 @@ export default function DiscussionsPage() {
               {posts?.map((post) => (
                 <Card key={post.id}>
                   <CardHeader>
-                    <CardTitle>{post.title}</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>{post.title}</CardTitle>
+                        <div className="flex items-center space-x-2 mt-2 text-sm text-muted-foreground">
+                          <UserCircle className="h-4 w-4" />
+                          <span>{post.author.username}</span>
+                        </div>
+                      </div>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       Posted on {format(new Date(post.createdAt), "PPP")}
                     </p>
                   </CardHeader>
                   <CardContent>
-                    <p className="whitespace-pre-wrap">{post.content}</p>
+                    <p className="whitespace-pre-wrap mb-4">{post.content}</p>
+
+                    {/* Comments Section */}
+                    <div className="mt-6 space-y-4">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4" />
+                        Comments
+                      </h3>
+
+                      {/* Comment Form */}
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Write a comment..."
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                              createCommentMutation.mutate({
+                                postId: post.id,
+                                content: (e.target as HTMLInputElement).value.trim()
+                              });
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const input = (document.activeElement as HTMLInputElement);
+                            if (input?.value?.trim()) {
+                              createCommentMutation.mutate({
+                                postId: post.id,
+                                content: input.value.trim()
+                              });
+                              input.value = '';
+                            }
+                          }}
+                        >
+                          Post
+                        </Button>
+                      </div>
+
+                      {/* Comments List */}
+                      <div className="space-y-3">
+                        {post.comments?.map((comment) => (
+                          <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <UserCircle className="h-4 w-4" />
+                              <span className="text-sm font-medium">{comment.author.username}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(comment.createdAt), "PPp")}
+                              </span>
+                            </div>
+                            <p className="text-sm">{comment.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
                     <div className="flex items-center space-x-4">
