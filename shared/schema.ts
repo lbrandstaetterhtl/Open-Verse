@@ -51,6 +51,13 @@ export const reports = pgTable("reports", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const postLikes = pgTable("post_likes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  postId: integer("post_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Base post schema
 const basePostSchema = createInsertSchema(posts).pick({
   title: true,
@@ -122,3 +129,4 @@ export type Comment = typeof comments.$inferSelect;
 export type Report = typeof reports.$inferSelect;
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 export type UpdatePassword = z.infer<typeof updatePasswordSchema>;
+export type PostLike = typeof postLikes.$inferSelect;

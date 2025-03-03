@@ -42,6 +42,10 @@ export interface IStorage {
   deleteVerificationToken(token: string): Promise<void>;
 
   verifyUserEmail(userId: number): Promise<void>;
+  createPostLike(userId: number, postId: number): Promise<void>;
+  removePostLike(userId: number, postId: number): Promise<void>;
+  hasUserLikedPost(userId: number, postId: number): Promise<boolean>;
+  getPostLikes(postId: number): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -49,6 +53,7 @@ export class MemStorage implements IStorage {
   private posts: Map<number, Post>;
   private comments: Map<number, Comment>;
   private reports: Map<number, Report>;
+  private postLikes: Map<string, {id:number, userId: number, postId: number, createdAt: Date}>;
   public sessionStore: session.Store;
   private currentIds: { [key: string]: number };
   private verificationTokens: Map<string, {
@@ -62,8 +67,9 @@ export class MemStorage implements IStorage {
     this.posts = new Map();
     this.comments = new Map();
     this.reports = new Map();
+    this.postLikes = new Map();
     this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
-    this.currentIds = { users: 1, posts: 1, comments: 1, reports: 1 };
+    this.currentIds = { users: 1, posts: 1, comments: 1, reports: 1, postLikes: 1 };
     this.verificationTokens = new Map();
   }
 
@@ -223,6 +229,42 @@ export class MemStorage implements IStorage {
 
     const updatedUser = { ...user, emailVerified: true };
     this.users.set(userId, updatedUser);
+  }
+    async createPostLike(userId: number, postId: number): Promise<void> {
+    const key = `${userId}-${postId}`;
+    const id = this.currentIds.postLikes++;
+    this.postLikes.set(key, {
+      id,
+      userId,
+      postId,
+      createdAt: new Date(),
+    });
+
+    // Update post karma
+    const post = await this.getPost(postId);
+    if (post) {
+      await this.updatePostKarma(postId, post.karma + 1);
+    }
+  }
+
+  async removePostLike(userId: number, postId: number): Promise<void> {
+    const key = `${userId}-${postId}`;
+    this.postLikes.delete(key);
+
+    // Update post karma
+    const post = await this.getPost(postId);
+    if (post) {
+      await this.updatePostKarma(postId, post.karma - 1);
+    }
+  }
+
+  async hasUserLikedPost(userId: number, postId: number): Promise<boolean> {
+    const key = `${userId}-${postId}`;
+    return this.postLikes.has(key);
+  }
+
+  async getPostLikes(postId: number): Promise<number> {
+    return Array.from(this.postLikes.values()).filter(like => like.postId === postId).length;
   }
 }
 

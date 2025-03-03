@@ -45,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const category = req.query.category as string | undefined;
       const posts = await storage.getPosts(category);
 
-      // Get authors for each post
+      // Get authors and likes for each post
       const postsWithAuthors = await Promise.all(posts.map(async (post) => {
         const author = await storage.getUser(post.authorId);
         const comments = await storage.getComments(post.id);
@@ -56,10 +56,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             author: { username: commentAuthor?.username || 'Unknown' }
           };
         }));
+
+        const hasLiked = req.user ? await storage.hasUserLikedPost(req.user.id, post.id) : false;
+
         return {
           ...post,
           author: { username: author?.username || 'Unknown' },
-          comments: commentsWithAuthors
+          comments: commentsWithAuthors,
+          hasLiked
         };
       }));
 
@@ -164,21 +168,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/posts/:id/karma", isAuthenticated, async (req, res) => {
-    const { karma } = req.body;
-    if (typeof karma !== "number") return res.status(400).send("Invalid karma value");
+  app.post("/api/posts/:id/like", isAuthenticated, async (req, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const userId = req.user!.id;
 
-    const post = await storage.updatePostKarma(parseInt(req.params.id), karma);
-    res.json(post);
+      const hasLiked = await storage.hasUserLikedPost(userId, postId);
+
+      if (hasLiked) {
+        await storage.removePostLike(userId, postId);
+      } else {
+        await storage.createPostLike(userId, postId);
+      }
+
+      const post = await storage.getPost(postId);
+      if (!post) return res.status(404).send("Post not found");
+
+      const hasLikedNow = await storage.hasUserLikedPost(userId, postId);
+      res.json({ ...post, hasLiked: hasLikedNow });
+    } catch (error) {
+      console.error('Error updating like:', error);
+      res.status(500).send("Failed to update like");
+    }
   });
 
-  app.post("/api/comments/:id/karma", isAuthenticated, async (req, res) => {
-    const { karma } = req.body;
-    if (typeof karma !== "number") return res.status(400).send("Invalid karma value");
-
-    const comment = await storage.updateCommentKarma(parseInt(req.params.id), karma);
-    res.json(comment);
-  });
 
   // Reports
   app.get("/api/reports", isAuthenticated, async (req, res) => {

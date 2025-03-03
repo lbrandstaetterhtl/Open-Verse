@@ -38,6 +38,7 @@ type PostWithAuthor = Post & {
     author: { username: string };
     createdAt: string;
   }>;
+  hasLiked: boolean;
 };
 
 export default function DiscussionsPage() {
@@ -113,6 +114,16 @@ export default function DiscussionsPage() {
         title: "Report submitted",
         description: "Thank you for helping keep our community safe.",
       });
+    },
+  });
+
+  const likeMutation = useMutation<Post, Error, { postId: number }>({
+    mutationFn: async ({ postId }) => {
+      const res = await apiRequest("POST", `/api/posts/${postId}/like`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
     },
   });
 
@@ -265,16 +276,11 @@ export default function DiscussionsPage() {
                   <CardFooter className="flex justify-between">
                     <div className="flex items-center space-x-4">
                       <Button
-                        variant="ghost"
+                        variant={post.hasLiked ? "default" : "ghost"}
                         size="sm"
-                        onClick={() =>
-                          karmaUpdateMutation.mutate({
-                            postId: post.id,
-                            karma: post.karma + 1,
-                          })
-                        }
+                        onClick={() => likeMutation.mutate({ postId: post.id })}
                       >
-                        <ThumbsUp className="h-4 w-4 mr-1" />
+                        <ThumbsUp className={`h-4 w-4 mr-1 ${post.hasLiked ? "fill-current" : ""}`} />
                         <span>{post.karma}</span>
                       </Button>
                       <Button
