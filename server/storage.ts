@@ -2,28 +2,11 @@ import { User, Post, Comment, Report, InsertUser, InsertDiscussionPost, InsertMe
 import session from "express-session";
 import { db } from "./db";
 import { eq, and, or, desc, asc, sql } from "drizzle-orm";
-import { users, posts, comments, reports, postLikes, userPreferences } from "@shared/schema"; // Added import for userPreferences
+import { users, posts, comments, reports, postLikes } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
-
-// Added UserPreferences and InsertUserPreferences types (replace with your actual types)
-interface UserPreferences {
-  id: number;
-  userId: number;
-  theme: string;
-  notificationsEnabled: boolean;
-  updatedAt: Date;
-  // Add other preference fields as needed
-}
-
-interface InsertUserPreferences {
-  theme?: string;
-  notificationsEnabled?: boolean;
-  // Add other preference fields as needed
-}
-
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -91,10 +74,6 @@ export interface IStorage {
   }): Promise<Message>;
   getMessages(userId1: number, userId2: number): Promise<Message[]>;
   getUnreadMessageCount(userId: number): Promise<number>;
-
-  // Added methods for user preferences
-  getUserPreferences(userId: number): Promise<UserPreferences | null>;
-  saveUserPreferences(userId: number, preferences: InsertUserPreferences): Promise<UserPreferences>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -393,42 +372,6 @@ export class DatabaseStorage implements IStorage {
       ));
 
     return result[0].count;
-  }
-
-  async getUserPreferences(userId: number): Promise<UserPreferences | null> {
-    const [preferences] = await db
-      .select()
-      .from(userPreferences)
-      .where(eq(userPreferences.userId, userId));
-    return preferences || null;
-  }
-
-  async saveUserPreferences(userId: number, preferences: InsertUserPreferences): Promise<UserPreferences> {
-    // Check if preferences already exist
-    const existing = await this.getUserPreferences(userId);
-
-    if (existing) {
-      // Update existing preferences
-      const [updated] = await db
-        .update(userPreferences)
-        .set({
-          ...preferences,
-          updatedAt: new Date(),
-        })
-        .where(eq(userPreferences.userId, userId))
-        .returning();
-      return updated;
-    } else {
-      // Create new preferences
-      const [created] = await db
-        .insert(userPreferences)
-        .values({
-          userId,
-          ...preferences,
-        })
-        .returning();
-      return created;
-    }
   }
 }
 

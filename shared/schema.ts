@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -84,18 +84,7 @@ export const postLikes = pgTable("post_likes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const userPreferences = pgTable("user_preferences", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  topics: jsonb("topics").notNull().$type<string[]>(),
-  contentTypes: jsonb("content_types").notNull().$type<string[]>(),
-  followedTags: jsonb("followed_tags").notNull().$type<string[]>(),
-  showRecommended: boolean("show_recommended").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const basePostSchema = createInsertSchema(posts).pick({
+const basePostSchema = createInsertSchema(posts).pick({
   title: true,
   content: true,
   category: true,
@@ -159,12 +148,6 @@ export const messageSchema = z.object({
   content: z.string().min(1, "Message cannot be empty"),
 });
 
-export const userPreferencesSchema = z.object({
-  topics: z.array(z.string()).min(1, "Select at least one topic"),
-  contentTypes: z.array(z.enum(["news", "entertainment", "discussion"])).min(1, "Select at least one content type"),
-  followedTags: z.array(z.string()),
-  showRecommended: z.boolean(),
-});
 
 export type LoginCredentials = z.infer<typeof loginSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -181,20 +164,3 @@ export type Follower = typeof followers.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof messageSchema>;
-export type UserPreferences = typeof userPreferences.$inferSelect;
-export type InsertUserPreferences = z.infer<typeof userPreferencesSchema>;
-
-export const AVAILABLE_TOPICS = [
-  "Coffee Brewing",
-  "Coffee Beans",
-  "Cafe Reviews",
-  "Barista Tips",
-  "Coffee Culture",
-  "Equipment Reviews",
-  "Coffee History",
-  "Roasting",
-  "Coffee Events",
-  "Coffee Science"
-] as const;
-
-export const CONTENT_TYPES = ["news", "entertainment", "discussion"] as const;

@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Coffee, MessageSquare, Newspaper, UserCircle } from "lucide-react";
 import { NotificationsDialog } from "@/components/notifications/notifications-dialog";
-import { PreferencesDialog } from "@/components/preferences/preferences-dialog";
 
 export function Navbar() {
   const [location] = useLocation();
@@ -41,7 +40,6 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center space-x-2">
-            <PreferencesDialog />
             <NotificationsDialog />
             <Button
               variant="ghost"
