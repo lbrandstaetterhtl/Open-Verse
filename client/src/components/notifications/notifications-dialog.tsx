@@ -11,12 +11,29 @@ import {
 } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
-import { Bell } from "lucide-react";
-import { Notification } from "@shared/schema";
+import { Bell, MessageCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Notification, Message } from "@shared/schema";
 import { useLocation, Link } from "wouter";
 
 type NotificationWithUser = Notification & {
   fromUser: {
+    username: string;
+  };
+};
+
+// Update the MessageWithUser type
+type MessageWithUser = {
+  id: number;
+  content: string;
+  senderId: number;
+  receiverId: number;
+  createdAt: string;
+  read: boolean;
+  sender: {
+    username: string;
+  };
+  receiver: {
     username: string;
   };
 };
@@ -60,16 +77,14 @@ export function NotificationsDialog() {
     return !notification.read;
   });
 
-  const totalUnreadCount = (filteredNotifications?.length || 0) + (!isOnChatPage ? (unreadCount?.count || 0) : 0);
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {totalUnreadCount > 0 && (
+          {(filteredNotifications?.length || (!isOnChatPage && unreadCount?.count)) && (
             <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
-              {totalUnreadCount}
+              {(filteredNotifications?.length || 0) + (!isOnChatPage ? (unreadCount?.count || 0) : 0)}
             </span>
           )}
         </Button>
@@ -79,46 +94,62 @@ export function NotificationsDialog() {
           <DialogTitle>Notifications</DialogTitle>
         </DialogHeader>
         <div id="notification-description" className="sr-only">
-          View your notifications and messages
+          View and manage your notifications and messages
         </div>
-        <div className="mt-4 space-y-4">
-          {filteredNotifications?.length === 0 && (
-            <p className="text-center text-muted-foreground">No new notifications</p>
-          )}
-          {filteredNotifications?.map((notification) => (
-            <div
-              key={notification.id}
-              className={`flex items-start gap-3 p-3 rounded-lg ${
-                notification.read ? "bg-muted/50" : "bg-muted"
-              }`}
-              onClick={() => {
-                if (!notification.read) {
-                  markAsReadMutation.mutate(notification.id);
-                }
-                if (notification.type === 'new_message') {
-                  setOpen(false);
-                }
-              }}
-            >
-              <UserAvatar user={{ username: notification.fromUser.username }} size="sm" />
-              <div className="flex-1">
-                <p className="text-sm">
-                  <span className="font-medium">{notification.fromUser.username}</span>{" "}
-                  {notification.type === "new_follower" ? (
-                    "started following you"
-                  ) : (
-                    <Link href="/chat" className="text-primary hover:underline">
-                      sent you a message
-                    </Link>
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(notification.createdAt), "PPp")}
-                </p>
+        <Tabs defaultValue="notifications" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="messages">Messages</TabsTrigger>
+          </TabsList>
+          <TabsContent value="notifications" className="mt-4 space-y-4">
+            {filteredNotifications?.length === 0 && (
+              <p className="text-center text-muted-foreground">No new notifications</p>
+            )}
+            {filteredNotifications?.map((notification) => (
+              <div
+                key={notification.id}
+                className={`flex items-start gap-3 p-3 rounded-lg ${
+                  notification.read ? "bg-muted/50" : "bg-muted"
+                }`}
+                onClick={() => {
+                  if (!notification.read) {
+                    markAsReadMutation.mutate(notification.id);
+                  }
+                }}
+              >
+                <UserAvatar user={{ username: notification.fromUser.username }} size="sm" />
+                <div className="flex-1">
+                  <p className="text-sm">
+                    <span className="font-medium">{notification.fromUser.username}</span>{" "}
+                    {notification.type === "new_follower"
+                      ? "started following you"
+                      : "sent you a message"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(notification.createdAt), "PPp")}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </TabsContent>
+          <TabsContent value="messages" className="mt-4">
+            <Link href="/chat" className="block w-full">
+              <Button variant="outline" className="w-full">
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Open Chat
+              </Button>
+            </Link>
+            {unreadCount?.count ? (
+              <p className="text-sm text-center mt-2 text-muted-foreground">
+                You have {unreadCount.count} unread message{unreadCount.count !== 1 ? 's' : ''}
+              </p>
+            ) : (
+              <p className="text-sm text-center mt-2 text-muted-foreground">
+                No unread messages
+              </p>
+            )}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
