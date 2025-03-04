@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Coffee } from "lucide-react";
+import { Coffee, MessageSquare, Image, UserPlus, Bell } from "lucide-react";
 import { insertUserSchema, InsertUser, loginSchema, LoginCredentials } from "@shared/schema";
 import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -43,19 +43,49 @@ export default function AuthPage() {
         <div className="mx-auto max-w-md w-full">
           <div className="flex items-center space-x-2 mb-8">
             <Coffee className="h-12 w-12 text-primary" />
-            <h1 className="text-4xl font-bold">Pure Coffee</h1>
+            <div>
+              <h1 className="text-4xl font-bold">Pure Coffee</h1>
+              <p className="text-sm text-muted-foreground">Version 0.1</p>
+            </div>
           </div>
 
-          <p className="text-xl text-muted-foreground mb-4">
-            Join the community where meaningful discussions brew.
+          <p className="text-xl text-muted-foreground mb-8">
+            Join our vibrant community where coffee enthusiasts connect, share, and discuss their passion.
           </p>
 
-          <ul className="space-y-4 text-muted-foreground">
-            <li>✓ Quality discussions on important topics</li>
-            <li>✓ Fact-checked news you can trust</li>
-            <li>✓ A community that values different perspectives</li>
-            <li>✓ Entertainment without the toxicity</li>
-          </ul>
+          <div className="space-y-6">
+            <div className="flex items-start space-x-3">
+              <MessageSquare className="h-6 w-6 text-primary mt-1" />
+              <div>
+                <h3 className="font-semibold">Engage in Discussions</h3>
+                <p className="text-muted-foreground">Start and join meaningful conversations about coffee brewing, roasting, and culture.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <Image className="h-6 w-6 text-primary mt-1" />
+              <div>
+                <h3 className="font-semibold">Share Your Coffee Moments</h3>
+                <p className="text-muted-foreground">Post photos and videos of your favorite brews, setups, and coffee adventures.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <UserPlus className="h-6 w-6 text-primary mt-1" />
+              <div>
+                <h3 className="font-semibold">Build Your Network</h3>
+                <p className="text-muted-foreground">Follow other coffee enthusiasts and grow your coffee community.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <Bell className="h-6 w-6 text-primary mt-1" />
+              <div>
+                <h3 className="font-semibold">Stay Connected</h3>
+                <p className="text-muted-foreground">Get notified about interactions and never miss important discussions.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
