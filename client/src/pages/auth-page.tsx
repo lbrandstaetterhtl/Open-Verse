@@ -29,7 +29,7 @@ export default function AuthPage() {
         <div className="flex items-center space-x-2">
           <Globe className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold">Pure News</h1>
+            <h1 className="text-2xl font-bold">Pure Coffee</h1>
             <p className="text-xs text-muted-foreground">Version 0.1</p>
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function AuthPage() {
           <div className="flex items-center space-x-2 mb-8">
             <Globe className="h-12 w-12 text-primary" />
             <div>
-              <h1 className="text-4xl font-bold">Pure News</h1>
+              <h1 className="text-4xl font-bold">Pure Coffee</h1>
               <p className="text-sm text-muted-foreground">Version 0.1</p>
             </div>
           </div>
