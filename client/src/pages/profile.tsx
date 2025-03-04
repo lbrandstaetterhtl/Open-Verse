@@ -148,7 +148,7 @@ export default function ProfilePage() {
                 <span className="text-muted-foreground">{following?.length || 0} following</span>
                 <div className="flex items-center text-amber-500">
                   <Star className="h-4 w-4 mr-1 fill-current" />
-                  <span>{user?.karma || 0} karma</span>
+                  <span>{user?.karma || 0} reputation</span>
                 </div>
               </div>
             </div>

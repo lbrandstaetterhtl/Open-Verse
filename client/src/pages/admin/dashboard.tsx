@@ -225,7 +225,7 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell>
                               <Badge variant={u.karma >= 0 ? "default" : "destructive"}>
-                                {u.karma}
+                                {u.karma} reputation
                               </Badge>
                             </TableCell>
                             <TableCell>

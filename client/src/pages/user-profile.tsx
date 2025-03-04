@@ -44,7 +44,7 @@ export default function UserProfilePage() {
                 <span>•</span>
                 <div className="flex items-center text-amber-500">
                   <Star className="h-4 w-4 mr-1 fill-current" />
-                  <span>{profile.karma} karma</span>
+                  <span>{profile.karma} reputation</span>
                 </div>
               </div>
             </div>
