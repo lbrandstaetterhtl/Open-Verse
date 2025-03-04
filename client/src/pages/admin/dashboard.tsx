@@ -35,7 +35,14 @@ export default function AdminDashboard() {
   console.log('Current user:', user); // Debug log
 
   // Check admin access - allow both admins and owners
-  const hasAdminAccess = user && (user.role === 'owner' || user.role === 'admin');
+  const hasAdminAccess = user && (user.role === 'owner' || user.role === 'admin' || user.is_admin);
+  console.log('Checking admin access:', {
+    username: user?.username,
+    role: user?.role,
+    is_admin: user?.is_admin,
+    hasAccess: hasAdminAccess
+  });
+
   if (!hasAdminAccess) {
     console.log('Access denied:', { user }); // Debug log for access denial
     return <Redirect to="/" />;
@@ -118,7 +125,7 @@ export default function AdminDashboard() {
   const canManageUser = (targetUser: User) => {
     // Allow both admins and owners to manage users, but prevent them from managing other admins/owners
     if (user?.role === 'owner') return true;
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' || user?.is_admin) {
       return targetUser.role === 'user';
     }
     return false;

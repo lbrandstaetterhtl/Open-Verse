@@ -766,7 +766,12 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
   // Modify the login route to include is_admin in the user object
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    // Add is_admin to the response
+    console.log('Login request for user:', {
+      username: req.user.username,
+      role: req.user.role,
+      is_admin: req.user.is_admin
+    });
+
     const userResponse = {
       ...req.user,
       is_admin: req.user.is_admin || req.user.role === 'admin' || req.user.role === 'owner'
@@ -780,8 +785,13 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       console.log('Unauthenticated access attempt to /api/user');
       return res.sendStatus(401);
     }
-    console.log('User data requested for:', req.user.username);
-    // Add is_admin to the response
+
+    console.log('User data requested for:', {
+      username: req.user.username,
+      role: req.user.role,
+      is_admin: req.user.is_admin
+    });
+
     const userResponse = {
       ...req.user,
       is_admin: req.user.is_admin || req.user.role === 'admin' || req.user.role === 'owner'
