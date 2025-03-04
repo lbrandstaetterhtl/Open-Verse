@@ -1,7 +1,7 @@
 import { User, Post, Comment, Report, InsertUser, InsertDiscussionPost, InsertMediaPost } from "@shared/schema";
 import session from "express-session";
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { neon } from '@neondatabase/serverless';
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { users, posts, comments, reports, postLikes, verificationTokens } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
@@ -52,8 +52,9 @@ export interface IStorage {
   getPostReactions(postId: number): Promise<{ likes: number; dislikes: number }>;
 }
 
-const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+// Initialize postgres client
+const queryClient = postgres(process.env.DATABASE_URL!);
+const db = drizzle(queryClient);
 
 export class DatabaseStorage implements IStorage {
   public sessionStore: session.Store;
