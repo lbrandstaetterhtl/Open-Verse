@@ -214,27 +214,45 @@ export default function AdminDashboard() {
                                       )}
                                     </Button>
                                     {user.karma >= 0 && (
-                                      <Button
-                                        size="sm"
-                                        variant={user.emailVerified ? "ghost" : "default"}
-                                        onClick={() => updateUserMutation.mutate({
-                                          userId: user.id,
-                                          data: { emailVerified: !user.emailVerified }
-                                        })}
-                                        disabled={updateUserMutation.isPending}
-                                      >
-                                        {user.emailVerified ? (
-                                          <>
-                                            <AlertTriangle className="h-4 w-4 mr-1" />
-                                            Unverify
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Check className="h-4 w-4 mr-1" />
-                                            Verify
-                                          </>
-                                        )}
-                                      </Button>
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant={user.emailVerified ? "ghost" : "default"}
+                                          onClick={() => updateUserMutation.mutate({
+                                            userId: user.id,
+                                            data: { emailVerified: !user.emailVerified }
+                                          })}
+                                          disabled={updateUserMutation.isPending}
+                                        >
+                                          {user.emailVerified ? (
+                                            <>
+                                              <AlertTriangle className="h-4 w-4 mr-1" />
+                                              Unverify
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Check className="h-4 w-4 mr-1" />
+                                              Verify
+                                            </>
+                                          )}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="default"
+                                          onClick={() => {
+                                            if (window.confirm(`Are you sure you want to make ${user.username} an admin? This will give them full administrative privileges.`)) {
+                                              updateUserMutation.mutate({
+                                                userId: user.id,
+                                                data: { isAdmin: !user.isAdmin }
+                                              });
+                                            }
+                                          }}
+                                          disabled={updateUserMutation.isPending}
+                                        >
+                                          <Shield className="h-4 w-4 mr-1" />
+                                          {user.isAdmin ? "Remove Admin" : "Make Admin"}
+                                        </Button>
+                                      </>
                                     )}
                                   </>
                                 )}
