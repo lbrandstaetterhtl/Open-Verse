@@ -24,11 +24,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { User, Report } from "@shared/schema";
-import { Loader2, Shield, Users, Flag, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Shield, Users, Flag, CheckCircle, XCircle, Search, Ban, Check, AlertTriangle } from "lucide-react";
+import { useState } from "react";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Only allow pure-coffee user to access admin features
   if (!user || user.username !== 'pure-coffee') {
@@ -71,6 +73,11 @@ export default function AdminDashboard() {
     },
   });
 
+  const filteredUsers = users?.filter(user => 
+    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <>
       <Navbar />
@@ -81,17 +88,125 @@ export default function AdminDashboard() {
             <h1 className="text-4xl font-bold">Admin Dashboard</h1>
           </div>
 
-          <Tabs defaultValue="reports">
+          <Tabs defaultValue="users">
             <TabsList>
-              <TabsTrigger value="reports" className="flex items-center gap-2">
-                <Flag className="h-4 w-4" />
-                Reports
-              </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Users
               </TabsTrigger>
+              <TabsTrigger value="reports" className="flex items-center gap-2">
+                <Flag className="h-4 w-4" />
+                Reports
+              </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="users" className="mt-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle>User Management</CardTitle>
+                  <div className="flex items-center space-x-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search users..."
+                        className="pl-8"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {usersLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Username</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Karma</TableHead>
+                          <TableHead>Joined</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers?.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="font-medium">{user.username}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              <Badge variant={user.emailVerified ? "default" : "secondary"}>
+                                {user.emailVerified ? "Verified" : "Unverified"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={user.isAdmin ? "destructive" : "default"}>
+                                {user.isAdmin ? "Admin" : "User"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={user.karma >= 0 ? "default" : "destructive"}>
+                                {user.karma}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(user.createdAt), "PPp")}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant={user.emailVerified ? "ghost" : "default"}
+                                  onClick={() => updateUserMutation.mutate({
+                                    userId: user.id,
+                                    data: { emailVerified: !user.emailVerified }
+                                  })}
+                                  disabled={updateUserMutation.isPending}
+                                >
+                                  {user.emailVerified ? (
+                                    <Ban className="h-4 w-4 mr-1" />
+                                  ) : (
+                                    <Check className="h-4 w-4 mr-1" />
+                                  )}
+                                  {user.emailVerified ? "Unverify" : "Verify"}
+                                </Button>
+                                {!user.isAdmin && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={() => {
+                                      if (window.confirm(`Are you sure you want to ${user.karma < 0 ? 'restore' : 'ban'} ${user.username}?`)) {
+                                        updateUserMutation.mutate({
+                                          userId: user.id,
+                                          data: { karma: user.karma < 0 ? 5 : -100 }
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    {user.karma < 0 ? (
+                                      <Check className="h-4 w-4 mr-1" />
+                                    ) : (
+                                      <AlertTriangle className="h-4 w-4 mr-1" />
+                                    )}
+                                    {user.karma < 0 ? "Restore" : "Ban"}
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="reports" className="mt-6">
               <Card>
@@ -165,62 +280,6 @@ export default function AdminDashboard() {
                                   <XCircle className="h-4 w-4" />
                                 </Button>
                               </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="users" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>User Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {usersLoading ? (
-                    <div className="flex justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Username</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Joined</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users?.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell>{user.username}</TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>
-                              <Badge variant={user.emailVerified ? "default" : "secondary"}>
-                                {user.emailVerified ? "Verified" : "Unverified"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {format(new Date(user.createdAt), "PPp")}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                size="sm"
-                                variant={user.emailVerified ? "ghost" : "default"}
-                                onClick={() => updateUserMutation.mutate({
-                                  userId: user.id,
-                                  data: { emailVerified: !user.emailVerified }
-                                })}
-                                disabled={updateUserMutation.isPending}
-                              >
-                                {user.emailVerified ? "Unverify" : "Verify"}
-                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
