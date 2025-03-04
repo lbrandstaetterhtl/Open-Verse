@@ -3,7 +3,7 @@ import { useParams } from "wouter";
 import { Navbar } from "@/components/layout/navbar";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Medal } from "lucide-react";
+import { Loader2, Trophy } from "lucide-react";
 
 export default function UserProfilePage() {
   const { username } = useParams();
@@ -42,8 +42,8 @@ export default function UserProfilePage() {
               <div className="flex items-center gap-2 text-muted-foreground">
                 <span>Member since {new Date(profile.createdAt).toLocaleDateString()}</span>
                 <span>•</span>
-                <div className="flex items-center text-blue-500">
-                  <Medal className="h-4 w-4 mr-1 fill-current" />
+                <div className="flex items-center text-emerald-500">
+                  <Trophy className="h-4 w-4 mr-1" />
                   <span>{profile.karma} reputation</span>
                 </div>
               </div>

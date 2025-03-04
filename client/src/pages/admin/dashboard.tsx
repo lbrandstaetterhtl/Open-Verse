@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { User, Report } from "@shared/schema";
-import { Loader2, Shield, Users, Flag, CheckCircle, XCircle, Search, Ban, Check, AlertTriangle, Medal } from "lucide-react";
+import { Loader2, Shield, Users, Flag, CheckCircle, XCircle, Search, Ban, Check, AlertTriangle, Trophy } from "lucide-react";
 import { useState } from "react";
 
 export default function AdminDashboard() {
@@ -225,7 +225,7 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell>
                               <Badge variant={u.karma >= 0 ? "default" : "destructive"} className="flex items-center gap-1">
-                                <Medal className="h-3 w-3" />
+                                <Trophy className="h-3 w-3" />
                                 {u.karma} reputation
                               </Badge>
                             </TableCell>

@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, UserPlus, UserMinus, Medal } from "lucide-react";
+import { Loader2, UserPlus, UserMinus, Trophy } from "lucide-react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -146,8 +146,8 @@ export default function ProfilePage() {
               <div className="flex gap-4 mt-2">
                 <span className="text-muted-foreground">{followers?.length || 0} followers</span>
                 <span className="text-muted-foreground">{following?.length || 0} following</span>
-                <div className="flex items-center text-blue-500">
-                  <Medal className="h-4 w-4 mr-1 fill-current" />
+                <div className="flex items-center text-emerald-500">
+                  <Trophy className="h-4 w-4 mr-1" />
                   <span>{user?.karma || 0} reputation</span>
                 </div>
               </div>
