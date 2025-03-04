@@ -418,26 +418,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add these new routes after the existing ones but before the httpServer creation
-
   // User profile routes
   app.get("/api/users/:username", isAuthenticated, async (req, res) => {
     try {
-      const user = await storage.getUserByUsername(req.params.username);
-      if (!user) {
+      const targetUser = await storage.getUserByUsername(req.params.username);
+      if (!targetUser) {
         return res.status(404).send("User not found");
       }
 
-      const followers = await storage.getFollowers(user.id);
-      const following = await storage.getFollowing(user.id);
-      const isFollowing = req.user ? await storage.isFollowing(req.user.id, user.id) : false;
+      const followers = await storage.getFollowers(targetUser.id);
+      const following = await storage.getFollowing(targetUser.id);
+      const isFollowing = req.user ? await storage.isFollowing(req.user.id, targetUser.id) : false;
 
-      res.json({
-        ...user,
+      // Send back a sanitized user object without sensitive information
+      const userProfile = {
+        id: targetUser.id,
+        username: targetUser.username,
         followers: followers.length,
         following: following.length,
         isFollowing,
-      });
+        createdAt: targetUser.createdAt
+      };
+
+      res.json(userProfile);
     } catch (error) {
       console.error('Error getting user profile:', error);
       res.status(500).send("Failed to get user profile");
@@ -452,7 +455,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const posts = await storage.getUserPosts(user.id);
-      res.json(posts);
+
+      // Include additional post details
+      const postsWithDetails = await Promise.all(posts.map(async (post) => {
+        const comments = await storage.getComments(post.id);
+        const reactions = await storage.getPostReactions(post.id);
+        const userReaction = req.user ? await storage.getUserPostReaction(req.user.id, post.id) : null;
+
+        const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
+          const commentAuthor = await storage.getUser(comment.authorId);
+          return {
+            ...comment,
+            author: {
+              username: commentAuthor?.username || 'Unknown'
+            }
+          };
+        }));
+
+        return {
+          ...post,
+          comments: commentsWithAuthors,
+          reactions,
+          userReaction
+        };
+      }));
+
+      res.json(postsWithDetails);
     } catch (error) {
       console.error('Error getting user posts:', error);
       res.status(500).send("Failed to get user posts");
