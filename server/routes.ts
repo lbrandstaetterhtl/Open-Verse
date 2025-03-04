@@ -13,10 +13,17 @@ import session from 'express-session';
 // WebSocket connections store
 const connections = new Map<number, WebSocket>();
 
-// Update the isAdmin middleware at the top of the file
+// Update the isAdmin middleware to check role
 const isAdmin = (req: any, res: any, next: any) => {
   if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-  if (!req.user.isAdmin) return res.status(403).send("Forbidden");
+  if (req.user.role !== 'admin' && req.user.role !== 'owner') return res.status(403).send("Forbidden");
+  next();
+};
+
+// Add owner middleware for owner-only actions
+const isOwner = (req: any, res: any, next: any) => {
+  if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+  if (req.user.role !== 'owner') return res.status(403).send("Forbidden");
   next();
 };
 
@@ -383,7 +390,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   // Updated profile route
   app.patch("/api/profile", isAuthenticated, async (req, res) => {
     try {
-      const updateData: Partial<{ username: string; email: string }> = {};
+      const updateData: Partial<{ username: string; email: string; role: string }> = {};
 
       if (req.body.username) {
         updateData.username = req.body.username;
@@ -391,6 +398,10 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
       if (req.body.email) {
         updateData.email = req.body.email;
+      }
+
+      if (req.body.role) {
+        updateData.role = req.body.role;
       }
 
       const updatedUser = await storage.updateUserProfile(req.user!.id, updateData);
@@ -689,7 +700,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  // Add new admin route for banning users
+  // Update the admin user update route
   app.patch("/api/admin/users/:id", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
@@ -699,16 +710,22 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         return res.status(404).send("User not found");
       }
 
-      // Don't allow modifying admin users
-      if (user.username === 'pure-coffee') {
-        return res.status(403).send("Cannot modify admin user");
-      }
-
       console.log('Admin update request:', {
         userId,
         requestBody: req.body,
-        currentUser: req.user?.username
+        currentUser: req.user?.username,
+        currentUserRole: req.user?.role
       });
+
+      // Don't allow modifying owner
+      if (user.role === 'owner') {
+        return res.status(403).send("Cannot modify owner account");
+      }
+
+      // Only owner can modify admins
+      if (user.role === 'admin' && req.user.role !== 'owner') {
+        return res.status(403).send("Only owner can modify admin accounts");
+      }
 
       // If this is a ban action
       if (req.body.karma < 0) {
@@ -725,6 +742,15 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         await storage.deleteUser(userId);
         res.json({ message: "User banned and deleted successfully" });
       } else {
+        // For role updates, ensure proper permissions
+        if (req.body.role === 'admin' && req.user.role !== 'owner') {
+          return res.status(403).send("Only owner can grant admin role");
+        }
+
+        if (req.body.role === 'owner') {
+          return res.status(403).send("Cannot grant owner role");
+        }
+
         // For non-ban updates
         const updatedUser = await storage.updateUserProfile(userId, req.body);
         console.log('Updated user:', updatedUser);
@@ -733,6 +759,34 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     } catch (error) {
       console.error('Error updating user:', error);
       res.status(500).send("Failed to update user");
+    }
+  });
+
+  // Add a route to reset all roles
+  app.post("/api/admin/reset-roles", isOwner, async (req, res) => {
+    try {
+      // Get all users
+      const users = await storage.getUsers();
+
+      // Update each user's role
+      for (const user of users) {
+        if (user.username === 'pure-coffee') {
+          await storage.updateUserProfile(user.id, {
+            role: 'owner',
+            isAdmin: true
+          });
+        } else {
+          await storage.updateUserProfile(user.id, {
+            role: 'user',
+            isAdmin: false
+          });
+        }
+      }
+
+      res.json({ message: "All roles have been reset successfully" });
+    } catch (error) {
+      console.error('Error resetting roles:', error);
+      res.status(500).send("Failed to reset roles");
     }
   });
 

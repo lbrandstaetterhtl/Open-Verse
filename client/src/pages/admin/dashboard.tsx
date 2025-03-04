@@ -69,6 +69,30 @@ export default function AdminDashboard() {
     },
   });
 
+  const resetRolesMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/reset-roles");
+      if (!res.ok) {
+        throw new Error("Failed to reset roles");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: "All roles have been reset successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const updateReportMutation = useMutation({
     mutationFn: async ({ reportId, status }: { reportId: number; status: string }) => {
       const res = await apiRequest("PATCH", `/api/admin/reports/${reportId}`, { status });
@@ -87,7 +111,7 @@ export default function AdminDashboard() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to update report status",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -109,9 +133,24 @@ export default function AdminDashboard() {
       <Navbar />
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 mb-8">
-            <Shield className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold">Admin Dashboard</h1>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <Shield className="h-8 w-8 text-primary" />
+              <h1 className="text-4xl font-bold">Admin Dashboard</h1>
+            </div>
+            {user.role === 'owner' && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to reset all roles? This will set all users to "user" role except for pure-coffee who will be set as "owner".')) {
+                    resetRolesMutation.mutate();
+                  }
+                }}
+                disabled={resetRolesMutation.isPending}
+              >
+                Reset All Roles
+              </Button>
+            )}
           </div>
 
           <Tabs defaultValue="users">
@@ -161,58 +200,63 @@ export default function AdminDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredUsers?.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell className="font-medium">{user.username}</TableCell>
-                            <TableCell>{user.email}</TableCell>
+                        {filteredUsers?.map((u) => (
+                          <TableRow key={u.id}>
+                            <TableCell className="font-medium">{u.username}</TableCell>
+                            <TableCell>{u.email}</TableCell>
                             <TableCell>
-                              <Badge variant={user.emailVerified ? "default" : "secondary"}>
-                                {user.emailVerified ? "Verified" : "Unverified"}
+                              <Badge variant={u.emailVerified ? "default" : "secondary"}>
+                                {u.emailVerified ? "Verified" : "Unverified"}
                               </Badge>
-                              {user.karma < 0 && (
+                              {u.karma < 0 && (
                                 <Badge variant="destructive" className="ml-2">
                                   Banned
                                 </Badge>
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge variant={user.isAdmin ? "destructive" : "default"}>
-                                {user.isAdmin ? "Admin" : "User"}
+                              <Badge variant={
+                                u.role === 'owner' ? "destructive" :
+                                u.role === 'admin' ? "default" :
+                                "secondary"
+                              }>
+                                {u.role}
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={user.karma >= 0 ? "default" : "destructive"}>
-                                {user.karma}
+                              <Badge variant={u.karma >= 0 ? "default" : "destructive"}>
+                                {u.karma}
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              {format(new Date(user.createdAt), "PPp")}
+                              {format(new Date(u.createdAt), "PPp")}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center space-x-2">
-                                {!user.isAdmin && (
+                                {/* Show actions only if the current user has permission */}
+                                {(user.role === 'owner' || (user.role === 'admin' && u.role === 'user')) && (
                                   <>
                                     <Button
                                       size="sm"
-                                      variant={user.karma < 0 ? "default" : "destructive"}
+                                      variant={u.karma < 0 ? "default" : "destructive"}
                                       onClick={() => {
-                                        const action = user.karma < 0 ? 'restore' : 'ban';
-                                        const newKarma = user.karma < 0 ? 5 : -100;
+                                        const action = u.karma < 0 ? 'restore' : 'ban';
+                                        const newKarma = u.karma < 0 ? 5 : -100;
 
                                         if (window.confirm(
                                           action === 'ban'
-                                            ? `Are you sure you want to ban ${user.username}? This will prevent them from accessing most features.`
-                                            : `Are you sure you want to restore ${user.username}'s account?`
+                                            ? `Are you sure you want to ban ${u.username}? This will prevent them from accessing most features.`
+                                            : `Are you sure you want to restore ${u.username}'s account?`
                                         )) {
                                           updateUserMutation.mutate({
-                                            userId: user.id,
+                                            userId: u.id,
                                             data: { karma: newKarma }
                                           });
                                         }
                                       }}
                                       disabled={updateUserMutation.isPending}
                                     >
-                                      {user.karma < 0 ? (
+                                      {u.karma < 0 ? (
                                         <>
                                           <Check className="h-4 w-4 mr-1" />
                                           Restore Account
@@ -224,18 +268,18 @@ export default function AdminDashboard() {
                                         </>
                                       )}
                                     </Button>
-                                    {user.karma >= 0 && (
+                                    {u.karma >= 0 && (
                                       <>
                                         <Button
                                           size="sm"
-                                          variant={user.emailVerified ? "ghost" : "default"}
+                                          variant={u.emailVerified ? "ghost" : "default"}
                                           onClick={() => updateUserMutation.mutate({
-                                            userId: user.id,
-                                            data: { emailVerified: !user.emailVerified }
+                                            userId: u.id,
+                                            data: { emailVerified: !u.emailVerified }
                                           })}
                                           disabled={updateUserMutation.isPending}
                                         >
-                                          {user.emailVerified ? (
+                                          {u.emailVerified ? (
                                             <>
                                               <AlertTriangle className="h-4 w-4 mr-1" />
                                               Unverify
@@ -247,22 +291,28 @@ export default function AdminDashboard() {
                                             </>
                                           )}
                                         </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="default"
-                                          onClick={() => {
-                                            if (window.confirm(`Are you sure you want to make ${user.username} an admin? This will give them full administrative privileges.`)) {
-                                              updateUserMutation.mutate({
-                                                userId: user.id,
-                                                data: { isAdmin: true }
-                                              });
-                                            }
-                                          }}
-                                          disabled={updateUserMutation.isPending}
-                                        >
-                                          <Shield className="h-4 w-4 mr-1" />
-                                          Make Admin
-                                        </Button>
+                                        {/* Only owner can grant admin role */}
+                                        {user.role === 'owner' && u.role === 'user' && (
+                                          <Button
+                                            size="sm"
+                                            variant="default"
+                                            onClick={() => {
+                                              if (window.confirm(`Are you sure you want to make ${u.username} an admin? This will give them administrative privileges.`)) {
+                                                updateUserMutation.mutate({
+                                                  userId: u.id,
+                                                  data: { 
+                                                    role: 'admin',
+                                                    isAdmin: true 
+                                                  }
+                                                });
+                                              }
+                                            }}
+                                            disabled={updateUserMutation.isPending}
+                                          >
+                                            <Shield className="h-4 w-4 mr-1" />
+                                            Make Admin
+                                          </Button>
+                                        )}
                                       </>
                                     )}
                                   </>

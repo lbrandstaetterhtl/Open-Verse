@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   karma: integer("karma").notNull().default(5),
   emailVerified: boolean("email_verified").notNull().default(false),
   isAdmin: boolean("is_admin").notNull().default(false),
+  role: text("role").notNull().default("user"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
