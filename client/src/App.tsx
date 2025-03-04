@@ -5,23 +5,37 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 
-import HomePage from "@/pages/home-page";
+// Pages
 import AuthPage from "@/pages/auth-page";
-import DiscussionsPage from "@/pages/discussions";
-import NewsPage from "@/pages/news";
-import EntertainmentPage from "@/pages/entertainment";
 import NotFound from "@/pages/not-found";
 import ProfilePage from "@/pages/profile";
+
+// Feed Pages
+import MediaFeedPage from "@/pages/feed/media";
+import DiscussionsFeedPage from "@/pages/feed/discussions";
+
+// Post Pages
+import PostDiscussionsPage from "@/pages/post/discussions";
+import PostNewsPage from "@/pages/post/news";
+import PostEntertainmentPage from "@/pages/post/entertainment";
 
 function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/discussions" component={DiscussionsPage} />
-      <ProtectedRoute path="/news" component={NewsPage} />
-      <ProtectedRoute path="/entertainment" component={EntertainmentPage} />
+
+      {/* Feed Routes */}
+      <ProtectedRoute path="/feed/media" component={MediaFeedPage} />
+      <ProtectedRoute path="/feed/discussions" component={DiscussionsFeedPage} />
+
+      {/* Post Routes */}
+      <ProtectedRoute path="/post/discussions" component={PostDiscussionsPage} />
+      <ProtectedRoute path="/post/news" component={PostNewsPage} />
+      <ProtectedRoute path="/post/entertainment" component={PostEntertainmentPage} />
+
+      {/* Other Routes */}
       <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/" component={MediaFeedPage} />
       <Route component={NotFound} />
     </Switch>
   );
