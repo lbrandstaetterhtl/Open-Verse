@@ -48,6 +48,9 @@ export default function AdminDashboard() {
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, data }: { userId: number; data: any }) => {
       const res = await apiRequest("PATCH", `/api/admin/users/${userId}`, data);
+      if (!res.ok) {
+        throw new Error("Failed to update user");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -55,6 +58,13 @@ export default function AdminDashboard() {
       toast({
         title: "Success",
         description: "User updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -200,6 +210,7 @@ export default function AdminDashboard() {
                                           });
                                         }
                                       }}
+                                      disabled={updateUserMutation.isPending}
                                     >
                                       {user.karma < 0 ? (
                                         <>
@@ -243,14 +254,14 @@ export default function AdminDashboard() {
                                             if (window.confirm(`Are you sure you want to make ${user.username} an admin? This will give them full administrative privileges.`)) {
                                               updateUserMutation.mutate({
                                                 userId: user.id,
-                                                data: { isAdmin: !user.isAdmin }
+                                                data: { isAdmin: true }
                                               });
                                             }
                                           }}
                                           disabled={updateUserMutation.isPending}
                                         >
                                           <Shield className="h-4 w-4 mr-1" />
-                                          {user.isAdmin ? "Remove Admin" : "Make Admin"}
+                                          Make Admin
                                         </Button>
                                       </>
                                     )}
@@ -317,7 +328,7 @@ export default function AdminDashboard() {
                               {format(new Date(report.createdAt), "PPp")}
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center space-x-2">
                                 <Button
                                   size="sm"
                                   variant="ghost"

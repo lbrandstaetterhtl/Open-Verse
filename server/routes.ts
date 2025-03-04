@@ -704,6 +704,12 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         return res.status(403).send("Cannot modify admin user");
       }
 
+      console.log('Admin update request:', {
+        userId,
+        requestBody: req.body,
+        currentUser: req.user?.username
+      });
+
       // If this is a ban action
       if (req.body.karma < 0) {
         // Send ban notification to the user if they're connected
@@ -721,6 +727,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       } else {
         // For non-ban updates
         const updatedUser = await storage.updateUserProfile(userId, req.body);
+        console.log('Updated user:', updatedUser);
         res.json(updatedUser);
       }
     } catch (error) {
