@@ -447,6 +447,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteComments(postId: number): Promise<void> {
+    const commentsToDelete = await db.select().from(comments).where(eq(comments.postId, postId));
+    for (const comment of commentsToDelete) {
+      await this.updateAllReportsForContent(null, comment.id, null, "resolved");
+    }
     await db.delete(comments).where(eq(comments.postId, postId));
   }
 
@@ -459,6 +463,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deletePost(postId: number): Promise<void> {
+    // Update all reports first
+    await this.updateAllReportsForContent(postId, null, null, "resolved");
+    // Then delete associated data
+    await this.deleteComments(postId);
+    await this.deletePostReactions(postId);
+    await this.deleteReports(postId);
+    // Then delete the post
     await db.delete(posts).where(eq(posts.id, postId));
   }
   async getUsers(): Promise<User[]> {
@@ -495,6 +506,18 @@ export class DatabaseStorage implements IStorage {
     );
     // Finally delete the user
     await db.delete(users).where(eq(users.id, id));
+  }
+  // Add new method to update all reports for a content
+  async updateAllReportsForContent(postId: number | null, commentId: number | null, discussionId: number | null, status: string): Promise<void> {
+    await db.update(reports)
+      .set({ status })
+      .where(
+        or(
+          postId ? eq(reports.postId, postId) : undefined,
+          commentId ? eq(reports.commentId, commentId) : undefined,
+          discussionId ? eq(reports.discussionId, discussionId) : undefined,
+        ).filter(Boolean)
+      );
   }
 }
 

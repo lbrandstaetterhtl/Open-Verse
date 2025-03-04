@@ -333,24 +333,22 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
       // If report is resolved, take action based on the reported content
       if (status === "resolved") {
-        // First update the report status to break the foreign key constraint
-        await storage.updateReportStatus(reportId, status);
-
-        if (report.postId) {
-          // Delete the post and all associated content
-          await storage.deleteComments(report.postId);
-          await storage.deletePostReactions(report.postId);
-          await storage.deleteReports(report.postId);
-          await storage.deletePost(report.postId);
-        } else if (report.commentId) {
-          // Delete the reported comment
-          await storage.deleteComment(report.commentId);
-        } else if (report.discussionId) {
-          // Delete the reported discussion and all its associated content
+        // First update all reports for this content
+        if (report.discussionId) {
+          await storage.updateAllReportsForContent(null, null, report.discussionId, "resolved");
+          // Then delete associated content
           await storage.deleteComments(report.discussionId);
           await storage.deletePostReactions(report.discussionId);
-          await storage.deleteReports(report.discussionId);
+          // Finally delete the discussion
           await storage.deletePost(report.discussionId);
+        } else if (report.postId) {
+          await storage.updateAllReportsForContent(report.postId, null, null, "resolved");
+          await storage.deleteComments(report.postId);
+          await storage.deletePostReactions(report.postId);
+          await storage.deletePost(report.postId);
+        } else if (report.commentId) {
+          await storage.updateAllReportsForContent(null, report.commentId, null, "resolved");
+          await storage.deleteComment(report.commentId);
         }
 
         res.json(report);
