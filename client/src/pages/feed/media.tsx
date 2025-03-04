@@ -399,7 +399,7 @@ export default function MediaFeedPage() {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      {post.author.id === user?.id && (
+                      {post.author.id === user?.id || user?.isAdmin && (
                         <Button
                           variant="ghost"
                           size="sm"

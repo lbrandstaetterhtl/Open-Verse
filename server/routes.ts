@@ -415,9 +415,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send("Post not found");
       }
 
-      // Check if user owns the post
-      if (post.authorId !== req.user!.id) {
-        return res.status(403).send("You can only delete your own posts");
+      // Check if user owns the post or is an admin
+      if (post.authorId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).send("You can only delete your own posts unless you are an admin");
       }
 
       // Delete associated comments
@@ -448,9 +448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send("Comment not found");
       }
 
-      // Check if user owns the comment
-      if (comment.authorId !== req.user!.id) {
-        return res.status(403).send("You can only delete your own comments");
+      // Check if user owns the comment or is an admin
+      if (comment.authorId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).send("You can only delete your own comments unless you are an admin");
       }
 
       await storage.deleteComment(commentId);

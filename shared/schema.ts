@@ -9,6 +9,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   karma: integer("karma").notNull().default(5),
   emailVerified: boolean("email_verified").notNull().default(false),
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
