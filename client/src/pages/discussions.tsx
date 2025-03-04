@@ -36,16 +36,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, UserCircle } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, UserCircle, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import * as z from 'zod';
 
 type PostWithAuthor = Post & {
-  author: { username: string };
+  author: { username: string; id: number; role: string };
   comments: Array<{
     id: number;
     content: string;
-    author: { username: string };
+    author: { username: string; role: string; id: number };
     createdAt: string;
   }>;
   reactions: {
@@ -132,6 +132,36 @@ export default function DiscussionsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
     },
   });
+
+  const deletePostMutation = useMutation({
+    mutationFn: async (postId: number) => {
+      const res = await apiRequest("DELETE", `/api/posts/${postId}`);
+      if (!res.ok) {
+        throw new Error("Failed to delete post");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
+      toast({ title: "Post deleted", description: "The discussion has been deleted." });
+    }
+  });
+
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: async (commentId: number) => {
+      const res = await apiRequest("DELETE", `/api/comments/${commentId}`);
+      if (!res.ok) {
+        throw new Error("Failed to delete comment");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
+      toast({ title: "Comment deleted", description: "The comment has been deleted." });
+    }
+  });
+
 
   return (
     <>
@@ -274,6 +304,24 @@ export default function DiscussionsPage() {
                               </span>
                             </div>
                             <p className="text-sm">{comment.content}</p>
+                            <div>
+                              {(comment.author.username === user?.username ||
+                                user?.role === 'owner' ||
+                                (user?.role === 'admin' && comment.author.role !== 'owner')) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (window.confirm("Are you sure you want to delete this comment?")) {
+                                      deleteCommentMutation.mutate(comment.id);
+                                    }
+                                  }}
+                                  disabled={deleteCommentMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -297,6 +345,25 @@ export default function DiscussionsPage() {
                         <ThumbsDown className={`h-4 w-4 mr-1 ${post.userReaction?.isLike === false ? "fill-current" : ""}`} />
                         <span>{post.reactions.dislikes}</span>
                       </Button>
+                    </div>
+                    <div>
+                      {(user?.role === 'owner' ||
+                        (user?.role === 'admin' && post.author.role !== 'owner') ||
+                        post.author.id === user?.id) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (window.confirm("Are you sure you want to delete this discussion?")) {
+                              deletePostMutation.mutate(post.id);
+                            }
+                          }}
+                          disabled={deletePostMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      )}
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

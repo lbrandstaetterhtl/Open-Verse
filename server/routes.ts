@@ -582,9 +582,22 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         return res.status(404).send("Post not found");
       }
 
-      // Check if user owns the post
-      if (post.authorId !== req.user!.id) {
-        return res.status(403).send("You can only delete your own posts");
+      // Check permissions:
+      // 1. Owner can delete anything
+      // 2. Admin can delete non-admin content
+      // 3. Users can only delete their own content
+      const targetUser = await storage.getUser(post.authorId);
+      if (!targetUser) {
+        return res.status(404).send("Post author not found");
+      }
+
+      const canDelete = 
+        req.user!.role === 'owner' || // Owner can delete anything
+        (req.user!.role === 'admin' && targetUser.role !== 'owner') || // Admin can delete user content
+        post.authorId === req.user!.id; // Users can delete their own content
+
+      if (!canDelete) {
+        return res.status(403).send("You don't have permission to delete this post");
       }
 
       // Delete associated comments
@@ -615,9 +628,22 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         return res.status(404).send("Comment not found");
       }
 
-      // Check if user owns the comment
-      if (comment.authorId !== req.user!.id) {
-        return res.status(403).send("You can only delete your own comments");
+      // Check permissions:
+      // 1. Owner can delete anything
+      // 2. Admin can delete non-admin content
+      // 3. Users can only delete their own content
+      const targetUser = await storage.getUser(comment.authorId);
+      if (!targetUser) {
+        return res.status(404).send("Comment author not found");
+      }
+
+      const canDelete = 
+        req.user!.role === 'owner' || // Owner can delete anything
+        (req.user!.role === 'admin' && targetUser.role !== 'owner') || // Admin can delete user content
+        comment.authorId === req.user!.id; // Users can delete their own content
+
+      if (!canDelete) {
+        return res.status(403).send("You don't have permission to delete this comment");
       }
 
       await storage.deleteComment(commentId);

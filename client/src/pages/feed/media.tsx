@@ -21,11 +21,12 @@ type PostWithAuthor = Post & {
     username: string;
     id: number;
     isFollowing: boolean;
+    role: string; // Added role property
   };
   comments: Array<{
     id: number;
     content: string;
-    author: { username: string };
+    author: { username: string; role: string }; // Added role property
     createdAt: string;
   }>;
   reactions: {
@@ -354,7 +355,9 @@ export default function MediaFeedPage() {
                                   </span>
                                 </div>
                               </div>
-                              {comment.author.username === user?.username && (
+                              {(comment.author.username === user?.username ||
+                                user?.role === 'owner' ||
+                                (user?.role === 'admin' && comment.author.role !== 'owner')) && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -399,7 +402,9 @@ export default function MediaFeedPage() {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      {post.author.id === user?.id && (
+                      {(user?.role === 'owner' ||
+                        (user?.role === 'admin' && post.author.role !== 'owner') ||
+                        post.author.id === user?.id) && (
                         <Button
                           variant="ghost"
                           size="sm"
