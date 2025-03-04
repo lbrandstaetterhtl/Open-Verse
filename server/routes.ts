@@ -261,15 +261,51 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     res.json(reports);
   });
 
+  // Update the report creation handler to properly validate discussion reports
   app.post("/api/reports", isAuthenticated, async (req, res) => {
     const result = insertReportSchema.safeParse(req.body);
     if (!result.success) return res.status(400).json(result.error);
 
-    const report = await storage.createReport({
-      ...result.data,
-      reporterId: req.user!.id,
-    });
-    res.status(201).json(report);
+    try {
+      // Verify the discussion exists if discussionId is provided
+      if (result.data.discussionId) {
+        const discussion = await storage.getPost(result.data.discussionId);
+        if (!discussion || discussion.category !== 'discussion') {
+          return res.status(404).send("Discussion not found");
+        }
+      }
+
+      const report = await storage.createReport({
+        ...result.data,
+        reporterId: req.user!.id,
+      });
+
+      // Send notification to admin users about new report
+      const adminSockets = Array.from(connections.entries())
+        .filter(async ([userId]) => {
+          const user = await storage.getUser(userId);
+          return user?.isAdmin;
+        });
+
+      const message = JSON.stringify({
+        type: 'new_report',
+        data: {
+          ...report,
+          reporter: { username: req.user!.username }
+        }
+      });
+
+      for (const [, socket] of adminSockets) {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(message);
+        }
+      }
+
+      res.status(201).json(report);
+    } catch (error) {
+      console.error('Error creating report:', error);
+      res.status(500).send("Failed to create report");
+    }
   });
 
   app.patch("/api/admin/reports/:id", isAdmin, async (req, res) => {

@@ -180,10 +180,7 @@ export default function AdminDashboard() {
                                         )) {
                                           updateUserMutation.mutate({
                                             userId: user.id,
-                                            data: {
-                                              karma: newKarma,
-                                              emailVerified: action === 'restore' // Restore email verification on unban
-                                            }
+                                            data: { karma: newKarma }
                                           });
                                         }
                                       }}
@@ -265,12 +262,14 @@ export default function AdminDashboard() {
                           <TableRow key={report.id}>
                             <TableCell>{report.reporter?.username}</TableCell>
                             <TableCell>
-                              {report.content?.type === 'post' ? "Post" : "Comment"}
+                              {report.content?.type === 'post' ? "Post" :
+                               report.content?.type === 'discussion' ? "Discussion" :
+                               "Comment"}
                             </TableCell>
                             <TableCell className="max-w-xs truncate">
-                              {report.content?.type === 'post'
-                                ? report.content.title
-                                : report.content?.content}
+                              {report.content?.type === 'post' ? report.content.title :
+                               report.content?.type === 'discussion' ? report.content.title :
+                               report.content?.content}
                             </TableCell>
                             <TableCell>{report.reason}</TableCell>
                             <TableCell>

@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/navbar";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Post, insertDiscussionPostSchema, insertCommentSchema } from "@shared/schema";
+import { Post, Report, insertDiscussionPostSchema, insertCommentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -13,6 +13,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -28,7 +39,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, UserCircle } from "lucide-react";
 import { format } from "date-fns";
 import * as z from 'zod';
-import { Report } from "@shared/schema";
 
 type PostWithAuthor = Post & {
   author: { username: string };
@@ -55,7 +65,7 @@ export default function DiscussionsPage() {
   const { data: posts, isLoading } = useQuery<PostWithAuthor[]>({
     queryKey: ["/api/posts", "discussion"],
     queryFn: async () => {
-      const res = await fetch("/api/posts?category=discussion&include=author,comments,reactions,userReaction");
+      const res = await fetch("/api/posts?category=discussion");
       if (!res.ok) throw new Error("Failed to fetch posts");
       return res.json();
     },
@@ -97,16 +107,6 @@ export default function DiscussionsPage() {
         title: "Comment added",
         description: "Your comment has been posted successfully.",
       });
-    },
-  });
-
-  const karmaUpdateMutation = useMutation<Post, Error, { postId: number; karma: number }>({
-    mutationFn: async ({ postId, karma }) => {
-      const res = await apiRequest("POST", `/api/posts/${postId}/karma`, { karma });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
     },
   });
 
@@ -298,19 +298,35 @@ export default function DiscussionsPage() {
                         <span>{post.reactions.dislikes}</span>
                       </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        reportMutation.mutate({
-                          discussionId: post.id,
-                          reason: "Inappropriate content",
-                        })
-                      }
-                    >
-                      <Flag className="h-4 w-4 mr-1" />
-                      Report
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Flag className="h-4 w-4 mr-1" />
+                          Report
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Report Discussion</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to report this discussion? This will notify moderators to review the content.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => {
+                              reportMutation.mutate({
+                                discussionId: post.id,
+                                reason: "Inappropriate content"
+                              });
+                            }}
+                          >
+                            Report
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </CardFooter>
                 </Card>
               ))}
