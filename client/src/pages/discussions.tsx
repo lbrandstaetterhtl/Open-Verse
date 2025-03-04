@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -6,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import {
   Card,
   CardContent,
@@ -13,17 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -36,9 +27,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, UserCircle, Trash2 } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, UserCircle, Trash2, Heart } from "lucide-react";
 import { format } from "date-fns";
 import * as z from 'zod';
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 type PostWithAuthor = Post & {
   author: { username: string; id: number; role: string };
@@ -47,6 +39,8 @@ type PostWithAuthor = Post & {
     content: string;
     author: { username: string; role: string; id: number };
     createdAt: string;
+    likes: number;
+    isLiked: boolean;
   }>;
   reactions: {
     likes: number;
@@ -162,6 +156,25 @@ export default function DiscussionsPage() {
     }
   });
 
+  const likeCommentMutation = useMutation({
+    mutationFn: async (commentId: number) => {
+      const res = await apiRequest("POST", `/api/comments/${commentId}/like`);
+      if (!res.ok) {
+        throw new Error("Failed to like comment");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <>
@@ -238,11 +251,15 @@ export default function DiscussionsPage() {
                 <Card key={post.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle>{post.title}</CardTitle>
-                        <div className="flex items-center space-x-2 mt-2 text-sm text-muted-foreground">
-                          <UserCircle className="h-4 w-4" />
-                          <span>{post.author.username}</span>
+                      <div className="flex items-center gap-3">
+                        <Link href={`/users/${post.author.username}`} className="hover:opacity-80">
+                          <UserAvatar user={post.author} size="sm" />
+                        </Link>
+                        <div>
+                          <CardTitle>{post.title}</CardTitle>
+                          <Link href={`/users/${post.author.username}`} className="text-sm text-muted-foreground hover:underline">
+                            {post.author.username}
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -260,7 +277,59 @@ export default function DiscussionsPage() {
                         Comments
                       </h3>
 
-                      {/* Comment Form */}
+                      {/* Comments List */}
+                      <div className="space-y-3">
+                        {post.comments?.map((comment) => (
+                          <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Link href={`/users/${comment.author.username}`} className="hover:opacity-80">
+                                  <UserAvatar user={comment.author} size="sm" />
+                                </Link>
+                                <div>
+                                  <Link href={`/users/${comment.author.username}`} className="text-sm font-medium hover:underline">
+                                    {comment.author.username}
+                                  </Link>
+                                  <span className="text-xs text-muted-foreground block">
+                                    {format(new Date(comment.createdAt), "PPp")}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant={comment.isLiked ? "default" : "ghost"}
+                                  size="sm"
+                                  onClick={() => likeCommentMutation.mutate(comment.id)}
+                                  disabled={likeCommentMutation.isPending}
+                                  className="h-8"
+                                >
+                                  <Heart className={`h-4 w-4 mr-1 ${comment.isLiked ? "fill-current" : ""}`} />
+                                  <span className="text-xs">{comment.likes}</span>
+                                </Button>
+                                {(comment.author.username === user?.username ||
+                                  user?.role === 'owner' ||
+                                  (user?.role === 'admin' && comment.author.role !== 'owner')) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (window.confirm("Are you sure you want to delete this comment?")) {
+                                        deleteCommentMutation.mutate(comment.id);
+                                      }
+                                    }}
+                                    disabled={deleteCommentMutation.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-sm mt-2 pl-10">{comment.content}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Comment input form */}
                       <div className="flex gap-2">
                         <Input
                           placeholder="Write a comment..."
@@ -290,40 +359,6 @@ export default function DiscussionsPage() {
                         >
                           Post
                         </Button>
-                      </div>
-
-                      {/* Comments List */}
-                      <div className="space-y-3">
-                        {post.comments?.map((comment) => (
-                          <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <UserCircle className="h-4 w-4" />
-                              <span className="text-sm font-medium">{comment.author.username}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(comment.createdAt), "PPp")}
-                              </span>
-                            </div>
-                            <p className="text-sm">{comment.content}</p>
-                            <div>
-                              {(comment.author.username === user?.username ||
-                                user?.role === 'owner' ||
-                                (user?.role === 'admin' && comment.author.role !== 'owner')) && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    if (window.confirm("Are you sure you want to delete this comment?")) {
-                                      deleteCommentMutation.mutate(comment.id);
-                                    }
-                                  }}
-                                  disabled={deleteCommentMutation.isPending}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
                       </div>
                     </div>
                   </CardContent>

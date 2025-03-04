@@ -210,7 +210,6 @@ export default function MediaFeedPage() {
       <Navbar />
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-3xl mx-auto">
-          {/* Mobile Header */}
           <div className="lg:hidden mb-6">
             <h1 className="text-2xl font-bold mb-4">Media Feed</h1>
             <div className="flex gap-2 overflow-x-auto pb-2">
@@ -229,7 +228,6 @@ export default function MediaFeedPage() {
             </div>
           </div>
 
-          {/* Desktop Header */}
           <div className="hidden lg:flex items-center justify-between mb-8">
             <h1 className="text-4xl font-bold">Media Feed</h1>
             <div className="space-x-4">
@@ -263,11 +261,17 @@ export default function MediaFeedPage() {
                   <CardHeader className="p-4 lg:p-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <UserAvatar user={post.author} size="sm" />
+                        <Link href={`/users/${post.author.username}`} className="hover:opacity-80">
+                          <UserAvatar user={post.author} size="sm" />
+                        </Link>
                         <div className="min-w-0">
                           <CardTitle className="text-base lg:text-lg truncate">{post.title}</CardTitle>
                           <p className="text-xs lg:text-sm text-muted-foreground">
-                            {post.author.username} • {format(new Date(post.createdAt), "PPP")}
+                            <Link href={`/users/${post.author.username}`} className="hover:underline">
+                              {post.author.username}
+                            </Link>
+                            {" • "}
+                            {format(new Date(post.createdAt), "PPP")}
                           </p>
                         </div>
                       </div>
@@ -311,14 +315,12 @@ export default function MediaFeedPage() {
                       </div>
                     )}
 
-                    {/* Comments Section */}
                     <div className="mt-6 space-y-4">
                       <h3 className="text-sm lg:text-base font-semibold flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
                         Comments
                       </h3>
 
-                      {/* Add Comment Form */}
                       <div className="flex gap-2">
                         <Input
                           data-post-id={post.id}
@@ -357,11 +359,13 @@ export default function MediaFeedPage() {
                           <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 min-w-0">
-                                <UserAvatar user={comment.author} size="sm" />
+                                <Link href={`/users/${comment.author.username}`} className="hover:opacity-80">
+                                  <UserAvatar user={comment.author} size="sm" />
+                                </Link>
                                 <div className="min-w-0">
-                                  <span className="text-xs lg:text-sm font-medium block truncate">
+                                  <Link href={`/users/${comment.author.username}`} className="text-xs lg:text-sm font-medium block truncate hover:underline">
                                     {comment.author.username}
-                                  </span>
+                                  </Link>
                                   <span className="text-xs text-muted-foreground block">
                                     {format(new Date(comment.createdAt), "PPp")}
                                   </span>

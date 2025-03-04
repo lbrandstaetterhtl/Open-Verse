@@ -10,6 +10,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import ProfilePage from "@/pages/profile";
+import UserProfilePage from "@/pages/user-profile";
 import ChatPage from "@/pages/chat";
 import AdminDashboard from "@/pages/admin/dashboard";
 
@@ -39,6 +40,10 @@ function Router() {
       <ProtectedRoute path="/post/news" component={PostNewsPage} />
       <ProtectedRoute path="/post/entertainment" component={PostEntertainmentPage} />
 
+      {/* User Routes */}
+      <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/users/:username" component={UserProfilePage} />
+
       {/* Chat Route */}
       <ProtectedRoute path="/chat" component={ChatPage} />
 
@@ -46,7 +51,6 @@ function Router() {
       <ProtectedRoute path="/admin" component={AdminDashboard} />
 
       {/* Other Routes */}
-      <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/" component={MediaFeedPage} />
       <Route component={NotFound} />
     </Switch>
