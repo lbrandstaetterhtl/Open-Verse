@@ -74,6 +74,11 @@ export interface IStorage {
   }): Promise<Message>;
   getMessages(userId1: number, userId2: number): Promise<Message[]>;
   getUnreadMessageCount(userId: number): Promise<number>;
+
+  deleteComments(postId: number): Promise<void>;
+  deletePostReactions(postId: number): Promise<void>;
+  deleteReports(postId: number): Promise<void>;
+  deletePost(postId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -410,6 +415,22 @@ export class DatabaseStorage implements IStorage {
       ));
 
     return result[0].count;
+  }
+
+  async deleteComments(postId: number): Promise<void> {
+    await db.delete(comments).where(eq(comments.postId, postId));
+  }
+
+  async deletePostReactions(postId: number): Promise<void> {
+    await db.delete(postLikes).where(eq(postLikes.postId, postId));
+  }
+
+  async deleteReports(postId: number): Promise<void> {
+    await db.delete(reports).where(eq(reports.postId, postId));
+  }
+
+  async deletePost(postId: number): Promise<void> {
+    await db.delete(posts).where(eq(posts.id, postId));
   }
 }
 
