@@ -1,356 +1,279 @@
 import { User, Post, Comment, Report, InsertUser, InsertDiscussionPost, InsertMediaPost } from "@shared/schema";
 import session from "express-session";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import { users, posts, comments, reports, postLikes, verificationTokens } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
-import connectPg from "connect-pg-simple";
-import { log } from "./vite";
+import createMemoryStore from "memorystore";
 
-const PostgresSessionStore = connectPg(session);
+const MemoryStore = createMemoryStore(session);
 
-// Initialize postgres client with proper configuration
-const queryClient = postgres(process.env.DATABASE_URL!, {
-  ssl: {
-    rejectUnauthorized: false
-  },
-  max: 20,
-  idle_timeout: 30,
-  connect_timeout: 10,
-  connection: {
-    application_name: "coffee-social-app"
-  }
-});
+export interface IStorage {
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUserProfile(id: number, profile: Partial<{ username: string; email: string }>): Promise<User>;
+  updateUserPassword(id: number, password: string): Promise<User>;
+  updateUserKarma(id: number, karma: number): Promise<User>;
 
-log("Database client initialized");
+  createPost(post: Omit<Post, "id" | "createdAt" | "karma">): Promise<Post>;
+  getPosts(category?: string): Promise<Post[]>;
+  getPost(id: number): Promise<Post | undefined>;
+  updatePostKarma(id: number, karma: number): Promise<Post>;
 
-const db = drizzle(queryClient);
+  createComment(comment: Omit<Comment, "id" | "createdAt" | "karma">): Promise<Comment>;
+  getComments(postId: number): Promise<Comment[]>;
+  updateCommentKarma(id: number, karma: number): Promise<Comment>;
 
-export class DatabaseStorage implements IStorage {
+  createReport(report: Omit<Report, "id" | "createdAt" | "status">): Promise<Report>;
+  getReports(): Promise<Report[]>;
+  updateReportStatus(id: number, status: string): Promise<Report>;
+
+  sessionStore: session.Store;
+  createVerificationToken(token: {
+    token: string;
+    userId: number;
+    expiresAt: Date;
+  }): Promise<void>;
+
+  getVerificationToken(token: string): Promise<{
+    token: string;
+    userId: number;
+    expiresAt: Date;
+  } | undefined>;
+
+  deleteVerificationToken(token: string): Promise<void>;
+
+  verifyUserEmail(userId: number): Promise<void>;
+  createPostLike(userId: number, postId: number, isLike: boolean): Promise<void>;
+  removePostReaction(userId: number, postId: number): Promise<void>;
+  getUserPostReaction(userId: number, postId: number): Promise<{ isLike: boolean } | null>;
+  getPostReactions(postId: number): Promise<{ likes: number; dislikes: number }>;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private posts: Map<number, Post>;
+  private comments: Map<number, Comment>;
+  private reports: Map<number, Report>;
+  private postLikes: Map<string, { id: number; userId: number; postId: number; isLike: boolean; createdAt: Date }>;
   public sessionStore: session.Store;
-  private isConnected: boolean = false;
-  private connectionRetryTimeout: NodeJS.Timeout | null = null;
+  private currentIds: { [key: string]: number };
+  private verificationTokens: Map<string, {
+    token: string;
+    userId: number;
+    expiresAt: Date;
+  }>;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({
-      conObject: {
-        connectionString: process.env.DATABASE_URL,
-        ssl: {
-          rejectUnauthorized: false
-        }
-      },
-      createTableIfMissing: true,
-    });
-
-    // Test database connection asynchronously
-    this.testConnection();
-  }
-
-  private async testConnection() {
-    try {
-      await db.select().from(users).limit(1);
-      this.isConnected = true;
-      log("Database connection test successful");
-      if (this.connectionRetryTimeout) {
-        clearTimeout(this.connectionRetryTimeout);
-        this.connectionRetryTimeout = null;
-      }
-    } catch (error) {
-      console.error("Database connection test failed:", error);
-      this.isConnected = false;
-      // Retry connection after 5 seconds
-      this.connectionRetryTimeout = setTimeout(() => this.testConnection(), 5000);
-    }
-  }
-
-  private async ensureConnection() {
-    if (!this.isConnected) {
-      throw new Error("Database connection not available");
-    }
+    this.users = new Map();
+    this.posts = new Map();
+    this.comments = new Map();
+    this.reports = new Map();
+    this.postLikes = new Map();
+    this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
+    this.currentIds = { users: 1, posts: 1, comments: 1, reports: 1, postLikes: 1 };
+    this.verificationTokens = new Map();
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    try {
-      await this.ensureConnection();
-      const result = await db.select().from(users).where(eq(users.id, id));
-      return result[0];
-    } catch (error) {
-      console.error('Error getting user:', error);
-      throw error;
-    }
+    return this.users.get(id);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    try {
-      await this.ensureConnection();
-      const result = await db.select().from(users).where(eq(users.username, username));
-      return result[0];
-    } catch (error) {
-      console.error('Error getting user by username:', error);
-      throw error;
-    }
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username,
+    );
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    try {
-      await this.ensureConnection();
-      const result = await db.select().from(users).where(eq(users.email, email));
-      return result[0];
-    } catch (error) {
-      console.error('Error getting user by email:', error);
-      throw error;
-    }
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email,
+    );
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    try {
-      await this.ensureConnection();
-      const result = await db.insert(users).values(insertUser).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error creating user:', error);
-      throw error;
-    }
+    const id = this.currentIds.users++;
+    const user: User = {
+      ...insertUser,
+      id,
+      karma: 5,
+      createdAt: new Date(),
+      emailVerified: false,
+    };
+    this.users.set(id, user);
+    return user;
   }
 
   async updateUserProfile(id: number, profile: Partial<{ username: string; email: string }>): Promise<User> {
-    try {
-      await this.ensureConnection();
-      const result = await db.update(users).set(profile).where(eq(users.id, id)).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error updating user profile:', error);
-      throw error;
-    }
+    const user = this.users.get(id);
+    if (!user) throw new Error("User not found");
+
+    const updated = { ...user, ...profile };
+    this.users.set(id, updated);
+    return updated;
   }
 
   async updateUserPassword(id: number, password: string): Promise<User> {
-    try {
-      await this.ensureConnection();
-      const result = await db.update(users).set({ password }).where(eq(users.id, id)).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error updating user password:', error);
-      throw error;
-    }
+    const user = this.users.get(id);
+    if (!user) throw new Error("User not found");
+
+    const updated = { ...user, password };
+    this.users.set(id, updated);
+    return updated;
   }
 
   async updateUserKarma(id: number, karma: number): Promise<User> {
-    try {
-      await this.ensureConnection();
-      const result = await db.update(users).set({ karma }).where(eq(users.id, id)).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error updating user karma:', error);
-      throw error;
-    }
+    const user = this.users.get(id);
+    if (!user) throw new Error("User not found");
+    const updated = { ...user, karma };
+    this.users.set(id, updated);
+    return updated;
   }
 
   async createPost(post: Omit<Post, "id" | "createdAt" | "karma">): Promise<Post> {
-    try {
-      await this.ensureConnection();
-      const result = await db.insert(posts).values(post).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error creating post:', error);
-      throw error;
-    }
+    const id = this.currentIds.posts++;
+    const newPost: Post = {
+      ...post,
+      id,
+      karma: 0,
+      createdAt: new Date(),
+      mediaUrl: post.mediaUrl || null,
+      mediaType: post.mediaType || null,
+    };
+    this.posts.set(id, newPost);
+    return newPost;
   }
 
   async getPosts(category?: string): Promise<Post[]> {
-    try {
-      await this.ensureConnection();
-      if (category) {
-        return db.select().from(posts).where(eq(posts.category, category));
-      }
-      return db.select().from(posts);
-    } catch (error) {
-      console.error('Error getting posts:', error);
-      throw error;
-    }
+    const posts = Array.from(this.posts.values());
+    return category ? posts.filter(p => p.category === category) : posts;
   }
 
   async getPost(id: number): Promise<Post | undefined> {
-    try {
-      await this.ensureConnection();
-      const result = await db.select().from(posts).where(eq(posts.id, id));
-      return result[0];
-    } catch (error) {
-      console.error('Error getting post:', error);
-      throw error;
-    }
+    return this.posts.get(id);
   }
 
   async updatePostKarma(id: number, karma: number): Promise<Post> {
-    try {
-      await this.ensureConnection();
-      const result = await db.update(posts).set({ karma }).where(eq(posts.id, id)).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error updating post karma:', error);
-      throw error;
-    }
+    const post = this.posts.get(id);
+    if (!post) throw new Error("Post not found");
+    const updated = { ...post, karma };
+    this.posts.set(id, updated);
+    return updated;
   }
 
   async createComment(comment: Omit<Comment, "id" | "createdAt" | "karma">): Promise<Comment> {
-    try {
-      await this.ensureConnection();
-      const result = await db.insert(comments).values(comment).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error creating comment:', error);
-      throw error;
-    }
+    const id = this.currentIds.comments++;
+    const newComment: Comment = {
+      ...comment,
+      id,
+      karma: 5,
+      createdAt: new Date(),
+    };
+    this.comments.set(id, newComment);
+    return newComment;
   }
 
   async getComments(postId: number): Promise<Comment[]> {
-    try {
-      await this.ensureConnection();
-      return db.select().from(comments).where(eq(comments.postId, postId));
-    } catch (error) {
-      console.error('Error getting comments:', error);
-      throw error;
-    }
+    return Array.from(this.comments.values()).filter(c => c.postId === postId);
   }
 
   async updateCommentKarma(id: number, karma: number): Promise<Comment> {
-    try {
-      await this.ensureConnection();
-      const result = await db.update(comments).set({ karma }).where(eq(comments.id, id)).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error updating comment karma:', error);
-      throw error;
-    }
+    const comment = this.comments.get(id);
+    if (!comment) throw new Error("Comment not found");
+    const updated = { ...comment, karma };
+    this.comments.set(id, updated);
+    return updated;
   }
 
   async createReport(report: Omit<Report, "id" | "createdAt" | "status">): Promise<Report> {
-    try {
-      await this.ensureConnection();
-      const result = await db.insert(reports).values(report).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error creating report:', error);
-      throw error;
-    }
+    const id = this.currentIds.reports++;
+    const newReport: Report = {
+      ...report,
+      id,
+      status: "pending",
+      createdAt: new Date(),
+    };
+    this.reports.set(id, newReport);
+    return newReport;
   }
 
   async getReports(): Promise<Report[]> {
-    try {
-      await this.ensureConnection();
-      return db.select().from(reports);
-    } catch (error) {
-      console.error('Error getting reports:', error);
-      throw error;
-    }
+    return Array.from(this.reports.values());
   }
 
   async updateReportStatus(id: number, status: string): Promise<Report> {
-    try {
-      await this.ensureConnection();
-      const result = await db.update(reports).set({ status }).where(eq(reports.id, id)).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error updating report status:', error);
-      throw error;
-    }
+    const report = this.reports.get(id);
+    if (!report) throw new Error("Report not found");
+    const updated = { ...report, status };
+    this.reports.set(id, updated);
+    return updated;
   }
 
-  async createVerificationToken(token: { token: string; userId: number; expiresAt: Date }): Promise<void> {
-    try {
-      await this.ensureConnection();
-      await db.insert(verificationTokens).values(token);
-    } catch (error) {
-      console.error('Error creating verification token:', error);
-      throw error;
-    }
+  async createVerificationToken(token: {
+    token: string;
+    userId: number;
+    expiresAt: Date;
+  }): Promise<void> {
+    this.verificationTokens.set(token.token, token);
   }
 
   async getVerificationToken(token: string) {
-    try {
-      await this.ensureConnection();
-      const result = await db.select().from(verificationTokens).where(eq(verificationTokens.token, token));
-      return result[0];
-    } catch (error) {
-      console.error('Error getting verification token:', error);
-      throw error;
-    }
+    return this.verificationTokens.get(token);
   }
 
   async deleteVerificationToken(token: string): Promise<void> {
-    try {
-      await this.ensureConnection();
-      await db.delete(verificationTokens).where(eq(verificationTokens.token, token));
-    } catch (error) {
-      console.error('Error deleting verification token:', error);
-      throw error;
-    }
+    this.verificationTokens.delete(token);
   }
 
   async verifyUserEmail(userId: number): Promise<void> {
-    try {
-      await this.ensureConnection();
-      await db.update(users).set({ emailVerified: true }).where(eq(users.id, userId));
-    } catch (error) {
-      console.error('Error verifying user email:', error);
-      throw error;
-    }
-  }
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
 
+    const updatedUser = { ...user, emailVerified: true };
+    this.users.set(userId, updatedUser);
+  }
   async createPostLike(userId: number, postId: number, isLike: boolean): Promise<void> {
-    try {
-      await this.ensureConnection();
-      await db.insert(postLikes).values({ userId, postId, isLike });
-    } catch (error) {
-      console.error('Error creating post like:', error);
-      throw error;
+    const key = `${userId}-${postId}`;
+    const id = this.currentIds.postLikes++;
+    this.postLikes.set(key, {
+      id,
+      userId,
+      postId,
+      isLike,
+      createdAt: new Date(),
+    });
+
+    // Update post karma based on like/dislike
+    const post = await this.getPost(postId);
+    if (post) {
+      await this.updatePostKarma(postId, post.karma + (isLike ? 1 : -1));
     }
   }
 
   async removePostReaction(userId: number, postId: number): Promise<void> {
-    try {
-      await this.ensureConnection();
-      await db.delete(postLikes).where(
-        and(
-          eq(postLikes.userId, userId),
-          eq(postLikes.postId, postId)
-        )
-      );
-    } catch (error) {
-      console.error('Error removing post reaction:', error);
-      throw error;
+    const key = `${userId}-${postId}`;
+    const reaction = this.postLikes.get(key);
+    if (reaction) {
+      // Reverse the previous karma effect
+      const post = await this.getPost(postId);
+      if (post) {
+        await this.updatePostKarma(postId, post.karma + (reaction.isLike ? -1 : 1));
+      }
+      this.postLikes.delete(key);
     }
   }
 
   async getUserPostReaction(userId: number, postId: number): Promise<{ isLike: boolean } | null> {
-    try {
-      await this.ensureConnection();
-      const result = await db.select().from(postLikes).where(
-        and(
-          eq(postLikes.userId, userId),
-          eq(postLikes.postId, postId)
-        )
-      );
-      return result[0] ? { isLike: result[0].isLike } : null;
-    } catch (error) {
-      console.error('Error getting user post reaction:', error);
-      throw error;
-    }
+    const key = `${userId}-${postId}`;
+    const reaction = this.postLikes.get(key);
+    return reaction ? { isLike: reaction.isLike } : null;
   }
 
   async getPostReactions(postId: number): Promise<{ likes: number; dislikes: number }> {
-    try {
-      await this.ensureConnection();
-      const reactions = await db.select().from(postLikes).where(eq(postLikes.postId, postId));
-      return {
-        likes: reactions.filter(r => r.isLike).length,
-        dislikes: reactions.filter(r => !r.isLike).length
-      };
-    } catch (error) {
-      console.error('Error getting post reactions:', error);
-      throw error;
-    }
+    const reactions = Array.from(this.postLikes.values()).filter(like => like.postId === postId);
+    return {
+      likes: reactions.filter(r => r.isLike).length,
+      dislikes: reactions.filter(r => !r.isLike).length
+    };
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();

@@ -36,9 +36,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(401).send("Unauthorized");
   };
 
-  // Serve static files from project root for favicon and other assets
-  app.use(express.static(path.join(process.cwd())));
-
   // Serve uploaded files
   app.use("/uploads", express.static("uploads"));
 

@@ -31,18 +31,30 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+function generateVerificationToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
+async function createVerificationToken(userId: number): Promise<string> {
+  const token = generateVerificationToken();
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + 24); // Token expires in 24 hours
+
+  await storage.createVerificationToken({
+    token,
+    userId,
+    expiresAt,
+  });
+
+  return token;
+}
+
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
-    cookie: {
-      secure: false, // Set to true if using HTTPS
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
-    },
-    name: 'connect.sid'
   };
 
   app.set("trust proxy", 1);
@@ -70,19 +82,12 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => {
-    done(null, user.id);
-  });
-
+  passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
-      if (!user) {
-        return done(null, false);
-      }
       done(null, user);
     } catch (err) {
-      console.error('Deserialization error:', err);
       done(err);
     }
   });
@@ -219,22 +224,4 @@ export function setupAuth(app: Express) {
     );
     res.json(updatedUser);
   });
-}
-
-async function createVerificationToken(userId: number): Promise<string> {
-  const token = generateVerificationToken();
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + 24); // Token expires in 24 hours
-
-  await storage.createVerificationToken({
-    token,
-    userId,
-    expiresAt,
-  });
-
-  return token;
-}
-
-function generateVerificationToken(): string {
-  return randomBytes(32).toString("hex");
 }
