@@ -88,8 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       clients.set(userId, ws);
 
       // Send initial connection success message
-      const connectionMessage = JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() });
-      ws.send(connectionMessage);
+      ws.send(JSON.stringify({ type: 'connected' }));
 
       ws.on('close', () => {
         clients.delete(userId);
@@ -466,29 +465,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content,
       });
 
-      const sender = await storage.getUser(senderId);
-      const receiver = await storage.getUser(receiverId);
-
       // Send real-time update to receiver if they're connected
       const receiverWs = clients.get(receiverId);
       if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
-        try {
-          const messageData = {
-            type: 'new_message',
-            message: {
-              ...message,
-              sender: {
-                username: sender.username
-              },
-              receiver: {
-                username: receiver.username
-              }
-            }
-          };
-          receiverWs.send(JSON.stringify(messageData));
-        } catch (error) {
-          console.error('Error sending WebSocket message:', error);
-        }
+        receiverWs.send(JSON.stringify({
+          type: 'new_message',
+          message
+        }));
       }
 
       // Create notification for new message
