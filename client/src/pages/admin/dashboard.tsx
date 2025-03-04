@@ -217,8 +217,8 @@ export default function AdminDashboard() {
                             <TableCell>
                               <Badge variant={
                                 u.role === 'owner' ? "destructive" :
-                                u.role === 'admin' ? "default" :
-                                "secondary"
+                                  u.role === 'admin' ? "default" :
+                                    "secondary"
                               }>
                                 {u.role}
                               </Badge>
@@ -300,9 +300,9 @@ export default function AdminDashboard() {
                                               if (window.confirm(`Are you sure you want to make ${u.username} an admin? This will give them administrative privileges.`)) {
                                                 updateUserMutation.mutate({
                                                   userId: u.id,
-                                                  data: { 
+                                                  data: {
                                                     role: 'admin',
-                                                    isAdmin: true 
+                                                    isAdmin: true
                                                   }
                                                 });
                                               }
@@ -311,6 +311,28 @@ export default function AdminDashboard() {
                                           >
                                             <Shield className="h-4 w-4 mr-1" />
                                             Make Admin
+                                          </Button>
+                                        )}
+                                        {/* Only owner can demote admins */}
+                                        {user.role === 'owner' && u.role === 'admin' && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              if (window.confirm(`Are you sure you want to remove ${u.username}'s admin privileges? They will be demoted to a regular user.`)) {
+                                                updateUserMutation.mutate({
+                                                  userId: u.id,
+                                                  data: {
+                                                    role: 'user',
+                                                    isAdmin: false
+                                                  }
+                                                });
+                                              }
+                                            }}
+                                            disabled={updateUserMutation.isPending}
+                                          >
+                                            <Shield className="h-4 w-4 mr-1" />
+                                            Remove Admin
                                           </Button>
                                         )}
                                       </>
@@ -358,12 +380,12 @@ export default function AdminDashboard() {
                             <TableCell>
                               {report.content?.type === 'post' ? "Post" :
                                 report.content?.type === 'discussion' ? "Discussion" :
-                                "Comment"}
+                                  "Comment"}
                             </TableCell>
                             <TableCell className="max-w-xs truncate">
                               {report.content?.type === 'post' ? report.content.title :
                                 report.content?.type === 'discussion' ? report.content.title :
-                                report.content?.content}
+                                  report.content?.content}
                             </TableCell>
                             <TableCell>{report.reason}</TableCell>
                             <TableCell>

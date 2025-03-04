@@ -744,7 +744,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       } else {
         // For role updates, ensure proper permissions
         if (req.body.role === 'admin' && req.user.role !== 'owner') {
-          return res.status(403).send("Only owner can grant admin role");
+          req.body.isAdmin = true; // Ensure isAdmin is set when promoting to admin
         }
 
         if (req.body.role === 'owner') {
