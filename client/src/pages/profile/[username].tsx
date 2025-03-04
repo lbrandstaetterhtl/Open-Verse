@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useParams } from "wouter";
 import { Navbar } from "@/components/layout/navbar";
 import { Loader2, UserPlus, UserMinus } from "lucide-react";
+import { format } from "date-fns";
 
 export default function UserProfilePage() {
   const { username } = useParams();
@@ -159,6 +160,22 @@ export default function UserProfilePage() {
                   <div key={post.id} className="p-4 border rounded-lg">
                     <h3 className="font-semibold">{post.title}</h3>
                     <p className="mt-2">{post.content}</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {format(new Date(post.createdAt), "PPp")}
+                    </p>
+                    {post.mediaUrl && (
+                      <div className="mt-4 rounded-lg overflow-hidden">
+                        {post.mediaType === "image" ? (
+                          <img
+                            src={post.mediaUrl}
+                            alt="Post media"
+                            className="w-full h-auto max-h-96 object-cover"
+                          />
+                        ) : post.mediaType === "video" ? (
+                          <video src={post.mediaUrl} controls className="w-full max-h-96" />
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                 ))}
                 {!posts?.length && (
