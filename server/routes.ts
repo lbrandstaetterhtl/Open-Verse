@@ -7,6 +7,18 @@ import path from "path";
 import express from "express";
 import { WebSocketServer, WebSocket } from 'ws';
 import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema } from "@shared/schema";
+import Knex from 'knex'; // Added import for Knex.js
+import type { Knex } from 'knex'; // Added type import for Knex.js
+
+// Assuming 'users' table schema is defined elsewhere and available.
+// Replace with your actual table definition if different.
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  createdAt: Date;
+  // ... other fields
+}
 
 // WebSocket connections store
 const connections = new Map<number, WebSocket>();
@@ -32,7 +44,7 @@ const upload = multer({
   }
 });
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Promise<Server> { // Added db parameter
   setupAuth(app);
 
   const isAuthenticated = (req: any, res: any, next: any) => {
@@ -216,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(201).json(report);
   });
 
-  app.post("/api/reports/:id/status", isAuthenticated, async (req, res) => {
+  app.patch("/api/reports/:id/status", isAuthenticated, async (req, res) => {
     const { status } = req.body;
     if (typeof status !== "string") return res.status(400).send("Invalid status");
 
@@ -458,6 +470,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting comment:', error);
       res.status(500).send("Failed to delete comment");
+    }
+  });
+
+  // Admin Routes
+  const isAdmin = (req: any, res: any, next: any) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (req.user.username !== 'pure-coffee') return res.status(403).send("Forbidden");
+    next();
+  };
+
+  app.get("/api/admin/users", isAdmin, async (req, res) => {
+    try {
+      const users = await db.select().from('users').orderBy('createdAt', 'desc'); // Assuming users table
+      res.json(users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).send("Failed to fetch users");
+    }
+  });
+
+  app.get("/api/admin/reports", isAdmin, async (req, res) => {
+    try {
+      const reports = await storage.getReports();
+      res.json(reports);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      res.status(500).send("Failed to fetch reports");
+    }
+  });
+
+  app.patch("/api/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      await db('users').update(req.body).where({ id: userId }); // Assuming users table
+
+      const updatedUser = await db.select().from('users').where({ id: userId }).first(); // Assuming users table
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      res.status(500).send("Failed to update user");
+    }
+  });
+
+  app.patch("/api/admin/reports/:id", isAdmin, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const updatedReport = await storage.updateReportStatus(reportId, req.body.status);
+      res.json(updatedReport);
+    } catch (error) {
+      console.error('Error updating report:', error);
+      res.status(500).send("Failed to update report status");
     }
   });
 
