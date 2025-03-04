@@ -32,8 +32,12 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Allow users with admin or owner role to access admin features
-  if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+  console.log('Current user:', user); // Debug log
+
+  // Check both is_admin flag and role for access
+  const hasAdminAccess = user && (user.is_admin || user.role === 'admin' || user.role === 'owner');
+  if (!hasAdminAccess) {
+    console.log('Access denied:', { user }); // Debug log for access denial
     return <Redirect to="/" />;
   }
 
@@ -131,6 +135,10 @@ export default function AdminDashboard() {
         });
       }
     }
+  };
+
+  const handleReportAction = (reportId: number, status: string) => {
+    updateReportMutation.mutate({ reportId, status });
   };
 
   return (

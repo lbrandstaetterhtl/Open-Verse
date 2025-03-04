@@ -9,6 +9,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema } from "@shared/schema";
 import type { Knex } from 'knex';
 import session from 'express-session';
+import passport from 'passport';
+
 
 // WebSocket connections store
 const connections = new Map<number, WebSocket>();
@@ -309,7 +311,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       const adminSockets = Array.from(connections.entries())
         .filter(async ([userId]) => {
           const user = await storage.getUser(userId);
-          return user?.isAdmin;
+          return user?.is_admin || user?.role === 'admin' || user?.role === 'owner'; //fixed
         });
 
       const message = JSON.stringify({
@@ -760,6 +762,31 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       console.error('Error updating user:', error);
       res.status(500).send("Failed to update user");
     }
+  });
+
+  // Modify the login route to include is_admin in the user object
+  app.post("/api/login", passport.authenticate("local"), (req, res) => {
+    // Add is_admin to the response
+    const userResponse = {
+      ...req.user,
+      is_admin: req.user.is_admin || req.user.role === 'admin' || req.user.role === 'owner'
+    };
+    res.status(200).json(userResponse);
+  });
+
+  // Modify the user route to include is_admin
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      console.log('Unauthenticated access attempt to /api/user');
+      return res.sendStatus(401);
+    }
+    console.log('User data requested for:', req.user.username);
+    // Add is_admin to the response
+    const userResponse = {
+      ...req.user,
+      is_admin: req.user.is_admin || req.user.role === 'admin' || req.user.role === 'owner'
+    };
+    res.json(userResponse);
   });
 
   return httpServer;
