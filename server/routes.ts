@@ -572,15 +572,25 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         return res.status(403).send("Cannot modify admin user");
       }
 
-      const updatedUser = await storage.updateUserProfile(userId, {
-        ...req.body,
-        // If karma is being set to negative, this is a ban action
-        ...(req.body.karma < 0 ? {
-          emailVerified: false // Automatically unverify banned users
-        } : {})
-      });
+      // If this is a ban action
+      if (req.body.karma < 0) {
+        // Send ban notification to the user if they're connected
+        const userWs = connections.get(userId);
+        if (userWs && userWs.readyState === WebSocket.OPEN) {
+          userWs.send(JSON.stringify({
+            type: 'banned',
+            message: 'Your account has been banned by an administrator.'
+          }));
+        }
 
-      res.json(updatedUser);
+        // Delete the user's data
+        await storage.deleteUser(userId);
+        res.json({ message: "User banned and deleted successfully" });
+      } else {
+        // For non-ban updates
+        const updatedUser = await storage.updateUserProfile(userId, req.body);
+        res.json(updatedUser);
+      }
     } catch (error) {
       console.error('Error updating user:', error);
       res.status(500).send("Failed to update user");

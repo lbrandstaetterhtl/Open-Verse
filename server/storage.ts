@@ -81,10 +81,11 @@ export interface IStorage {
   deletePostReactions(postId: number): Promise<void>;
   deleteReports(postId: number): Promise<void>;
   deletePost(postId: number): Promise<void>;
-    
+
   // Add new methods for admin features
   getUsers(): Promise<User[]>;
   getReport(id: number): Promise<Report | undefined>;
+  deleteUser(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -454,6 +455,33 @@ export class DatabaseStorage implements IStorage {
   async getReport(id: number): Promise<Report | undefined> {
     const [report] = await db.select().from(reports).where(eq(reports.id, id));
     return report;
+  }
+  async deleteUser(id: number): Promise<void> {
+    // Delete all user-related data
+    await db.delete(postLikes).where(eq(postLikes.userId, id));
+    await db.delete(comments).where(eq(comments.authorId, id));
+    await db.delete(posts).where(eq(posts.authorId, id));
+    await db.delete(reports).where(eq(reports.reporterId, id));
+    await db.delete(followers).where(
+      or(
+        eq(followers.followerId, id),
+        eq(followers.followingId, id)
+      )
+    );
+    await db.delete(notifications).where(
+      or(
+        eq(notifications.userId, id),
+        eq(notifications.fromUserId, id)
+      )
+    );
+    await db.delete(messages).where(
+      or(
+        eq(messages.senderId, id),
+        eq(messages.receiverId, id)
+      )
+    );
+    // Finally delete the user
+    await db.delete(users).where(eq(users.id, id));
   }
 }
 
