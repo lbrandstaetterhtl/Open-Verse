@@ -125,8 +125,9 @@ export default function ChatPage() {
     const connectWebSocket = () => {
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host.split('?')[0]; // Remove any query parameters
-        const wsUrl = `${protocol}//${encodeURIComponent(host)}/ws`;
+        // Clean the host string and encode it properly
+        const host = window.location.host.split('?')[0].replace(/[^\w.:-]/g, '');
+        const wsUrl = `${protocol}//${host}/ws`;
 
         if (wsRef.current?.readyState === WebSocket.OPEN) {
           return; // Already connected
