@@ -74,6 +74,7 @@ export interface IStorage {
   }): Promise<Message>;
   getMessages(userId1: number, userId2: number): Promise<Message[]>;
   getUnreadMessageCount(userId: number): Promise<number>;
+  markMessageAsRead(messageId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -344,9 +345,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMessages(userId1: number, userId2: number): Promise<Message[]> {
-    return db
-      .select()
+    const messages = await db
+      .select({
+        id: messages.id,
+        senderId: messages.senderId,
+        receiverId: messages.receiverId,
+        content: messages.content,
+        createdAt: messages.createdAt,
+        read: messages.read,
+        sender: {
+          username: users.username,
+        },
+        receiver: {
+          username: sql<string>`(SELECT username FROM ${users} WHERE id = ${messages.receiverId})`,
+        },
+      })
       .from(messages)
+      .innerJoin(users, eq(users.id, messages.senderId))
       .where(
         or(
           and(
@@ -360,6 +375,8 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(asc(messages.createdAt));
+
+    return messages;
   }
 
   async getUnreadMessageCount(userId: number): Promise<number> {
@@ -372,6 +389,12 @@ export class DatabaseStorage implements IStorage {
       ));
 
     return result[0].count;
+  }
+  async markMessageAsRead(messageId: number): Promise<void> {
+    await db
+      .update(messages)
+      .set({ read: true })
+      .where(eq(messages.id, messageId));
   }
 }
 

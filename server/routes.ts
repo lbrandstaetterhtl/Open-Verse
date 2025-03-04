@@ -463,10 +463,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/messages/:id/read", isAuthenticated, async (req, res) => {
+    try {
+      const messageId = parseInt(req.params.id);
+      await storage.markMessageAsRead(messageId);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      res.status(500).send("Failed to mark message as read");
+    }
+  });
+
   app.get("/api/messages/:userId", isAuthenticated, async (req, res) => {
     try {
       const otherUserId = parseInt(req.params.userId);
       const messages = await storage.getMessages(req.user!.id, otherUserId);
+
+      // Mark all received messages as read when fetched
+      for (const message of messages) {
+        if (message.receiverId === req.user!.id && !message.read) {
+          await storage.markMessageAsRead(message.id);
+        }
+      }
+
       res.json(messages);
     } catch (error) {
       console.error('Error getting messages:', error);

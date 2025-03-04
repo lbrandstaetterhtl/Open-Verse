@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Notification, Message } from "@shared/schema";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 type NotificationWithUser = Notification & {
   fromUser: {
@@ -22,7 +22,14 @@ type NotificationWithUser = Notification & {
   };
 };
 
-type MessageWithUser = Message & {
+// Update the MessageWithUser type
+type MessageWithUser = {
+  id: number;
+  content: string;
+  senderId: number;
+  receiverId: number;
+  createdAt: string;
+  read: boolean;
   sender: {
     username: string;
   };
@@ -123,10 +130,21 @@ export function NotificationsDialog() {
             ))}
           </TabsContent>
           <TabsContent value="messages" className="mt-4">
-            {/* Messages tab content will be implemented separately */}
-            <p className="text-center text-muted-foreground">
-              Messages feature coming soon
-            </p>
+            <Link href="/chat" className="block w-full">
+              <Button variant="outline" className="w-full">
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Open Chat
+              </Button>
+            </Link>
+            {unreadCount?.count ? (
+              <p className="text-sm text-center mt-2 text-muted-foreground">
+                You have {unreadCount.count} unread message{unreadCount.count !== 1 ? 's' : ''}
+              </p>
+            ) : (
+              <p className="text-sm text-center mt-2 text-muted-foreground">
+                No unread messages
+              </p>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>
