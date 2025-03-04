@@ -111,13 +111,15 @@ export function setupAuth(app: Express) {
         emailVerified: false,
       });
 
-      // Try to send verification email, but don't block registration if it fails
-      try {
-        const verificationToken = await createVerificationToken(user.id);
-        await sendVerificationEmail(user.email, user.username, verificationToken);
-      } catch (emailErr) {
-        console.error('Error sending verification email:', emailErr);
-        // Continue with registration even if email fails
+      // Try to send verification email only if SENDGRID_API_KEY is properly configured
+      if (process.env.SENDGRID_API_KEY?.startsWith('SG.')) {
+        try {
+          const verificationToken = await createVerificationToken(user.id);
+          await sendVerificationEmail(user.email, user.username, verificationToken);
+        } catch (emailErr) {
+          console.error('Error sending verification email:', emailErr);
+          // Continue with registration even if email fails
+        }
       }
 
       // Log the user in
