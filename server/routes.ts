@@ -16,7 +16,7 @@ const connections = new Map<number, WebSocket>();
 // Update the isAdmin middleware at the top of the file
 const isAdmin = (req: any, res: any, next: any) => {
   if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-  if (!req.user.isAdmin) return res.status(403).send("Forbidden");
+  if (req.user.role !== 'admin' && req.user.role !== 'owner') return res.status(403).send("Forbidden");
   next();
 };
 
@@ -693,22 +693,24 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   app.patch("/api/admin/users/:id", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const user = await storage.getUser(userId);
+      const targetUser = await storage.getUser(userId);
 
-      if (!user) {
+      if (!targetUser) {
         return res.status(404).send("User not found");
-      }
-
-      // Don't allow modifying admin users unless you're pure-coffee
-      if (user.isAdmin && req.user?.username !== 'pure-coffee') {
-        return res.status(403).send("Only the super admin can modify admin users");
       }
 
       console.log('Admin update request:', {
         userId,
         requestBody: req.body,
-        currentUser: req.user?.username
+        currentUser: req.user?.username,
+        currentUserRole: req.user?.role,
+        targetUserRole: targetUser.role
       });
+
+      // Don't allow modifying admin/owner users unless you're the owner
+      if ((targetUser.role === 'admin' || targetUser.role === 'owner') && req.user?.role !== 'owner') {
+        return res.status(403).send("Only the owner can modify admin users");
+      }
 
       // If this is a ban action
       if (req.body.karma < 0) {

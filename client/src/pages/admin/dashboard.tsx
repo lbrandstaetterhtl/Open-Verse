@@ -32,8 +32,8 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Allow any user with admin privileges to access admin features
-  if (!user || !user.isAdmin) {
+  // Allow users with admin or owner role to access admin features
+  if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
     return <Redirect to="/" />;
   }
 
@@ -87,7 +87,7 @@ export default function AdminDashboard() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to update report status",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -98,9 +98,35 @@ export default function AdminDashboard() {
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleReportAction = (reportId: number, status: string) => {
-    if (window.confirm(`Are you sure you want to ${status === 'resolved' ? 'resolve' : 'reject'} this report? ${status === 'resolved' ? 'This will delete the reported content.' : ''}`)) {
-      updateReportMutation.mutate({ reportId, status });
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'owner':
+        return 'destructive';
+      case 'admin':
+        return 'default';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const canManageUser = (targetUser: User) => {
+    if (user?.role === 'owner') return true;
+    if (user?.role === 'admin') {
+      return targetUser.role === 'user';
+    }
+    return false;
+  };
+
+  const handleRoleChange = (targetUser: User) => {
+    if (user?.role !== 'owner') return;
+
+    if (targetUser.role === 'user') {
+      if (window.confirm(`Are you sure you want to make ${targetUser.username} an admin? This will give them administrative privileges.`)) {
+        updateUserMutation.mutate({
+          userId: targetUser.id,
+          data: { role: 'admin' }
+        });
+      }
     }
   };
 
@@ -161,59 +187,58 @@ export default function AdminDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredUsers?.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell className="font-medium">{user.username}</TableCell>
-                            <TableCell>{user.email}</TableCell>
+                        {filteredUsers?.map((targetUser) => (
+                          <TableRow key={targetUser.id}>
+                            <TableCell className="font-medium">{targetUser.username}</TableCell>
+                            <TableCell>{targetUser.email}</TableCell>
                             <TableCell>
-                              <Badge variant={user.emailVerified ? "default" : "secondary"}>
-                                {user.emailVerified ? "Verified" : "Unverified"}
+                              <Badge variant={targetUser.emailVerified ? "default" : "secondary"}>
+                                {targetUser.emailVerified ? "Verified" : "Unverified"}
                               </Badge>
-                              {user.karma < 0 && (
+                              {targetUser.karma < 0 && (
                                 <Badge variant="destructive" className="ml-2">
                                   Banned
                                 </Badge>
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge variant={user.isAdmin ? "destructive" : "default"}>
-                                {user.isAdmin ? "Admin" : "User"}
+                              <Badge variant={getRoleBadgeVariant(targetUser.role)}>
+                                {targetUser.role}
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={user.karma >= 0 ? "default" : "destructive"}>
-                                {user.karma}
+                              <Badge variant={targetUser.karma >= 0 ? "default" : "destructive"}>
+                                {targetUser.karma}
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              {format(new Date(user.createdAt), "PPp")}
+                              {format(new Date(targetUser.createdAt), "PPp")}
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center space-x-2">
-                                {/* Show all actions for pure-coffee, or only non-admin actions for other admins */}
-                                {(!user.isAdmin || user?.username === 'pure-coffee') && (
-                                  <>
+                              {canManageUser(targetUser) && (
+                                <div className="flex items-center space-x-2">
+                                  {user?.role === 'owner' && (
                                     <Button
                                       size="sm"
-                                      variant={user.karma < 0 ? "default" : "destructive"}
+                                      variant={targetUser.karma < 0 ? "default" : "destructive"}
                                       onClick={() => {
-                                        const action = user.karma < 0 ? 'restore' : 'ban';
-                                        const newKarma = user.karma < 0 ? 5 : -100;
+                                        const action = targetUser.karma < 0 ? 'restore' : 'ban';
+                                        const newKarma = targetUser.karma < 0 ? 5 : -100;
 
                                         if (window.confirm(
                                           action === 'ban'
-                                            ? `Are you sure you want to ban ${user.username}? This will prevent them from accessing most features.`
-                                            : `Are you sure you want to restore ${user.username}'s account?`
+                                            ? `Are you sure you want to ban ${targetUser.username}? This will prevent them from accessing most features.`
+                                            : `Are you sure you want to restore ${targetUser.username}'s account?`
                                         )) {
                                           updateUserMutation.mutate({
-                                            userId: user.id,
+                                            userId: targetUser.id,
                                             data: { karma: newKarma }
                                           });
                                         }
                                       }}
                                       disabled={updateUserMutation.isPending}
                                     >
-                                      {user.karma < 0 ? (
+                                      {targetUser.karma < 0 ? (
                                         <>
                                           <Check className="h-4 w-4 mr-1" />
                                           Restore Account
@@ -225,50 +250,45 @@ export default function AdminDashboard() {
                                         </>
                                       )}
                                     </Button>
-                                    {user.karma >= 0 && (
-                                      <>
-                                        <Button
-                                          size="sm"
-                                          variant={user.emailVerified ? "ghost" : "default"}
-                                          onClick={() => updateUserMutation.mutate({
-                                            userId: user.id,
-                                            data: { emailVerified: !user.emailVerified }
-                                          })}
-                                          disabled={updateUserMutation.isPending}
-                                        >
-                                          {user.emailVerified ? (
-                                            <>
-                                              <AlertTriangle className="h-4 w-4 mr-1" />
-                                              Unverify
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Check className="h-4 w-4 mr-1" />
-                                              Verify
-                                            </>
-                                          )}
-                                        </Button>
+                                  )}
+                                  {targetUser.karma >= 0 && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant={targetUser.emailVerified ? "ghost" : "default"}
+                                        onClick={() => updateUserMutation.mutate({
+                                          userId: targetUser.id,
+                                          data: { emailVerified: !targetUser.emailVerified }
+                                        })}
+                                        disabled={updateUserMutation.isPending}
+                                      >
+                                        {targetUser.emailVerified ? (
+                                          <>
+                                            <AlertTriangle className="h-4 w-4 mr-1" />
+                                            Unverify
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Check className="h-4 w-4 mr-1" />
+                                            Verify
+                                          </>
+                                        )}
+                                      </Button>
+                                      {user?.role === 'owner' && targetUser.role === 'user' && (
                                         <Button
                                           size="sm"
                                           variant="default"
-                                          onClick={() => {
-                                            if (window.confirm(`Are you sure you want to make ${user.username} an admin? This will give them full administrative privileges.`)) {
-                                              updateUserMutation.mutate({
-                                                userId: user.id,
-                                                data: { isAdmin: true }
-                                              });
-                                            }
-                                          }}
-                                          disabled={updateUserMutation.isPending || user.isAdmin}
+                                          onClick={() => handleRoleChange(targetUser)}
+                                          disabled={updateUserMutation.isPending}
                                         >
                                           <Shield className="h-4 w-4 mr-1" />
                                           Make Admin
                                         </Button>
-                                      </>
-                                    )}
-                                  </>
-                                )}
-                              </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
