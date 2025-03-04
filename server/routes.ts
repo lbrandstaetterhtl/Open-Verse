@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import multer from "multer";
 import path from "path";
 import express from "express";
-import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema } from "@shared/schema";
+import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema, userPreferencesSchema } from "@shared/schema";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -43,7 +43,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/posts", async (req, res) => {
     try {
       const category = req.query.category as string | undefined;
-      const posts = await storage.getPosts(category);
+      let posts = await storage.getPosts(category);
+
+      // Apply preference filtering if user is authenticated
+      if (req.isAuthenticated()) {
+        const preferences = await storage.getUserPreferences(req.user!.id);
+        if (preferences) {
+          posts = posts.filter(post => {
+            // Filter by content type
+            if (preferences.contentTypes.length > 0 && !preferences.contentTypes.includes(post.category)) {
+              return false;
+            }
+            return true;
+          });
+        }
+      }
 
       const postsWithDetails = await Promise.all(posts.map(async (post) => {
         const author = await storage.getUser(post.authorId);
@@ -415,6 +429,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error getting unread message count:', error);
       res.status(500).send("Failed to get unread message count");
+    }
+  });
+
+  // User Preferences
+  app.get("/api/preferences", isAuthenticated, async (req, res) => {
+    try {
+      const preferences = await storage.getUserPreferences(req.user!.id);
+      res.json(preferences);
+    } catch (error) {
+      console.error('Error getting preferences:', error);
+      res.status(500).send("Failed to get preferences");
+    }
+  });
+
+  app.post("/api/preferences", isAuthenticated, async (req, res) => {
+    try {
+      const result = userPreferencesSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json(result.error);
+      }
+
+      const preferences = await storage.saveUserPreferences(req.user!.id, result.data);
+      res.json(preferences);
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      res.status(500).send("Failed to save preferences");
     }
   });
 
