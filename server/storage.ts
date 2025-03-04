@@ -131,7 +131,11 @@ export class DatabaseStorage implements IStorage {
     }
 
     console.log('Updating user profile with data:', updateData); // Debug log
-    const [user] = await db.update(users).set(updateData).where(eq(users.id, id)).returning();
+    const [user] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
     console.log('Updated user:', user); // Debug log
     return user;
   }
