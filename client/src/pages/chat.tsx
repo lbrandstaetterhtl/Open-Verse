@@ -130,10 +130,14 @@ export default function ChatPage() {
         };
 
         ws.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          if (data.type === 'new_message') {
-            // Invalidate queries to refresh messages
-            queryClient.invalidateQueries({ queryKey: ["/api/messages", selectedUserId] });
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'new_message') {
+              // Invalidate queries to refresh messages
+              queryClient.invalidateQueries({ queryKey: ["/api/messages", selectedUserId] });
+            }
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
           }
         };
 
@@ -156,9 +160,12 @@ export default function ChatPage() {
 
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
+          ws.close();
         };
       } catch (error) {
         console.error('Error creating WebSocket connection:', error);
+        // Attempt to reconnect after error
+        setTimeout(connectWebSocket, 3000);
       }
     };
 
@@ -173,7 +180,7 @@ export default function ChatPage() {
         wsRef.current = null;
       }
     };
-  }, []);
+  }, [selectedUserId, queryClient]);
 
   // Clear message notifications when entering chat page
   useEffect(() => {

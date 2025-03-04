@@ -49,21 +49,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Handle WebSocket upgrade
   httpServer.on('upgrade', function (request, socket, head) {
-    const pathname = new URL(request.url!, `http://${request.headers.host}`).pathname;
+    try {
+      const pathname = new URL(request.url!, `http://${request.headers.host}`).pathname;
 
-    if (pathname === '/ws') {
-      sessionParser(request as any, {} as any, () => {
-        if (!(request as any).session?.passport?.user) {
-          socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-          socket.destroy();
-          return;
-        }
+      if (pathname === '/ws') {
+        sessionParser(request as any, {} as any, () => {
+          try {
+            if (!(request as any).session?.passport?.user) {
+              socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+              socket.destroy();
+              return;
+            }
 
-        wss.handleUpgrade(request, socket, head, function (ws) {
-          wss.emit('connection', ws, request);
+            wss.handleUpgrade(request, socket, head, function (ws) {
+              wss.emit('connection', ws, request);
+            });
+          } catch (error) {
+            console.error('Error in session parsing:', error);
+            socket.destroy();
+          }
         });
-      });
-    } else {
+      } else {
+        socket.destroy();
+      }
+    } catch (error) {
+      console.error('Error in WebSocket upgrade:', error);
       socket.destroy();
     }
   });
@@ -72,20 +82,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const clients = new Map<number, WebSocket>();
 
   wss.on('connection', (ws, request: any) => {
-    const userId = request.session.passport.user;
-    clients.set(userId, ws);
+    try {
+      const userId = request.session.passport.user;
+      clients.set(userId, ws);
 
-    // Send initial connection success message
-    ws.send(JSON.stringify({ type: 'connected' }));
+      // Send initial connection success message
+      ws.send(JSON.stringify({ type: 'connected' }));
 
-    ws.on('close', () => {
-      clients.delete(userId);
-    });
+      ws.on('close', () => {
+        clients.delete(userId);
+      });
 
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-      clients.delete(userId);
-    });
+      ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        clients.delete(userId);
+      });
+    } catch (error) {
+      console.error('Error in WebSocket connection:', error);
+      ws.close();
+    }
   });
 
   // Serve uploaded files
