@@ -4,7 +4,7 @@ import { UserCircle } from "lucide-react";
 type UserAvatarProps = {
   user: {
     username: string;
-    profileImageUrl?: string;
+    profileImageUrl?: string | null;
   };
   size?: "sm" | "md" | "lg";
 };
@@ -16,6 +16,8 @@ export function UserAvatar({ user, size = "md" }: UserAvatarProps) {
     lg: "h-12 w-12"
   };
 
+  console.log("UserAvatar rendering with profileImageUrl:", user.profileImageUrl);
+
   return (
     <Avatar className={sizeClasses[size]}>
       {user.profileImageUrl && (
@@ -23,6 +25,10 @@ export function UserAvatar({ user, size = "md" }: UserAvatarProps) {
           src={user.profileImageUrl} 
           alt={user.username} 
           className="object-cover"
+          onError={(e) => {
+            console.error("Failed to load profile image:", user.profileImageUrl);
+            e.currentTarget.style.display = 'none';
+          }}
         />
       )}
       <AvatarFallback>

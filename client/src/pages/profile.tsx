@@ -98,8 +98,8 @@ export default function ProfilePage() {
     mutationFn: async (data: UpdateProfile) => {
       console.log("Updating profile with data:", data);
       const formData = new FormData();
-      formData.append("username", data.username);
-      formData.append("email", data.email);
+      if (data.username) formData.append("username", data.username);
+      if (data.email) formData.append("email", data.email);
 
       if (data.profileImage?.[0]) {
         console.log("Appending profile image:", data.profileImage[0]);

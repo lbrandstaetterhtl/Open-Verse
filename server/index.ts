@@ -14,8 +14,18 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Serve uploads directory statically
-app.use('/uploads', express.static(uploadsDir));
+// Serve uploads directory statically with explicit content types
+app.use('/uploads', express.static(uploadsDir, {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+      res.set('Content-Type', 'image/jpeg');
+    } else if (path.endsWith('.png')) {
+      res.set('Content-Type', 'image/png');
+    } else if (path.endsWith('.gif')) {
+      res.set('Content-Type', 'image/gif');
+    }
+  }
+}));
 
 // Logging middleware
 app.use((req, res, next) => {
