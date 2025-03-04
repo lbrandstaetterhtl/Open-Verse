@@ -96,11 +96,13 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateProfile) => {
+      console.log("Updating profile with data:", data);
       const formData = new FormData();
       formData.append("username", data.username);
       formData.append("email", data.email);
 
       if (data.profileImage?.[0]) {
+        console.log("Appending profile image:", data.profileImage[0]);
         formData.append("profileImage", data.profileImage[0]);
       }
 
@@ -115,14 +117,16 @@ export default function ProfilePage() {
 
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    onSuccess: (updatedUser) => {
+      console.log("Profile updated successfully:", updatedUser);
+      queryClient.setQueryData(["/api/user"], updatedUser);
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
     },
     onError: (error: Error) => {
+      console.error("Profile update failed:", error);
       toast({
         title: "Update failed",
         description: error.message,
@@ -202,7 +206,9 @@ export default function ProfilePage() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
+                        console.log("Selected file:", file);
                         profileForm.setValue("profileImage", e.target.files);
+                        profileForm.handleSubmit((data) => updateProfileMutation.mutate(data))();
                       }
                     }}
                   />
@@ -247,7 +253,6 @@ export default function ProfilePage() {
               </Form>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Followers</CardTitle>
@@ -276,7 +281,6 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Following</CardTitle>
@@ -305,7 +309,6 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Change Password</CardTitle>

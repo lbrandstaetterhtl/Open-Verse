@@ -18,11 +18,15 @@ export function UserAvatar({ user, size = "md" }: UserAvatarProps) {
 
   return (
     <Avatar className={sizeClasses[size]}>
-      {user.profileImageUrl ? (
-        <AvatarImage src={user.profileImageUrl} alt={user.username} />
-      ) : null}
+      {user.profileImageUrl && (
+        <AvatarImage 
+          src={user.profileImageUrl} 
+          alt={user.username} 
+          className="object-cover"
+        />
+      )}
       <AvatarFallback>
-        <UserCircle className="h-4 w-4" />
+        <UserCircle className={size === "lg" ? "h-6 w-6" : "h-4 w-4"} />
       </AvatarFallback>
     </Avatar>
   );
