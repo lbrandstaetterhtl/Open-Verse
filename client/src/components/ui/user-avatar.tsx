@@ -3,7 +3,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserCircle } from "lucide-react";
 
 type UserAvatarProps = {
-  user: Pick<User, "username" | "profilePictureUrl">;
+  user: {
+    username: string;
+    profilePictureUrl?: string | null;
+  };
   size?: "sm" | "md" | "lg";
 };
 

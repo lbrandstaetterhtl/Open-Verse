@@ -15,14 +15,14 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 type PostWithAuthor = Post & {
   author: {
     username: string;
-    profilePictureUrl?: string | null;
+    profilePictureUrl: string | null;
   };
   comments: Array<{
     id: number;
     content: string;
     author: {
       username: string;
-      profilePictureUrl?: string | null;
+      profilePictureUrl: string | null;
     };
     createdAt: string;
   }>;
@@ -47,16 +47,6 @@ export default function DiscussionsFeedPage() {
     },
   });
 
-  const reactionMutation = useMutation<Post, Error, { postId: number; isLike: boolean }>({
-    mutationFn: async ({ postId, isLike }) => {
-      const res = await apiRequest("POST", `/api/posts/${postId}/react`, { isLike });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
-    },
-  });
-
   const reportMutation = useMutation<Report, Error, { postId: number; reason: string }>({
     mutationFn: async ({ postId, reason }) => {
       const res = await apiRequest("POST", "/api/reports", { postId, reason });
@@ -67,6 +57,16 @@ export default function DiscussionsFeedPage() {
         title: "Report submitted",
         description: "Thank you for helping keep our community safe.",
       });
+    },
+  });
+
+  const reactionMutation = useMutation<Post, Error, { postId: number; isLike: boolean }>({
+    mutationFn: async ({ postId, isLike }) => {
+      const res = await apiRequest("POST", `/api/posts/${postId}/react`, { isLike });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
     },
   });
 
