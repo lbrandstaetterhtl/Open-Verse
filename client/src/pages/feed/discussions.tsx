@@ -4,7 +4,7 @@ import { Post } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ThumbsUp, ThumbsDown, Loader2, MessageCircle, Share2 } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +22,9 @@ type PostWithAuthor = Post & {
   comments: Array<{
     id: number;
     content: string;
-    author: { username: string };
+    author: {
+      username: string;
+    };
     createdAt: string;
   }>;
   reactions: {
@@ -132,31 +134,6 @@ export default function DiscussionsFeedPage() {
     },
   });
 
-  const repostMutation = useMutation({
-    mutationFn: async (postId: number) => {
-      const res = await apiRequest("POST", `/api/posts/${postId}/repost`);
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error);
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
-      toast({
-        title: "Success",
-        description: "Post reposted successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   return (
     <>
       <Navbar />
@@ -185,22 +162,15 @@ export default function DiscussionsFeedPage() {
                 <Card key={post.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <Link href={`/profile/${post.author.username}`}>
-                        <div className="flex items-center gap-3 cursor-pointer">
-                          <UserAvatar user={post.author} size="sm" />
-                          <div>
-                            <CardTitle>{post.title}</CardTitle>
-                            <p className="text-sm text-muted-foreground">
-                              {post.author.username} • {format(new Date(post.createdAt), "PPP")}
-                            </p>
-                            {post.originalPostId && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Reposted from original post
-                              </p>
-                            )}
-                          </div>
+                      <div className="flex items-center gap-3">
+                        <UserAvatar user={post.author} size="sm" />
+                        <div>
+                          <CardTitle>{post.title}</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            {post.author.username} • {format(new Date(post.createdAt), "PPP")}
+                          </p>
                         </div>
-                      </Link>
+                      </div>
                       {post.author.id !== user?.id && (
                         <Button
                           variant={post.author.isFollowing ? "default" : "outline"}
@@ -235,12 +205,12 @@ export default function DiscussionsFeedPage() {
                           data-post-id={post.id}
                           placeholder="Write a comment..."
                           onKeyPress={(e) => {
-                            if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
+                            if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
                               createCommentMutation.mutate({
                                 postId: post.id,
-                                content: (e.target as HTMLInputElement).value.trim(),
+                                content: (e.target as HTMLInputElement).value.trim()
                               });
-                              (e.target as HTMLInputElement).value = "";
+                              (e.target as HTMLInputElement).value = '';
                             }
                           }}
                         />
@@ -248,15 +218,13 @@ export default function DiscussionsFeedPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            const input = document.querySelector(
-                              `input[data-post-id="${post.id}"]`
-                            ) as HTMLInputElement;
+                            const input = document.querySelector(`input[data-post-id="${post.id}"]`) as HTMLInputElement;
                             if (input?.value?.trim()) {
                               createCommentMutation.mutate({
                                 postId: post.id,
-                                content: input.value.trim(),
+                                content: input.value.trim()
                               });
-                              input.value = "";
+                              input.value = '';
                             }
                           }}
                         >
@@ -289,9 +257,7 @@ export default function DiscussionsFeedPage() {
                         size="sm"
                         onClick={() => reactionMutation.mutate({ postId: post.id, isLike: true })}
                       >
-                        <ThumbsUp
-                          className={`h-4 w-4 mr-1 ${post.userReaction?.isLike ? "fill-current" : ""}`}
-                        />
+                        <ThumbsUp className={`h-4 w-4 mr-1 ${post.userReaction?.isLike ? "fill-current" : ""}`} />
                         <span>{post.reactions.likes}</span>
                       </Button>
                       <Button
@@ -299,21 +265,8 @@ export default function DiscussionsFeedPage() {
                         size="sm"
                         onClick={() => reactionMutation.mutate({ postId: post.id, isLike: false })}
                       >
-                        <ThumbsDown
-                          className={`h-4 w-4 mr-1 ${
-                            post.userReaction?.isLike === false ? "fill-current" : ""
-                          }`}
-                        />
+                        <ThumbsDown className={`h-4 w-4 mr-1 ${post.userReaction?.isLike === false ? "fill-current" : ""}`} />
                         <span>{post.reactions.dislikes}</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => repostMutation.mutate(post.id)}
-                        disabled={repostMutation.isPending}
-                      >
-                        <Share2 className="h-4 w-4 mr-1" />
-                        Repost
                       </Button>
                     </div>
                   </CardFooter>

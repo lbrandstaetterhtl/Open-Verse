@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Bell, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Notification, Message } from "@shared/schema";
-import { Link } from "wouter";
 
 type NotificationWithUser = Notification & {
   fromUser: {
@@ -62,17 +61,14 @@ export function NotificationsDialog() {
     },
   });
 
-  const unreadNotifications = notifications?.filter(n => !n.read) || [];
-  const hasUnreadItems = unreadNotifications.length > 0 || (unreadCount?.count || 0) > 0;
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {hasUnreadItems && (
+          {(notifications?.some(n => !n.read) || unreadCount?.count) && (
             <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
-              {unreadNotifications.length + (unreadCount?.count || 0)}
+              {(notifications?.filter(n => !n.read).length || 0) + (unreadCount?.count || 0)}
             </span>
           )}
         </Button>
@@ -88,37 +84,34 @@ export function NotificationsDialog() {
           </TabsList>
           <TabsContent value="notifications" className="mt-4 space-y-4">
             {notifications?.map((notification) => (
-              <Link key={notification.id} href={`/profile/${notification.fromUser.username}`}>
-                <div
-                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer ${
-                    notification.read ? "bg-muted/50" : "bg-muted"
-                  }`}
-                  onClick={() => {
-                    if (!notification.read) {
-                      markAsReadMutation.mutate(notification.id);
-                    }
-                  }}
-                >
-                  <UserAvatar user={{ username: notification.fromUser.username }} size="sm" />
-                  <div className="flex-1">
-                    <p className="text-sm">
-                      <span className="font-medium">{notification.fromUser.username}</span>{" "}
-                      {notification.type === "new_follower"
-                        ? "started following you"
-                        : "sent you a message"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(notification.createdAt), "PPp")}
-                    </p>
-                  </div>
+              <div
+                key={notification.id}
+                className={`flex items-start gap-3 p-3 rounded-lg ${
+                  notification.read ? "bg-muted/50" : "bg-muted"
+                }`}
+                onClick={() => {
+                  if (!notification.read) {
+                    markAsReadMutation.mutate(notification.id);
+                  }
+                }}
+              >
+                <UserAvatar user={{ username: notification.fromUser.username }} size="sm" />
+                <div className="flex-1">
+                  <p className="text-sm">
+                    <span className="font-medium">{notification.fromUser.username}</span>{" "}
+                    {notification.type === "new_follower"
+                      ? "started following you"
+                      : "sent you a message"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(notification.createdAt), "PPp")}
+                  </p>
                 </div>
-              </Link>
+              </div>
             ))}
-            {!notifications?.length && (
-              <p className="text-center text-muted-foreground">No notifications yet</p>
-            )}
           </TabsContent>
           <TabsContent value="messages" className="mt-4">
+            {/* Messages tab content will be implemented separately */}
             <p className="text-center text-muted-foreground">
               Messages feature coming soon
             </p>

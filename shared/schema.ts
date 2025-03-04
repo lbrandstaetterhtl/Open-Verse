@@ -29,7 +29,6 @@ export const posts = pgTable("posts", {
   karma: integer("karma").notNull().default(0),
   mediaUrl: text("media_url"),
   mediaType: text("media_type"),
-  originalPostId: integer("original_post_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
