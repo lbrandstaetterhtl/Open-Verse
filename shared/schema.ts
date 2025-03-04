@@ -10,7 +10,6 @@ export const users = pgTable("users", {
   karma: integer("karma").notNull().default(5),
   emailVerified: boolean("email_verified").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  profileImageUrl: text("profile_image_url"),
 });
 
 export const verificationTokens = pgTable("verification_tokens", {
@@ -119,7 +118,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
 }).extend({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters long"),
-  profileImage: z.any().optional(),
 });
 
 export const loginSchema = z.object({
@@ -130,7 +128,6 @@ export const loginSchema = z.object({
 export const updateProfileSchema = z.object({
   username: z.string().min(1, "Username is required"),
   email: z.string().email("Please enter a valid email address"),
-  profileImage: z.any().optional(),
 }).partial();
 
 export const updatePasswordSchema = z.object({

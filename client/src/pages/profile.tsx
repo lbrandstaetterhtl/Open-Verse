@@ -23,13 +23,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, UserPlus, UserMinus, Camera } from "lucide-react";
-import { useRef } from "react";
+import { Loader2, UserPlus, UserMinus } from "lucide-react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: followers } = useQuery({
     queryKey: ["/api/followers"],
@@ -96,23 +94,7 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateProfile) => {
-      const formData = new FormData();
-      formData.append("username", data.username);
-      formData.append("email", data.email);
-
-      if (data.profileImage?.[0]) {
-        formData.append("profileImage", data.profileImage[0]);
-      }
-
-      const res = await fetch("/api/profile", {
-        method: "PATCH",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        throw new Error(await res.text());
-      }
-
+      const res = await apiRequest("PATCH", "/api/profile", data);
       return res.json();
     },
     onSuccess: () => {
@@ -158,23 +140,7 @@ export default function ProfilePage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <UserAvatar 
-                user={{ 
-                  username: user?.username || '', 
-                  profileImageUrl: user?.profileImageUrl 
-                }} 
-                size="lg" 
-              />
-              <Button
-                size="icon"
-                variant="secondary"
-                className="absolute bottom-0 right-0 rounded-full"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Camera className="h-4 w-4" />
-              </Button>
-            </div>
+            <UserAvatar user={{ username: user?.username || '' }} size="lg" />
             <div>
               <h1 className="text-4xl font-bold">Profile Settings</h1>
               <div className="flex gap-4 mt-2 text-muted-foreground">
@@ -183,70 +149,6 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Update Profile</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...profileForm}>
-                <form
-                  onSubmit={profileForm.handleSubmit((data) => updateProfileMutation.mutate(data))}
-                  className="space-y-4"
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        profileForm.setValue("profileImage", e.target.files);
-                      }
-                    }}
-                  />
-                  <FormField
-                    control={profileForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={profileForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="submit"
-                    disabled={updateProfileMutation.isPending}
-                    className="w-full"
-                  >
-                    {updateProfileMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Update Profile"
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader>
@@ -303,6 +205,58 @@ export default function ProfilePage() {
                   <p className="text-muted-foreground text-center">Not following anyone yet</p>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Update Profile</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Form {...profileForm}>
+                <form
+                  onSubmit={profileForm.handleSubmit((data) => updateProfileMutation.mutate(data))}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={profileForm.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={profileForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={updateProfileMutation.isPending}
+                    className="w-full"
+                  >
+                    {updateProfileMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Update Profile"
+                    )}
+                  </Button>
+                </form>
+              </Form>
             </CardContent>
           </Card>
 
