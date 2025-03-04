@@ -30,6 +30,7 @@ import { ThumbsUp, ThumbsDown, Flag, Loader2, Coffee, SmilePlus, MessageCircle, 
 import { format } from "date-fns";
 import * as z from 'zod';
 import { Report } from "@shared/schema";
+import { Link } from "wouter";
 
 type PostWithAuthor = Post & {
   author: { username: string };
@@ -260,8 +261,10 @@ export default function EntertainmentPage() {
                       <div>
                         <CardTitle>{post.title}</CardTitle>
                         <div className="flex items-center space-x-2 mt-2 text-sm text-muted-foreground">
-                          <UserCircle className="h-4 w-4" />
-                          <span>{post.author.username}</span>
+                          <Link href={`/user/${post.author.username}`} className="flex items-center hover:text-primary">
+                            <UserCircle className="h-4 w-4 mr-1" />
+                            <span>{post.author.username}</span>
+                          </Link>
                         </div>
                       </div>
                       <Badge variant="outline" className="text-primary">
@@ -336,8 +339,10 @@ export default function EntertainmentPage() {
                         {post.comments?.map((comment) => (
                           <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
                             <div className="flex items-center space-x-2 mb-1">
-                              <UserCircle className="h-4 w-4" />
-                              <span className="text-sm font-medium">{comment.author.username}</span>
+                              <Link href={`/user/${comment.author.username}`} className="flex items-center hover:text-primary">
+                                <UserCircle className="h-4 w-4 mr-1" />
+                                <span className="text-sm font-medium">{comment.author.username}</span>
+                              </Link>
                               <span className="text-xs text-muted-foreground">
                                 {format(new Date(comment.createdAt), "PPp")}
                               </span>

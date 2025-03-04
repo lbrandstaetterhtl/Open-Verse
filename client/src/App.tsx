@@ -5,22 +5,20 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { useWebSocket } from "@/hooks/use-websocket";
-
 // Pages
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import ProfilePage from "@/pages/profile";
 import ChatPage from "@/pages/chat";
 import AdminDashboard from "@/pages/admin/dashboard";
-
 // Feed Pages
 import MediaFeedPage from "@/pages/feed/media";
 import DiscussionsFeedPage from "@/pages/feed/discussions";
-
 // Post Pages
 import PostDiscussionsPage from "@/pages/post/discussions";
 import PostNewsPage from "@/pages/post/news";
 import PostEntertainmentPage from "@/pages/post/entertainment";
+import UserProfilePage from "@/pages/user-profile";
 
 function Router() {
   // Initialize WebSocket connection
@@ -45,8 +43,9 @@ function Router() {
       {/* Admin Route */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />
 
-      {/* Other Routes */}
+      {/* Profile Routes */}
       <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/user/:username" component={UserProfilePage} />
       <ProtectedRoute path="/" component={MediaFeedPage} />
       <Route component={NotFound} />
     </Switch>
