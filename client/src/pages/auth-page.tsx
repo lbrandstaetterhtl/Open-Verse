@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Globe, MessageSquare, Newspaper, Users, TrendingUp, Info } from "lucide-react";
+import { Coffee, MessageSquare, Image, UserPlus, Info, Bell } from "lucide-react";
 import { insertUserSchema, InsertUser, loginSchema, LoginCredentials } from "@shared/schema";
 import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,9 +27,9 @@ export default function AuthPage() {
       {/* Mobile Header - Only visible on mobile */}
       <div className="lg:hidden p-6 bg-primary/5">
         <div className="flex items-center space-x-2">
-          <Globe className="h-8 w-8 text-primary" />
+          <Coffee className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold">Pure News</h1>
+            <h1 className="text-2xl font-bold">Pure Coffee</h1>
             <p className="text-xs text-muted-foreground">Version 0.1</p>
           </div>
         </div>
@@ -50,22 +50,22 @@ export default function AuthPage() {
 
           {/* Feature Highlights - Mobile Only */}
           <div className="lg:hidden space-y-4 py-6">
-            <h2 className="text-lg font-semibold text-center">Why Join Pure News?</h2>
+            <h2 className="text-lg font-semibold text-center">Why Join Pure Coffee?</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-primary/5 rounded-lg">
-                <Newspaper className="h-5 w-5 text-primary mb-2" />
-                <h3 className="text-sm font-medium">Quality News</h3>
+                <Coffee className="h-5 w-5 text-primary mb-2" />
+                <h3 className="text-sm font-medium">Coffee Culture</h3>
               </div>
               <div className="p-3 bg-primary/5 rounded-lg">
                 <MessageSquare className="h-5 w-5 text-primary mb-2" />
                 <h3 className="text-sm font-medium">Discussions</h3>
               </div>
               <div className="p-3 bg-primary/5 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-primary mb-2" />
-                <h3 className="text-sm font-medium">Trends</h3>
+                <Image className="h-5 w-5 text-primary mb-2" />
+                <h3 className="text-sm font-medium">Share Photos</h3>
               </div>
               <div className="p-3 bg-primary/5 rounded-lg">
-                <Users className="h-5 w-5 text-primary mb-2" />
+                <UserPlus className="h-5 w-5 text-primary mb-2" />
                 <h3 className="text-sm font-medium">Community</h3>
               </div>
             </div>
@@ -97,47 +97,47 @@ export default function AuthPage() {
       <div className="hidden lg:flex flex-col justify-center p-8 bg-primary/5">
         <div className="mx-auto max-w-md w-full">
           <div className="flex items-center space-x-2 mb-8">
-            <Globe className="h-12 w-12 text-primary" />
+            <Coffee className="h-12 w-12 text-primary" />
             <div>
-              <h1 className="text-4xl font-bold">Pure News</h1>
+              <h1 className="text-4xl font-bold">Pure Coffee</h1>
               <p className="text-sm text-muted-foreground">Version 0.1</p>
             </div>
           </div>
 
           <p className="text-xl text-muted-foreground mb-8">
-            Join our vibrant community where informed citizens connect, share, and discuss current events, politics, and entertainment.
+            Join our vibrant community where coffee enthusiasts connect, share, and discuss their passion.
           </p>
 
           <div className="space-y-6">
             <div className="flex items-start space-x-3">
-              <Newspaper className="h-6 w-6 text-primary mt-1" />
-              <div>
-                <h3 className="font-semibold">Quality News Coverage</h3>
-                <p className="text-muted-foreground">Access fact-checked news and in-depth analysis from reliable sources on politics and current events.</p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
               <MessageSquare className="h-6 w-6 text-primary mt-1" />
               <div>
-                <h3 className="font-semibold">Meaningful Discussions</h3>
-                <p className="text-muted-foreground">Engage in civil discourse about important political and social issues that matter.</p>
+                <h3 className="font-semibold">Engage in Discussions</h3>
+                <p className="text-muted-foreground">Start and join meaningful conversations about coffee brewing, roasting, and culture.</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-3">
-              <TrendingUp className="h-6 w-6 text-primary mt-1" />
+              <Image className="h-6 w-6 text-primary mt-1" />
               <div>
-                <h3 className="font-semibold">Entertainment & Trends</h3>
-                <p className="text-muted-foreground">Stay updated with the latest in entertainment, culture, and trending topics.</p>
+                <h3 className="font-semibold">Share Your Coffee Moments</h3>
+                <p className="text-muted-foreground">Post photos and videos of your favorite brews, setups, and coffee adventures.</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-3">
-              <Users className="h-6 w-6 text-primary mt-1" />
+              <UserPlus className="h-6 w-6 text-primary mt-1" />
               <div>
-                <h3 className="font-semibold">Community Impact</h3>
-                <p className="text-muted-foreground">Connect with others who share your interests in politics, news, and entertainment.</p>
+                <h3 className="font-semibold">Build Your Network</h3>
+                <p className="text-muted-foreground">Follow other coffee enthusiasts and grow your coffee community.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <Bell className="h-6 w-6 text-primary mt-1" />
+              <div>
+                <h3 className="font-semibold">Stay Connected</h3>
+                <p className="text-muted-foreground">Get notified about interactions and never miss important discussions.</p>
               </div>
             </div>
 
