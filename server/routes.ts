@@ -238,10 +238,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add the following route handler after the other profile routes
   app.patch("/api/profile", isAuthenticated, upload.single("profilePicture"), async (req, res) => {
     try {
-      const updateData: Partial<{ username: string; email: string; profilePictureUrl: string }> = {
-        username: req.body.username,
-        email: req.body.email,
-      };
+      const updateData: Partial<{ username: string; email: string; profilePictureUrl: string }> = {};
+
+      if (req.body.username) {
+        updateData.username = req.body.username;
+      }
+
+      if (req.body.email) {
+        updateData.email = req.body.email;
+      }
 
       if (req.file) {
         updateData.profilePictureUrl = `/uploads/${req.file.filename}`;

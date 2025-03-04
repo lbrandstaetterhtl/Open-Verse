@@ -29,7 +29,7 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const profileForm = useForm<UpdateProfile>({
+  const profileForm = useForm<UpdateProfile & { profilePicture?: FileList }>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
       username: user?.username || "",
@@ -49,8 +49,14 @@ export default function ProfilePage() {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateProfile & { profilePicture?: FileList }) => {
       const formData = new FormData();
-      formData.append("username", data.username);
-      formData.append("email", data.email);
+
+      if (data.username) {
+        formData.append("username", data.username);
+      }
+
+      if (data.email) {
+        formData.append("email", data.email);
+      }
 
       if (data.profilePicture?.[0]) {
         formData.append("profilePicture", data.profilePicture[0]);
@@ -107,7 +113,13 @@ export default function ProfilePage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
-            <UserAvatar user={user!} size="lg" />
+            <UserAvatar 
+              user={{
+                username: user?.username || '',
+                profilePictureUrl: user?.profilePictureUrl
+              }} 
+              size="lg" 
+            />
             <h1 className="text-4xl font-bold">Profile Settings</h1>
           </div>
 
