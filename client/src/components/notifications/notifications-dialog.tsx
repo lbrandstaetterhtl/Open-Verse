@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
-import { Bell, MessageCircle } from "lucide-react";
+import { Bell, MessageCircle, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Notification, Message } from "@shared/schema";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type NotificationWithUser = Notification & {
   fromUser: {
@@ -21,32 +22,14 @@ type NotificationWithUser = Notification & {
   };
 };
 
-type MessageWithUser = Message & {
-  sender: {
-    username: string;
-  };
-  receiver: {
-    username: string;
-  };
-};
-
 export function NotificationsDialog() {
   const [open, setOpen] = useState(false);
 
-  const { data: notifications } = useQuery<NotificationWithUser[]>({
+  const { data: notifications, isLoading } = useQuery<NotificationWithUser[]>({
     queryKey: ["/api/notifications"],
     queryFn: async () => {
       const res = await fetch("/api/notifications");
       if (!res.ok) throw new Error("Failed to fetch notifications");
-      return res.json();
-    },
-  });
-
-  const { data: unreadCount } = useQuery<{ count: number }>({
-    queryKey: ["/api/messages/unread/count"],
-    queryFn: async () => {
-      const res = await fetch("/api/messages/unread/count");
-      if (!res.ok) throw new Error("Failed to fetch unread count");
       return res.json();
     },
   });
@@ -61,14 +44,17 @@ export function NotificationsDialog() {
     },
   });
 
+  // Calculate unread notifications count
+  const unreadCount = notifications?.filter(n => !n.read).length || 0;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {(notifications?.some(n => !n.read) || unreadCount?.count) && (
+          {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
-              {(notifications?.filter(n => !n.read).length || 0) + (unreadCount?.count || 0)}
+              {unreadCount}
             </span>
           )}
         </Button>
@@ -77,12 +63,16 @@ export function NotificationsDialog() {
         <DialogHeader>
           <DialogTitle>Notifications</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="notifications" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
-          </TabsList>
-          <TabsContent value="notifications" className="mt-4 space-y-4">
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : notifications?.length === 0 ? (
+          <Alert>
+            <AlertDescription>No notifications yet</AlertDescription>
+          </Alert>
+        ) : (
+          <div className="space-y-4 mt-4">
             {notifications?.map((notification) => (
               <div
                 key={notification.id}
@@ -101,7 +91,9 @@ export function NotificationsDialog() {
                     <span className="font-medium">{notification.fromUser.username}</span>{" "}
                     {notification.type === "new_follower"
                       ? "started following you"
-                      : "sent you a message"}
+                      : notification.type === "new_message"
+                      ? "sent you a message"
+                      : "interacted with your post"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(notification.createdAt), "PPp")}
@@ -109,14 +101,8 @@ export function NotificationsDialog() {
                 </div>
               </div>
             ))}
-          </TabsContent>
-          <TabsContent value="messages" className="mt-4">
-            {/* Messages tab content will be implemented separately */}
-            <p className="text-center text-muted-foreground">
-              Messages feature coming soon
-            </p>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
