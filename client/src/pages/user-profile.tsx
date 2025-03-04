@@ -3,7 +3,7 @@ import { useParams } from "wouter";
 import { Navbar } from "@/components/layout/navbar";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Star } from "lucide-react";
 
 export default function UserProfilePage() {
   const { username } = useParams();
@@ -39,7 +39,14 @@ export default function UserProfilePage() {
             <UserAvatar user={profile} size="lg" />
             <div>
               <h1 className="text-4xl font-bold">{profile.username}</h1>
-              <p className="text-muted-foreground">Member since {new Date(profile.createdAt).toLocaleDateString()}</p>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span>Member since {new Date(profile.createdAt).toLocaleDateString()}</span>
+                <span>•</span>
+                <div className="flex items-center text-amber-500">
+                  <Star className="h-4 w-4 mr-1 fill-current" />
+                  <span>{profile.karma} karma</span>
+                </div>
+              </div>
             </div>
           </div>
 
