@@ -14,7 +14,7 @@ export function PreferencesDialog() {
           <Settings className="h-5 w-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]" hideClose>
+      <DialogContent className="sm:max-w-[600px]">
         <PreferencesWizard onClose={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
