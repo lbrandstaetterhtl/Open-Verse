@@ -191,30 +191,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/posts", isAuthenticated, upload.single("media"), async (req, res) => {
-    const category = req.body.category;
+    try {
+      const category = req.body.category;
 
-    // Validate based on category
-    const schema = category === "discussion" ? insertDiscussionPostSchema : insertMediaPostSchema;
-    const result = schema.safeParse(req.body);
+      // Validate based on category
+      const schema = category === "discussion" ? insertDiscussionPostSchema : insertMediaPostSchema;
+      const result = schema.safeParse({
+        ...req.body,
+        mediaType: req.file?.mimetype.startsWith("image/") ? "image" : "video",
+      });
 
-    if (!result.success) return res.status(400).json(result.error);
+      if (!result.success) {
+        return res.status(400).json(result.error);
+      }
 
-    let mediaUrl = null;
-    let mediaType = null;
+      let mediaUrl = null;
+      let mediaType = null;
 
-    if (req.file && category !== "discussion") {
-      mediaUrl = `/uploads/${req.file.filename}`;
-      mediaType = req.file.mimetype.startsWith("image/") ? "image" : "video";
+      if (req.file) {
+        mediaUrl = `/uploads/${req.file.filename}`;
+        mediaType = req.file.mimetype.startsWith("image/") ? "image" : "video";
+      }
+
+      const post = await storage.createPost({
+        title: req.body.title,
+        content: req.body.content,
+        category: req.body.category,
+        authorId: req.user!.id,
+        mediaUrl,
+        mediaType,
+      });
+
+      res.status(201).json(post);
+    } catch (error) {
+      console.error('Error creating post:', error);
+      res.status(500).send("Failed to create post");
     }
-
-    const post = await storage.createPost({
-      ...result.data,
-      authorId: req.user!.id,
-      mediaUrl,
-      mediaType,
-    });
-
-    res.status(201).json(post);
   });
 
   // Comments
