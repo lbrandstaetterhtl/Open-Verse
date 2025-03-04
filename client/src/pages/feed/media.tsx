@@ -204,7 +204,7 @@ export default function MediaFeedPage() {
               <Button asChild size="sm" className="whitespace-nowrap">
                 <Link href="/post/news">
                   <Plus className="h-4 w-4 mr-1" />
-                  Post Coffee
+                  Post News
                 </Link>
               </Button>
               <Button asChild size="sm" className="whitespace-nowrap">
@@ -221,7 +221,7 @@ export default function MediaFeedPage() {
             <h1 className="text-4xl font-bold">Media Feed</h1>
             <div className="space-x-4">
               <Button asChild>
-                <Link href="/post/news">Post Coffee</Link>
+                <Link href="/post/news">Post News</Link>
               </Button>
               <Button asChild>
                 <Link href="/post/entertainment">Post Entertainment</Link>
