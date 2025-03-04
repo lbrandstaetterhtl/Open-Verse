@@ -9,8 +9,6 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema } from "@shared/schema";
 import type { Knex } from 'knex';
 import session from 'express-session';
-import passport from 'passport';
-
 
 // WebSocket connections store
 const connections = new Map<number, WebSocket>();
@@ -18,23 +16,7 @@ const connections = new Map<number, WebSocket>();
 // Update the isAdmin middleware at the top of the file
 const isAdmin = (req: any, res: any, next: any) => {
   if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-
-  // Check both role and is_admin flag
-  if (!req.user.is_admin && req.user.role !== 'owner') {
-    console.log('Access denied:', {
-      userId: req.user.id,
-      username: req.user.username,
-      role: req.user.role,
-      isAdmin: req.user.is_admin
-    });
-    return res.status(403).send("Forbidden");
-  }
-
-  console.log('Admin access granted:', {
-    userId: req.user.id,
-    username: req.user.username,
-    role: req.user.role
-  });
+  if (!req.user.isAdmin) return res.status(403).send("Forbidden");
   next();
 };
 
@@ -311,7 +293,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       const adminSockets = Array.from(connections.entries())
         .filter(async ([userId]) => {
           const user = await storage.getUser(userId);
-          return user?.is_admin || user?.role === 'admin' || user?.role === 'owner'; //fixed
+          return user?.isAdmin;
         });
 
       const message = JSON.stringify({
@@ -711,92 +693,47 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   app.patch("/api/admin/users/:id", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const targetUser = await storage.getUser(userId);
+      const user = await storage.getUser(userId);
 
-      if (!targetUser) {
+      if (!user) {
         return res.status(404).send("User not found");
       }
 
-      // Debug logging
+      // Don't allow modifying admin users
+      if (user.username === 'pure-coffee') {
+        return res.status(403).send("Cannot modify admin user");
+      }
+
       console.log('Admin update request:', {
         userId,
         requestBody: req.body,
-        currentUser: req.user?.username,
-        currentUserRole: req.user?.role,
-        targetUserRole: targetUser.role
+        currentUser: req.user?.username
       });
 
-      // Don't allow modifying admin/owner users unless you're the owner
-      if ((targetUser.role === 'admin' || targetUser.role === 'owner') && req.user?.role !== 'owner') {
-        return res.status(403).send("Only the owner can modify admin users");
-      }
-
-      // If this is a ban action (karma update)
-      if (typeof req.body.karma === 'number') {
-        if (req.body.karma < 0) {
-          // Ban process - send notification and delete user
-          const userWs = connections.get(userId);
-          if (userWs && userWs.readyState === WebSocket.OPEN) {
-            userWs.send(JSON.stringify({
-              type: 'banned',
-              message: 'Your account has been banned by an administrator.'
-            }));
-          }
-          await storage.deleteUser(userId);
-          res.json({ message: "User banned and deleted successfully" });
-        } else {
-          // Unban process - just update karma
-          const updatedUser = await storage.updateUserKarma(userId, req.body.karma);
-          res.json(updatedUser);
+      // If this is a ban action
+      if (req.body.karma < 0) {
+        // Send ban notification to the user if they're connected
+        const userWs = connections.get(userId);
+        if (userWs && userWs.readyState === WebSocket.OPEN) {
+          userWs.send(JSON.stringify({
+            type: 'banned',
+            message: 'Your account has been banned by an administrator.'
+          }));
         }
-      } else if (req.body.data) {
-        // Handle other profile updates (role, emailVerified, etc.)
-        console.log('Updating user profile with data:', req.body.data);
-        const updatedUser = await storage.updateUserProfile(userId, req.body.data);
+
+        // Delete the user's data
+        await storage.deleteUser(userId);
+        res.json({ message: "User banned and deleted successfully" });
+      } else {
+        // For non-ban updates
+        const updatedUser = await storage.updateUserProfile(userId, req.body);
         console.log('Updated user:', updatedUser);
         res.json(updatedUser);
-      } else {
-        res.status(400).send("Invalid update data");
       }
     } catch (error) {
       console.error('Error updating user:', error);
       res.status(500).send("Failed to update user");
     }
-  });
-
-  // Modify the login route to include is_admin in the user object
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    console.log('Login request for user:', {
-      username: req.user.username,
-      role: req.user.role,
-      is_admin: req.user.is_admin
-    });
-
-    const userResponse = {
-      ...req.user,
-      is_admin: req.user.is_admin || req.user.role === 'admin' || req.user.role === 'owner'
-    };
-    res.status(200).json(userResponse);
-  });
-
-  // Modify the user route to include is_admin
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      console.log('Unauthenticated access attempt to /api/user');
-      return res.sendStatus(401);
-    }
-
-    console.log('User data requested for:', {
-      username: req.user.username,
-      role: req.user.role,
-      is_admin: req.user.is_admin
-    });
-
-    const userResponse = {
-      ...req.user,
-      is_admin: req.user.is_admin || req.user.role === 'admin' || req.user.role === 'owner'
-    };
-    res.json(userResponse);
   });
 
   return httpServer;
