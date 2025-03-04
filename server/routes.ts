@@ -5,7 +5,11 @@ import { storage } from "./storage";
 import multer from "multer";
 import path from "path";
 import express from "express";
+import { WebSocketServer, WebSocket } from 'ws';
 import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema } from "@shared/schema";
+
+// WebSocket connections store
+const connections = new Map<number, WebSocket>();
 
 // Configure multer for file uploads
 const upload = multer({
@@ -89,36 +93,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/posts", isAuthenticated, upload.single("media"), async (req, res) => {
     try {
-      console.log("Creating new post with data:", req.body);
-      const category = req.body.category;
-      console.log("Post category:", category);
-
-      // Validate based on category
-      const schema = category === "discussion" ? insertDiscussionPostSchema : insertMediaPostSchema;
-      const result = schema.safeParse(req.body);
-
-      if (!result.success) {
-        console.error("Validation error:", result.error);
-        return res.status(400).json(result.error);
-      }
-
-      let mediaUrl = null;
-      let mediaType = null;
-
-      if (req.file && category !== "discussion") {
-        mediaUrl = `/uploads/${req.file.filename}`;
-        mediaType = req.file.mimetype.startsWith("image/") ? "image" : "video";
-        console.log("Media info:", { mediaUrl, mediaType });
-      }
-
       const post = await storage.createPost({
-        ...result.data,
+        ...req.body,
         authorId: req.user!.id,
-        mediaUrl,
-        mediaType,
       });
 
-      console.log("Created post:", post);
+      // Broadcast new post to all connected clients
+      const message = JSON.stringify({
+        type: 'new_post',
+        data: post
+      });
+
+      connections.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+
       res.status(201).json(post);
     } catch (error) {
       console.error("Error creating post:", error);
@@ -154,13 +145,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         authorId: req.user!.id,
       });
 
-      const author = await storage.getUser(comment.authorId);
-      const commentWithAuthor = {
-        ...comment,
-        author: { username: author?.username || 'Unknown' }
-      };
+      // Broadcast new comment to all connected clients
+      const message = JSON.stringify({
+        type: 'new_comment',
+        data: comment
+      });
 
-      res.status(201).json(commentWithAuthor);
+      connections.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+
+      res.status(201).json(comment);
     } catch (error) {
       console.error('Error creating comment:', error);
       res.status(500).send("Failed to create comment");
@@ -465,5 +462,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // Set up WebSocket server
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  wss.on('connection', (ws, req) => {
+    const userId = (req as any).user?.id;
+    if (userId) {
+      connections.set(userId, ws);
+
+      ws.on('close', () => {
+        connections.delete(userId);
+      });
+    }
+  });
+
   return httpServer;
 }
