@@ -89,10 +89,13 @@ export function NotificationsDialog() {
           )}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" aria-describedby="notification-description">
         <DialogHeader>
           <DialogTitle>Notifications</DialogTitle>
         </DialogHeader>
+        <div id="notification-description" className="sr-only">
+          View and manage your notifications and messages
+        </div>
         <Tabs defaultValue="notifications" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
