@@ -51,10 +51,14 @@ async function createVerificationToken(userId: number): Promise<string> {
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 1000 * 60 * 60 * 24 // 24 hours
+    }
   };
 
   app.set("trust proxy", 1);
@@ -82,10 +86,16 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    done(null, user.id);
+  });
+
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        return done(null, false);
+      }
       done(null, user);
     } catch (err) {
       done(err);
@@ -163,7 +173,7 @@ export function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
       if (err) return next(err);
-      if (!user) return res.status(401).send(info.message || "Invalid credentials");
+      if (!user) return res.status(401).send(info?.message || "Invalid credentials");
 
       req.login(user, (err) => {
         if (err) return next(err);
@@ -175,7 +185,10 @@ export function setupAuth(app: Express) {
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
-      res.sendStatus(200);
+      req.session.destroy((err) => {
+        if (err) return next(err);
+        res.sendStatus(200);
+      });
     });
   });
 
