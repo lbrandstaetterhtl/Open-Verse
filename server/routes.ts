@@ -52,7 +52,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const commentAuthor = await storage.getUser(comment.authorId);
           return {
             ...comment,
-            author: { username: commentAuthor?.username || 'Unknown' }
+            author: {
+              username: commentAuthor?.username || 'Unknown',
+              profilePictureUrl: commentAuthor?.profilePictureUrl
+            }
           };
         }));
 
@@ -61,7 +64,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         return {
           ...post,
-          author: { username: author?.username || 'Unknown' },
+          author: {
+            username: author?.username || 'Unknown',
+            profilePictureUrl: author?.profilePictureUrl
+          },
           comments: commentsWithAuthors,
           reactions,
           userReaction
@@ -228,6 +234,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const report = await storage.updateReportStatus(parseInt(req.params.id), status);
     res.json(report);
   });
+
+  // Add the following route handler after the other profile routes
+  app.patch("/api/profile", isAuthenticated, upload.single("profilePicture"), async (req, res) => {
+    try {
+      const updateData: Partial<{ username: string; email: string; profilePictureUrl: string }> = {
+        username: req.body.username,
+        email: req.body.email,
+      };
+
+      if (req.file) {
+        updateData.profilePictureUrl = `/uploads/${req.file.filename}`;
+      }
+
+      const updatedUser = await storage.updateUserProfile(req.user!.id, updateData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      res.status(500).send("Failed to update profile");
+    }
+  });
+
 
   const httpServer = createServer(app);
   return httpServer;

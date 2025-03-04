@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { UpdateProfile, UpdatePassword, updateProfileSchema, updatePasswordSchema } from "@shared/schema";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   Card,
   CardContent,
@@ -22,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -46,8 +47,21 @@ export default function ProfilePage() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: UpdateProfile) => {
-      const res = await apiRequest("PATCH", "/api/profile", data);
+    mutationFn: async (data: UpdateProfile & { profilePicture?: FileList }) => {
+      const formData = new FormData();
+      formData.append("username", data.username);
+      formData.append("email", data.email);
+
+      if (data.profilePicture?.[0]) {
+        formData.append("profilePicture", data.profilePicture[0]);
+      }
+
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
     onSuccess: () => {
@@ -92,7 +106,10 @@ export default function ProfilePage() {
       <Navbar />
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto space-y-8">
-          <h1 className="text-4xl font-bold">Profile Settings</h1>
+          <div className="flex items-center gap-4">
+            <UserAvatar user={user!} size="lg" />
+            <h1 className="text-4xl font-bold">Profile Settings</h1>
+          </div>
 
           <Card>
             <CardHeader>
@@ -104,6 +121,28 @@ export default function ProfilePage() {
                   onSubmit={profileForm.handleSubmit((data) => updateProfileMutation.mutate(data))}
                   className="space-y-4"
                 >
+                  <FormField
+                    control={profileForm.control}
+                    name="profilePicture"
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <FormItem>
+                        <FormLabel>Profile Picture</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-4">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => onChange(e.target.files)}
+                              className="flex-1"
+                              {...field}
+                            />
+                            <Upload className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={profileForm.control}
                     name="username"
