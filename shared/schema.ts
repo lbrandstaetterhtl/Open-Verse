@@ -9,6 +9,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   karma: integer("karma").notNull().default(5),
   emailVerified: boolean("email_verified").notNull().default(false),
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -149,6 +150,18 @@ export const messageSchema = z.object({
 });
 
 
+export const adminUpdateUserSchema = z.object({
+  username: z.string().min(1, "Username is required").optional(),
+  email: z.string().email("Please enter a valid email address").optional(),
+  isAdmin: z.boolean().optional(),
+  emailVerified: z.boolean().optional(),
+});
+
+export const adminUpdateReportSchema = z.object({
+  status: z.enum(["pending", "resolved", "rejected"]),
+  resolution: z.string().optional(),
+});
+
 export type LoginCredentials = z.infer<typeof loginSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertDiscussionPost = z.infer<typeof insertDiscussionPostSchema>;
@@ -164,3 +177,5 @@ export type Follower = typeof followers.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof messageSchema>;
+export type AdminUpdateUser = z.infer<typeof adminUpdateUserSchema>;
+export type AdminUpdateReport = z.infer<typeof adminUpdateReportSchema>;

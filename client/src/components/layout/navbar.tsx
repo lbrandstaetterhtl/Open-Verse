@@ -1,18 +1,22 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Coffee, MessageSquare, Newspaper, UserCircle, MessageCircle } from "lucide-react";
+import { Coffee, MessageSquare, Newspaper, UserCircle, MessageCircle, Shield } from "lucide-react";
 import { NotificationsDialog } from "@/components/notifications/notifications-dialog";
 
 export function Navbar() {
   const [location] = useLocation();
-  const { logoutMutation } = useAuth();
+  const { logoutMutation, user } = useAuth();
 
   const links = [
     { href: "/feed/media", icon: Newspaper, label: "Media Feed" },
     { href: "/feed/discussions", icon: MessageSquare, label: "Discussions Feed" },
     { href: "/chat", icon: MessageCircle, label: "Messages" },
     { href: "/profile", icon: UserCircle, label: "Profile" },
+    // Only show admin link for pure-coffee user
+    ...(user?.username === 'pure-coffee' ? [
+      { href: "/admin", icon: Shield, label: "Admin" }
+    ] : []),
   ];
 
   return (

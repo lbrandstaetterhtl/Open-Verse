@@ -11,6 +11,7 @@ import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import ProfilePage from "@/pages/profile";
 import ChatPage from "@/pages/chat";
+import AdminDashboard from "@/pages/admin/dashboard";
 
 // Feed Pages
 import MediaFeedPage from "@/pages/feed/media";
@@ -40,6 +41,9 @@ function Router() {
 
       {/* Chat Route */}
       <ProtectedRoute path="/chat" component={ChatPage} />
+
+      {/* Admin Route */}
+      <ProtectedRoute path="/admin" component={AdminDashboard} />
 
       {/* Other Routes */}
       <ProtectedRoute path="/profile" component={ProfilePage} />
