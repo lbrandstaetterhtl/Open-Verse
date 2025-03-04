@@ -6,8 +6,6 @@ import multer from "multer";
 import path from "path";
 import express from "express";
 import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema } from "@shared/schema";
-import { WebSocket, WebSocketServer } from 'ws';
-import session from "express-session";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -33,68 +31,13 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Create HTTP server
-  const httpServer = createServer(app);
-
-  // Setup WebSocket server with specific path
-  const wss = new WebSocketServer({ noServer: true });
-
-  // Create session parser
-  const sessionParser = session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    store: storage.sessionStore,
-  });
-
-  // Handle WebSocket upgrade
-  httpServer.on('upgrade', function (request, socket, head) {
-    const pathname = new URL(request.url!, `http://${request.headers.host}`).pathname;
-
-    if (pathname === '/ws') {
-      sessionParser(request as any, {} as any, () => {
-        if (!(request as any).session?.passport?.user) {
-          socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-          socket.destroy();
-          return;
-        }
-
-        wss.handleUpgrade(request, socket, head, function (ws) {
-          wss.emit('connection', ws, request);
-        });
-      });
-    } else {
-      socket.destroy();
-    }
-  });
-
-  // Store connected clients
-  const clients = new Map<number, WebSocket>();
-
-  wss.on('connection', (ws, request: any) => {
-    const userId = request.session.passport.user;
-    clients.set(userId, ws);
-
-    // Send initial connection success message
-    ws.send(JSON.stringify({ type: 'connected' }));
-
-    ws.on('close', () => {
-      clients.delete(userId);
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-      clients.delete(userId);
-    });
-  });
-
-  // Serve uploaded files
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-
   const isAuthenticated = (req: any, res: any, next: any) => {
     if (req.isAuthenticated()) return next();
     res.status(401).send("Unauthorized");
   };
+
+  // Serve uploaded files
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
   // Posts
   app.get("/api/posts", async (req, res) => {
@@ -440,15 +383,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content,
       });
 
-      // Send real-time update to receiver if they're connected
-      const receiverWs = clients.get(receiverId);
-      if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
-        receiverWs.send(JSON.stringify({
-          type: 'new_message',
-          message
-        }));
-      }
-
       // Create notification for new message
       await storage.createNotification({
         userId: receiverId,
@@ -484,6 +418,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Return the HTTP server
+  const httpServer = createServer(app);
   return httpServer;
 }

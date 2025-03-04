@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Bell, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Notification, Message } from "@shared/schema";
-import { useLocation } from "wouter";
 
 type NotificationWithUser = Notification & {
   fromUser: {
@@ -33,8 +32,6 @@ type MessageWithUser = Message & {
 
 export function NotificationsDialog() {
   const [open, setOpen] = useState(false);
-  const [location] = useLocation();
-  const isOnChatPage = location === '/chat';
 
   const { data: notifications } = useQuery<NotificationWithUser[]>({
     queryKey: ["/api/notifications"],
@@ -64,20 +61,14 @@ export function NotificationsDialog() {
     },
   });
 
-  // Filter out message notifications if on chat page and only show unread ones
-  const filteredNotifications = notifications?.filter(notification => {
-    if (isOnChatPage && notification.type === 'new_message') return false;
-    return !notification.read;
-  });
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {(filteredNotifications?.length || (!isOnChatPage && unreadCount?.count)) && (
+          {(notifications?.some(n => !n.read) || unreadCount?.count) && (
             <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
-              {(filteredNotifications?.length || 0) + (!isOnChatPage ? (unreadCount?.count || 0) : 0)}
+              {(notifications?.filter(n => !n.read).length || 0) + (unreadCount?.count || 0)}
             </span>
           )}
         </Button>
@@ -92,10 +83,7 @@ export function NotificationsDialog() {
             <TabsTrigger value="messages">Messages</TabsTrigger>
           </TabsList>
           <TabsContent value="notifications" className="mt-4 space-y-4">
-            {filteredNotifications?.length === 0 && (
-              <p className="text-center text-muted-foreground">No new notifications</p>
-            )}
-            {filteredNotifications?.map((notification) => (
+            {notifications?.map((notification) => (
               <div
                 key={notification.id}
                 className={`flex items-start gap-3 p-3 rounded-lg ${

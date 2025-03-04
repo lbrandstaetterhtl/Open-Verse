@@ -8,10 +8,9 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Loader2, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useLocation } from "wouter";
 
 type Message = {
   id: number;
@@ -37,9 +36,6 @@ export default function ChatPage() {
   const { toast } = useToast();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [messageInput, setMessageInput] = useState("");
-  const [location] = useLocation();
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Fetch both followers and following
   const { data: following } = useQuery<User[]>({
@@ -110,67 +106,6 @@ export default function ChatPage() {
     });
   };
 
-  // Setup WebSocket connection
-  useEffect(() => {
-    const connectWebSocket = () => {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        console.log('WebSocket connected');
-      };
-
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'new_message') {
-          // Invalidate queries to refresh messages
-          queryClient.invalidateQueries({ queryKey: ["/api/messages", selectedUserId] });
-        }
-      };
-
-      ws.onclose = () => {
-        console.log('WebSocket disconnected, attempting to reconnect...');
-        wsRef.current = null;
-
-        // Clear any existing reconnection timeout
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
-        }
-
-        // Attempt to reconnect after a delay
-        reconnectTimeoutRef.current = setTimeout(() => {
-          if (!wsRef.current) {
-            connectWebSocket();
-          }
-        }, 3000);
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-    };
-
-    connectWebSocket();
-
-    return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, []);
-
-  // Clear message notifications when entering chat page
-  useEffect(() => {
-    if (location === '/chat') {
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-    }
-  }, [location]);
-
   return (
     <>
       <Navbar />
@@ -232,7 +167,9 @@ export default function ChatPage() {
                         }`}
                       >
                         <UserAvatar
-                          user={message.senderId === user?.id ? message.sender : message.receiver}
+                          user={
+                            message.senderId === user?.id ? message.sender : message.receiver
+                          }
                           size="sm"
                         />
                         <div
