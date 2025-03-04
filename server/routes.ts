@@ -20,7 +20,7 @@ const isAdmin = (req: any, res: any, next: any) => {
   if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
 
   // Check both role and is_admin flag
-  if (!req.user.is_admin || (req.user.role !== 'admin' && req.user.role !== 'owner')) {
+  if (!req.user.is_admin && req.user.role !== 'owner') {
     console.log('Access denied:', {
       userId: req.user.id,
       username: req.user.username,

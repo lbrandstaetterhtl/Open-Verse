@@ -34,8 +34,8 @@ export default function AdminDashboard() {
 
   console.log('Current user:', user); // Debug log
 
-  // Check both is_admin flag and role for access
-  const hasAdminAccess = user && (user.is_admin || user.role === 'admin' || user.role === 'owner');
+  // Check admin access
+  const hasAdminAccess = user && (user.role === 'owner' || user.is_admin);
   if (!hasAdminAccess) {
     console.log('Access denied:', { user }); // Debug log for access denial
     return <Redirect to="/" />;
@@ -117,7 +117,7 @@ export default function AdminDashboard() {
 
   const canManageUser = (targetUser: User) => {
     if (user?.role === 'owner') return true;
-    if (user?.role === 'admin') {
+    if (user?.is_admin) {
       return targetUser.role === 'user';
     }
     return false;
