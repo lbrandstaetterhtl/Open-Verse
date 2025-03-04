@@ -4,17 +4,24 @@ import { Navbar } from "@/components/layout/navbar";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Trophy } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function UserProfilePage() {
   const { username } = useParams();
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, error } = useQuery({
     queryKey: ["/api/users", username],
     queryFn: async () => {
       const res = await fetch(`/api/users/${username}`);
-      if (!res.ok) throw new Error("Failed to fetch user profile");
+      if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error("User not found");
+        }
+        throw new Error("Failed to fetch user profile");
+      }
       return res.json();
     },
+    enabled: !!username,
   });
 
   if (isLoading) {
@@ -25,6 +32,21 @@ export default function UserProfilePage() {
           <div className="flex justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        </main>
+      </>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <>
+        <Navbar />
+        <main className="container mx-auto px-4 pt-24">
+          <Alert variant="destructive">
+            <AlertDescription>
+              {error?.message || "Failed to load user profile"}
+            </AlertDescription>
+          </Alert>
         </main>
       </>
     );
