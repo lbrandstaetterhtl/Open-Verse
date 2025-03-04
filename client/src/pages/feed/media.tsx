@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Post } from "@shared/schema";
@@ -167,6 +168,30 @@ export default function MediaFeedPage() {
     },
   });
 
+  const deleteCommentMutation = useMutation({
+    mutationFn: async ({ postId, commentId }: { postId: number; commentId: number }) => {
+      const res = await apiRequest("DELETE", `/api/comments/${commentId}`);
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] });
+      toast({
+        title: "Success",
+        description: "Comment deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <>
       <Navbar />
@@ -295,14 +320,30 @@ export default function MediaFeedPage() {
                       <div className="space-y-3">
                         {post.comments?.map((comment) => (
                           <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
-                            <div className="flex items-center gap-2">
-                              <UserAvatar user={comment.author} size="sm" />
-                              <div>
-                                <span className="text-sm font-medium">{comment.author.username}</span>
-                                <span className="text-xs text-muted-foreground ml-2">
-                                  {format(new Date(comment.createdAt), "PPp")}
-                                </span>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <UserAvatar user={comment.author} size="sm" />
+                                <div>
+                                  <span className="text-sm font-medium">{comment.author.username}</span>
+                                  <span className="text-xs text-muted-foreground ml-2">
+                                    {format(new Date(comment.createdAt), "PPp")}
+                                  </span>
+                                </div>
                               </div>
+                              {comment.author.username === user?.username && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (window.confirm("Are you sure you want to delete this comment?")) {
+                                      deleteCommentMutation.mutate({ postId: post.id, commentId: comment.id });
+                                    }
+                                  }}
+                                  disabled={deleteCommentMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                             <p className="text-sm pl-10">{comment.content}</p>
                           </div>

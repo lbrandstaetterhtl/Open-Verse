@@ -442,6 +442,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/comments/:id", isAuthenticated, async (req, res) => {
+    try {
+      const commentId = parseInt(req.params.id);
+      const comment = await storage.getComment(commentId);
+
+      if (!comment) {
+        return res.status(404).send("Comment not found");
+      }
+
+      // Check if user owns the comment
+      if (comment.authorId !== req.user!.id) {
+        return res.status(403).send("You can only delete your own comments");
+      }
+
+      await storage.deleteComment(commentId);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      res.status(500).send("Failed to delete comment");
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

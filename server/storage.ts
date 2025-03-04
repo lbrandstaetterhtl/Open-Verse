@@ -25,6 +25,8 @@ export interface IStorage {
   createComment(comment: Omit<Comment, "id" | "createdAt" | "karma">): Promise<Comment>;
   getComments(postId: number): Promise<Comment[]>;
   updateCommentKarma(id: number, karma: number): Promise<Comment>;
+  getComment(id: number): Promise<Comment | undefined>;
+  deleteComment(id: number): Promise<void>;
 
   createReport(report: Omit<Report, "id" | "createdAt" | "status">): Promise<Report>;
   getReports(): Promise<Report[]>;
@@ -207,6 +209,15 @@ export class DatabaseStorage implements IStorage {
   async updateCommentKarma(id: number, karma: number): Promise<Comment> {
     const [comment] = await db.update(comments).set({ karma }).where(eq(comments.id, id)).returning();
     return comment;
+  }
+
+  async getComment(id: number): Promise<Comment | undefined> {
+    const [comment] = await db.select().from(comments).where(eq(comments.id, id));
+    return comment;
+  }
+
+  async deleteComment(id: number): Promise<void> {
+    await db.delete(comments).where(eq(comments.id, id));
   }
 
   async createReport(report: Omit<Report, "id" | "createdAt" | "status">): Promise<Report> {
