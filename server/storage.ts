@@ -1,8 +1,8 @@
-import { User, Post, Comment, Report, InsertUser, InsertDiscussionPost, InsertMediaPost, Notification, Message, followers, notifications, messages } from "@shared/schema";
+import { users, messages as messagesTable, notifications as notificationsTable, User, Post, Comment, Report, InsertUser, InsertDiscussionPost, InsertMediaPost, Notification, Message, followers, notifications, messages } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
 import { eq, and, or, desc, asc, sql } from "drizzle-orm";
-import { users, posts, comments, reports, postLikes } from "@shared/schema";
+import { postLikes, reports } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
@@ -295,7 +295,7 @@ export class DatabaseStorage implements IStorage {
     fromUserId: number;
   }): Promise<Notification> {
     const [result] = await db
-      .insert(notifications)
+      .insert(notificationsTable)
       .values(notification)
       .returning();
 
@@ -305,29 +305,29 @@ export class DatabaseStorage implements IStorage {
   async getNotifications(userId: number): Promise<Notification[]> {
     const notifications = await db
       .select({
-        id: notifications.id,
-        userId: notifications.userId,
-        type: notifications.type,
-        fromUserId: notifications.fromUserId,
-        read: notifications.read,
-        createdAt: notifications.createdAt,
+        id: notificationsTable.id,
+        userId: notificationsTable.userId,
+        type: notificationsTable.type,
+        fromUserId: notificationsTable.fromUserId,
+        read: notificationsTable.read,
+        createdAt: notificationsTable.createdAt,
         fromUser: {
           username: users.username,
         },
       })
-      .from(notifications)
-      .innerJoin(users, eq(users.id, notifications.fromUserId))
-      .where(eq(notifications.userId, userId))
-      .orderBy(desc(notifications.createdAt));
+      .from(notificationsTable)
+      .innerJoin(users, eq(users.id, notificationsTable.fromUserId))
+      .where(eq(notificationsTable.userId, userId))
+      .orderBy(desc(notificationsTable.createdAt));
 
     return notifications;
   }
 
   async markNotificationAsRead(notificationId: number): Promise<void> {
     await db
-      .update(notifications)
+      .update(notificationsTable)
       .set({ read: true })
-      .where(eq(notifications.id, notificationId));
+      .where(eq(notificationsTable.id, notificationId));
   }
 
   // Messages
@@ -337,7 +337,7 @@ export class DatabaseStorage implements IStorage {
     content: string;
   }): Promise<Message> {
     const [result] = await db
-      .insert(messages)
+      .insert(messagesTable)
       .values(message)
       .returning();
 
@@ -347,34 +347,34 @@ export class DatabaseStorage implements IStorage {
   async getMessages(userId1: number, userId2: number): Promise<Message[]> {
     const messages = await db
       .select({
-        id: messages.id,
-        senderId: messages.senderId,
-        receiverId: messages.receiverId,
-        content: messages.content,
-        createdAt: messages.createdAt,
-        read: messages.read,
+        id: messagesTable.id,
+        senderId: messagesTable.senderId,
+        receiverId: messagesTable.receiverId,
+        content: messagesTable.content,
+        createdAt: messagesTable.createdAt,
+        read: messagesTable.read,
         sender: {
           username: users.username,
         },
         receiver: {
-          username: sql<string>`(SELECT username FROM ${users} WHERE id = ${messages.receiverId})`,
+          username: sql<string>`(SELECT username FROM users WHERE id = ${messagesTable.receiverId})`.as('receiver_username'),
         },
       })
-      .from(messages)
-      .innerJoin(users, eq(users.id, messages.senderId))
+      .from(messagesTable)
+      .innerJoin(users, eq(users.id, messagesTable.senderId))
       .where(
         or(
           and(
-            eq(messages.senderId, userId1),
-            eq(messages.receiverId, userId2)
+            eq(messagesTable.senderId, userId1),
+            eq(messagesTable.receiverId, userId2)
           ),
           and(
-            eq(messages.senderId, userId2),
-            eq(messages.receiverId, userId1)
+            eq(messagesTable.senderId, userId2),
+            eq(messagesTable.receiverId, userId1)
           )
         )
       )
-      .orderBy(asc(messages.createdAt));
+      .orderBy(asc(messagesTable.createdAt));
 
     return messages;
   }
@@ -382,19 +382,20 @@ export class DatabaseStorage implements IStorage {
   async getUnreadMessageCount(userId: number): Promise<number> {
     const result = await db
       .select({ count: sql<number>`count(*)` })
-      .from(messages)
+      .from(messagesTable)
       .where(and(
-        eq(messages.receiverId, userId),
-        eq(messages.read, false)
+        eq(messagesTable.receiverId, userId),
+        eq(messagesTable.read, false)
       ));
 
     return result[0].count;
   }
+
   async markMessageAsRead(messageId: number): Promise<void> {
     await db
-      .update(messages)
+      .update(messagesTable)
       .set({ read: true })
-      .where(eq(messages.id, messageId));
+      .where(eq(messagesTable.id, messageId));
   }
 }
 

@@ -19,6 +19,7 @@ type Message = {
   senderId: number;
   receiverId: number;
   createdAt: string;
+  read: boolean;
   sender: {
     username: string;
   };
@@ -246,7 +247,7 @@ export default function ChatPage() {
                     <div className="flex justify-center">
                       <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
-                  ) : messages?.length ? (
+                  ) : messages && messages.length > 0 ? (
                     messages.map((message) => (
                       <div
                         key={message.id}
