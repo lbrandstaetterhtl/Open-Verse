@@ -62,7 +62,10 @@ export default function MediaFeedPage() {
   const followMutation = useMutation({
     mutationFn: async (userId: number) => {
       const res = await apiRequest("POST", `/api/follow/${userId}`);
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] });
@@ -72,12 +75,22 @@ export default function MediaFeedPage() {
         description: "User followed successfully",
       });
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const unfollowMutation = useMutation({
     mutationFn: async (userId: number) => {
       const res = await apiRequest("DELETE", `/api/follow/${userId}`);
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] });
@@ -85,6 +98,13 @@ export default function MediaFeedPage() {
       toast({
         title: "Success",
         description: "User unfollowed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -166,11 +186,13 @@ export default function MediaFeedPage() {
                           <Button
                             variant={post.author.isFollowing ? "default" : "outline"}
                             size="sm"
-                            onClick={() =>
-                              post.author.isFollowing
-                                ? unfollowMutation.mutate(post.author.id)
-                                : followMutation.mutate(post.author.id)
-                            }
+                            onClick={() => {
+                              if (post.author.isFollowing) {
+                                unfollowMutation.mutate(post.author.id);
+                              } else {
+                                followMutation.mutate(post.author.id);
+                              }
+                            }}
                             disabled={followMutation.isPending || unfollowMutation.isPending}
                           >
                             {post.author.isFollowing ? "Following" : "Follow"}

@@ -268,6 +268,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Cannot follow yourself");
       }
 
+      const targetUser = await storage.getUser(followingId);
+      if (!targetUser) {
+        return res.status(404).send("User not found");
+      }
+
       const isAlreadyFollowing = await storage.isFollowing(followerId, followingId);
       if (isAlreadyFollowing) {
         return res.status(400).send("Already following this user");
@@ -293,6 +298,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const followingId = parseInt(req.params.userId);
       const followerId = req.user!.id;
+
+      const targetUser = await storage.getUser(followingId);
+      if (!targetUser) {
+        return res.status(404).send("User not found");
+      }
+
+      const isFollowing = await storage.isFollowing(followerId, followingId);
+      if (!isFollowing) {
+        return res.status(400).send("Not following this user");
+      }
 
       await storage.unfollowUser(followerId, followingId);
       res.sendStatus(200);

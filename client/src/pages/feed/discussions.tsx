@@ -8,7 +8,6 @@ import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle } from "lucide-react
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Report } from "@shared/schema";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -63,7 +62,10 @@ export default function DiscussionsFeedPage() {
   const followMutation = useMutation({
     mutationFn: async (userId: number) => {
       const res = await apiRequest("POST", `/api/follow/${userId}`);
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
@@ -73,12 +75,22 @@ export default function DiscussionsFeedPage() {
         description: "User followed successfully",
       });
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const unfollowMutation = useMutation({
     mutationFn: async (userId: number) => {
       const res = await apiRequest("DELETE", `/api/follow/${userId}`);
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
@@ -88,11 +100,22 @@ export default function DiscussionsFeedPage() {
         description: "User unfollowed successfully",
       });
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const createCommentMutation = useMutation({
     mutationFn: async ({ postId, content }: { postId: number; content: string }) => {
       const res = await apiRequest("POST", "/api/comments", { postId, content });
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -100,6 +123,13 @@ export default function DiscussionsFeedPage() {
       toast({
         title: "Success",
         description: "Comment added successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -145,11 +175,13 @@ export default function DiscussionsFeedPage() {
                         <Button
                           variant={post.author.isFollowing ? "default" : "outline"}
                           size="sm"
-                          onClick={() =>
-                            post.author.isFollowing
-                              ? unfollowMutation.mutate(post.author.id)
-                              : followMutation.mutate(post.author.id)
-                          }
+                          onClick={() => {
+                            if (post.author.isFollowing) {
+                              unfollowMutation.mutate(post.author.id);
+                            } else {
+                              followMutation.mutate(post.author.id);
+                            }
+                          }}
                           disabled={followMutation.isPending || unfollowMutation.isPending}
                         >
                           {post.author.isFollowing ? "Following" : "Follow"}
@@ -170,6 +202,7 @@ export default function DiscussionsFeedPage() {
                       {/* Add Comment Form */}
                       <div className="flex gap-2">
                         <Input
+                          data-post-id={post.id}
                           placeholder="Write a comment..."
                           onKeyPress={(e) => {
                             if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
@@ -236,19 +269,6 @@ export default function DiscussionsFeedPage() {
                         <span>{post.reactions.dislikes}</span>
                       </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        reportMutation.mutate({
-                          postId: post.id,
-                          reason: "Inappropriate content",
-                        })
-                      }
-                    >
-                      <Flag className="h-4 w-4 mr-1" />
-                      Report
-                    </Button>
                   </CardFooter>
                 </Card>
               ))}
