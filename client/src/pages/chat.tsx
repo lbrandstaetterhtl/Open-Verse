@@ -121,7 +121,8 @@ export default function ChatPage() {
     const connectWebSocket = () => {
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        const host = window.location.host.split('?')[0]; // Remove any query parameters
+        const wsUrl = `${protocol}//${encodeURIComponent(host)}/ws`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
@@ -135,6 +136,8 @@ export default function ChatPage() {
             if (data.type === 'new_message') {
               // Invalidate queries to refresh messages
               queryClient.invalidateQueries({ queryKey: ["/api/messages", selectedUserId] });
+              queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/messages/unread/count"] });
             }
           } catch (error) {
             console.error('Error parsing WebSocket message:', error);
@@ -160,7 +163,9 @@ export default function ChatPage() {
 
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
-          ws.close();
+          if (wsRef.current === ws) {
+            ws.close();
+          }
         };
       } catch (error) {
         console.error('Error creating WebSocket connection:', error);

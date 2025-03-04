@@ -70,6 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       } else {
+        socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
         socket.destroy();
       }
     } catch (error) {
@@ -96,10 +97,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ws.on('error', (error) => {
         console.error('WebSocket error:', error);
         clients.delete(userId);
+        try {
+          ws.close();
+        } catch (e) {
+          console.error('Error closing WebSocket:', e);
+        }
       });
     } catch (error) {
       console.error('Error in WebSocket connection:', error);
-      ws.close();
+      try {
+        ws.close();
+      } catch (e) {
+        console.error('Error closing WebSocket:', e);
+      }
     }
   });
 
