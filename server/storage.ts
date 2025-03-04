@@ -302,11 +302,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getNotifications(userId: number): Promise<Notification[]> {
-    return db
-      .select()
+    const notifications = await db
+      .select({
+        id: notifications.id,
+        userId: notifications.userId,
+        type: notifications.type,
+        fromUserId: notifications.fromUserId,
+        read: notifications.read,
+        createdAt: notifications.createdAt,
+        fromUser: {
+          username: users.username,
+        },
+      })
       .from(notifications)
+      .innerJoin(users, eq(users.id, notifications.fromUserId))
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt));
+
+    return notifications;
   }
 
   async markNotificationAsRead(notificationId: number): Promise<void> {
