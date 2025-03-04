@@ -122,7 +122,7 @@ export class DatabaseStorage implements IStorage {
     const updateData: Record<string, any> = {};
     if (profile.username) updateData.username = profile.username;
     if (profile.email) updateData.email = profile.email;
-    if (profile.profilePictureUrl) updateData.profilePictureUrl = profile.profilePictureUrl;
+    if (profile.profilePictureUrl) updateData.profile_picture_url = profile.profilePictureUrl;
     if (typeof profile.role !== 'undefined') updateData.role = profile.role;
     if (typeof profile.emailVerified !== 'undefined') updateData.email_verified = profile.emailVerified;
 
