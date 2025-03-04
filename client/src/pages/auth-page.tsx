@@ -24,8 +24,20 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="flex items-center justify-center p-8">
-        <div className="mx-auto max-w-md w-full space-y-8">
+      {/* Mobile Header - Only visible on mobile */}
+      <div className="lg:hidden p-6 bg-primary/5">
+        <div className="flex items-center space-x-2">
+          <Globe className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">Pure News</h1>
+            <p className="text-xs text-muted-foreground">Version 0.1</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Auth Forms Section */}
+      <div className="flex items-center justify-center p-4 lg:p-8">
+        <div className="mx-auto max-w-md w-full space-y-6">
           {isVerified && (
             <Alert className="bg-green-50 border-green-200">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -35,10 +47,53 @@ export default function AuthPage() {
             </Alert>
           )}
           <LoginForm />
+
+          {/* Feature Highlights - Mobile Only */}
+          <div className="lg:hidden space-y-4 py-6">
+            <h2 className="text-lg font-semibold text-center">Why Join Pure News?</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-primary/5 rounded-lg">
+                <Newspaper className="h-5 w-5 text-primary mb-2" />
+                <h3 className="text-sm font-medium">Quality News</h3>
+              </div>
+              <div className="p-3 bg-primary/5 rounded-lg">
+                <MessageSquare className="h-5 w-5 text-primary mb-2" />
+                <h3 className="text-sm font-medium">Discussions</h3>
+              </div>
+              <div className="p-3 bg-primary/5 rounded-lg">
+                <TrendingUp className="h-5 w-5 text-primary mb-2" />
+                <h3 className="text-sm font-medium">Trends</h3>
+              </div>
+              <div className="p-3 bg-primary/5 rounded-lg">
+                <Users className="h-5 w-5 text-primary mb-2" />
+                <h3 className="text-sm font-medium">Community</h3>
+              </div>
+            </div>
+          </div>
+
           <RegisterForm />
+
+          {/* Latest Updates - Mobile Only */}
+          <div className="lg:hidden mt-6 p-4 bg-primary/5 rounded-lg">
+            <div className="flex items-center space-x-2 mb-3">
+              <Info className="h-4 w-4 text-primary" />
+              <h3 className="font-medium">Latest Updates</h3>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <p>✨ New in Version 0.1:</p>
+              <ul className="list-disc list-inside space-y-1 mt-2">
+                <li>Delete posts & comments</li>
+                <li>Mobile-friendly design</li>
+                <li>Enhanced comments</li>
+                <li>Real-time updates</li>
+                <li>Follow system</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Desktop Features Section - Hidden on mobile */}
       <div className="hidden lg:flex flex-col justify-center p-8 bg-primary/5">
         <div className="mx-auto max-w-md w-full">
           <div className="flex items-center space-x-2 mb-8">
