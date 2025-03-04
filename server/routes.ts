@@ -88,7 +88,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       clients.set(userId, ws);
 
       // Send initial connection success message
-      ws.send(JSON.stringify({ type: 'connected' }));
+      const connectionMessage = JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() });
+      ws.send(connectionMessage);
 
       ws.on('close', () => {
         clients.delete(userId);

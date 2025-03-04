@@ -125,7 +125,7 @@ export default function ChatPage() {
     const connectWebSocket = () => {
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        // Clean the host string and encode it properly
+        // Clean the host string and encode it properly for our chat WebSocket
         const host = window.location.host.split('?')[0].replace(/[^\w.:-]/g, '');
         const wsUrl = `${protocol}//${host}/ws`;
 
@@ -142,14 +142,24 @@ export default function ChatPage() {
 
         ws.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'new_message') {
-              queryClient.invalidateQueries({ queryKey: ["/api/messages", selectedUserId] });
-              queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-              queryClient.invalidateQueries({ queryKey: ["/api/messages/unread/count"] });
+            // Only try to parse messages that are meant for our chat application
+            if (typeof event.data === 'string' && (
+              event.data.includes('"type":"new_message"') ||
+              event.data.includes('"type":"connected"')
+            )) {
+              const data = JSON.parse(event.data);
+              if (data.type === 'new_message') {
+                queryClient.invalidateQueries({ queryKey: ["/api/messages", selectedUserId] });
+                queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/messages/unread/count"] });
+              }
             }
           } catch (error) {
-            console.error('Error parsing WebSocket message:', error);
+            // Ignore parsing errors for non-chat WebSocket messages
+            if (error instanceof SyntaxError) {
+              return;
+            }
+            console.error('Error handling WebSocket message:', error);
           }
         };
 
