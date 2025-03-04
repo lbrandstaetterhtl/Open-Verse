@@ -603,23 +603,34 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       const reports = await storage.getReports();
       const enrichedReports = await Promise.all(reports.map(async (report) => {
         const reporter = await storage.getUser(report.reporterId);
-        const reportedContent = report.postId ? await storage.getPost(report.postId) :
-                              report.commentId ? await storage.getComment(report.commentId) :
-                              report.discussionId ? await storage.getPost(report.discussionId) : null;
+        let reportedContent = null;
+        let contentType = null;
+
+        if (report.postId) {
+          reportedContent = await storage.getPost(report.postId);
+          contentType = 'post';
+        } else if (report.commentId) {
+          reportedContent = await storage.getComment(report.commentId);
+          contentType = 'comment';
+        } else if (report.discussionId) {
+          reportedContent = await storage.getPost(report.discussionId);
+          contentType = 'discussion';
+        }
 
         return {
           ...report,
           reporter: {
-            username: reporter?.username || 'Unknown',
+            username: reporter?.username || 'Unknown'
           },
           content: reportedContent ? {
-            type: report.postId ? 'post' :
-                  report.discussionId ? 'discussion' : 'comment',
+            type: contentType,
             title: (reportedContent as any).title || null,
             content: (reportedContent as any).content
           } : null
         };
       }));
+
+      console.log('Enriched reports:', enrichedReports); // Add logging
       res.json(enrichedReports);
     } catch (error) {
       console.error('Error fetching reports:', error);
