@@ -9,7 +9,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Bell, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -60,7 +59,6 @@ export function NotificationsDialog() {
       if (!notification.read) {
         markAsReadMutation.mutate(notification.id);
       }
-      // Navigate to the post
       setLocation(`/post/${notification.postId}`);
     }
   };
@@ -82,7 +80,7 @@ export function NotificationsDialog() {
           <DialogTitle>Notifications</DialogTitle>
         </DialogHeader>
         {isLoading ? (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center p-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : notifications?.length === 0 ? (
@@ -90,23 +88,22 @@ export function NotificationsDialog() {
             <AlertDescription>No notifications yet</AlertDescription>
           </Alert>
         ) : (
-          <div className="space-y-4 mt-4">
+          <div className="space-y-0">
             {notifications?.map((notification) => (
               <div
                 key={notification.id}
-                className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-accent transition-colors ${
-                  !notification.read ? "bg-accent/50" : ""
+                className={`px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors ${
+                  !notification.read ? "bg-muted/30" : ""
                 }`}
                 onClick={() => handleNotificationClick(notification)}
               >
-                <UserAvatar user={{ username: notification.fromUser.username }} size="sm" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm leading-tight">
-                    <span className="font-medium">{notification.fromUser.username}</span>{" "}
-                    {notification.message}
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm">
+                    <span className="font-semibold text-foreground">{notification.fromUser.username}</span>{" "}
+                    <span className="text-muted-foreground">{notification.message}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {format(new Date(notification.createdAt), "PPp")}
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(notification.createdAt), "MMM d")}
                   </p>
                 </div>
               </div>
