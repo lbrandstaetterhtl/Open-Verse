@@ -261,11 +261,11 @@ export default function AdminDashboard() {
                                   size="sm"
                                 />
                                 <div className="flex items-center gap-1">
-                                  <Link href={`/users/${u.username}`} className="hover:underline">
+                                  <Link href={`/users/${u.username}`} className="hover:underline text-sm">
                                     {u.username}
                                   </Link>
                                   {u.verified && (
-                                    <BadgeCheck className="h-4 w-4 text-blue-500" />
+                                    <BadgeCheck className="h-4 w-4 text-blue-500 flex-shrink-0" />
                                   )}
                                 </div>
                               </div>
@@ -277,9 +277,9 @@ export default function AdminDashboard() {
                                   {u.emailVerified ? "Verified" : "Unverified"}
                                 </Badge>
                                 {u.verified && (
-                                  <Badge variant="default" className="bg-blue-500">
-                                    <BadgeCheck className="h-4 w-4 mr-1" />
-                                    Verified
+                                  <Badge variant="default" className="bg-blue-500 flex items-center gap-1">
+                                    <BadgeCheck className="h-4 w-4 text-white flex-shrink-0" />
+                                    <span className="text-sm">Verified</span>
                                   </Badge>
                                 )}
                                 {u.karma < 0 && (
@@ -316,8 +316,9 @@ export default function AdminDashboard() {
                                       variant={u.verified ? "default" : "outline"}
                                       onClick={() => handleVerificationToggle(u.id, u.verified)}
                                       disabled={updateUserMutation.isPending}
+                                      className="flex items-center gap-1"
                                     >
-                                      <BadgeCheck className="h-4 w-4 mr-1" />
+                                      <BadgeCheck className="h-4 w-4 flex-shrink-0" />
                                       {u.verified ? "Remove Verification" : "Verify User"}
                                     </Button>
                                     <Button
