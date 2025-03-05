@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   isAdmin: boolean("is_admin").notNull().default(false),
   role: text("role").notNull().default("user"),
   verified: boolean("verified").notNull().default(false),
+  avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -140,6 +141,7 @@ export const loginSchema = z.object({
 export const updateProfileSchema = z.object({
   username: z.string().min(1, "Username is required"),
   email: z.string().email("Please enter a valid email address"),
+  avatarUrl: z.string().url("Please provide a valid image URL").optional(),
 }).partial();
 
 export const updatePasswordSchema = z.object({
@@ -160,7 +162,6 @@ export const messageSchema = z.object({
   content: z.string().min(1, "Message cannot be empty"),
 });
 
-
 export const adminUpdateUserSchema = z.object({
   username: z.string().min(1, "Username is required").optional(),
   email: z.string().email("Please enter a valid email address").optional(),
@@ -172,6 +173,10 @@ export const adminUpdateUserSchema = z.object({
 export const adminUpdateReportSchema = z.object({
   status: z.enum(["pending", "resolved", "rejected"]),
   resolution: z.string().optional(),
+});
+
+export const updateAvatarSchema = z.object({
+  avatarUrl: z.string().url("Please provide a valid image URL"),
 });
 
 export type LoginCredentials = z.infer<typeof loginSchema>;
@@ -191,3 +196,4 @@ export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof messageSchema>;
 export type AdminUpdateUser = z.infer<typeof adminUpdateUserSchema>;
 export type AdminUpdateReport = z.infer<typeof adminUpdateReportSchema>;
+export type UpdateAvatar = z.infer<typeof updateAvatarSchema>;
