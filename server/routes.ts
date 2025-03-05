@@ -223,23 +223,11 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
           userId: post.authorId,
           type: "new_comment",
           fromUserId: req.user!.id,
-          message: `${req.user!.username} commented on your post: "${result.data.content}"`,
+          message: `${req.user!.username} commented on your post: "${result.data.content.substring(0, 50)}${result.data.content.length > 50 ? '...' : ''}"`,
           postId: post.id,
           commentId: comment.id
         });
       }
-
-      // Broadcast new comment to all connected clients
-      const message = JSON.stringify({
-        type: 'new_comment',
-        data: comment
-      });
-
-      connections.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
-      });
 
       res.status(201).json(comment);
     } catch (error) {
@@ -277,7 +265,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
             userId: comment.authorId,
             type: "comment_like",
             fromUserId: userId,
-            message: `${req.user!.username} liked your comment`,
+            message: `${req.user!.username} liked your comment: "${comment.content.substring(0, 50)}${comment.content.length > 50 ? '...' : ''}"`,
             postId: post.id,
             commentId: comment.id
           });
@@ -329,7 +317,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
               userId: post.authorId,
               type: "post_like",
               fromUserId: userId,
-              message: `${req.user!.username} liked your post`,
+              message: `${req.user!.username} liked your ${post.category} post: "${post.title}"`,
               postId: post.id
             });
           }

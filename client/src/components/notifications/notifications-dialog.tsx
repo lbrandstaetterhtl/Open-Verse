@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -60,6 +60,7 @@ export function NotificationsDialog() {
       if (!notification.read) {
         markAsReadMutation.mutate(notification.id);
       }
+      // Navigate to the post
       setLocation(`/post/${notification.postId}`);
     }
   };
@@ -93,7 +94,7 @@ export function NotificationsDialog() {
             {notifications?.map((notification) => (
               <div
                 key={notification.id}
-                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-accent ${
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-accent transition-colors ${
                   !notification.read ? "bg-accent/50" : ""
                 }`}
                 onClick={() => handleNotificationClick(notification)}
@@ -101,6 +102,7 @@ export function NotificationsDialog() {
                 <UserAvatar user={{ username: notification.fromUser.username }} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm leading-tight">
+                    <span className="font-medium">{notification.fromUser.username}</span>{" "}
                     {notification.message}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
