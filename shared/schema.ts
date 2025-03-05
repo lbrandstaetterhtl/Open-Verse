@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   isAdmin: boolean("is_admin").notNull().default(false),
   role: text("role").notNull().default("user"),
   verified: boolean("verified").notNull().default(false),
+  avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -140,6 +141,7 @@ export const loginSchema = z.object({
 export const updateProfileSchema = z.object({
   username: z.string().min(1, "Username is required"),
   email: z.string().email("Please enter a valid email address"),
+  avatarFile: z.any().optional(),
 }).partial();
 
 export const updatePasswordSchema = z.object({

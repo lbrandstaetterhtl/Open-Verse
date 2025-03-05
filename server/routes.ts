@@ -49,6 +49,29 @@ const upload = multer({
   }
 });
 
+// Configure multer for avatar uploads
+const avatarUpload = multer({
+  storage: multer.diskStorage({
+    destination: "./uploads/avatars",
+    filename: function (req, file, cb) {
+      // Use a unique filename to prevent conflicts
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only JPEG, PNG and GIF are allowed."));
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
 export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Promise<Server> {
   // Create HTTP server
   const httpServer = createServer(app);
@@ -106,6 +129,9 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
   // Serve uploaded files
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+  // Serve avatar files
+  app.use("/uploads/avatars", express.static(path.join(process.cwd(), "uploads/avatars")));
+
 
   // Posts
   app.get("/api/posts", async (req, res) => {
@@ -477,22 +503,22 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  // Updated profile route
-  app.patch("/api/profile", isAuthenticated, async (req, res) => {
+  // Update the profile route to handle file uploads
+  app.patch("/api/profile", isAuthenticated, avatarUpload.single('avatarFile'), async (req, res) => {
     try {
-      const updateData: Partial<{ username: string; email: string; role: string }> = {};
+      const updateData: Partial<{ username: string; email: string; profilePictureUrl: string; isAdmin: boolean; role: string; emailVerified: boolean; verified: boolean }> = {};
 
-      if (req.body.username) {
-        updateData.username = req.body.username;
+      if (req.body.username) updateData.username = req.body.username;
+      if (req.body.email) updateData.email = req.body.email;
+
+      // Handle avatar file upload
+      if (req.file) {
+        // Create avatar URL using the file path
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        updateData.profilePictureUrl = avatarUrl;
       }
 
-      if (req.body.email) {
-        updateData.email = req.body.email;
-      }
-
-      if (req.body.role) {
-        updateData.role = req.body.role;
-      }
+      console.log('Updating profile with data:', updateData); // Debug log
 
       const updatedUser = await storage.updateUserProfile(req.user!.id, updateData);
       res.json(updatedUser);

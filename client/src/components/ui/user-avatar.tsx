@@ -1,10 +1,11 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserCircle } from "lucide-react";
 
 type UserAvatarProps = {
   user: {
     username: string;
     verified?: boolean;
+    avatarUrl?: string | null;
   };
   size?: "sm" | "md" | "lg";
 };
@@ -18,9 +19,13 @@ export function UserAvatar({ user, size = "md" }: UserAvatarProps) {
 
   return (
     <Avatar className={sizeClasses[size]}>
-      <AvatarFallback>
-        <UserCircle className="h-4 w-4" />
-      </AvatarFallback>
+      {user.avatarUrl ? (
+        <AvatarImage src={user.avatarUrl} alt={user.username} />
+      ) : (
+        <AvatarFallback>
+          <UserCircle className="h-4 w-4" />
+        </AvatarFallback>
+      )}
     </Avatar>
   );
 }

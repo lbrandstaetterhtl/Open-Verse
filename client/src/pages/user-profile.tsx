@@ -12,13 +12,22 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { User } from "@shared/schema";
+
+type FollowerUser = {
+  id: number;
+  username: string;
+  role: string;
+  verified: boolean;
+  avatarUrl?: string | null;
+};
 
 export default function UserProfilePage() {
   const { username } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
+  const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<User>({
     queryKey: ["/api/users", username],
     queryFn: async () => {
       const res = await fetch(`/api/users/${username}`);
@@ -34,7 +43,7 @@ export default function UserProfilePage() {
     enabled: !!username,
   });
 
-  const { data: followers, isLoading: followersLoading } = useQuery({
+  const { data: followers, isLoading: followersLoading } = useQuery<FollowerUser[]>({
     queryKey: ["/api/followers", username],
     queryFn: async () => {
       const res = await fetch(`/api/followers/${username}`);
@@ -44,7 +53,7 @@ export default function UserProfilePage() {
     enabled: !!username,
   });
 
-  const { data: following, isLoading: followingLoading } = useQuery({
+  const { data: following, isLoading: followingLoading } = useQuery<FollowerUser[]>({
     queryKey: ["/api/following", username],
     queryFn: async () => {
       const res = await fetch(`/api/following/${username}`);
@@ -116,11 +125,11 @@ export default function UserProfilePage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
-            <UserAvatar user={profile} size="lg" />
+            <UserAvatar user={profile || { username: '', verified: false }} size="lg" />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-4xl font-bold">{profile.username}</h1>
-                {profile.verified && (
+                <h1 className="text-4xl font-bold">{profile?.username}</h1>
+                {profile?.verified && (
                   <Badge variant="default" className="bg-blue-500">
                     <BadgeCheck className="h-4 w-4 mr-1" />
                     Verified
@@ -132,7 +141,7 @@ export default function UserProfilePage() {
                 <span className="text-muted-foreground">{following?.length || 0} following</span>
                 <div className="flex items-center text-emerald-500">
                   <Trophy className="h-4 w-4 mr-1" />
-                  <span>{profile.karma} reputation</span>
+                  <span>{profile?.karma || 0} reputation</span>
                 </div>
               </div>
             </div>
@@ -144,7 +153,7 @@ export default function UserProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {followers?.map((follower) => (
+                {followers?.map((follower: FollowerUser) => (
                   <div key={follower.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Link href={`/users/${follower.username}`}>
@@ -179,7 +188,7 @@ export default function UserProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {following?.map((followed) => (
+                {following?.map((followed: FollowerUser) => (
                   <div key={followed.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Link href={`/users/${followed.username}`}>
