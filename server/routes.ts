@@ -504,18 +504,23 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   // Add this route with the others related to profile updates
   app.post("/api/profile/avatar", isAuthenticated, upload.single("avatar"), async (req, res) => {
     try {
+      console.log('Avatar upload request received:', req.file); // Debug log
+
       if (!req.file) {
+        console.log('No file uploaded'); // Debug log
         return res.status(400).send("No file uploaded");
       }
 
       // Get the URL path for the uploaded file
       const avatarUrl = `/uploads/${req.file.filename}`;
+      console.log('Generated avatar URL:', avatarUrl); // Debug log
 
       // Update user's profile with new avatar URL
       const updatedUser = await storage.updateUserProfile(req.user!.id, {
         avatarUrl
       });
 
+      console.log('Updated user profile:', updatedUser); // Debug log
       res.json(updatedUser);
     } catch (error) {
       console.error('Error updating avatar:', error);

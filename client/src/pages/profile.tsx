@@ -51,13 +51,21 @@ export default function ProfilePage() {
 
   const avatarMutation = useMutation({
     mutationFn: async (file: File) => {
+      console.log('Uploading file:', file); // Debug log
       const formData = new FormData();
       formData.append("avatar", file);
-      const res = await apiRequest("POST", "/api/profile/avatar", formData, {
-        headers: {
-          // Don't set Content-Type header here, it will be set automatically for FormData
-        },
+
+      const res = await fetch("/api/profile/avatar", {
+        method: "POST",
+        body: formData,
+        // Don't set Content-Type header, let the browser set it with the boundary
       });
+
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+
       return res.json();
     },
     onSuccess: () => {
@@ -68,6 +76,7 @@ export default function ProfilePage() {
       });
     },
     onError: (error: Error) => {
+      console.error('Avatar upload error:', error); // Debug log
       toast({
         title: "Update failed",
         description: error.message,
@@ -166,6 +175,7 @@ export default function ProfilePage() {
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      console.log('Selected file:', file); // Debug log
       avatarMutation.mutate(file);
     }
   };
