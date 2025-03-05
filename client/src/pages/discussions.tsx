@@ -31,13 +31,23 @@ import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, UserCircle, Trash2,
 import { format } from "date-fns";
 import * as z from 'zod';
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { BadgeCheck } from "lucide-react"; // Import BadgeCheck
 
 type PostWithAuthor = Post & {
-  author: { username: string; id: number; role: string };
+  author: { 
+    username: string; 
+    id: number; 
+    role: string;
+    verified: boolean; 
+  };
   comments: Array<{
     id: number;
     content: string;
-    author: { username: string; role: string; id: number };
+    author: { 
+      username: string; 
+      role: string;
+      verified: boolean;
+    };
     createdAt: string;
     likes: number;
     isLiked: boolean;
@@ -140,7 +150,6 @@ export default function DiscussionsPage() {
       toast({ title: "Post deleted", description: "The discussion has been deleted." });
     }
   });
-
 
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: number) => {
@@ -257,9 +266,14 @@ export default function DiscussionsPage() {
                         </Link>
                         <div>
                           <CardTitle>{post.title}</CardTitle>
-                          <Link href={`/users/${post.author.username}`} className="text-sm text-muted-foreground hover:underline">
-                            {post.author.username}
-                          </Link>
+                          <div className="flex items-center gap-1"> {/* Updated post author section */}
+                            <Link href={`/users/${post.author.username}`} className="text-sm text-muted-foreground hover:underline">
+                              {post.author.username}
+                            </Link>
+                            {post.author.verified && (
+                              <BadgeCheck className="h-4 w-4 text-blue-500" />
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -282,14 +296,19 @@ export default function DiscussionsPage() {
                         {post.comments?.map((comment) => (
                           <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2"> {/* Updated comment author section */}
                                 <Link href={`/users/${comment.author.username}`} className="hover:opacity-80">
                                   <UserAvatar user={comment.author} size="sm" />
                                 </Link>
                                 <div>
-                                  <Link href={`/users/${comment.author.username}`} className="text-sm font-medium hover:underline">
-                                    {comment.author.username}
-                                  </Link>
+                                  <div className="flex items-center gap-1">
+                                    <Link href={`/users/${comment.author.username}`} className="text-sm font-medium hover:underline">
+                                      {comment.author.username}
+                                    </Link>
+                                    {comment.author.verified && (
+                                      <BadgeCheck className="h-4 w-4 text-blue-500" />
+                                    )}
+                                  </div>
                                   <span className="text-xs text-muted-foreground block">
                                     {format(new Date(comment.createdAt), "PPp")}
                                   </span>

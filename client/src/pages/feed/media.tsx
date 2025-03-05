@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, Trash2, Plus, Heart } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, Trash2, Plus, Heart, BadgeCheck } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -22,11 +22,12 @@ type PostWithAuthor = Post & {
     id: number;
     isFollowing: boolean;
     role: string;
+    verified: boolean;
   };
   comments: Array<{
     id: number;
     content: string;
-    author: { username: string; role: string };
+    author: { username: string; role: string; verified: boolean };
     createdAt: string;
     likes: number;
     isLiked: boolean;
@@ -266,13 +267,18 @@ export default function MediaFeedPage() {
                         </Link>
                         <div className="min-w-0">
                           <CardTitle className="text-base lg:text-lg truncate">{post.title}</CardTitle>
-                          <p className="text-xs lg:text-sm text-muted-foreground">
-                            <Link href={`/users/${post.author.username}`} className="hover:underline">
+                          <div className="flex items-center gap-1">
+                            <Link href={`/users/${post.author.username}`} className="hover:underline text-xs lg:text-sm text-muted-foreground">
                               {post.author.username}
                             </Link>
-                            {" • "}
-                            {format(new Date(post.createdAt), "PPP")}
-                          </p>
+                            {post.author.verified && (
+                              <BadgeCheck className="h-4 w-4 text-blue-500" />
+                            )}
+                            <span className="text-xs lg:text-sm text-muted-foreground">
+                              {" • "}
+                              {format(new Date(post.createdAt), "PPP")}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -327,12 +333,12 @@ export default function MediaFeedPage() {
                           placeholder="Write a comment..."
                           className="text-sm"
                           onKeyPress={(e) => {
-                            if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                            if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
                               createCommentMutation.mutate({
                                 postId: post.id,
-                                content: (e.target as HTMLInputElement).value.trim()
+                                content: (e.target as HTMLInputElement).value.trim(),
                               });
-                              (e.target as HTMLInputElement).value = '';
+                              (e.target as HTMLInputElement).value = "";
                             }
                           }}
                         />
@@ -344,9 +350,9 @@ export default function MediaFeedPage() {
                             if (input?.value?.trim()) {
                               createCommentMutation.mutate({
                                 postId: post.id,
-                                content: input.value.trim()
+                                content: input.value.trim(),
                               });
-                              input.value = '';
+                              input.value = "";
                             }
                           }}
                         >
@@ -362,10 +368,15 @@ export default function MediaFeedPage() {
                                 <Link href={`/users/${comment.author.username}`} className="hover:opacity-80">
                                   <UserAvatar user={comment.author} size="sm" />
                                 </Link>
-                                <div className="min-w-0">
-                                  <Link href={`/users/${comment.author.username}`} className="text-xs lg:text-sm font-medium block truncate hover:underline">
-                                    {comment.author.username}
-                                  </Link>
+                                <div>
+                                  <div className="flex items-center gap-1">
+                                    <Link href={`/users/${comment.author.username}`} className="text-xs lg:text-sm font-medium hover:underline">
+                                      {comment.author.username}
+                                    </Link>
+                                    {comment.author.verified && (
+                                      <BadgeCheck className="h-4 w-4 text-blue-500" />
+                                    )}
+                                  </div>
                                   <span className="text-xs text-muted-foreground block">
                                     {format(new Date(comment.createdAt), "PPp")}
                                   </span>
@@ -383,8 +394,8 @@ export default function MediaFeedPage() {
                                   <span className="text-xs">{comment.likes}</span>
                                 </Button>
                                 {(comment.author.username === user?.username ||
-                                  user?.role === 'owner' ||
-                                  (user?.role === 'admin' && comment.author.role !== 'owner')) && (
+                                  user?.role === "owner" ||
+                                  (user?.role === "admin" && comment.author.role !== "owner")) && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -430,8 +441,8 @@ export default function MediaFeedPage() {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      {(user?.role === 'owner' ||
-                        (user?.role === 'admin' && post.author.role !== 'owner') ||
+                      {(user?.role === "owner" ||
+                        (user?.role === "admin" && post.author.role !== "owner") ||
                         post.author.id === user?.id) && (
                         <Button
                           variant="ghost"

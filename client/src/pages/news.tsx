@@ -26,17 +26,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { ThumbsUp, ThumbsDown, Flag, AlertTriangle, Loader2, Newspaper, Image, Video, MessageCircle, UserCircle } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, AlertTriangle, Loader2, Newspaper, Image, Video, MessageCircle, UserCircle, BadgeCheck } from "lucide-react";
 import { format } from "date-fns";
 import * as z from 'zod';
 import { Report } from "@shared/schema";
+import UserAvatar from "@/components/UserAvatar"; // Assuming this component exists
 
 type PostWithAuthor = Post & {
-  author: { username: string };
+  author: { username: string; verified: boolean }; // Added verified property
   comments: Array<{
     id: number;
     content: string;
-    author: { username: string };
+    author: { username: string; verified: boolean }; // Added verified property
     createdAt: string;
   }>;
   reactions: {
@@ -263,8 +264,15 @@ export default function NewsPage() {
                       <div>
                         <CardTitle>{post.title}</CardTitle>
                         <div className="flex items-center space-x-2 mt-2 text-sm text-muted-foreground">
-                          <UserCircle className="h-4 w-4" />
-                          <span>{post.author.username}</span>
+                          <div className="flex items-center space-x-2">
+                            <UserAvatar user={{ username: post.author.username, verified: post.author.verified }} size="sm" />
+                            <div className="flex items-center gap-1">
+                              <span>{post.author.username}</span>
+                              {post.author.verified && (
+                                <BadgeCheck className="h-4 w-4 text-blue-500" />
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <Badge variant="outline" className="text-primary">
@@ -339,11 +347,18 @@ export default function NewsPage() {
                         {post.comments?.map((comment) => (
                           <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
                             <div className="flex items-center space-x-2 mb-1">
-                              <UserCircle className="h-4 w-4" />
-                              <span className="text-sm font-medium">{comment.author.username}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(comment.createdAt), "PPp")}
-                              </span>
+                              <div className="flex items-center space-x-2 mb-1">
+                                <UserCircle className="h-4 w-4" />
+                                <div className="flex items-center gap-1">
+                                  <span className="text-sm font-medium">{comment.author.username}</span>
+                                  {comment.author.verified && (
+                                    <BadgeCheck className="h-4 w-4 text-blue-500" />
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(comment.createdAt), "PPp")}
+                                </span>
+                              </div>
                             </div>
                             <p className="text-sm">{comment.content}</p>
                           </div>
