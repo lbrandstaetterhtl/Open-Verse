@@ -478,7 +478,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   // Updated profile route
   app.patch("/api/profile", isAuthenticated, async (req, res) => {
     try {
-      const updateData: Partial<{ username: string; email: string; role: string }> = {};
+      const updateData: Partial<{ username: string; email: string; role: string; avatarUrl: string }> = {};
 
       if (req.body.username) {
         updateData.username = req.body.username;
@@ -500,6 +500,28 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
+
+  // Add this route with the others related to profile updates
+  app.post("/api/profile/avatar", isAuthenticated, upload.single("avatar"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).send("No file uploaded");
+      }
+
+      // Get the URL path for the uploaded file
+      const avatarUrl = `/uploads/${req.file.filename}`;
+
+      // Update user's profile with new avatar URL
+      const updatedUser = await storage.updateUserProfile(req.user!.id, {
+        avatarUrl
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating avatar:', error);
+      res.status(500).send("Failed to update avatar");
+    }
+  });
 
   // Followers
   app.post("/api/follow/:userId", isAuthenticated, async (req, res) => {
@@ -801,7 +823,8 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         username: user.username,
         karma: user.karma,
         createdAt: user.createdAt,
-        role: user.role
+        role: user.role,
+        avatarUrl: user.avatarUrl
       };
 
       console.log('Returning user data:', safeUser);
@@ -899,7 +922,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
         const enrichedReport = {
           ...report,
-          reporter:{
+          reporter: {
             username: reporter?.username || 'Unknown'
           },
           content: reportedContent ? {

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -23,11 +24,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, UserPlus, UserMinus, Trophy } from "lucide-react";
+import { Loader2, UserPlus, UserMinus, Trophy, Camera } from "lucide-react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [fileInputRef, setFileInputRef] = useState<HTMLInputElement | null>(null);
 
   const { data: followers } = useQuery({
     queryKey: ["/api/followers"],
@@ -44,6 +46,33 @@ export default function ProfilePage() {
       const res = await fetch("/api/following");
       if (!res.ok) throw new Error("Failed to fetch following");
       return res.json();
+    },
+  });
+
+  const avatarMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const res = await apiRequest("POST", "/api/profile/avatar", formData, {
+        headers: {
+          // Don't set Content-Type header here, it will be set automatically for FormData
+        },
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -134,13 +163,37 @@ export default function ProfilePage() {
     },
   });
 
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      avatarMutation.mutate(file);
+    }
+  };
+
   return (
     <>
       <Navbar />
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
-            <UserAvatar user={{ username: user?.username || '' }} size="lg" />
+            <div className="relative">
+              <UserAvatar user={{ username: user?.username || '', avatarUrl: user?.avatarUrl }} size="lg" />
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute bottom-0 right-0 rounded-full"
+                onClick={() => fileInputRef?.click()}
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
+              <input
+                type="file"
+                ref={setFileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleAvatarChange}
+              />
+            </div>
             <div>
               <h1 className="text-4xl font-bold">Profile Settings</h1>
               <div className="flex gap-4 mt-2">
