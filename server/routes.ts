@@ -10,6 +10,7 @@ import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema,
 import type { Knex } from 'knex';
 import session from 'express-session';
 import { sql } from 'drizzle-orm';
+import fs from 'fs';
 
 // WebSocket connections store
 const connections = new Map<number, WebSocket>();
@@ -68,9 +69,15 @@ const avatarUpload = multer({
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 1024 * 1024 // 1MB limit
   }
 });
+
+// Create uploads directory if it doesn't exist
+const AVATAR_UPLOAD_DIR = path.join(process.cwd(), "uploads/avatars");
+if (!fs.existsSync(AVATAR_UPLOAD_DIR)) {
+  fs.mkdirSync(AVATAR_UPLOAD_DIR, { recursive: true });
+}
 
 export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Promise<Server> {
   // Create HTTP server
@@ -504,13 +511,19 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   });
 
   // Update the profile route to handle avatar URL and ensure session is updated
-  app.patch("/api/profile", isAuthenticated, async (req, res) => {
+  app.patch("/api/profile", isAuthenticated, avatarUpload.single('avatarFile'), async (req, res) => {
     try {
       const updateData: Partial<{ username: string; email: string; avatarUrl: string; isAdmin: boolean; role: string; emailVerified: boolean; verified: boolean }> = {};
 
       if (req.body.username) updateData.username = req.body.username;
       if (req.body.email) updateData.email = req.body.email;
-      if (req.body.avatarUrl) updateData.avatarUrl = req.body.avatarUrl;
+
+      // Handle avatar file upload
+      if (req.file) {
+        // Create avatar URL using the file path
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        updateData.avatarUrl = avatarUrl;
+      }
 
       console.log('Updating profile with data:', updateData); // Debug log
 
@@ -883,7 +896,6 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   });
 
   // Add this route in the existing routes file, after other user-related routes
-
   app.get("/api/admin/users", isAdmin, async (req, res) => {
     try{
       const users = await storage.getUsers(); // Use storage interface      res.json(users);

@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Trophy } from "lucide-react";
+import { Loader2, Trophy, ImageIcon } from "lucide-react";
 import { useState } from "react";
 
 export default function ProfilePage() {
@@ -54,7 +54,6 @@ export default function ProfilePage() {
     defaultValues: {
       username: user?.username || "",
       email: user?.email || "",
-      avatarUrl: user?.avatarUrl || "",
     },
   });
 
@@ -69,7 +68,16 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateProfile) => {
-      const res = await apiRequest("PATCH", "/api/profile", data);
+      const formData = new FormData();
+      if (data.username) formData.append("username", data.username);
+      if (data.email) formData.append("email", data.email);
+      if (data.avatarFile) formData.append("avatarFile", data.avatarFile);
+
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        body: formData,
+      });
+
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
@@ -93,6 +101,7 @@ export default function ProfilePage() {
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: UpdatePassword) => {
       const res = await apiRequest("PATCH", "/api/profile/password", data);
+      if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
     onSuccess: () => {
@@ -111,8 +120,34 @@ export default function ProfilePage() {
     },
   });
 
-  const handleAvatarPreview = (url: string) => {
-    setAvatarPreview(url);
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit
+        toast({
+          title: "Error",
+          description: "Avatar file size must be less than 1MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Error",
+          description: "Please upload an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      profileForm.setValue("avatarFile", file);
+    }
   };
 
   return (
@@ -129,6 +164,19 @@ export default function ProfilePage() {
                 }} 
                 size="lg" 
               />
+              <label 
+                htmlFor="avatar-upload" 
+                className="absolute bottom-0 right-0 p-1 bg-primary text-primary-foreground rounded-full cursor-pointer hover:opacity-90"
+              >
+                <ImageIcon className="h-4 w-4" />
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                />
+              </label>
             </div>
             <div>
               <h1 className="text-4xl font-bold">Profile Settings</h1>
@@ -174,27 +222,6 @@ export default function ProfilePage() {
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input type="email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={profileForm.control}
-                    name="avatarUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Avatar URL</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="url" 
-                            {...field} 
-                            onChange={(e) => {
-                              field.onChange(e);
-                              handleAvatarPreview(e.target.value);
-                            }}
-                            placeholder="Enter image URL (e.g., https://example.com/avatar.jpg)"
-                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
