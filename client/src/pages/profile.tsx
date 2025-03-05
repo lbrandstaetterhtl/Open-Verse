@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader2, UserPlus, UserMinus, Trophy, Camera } from "lucide-react";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -143,7 +144,7 @@ export default function ProfilePage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
-            <UserAvatar user={user} size="lg" />
+            <UserAvatar user={{ username: user?.username || '', verified: user?.verified || false }} size="lg" />
             <div>
               <h1 className="text-4xl font-bold">Profile Settings</h1>
               <div className="flex gap-4 mt-2">
@@ -161,55 +162,22 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle>Avatar</CardTitle>
               <CardDescription>
-                Update your profile picture by providing an image URL
+                Upload a new profile picture
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...avatarForm}>
-                <form
-                  onSubmit={avatarForm.handleSubmit((data) => updateAvatarMutation.mutate(data))}
-                  className="space-y-4"
-                >
-                  <div className="flex items-center gap-4 mb-4">
-                    <UserAvatar user={user} size="lg" />
-                    <div className="flex-1">
-                      <FormField
-                        control={avatarForm.control}
-                        name="avatarUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Avatar URL</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="https://example.com/avatar.jpg"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Enter the URL of your avatar image
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <UserAvatar user={{ username: user?.username || '', verified: user?.verified || false }} size="lg" />
+                  <div className="flex-1">
+                    <ImageUpload
+                      onUploadComplete={(url) => {
+                        updateAvatarMutation.mutate({ avatarUrl: url });
+                      }}
+                    />
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={updateAvatarMutation.isPending}
-                    className="w-full"
-                  >
-                    {updateAvatarMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Camera className="h-4 w-4 mr-2" />
-                        Update Avatar
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </Form>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -244,19 +212,6 @@ export default function ProfilePage() {
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input type="email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={profileForm.control}
-                    name="avatarUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Avatar URL</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
