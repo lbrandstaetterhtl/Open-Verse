@@ -10,6 +10,8 @@ import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema,
 import type { Knex } from 'knex';
 import session from 'express-session';
 import { sql } from 'drizzle-orm';
+import sharp from 'sharp';
+import fs from 'fs';
 
 // WebSocket connections store
 const connections = new Map<number, WebSocket>();
@@ -28,7 +30,7 @@ const isOwner = (req: any, res: any, next: any) => {
   next();
 };
 
-// Configure multer for file uploads
+// Update the multer configuration
 const upload = multer({
   storage: multer.diskStorage({
     destination: "./uploads",
@@ -37,11 +39,11 @@ const upload = multer({
     }
   }),
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "video/mp4", "video/webm"];
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Invalid file type"));
+      cb(new Error("Invalid file type. Only JPEG, PNG and GIF images are allowed."));
     }
   },
   limits: {
@@ -197,7 +199,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         const author = await storage.getUser(comment.authorId);
         return {
           ...comment,
-          author: { 
+          author: {
             username: author?.username || 'Unknown',
             avatarUrl: author?.avatarUrl
           }
@@ -279,8 +281,8 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       if (reputationChange !== 0) {
         try {
           await db.execute(sql`
-            UPDATE users 
-            SET karma = karma + ${reputationChange} 
+            UPDATE users
+            SET karma = karma + ${reputationChange}
             WHERE id = ${postAuthor.id}
           `);
           console.log(`Updated karma for user ${postAuthor.id} by ${reputationChange}`);
@@ -325,16 +327,16 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         if (isLiked) {
           await storage.unlikeComment(userId, commentId);
           await db.execute(sql`
-            UPDATE users 
-            SET karma = karma - 1 
+            UPDATE users
+            SET karma = karma - 1
             WHERE id = ${commentAuthor.id}
           `);
           console.log(`Decreased karma for user ${commentAuthor.id}`);
         } else {
           await storage.likeComment(userId, commentId);
           await db.execute(sql`
-            UPDATE users 
-            SET karma = karma + 1 
+            UPDATE users
+            SET karma = karma + 1
             WHERE id = ${commentAuthor.id}
           `);
           console.log(`Increased karma for user ${commentAuthor.id}`);
@@ -506,7 +508,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   });
 
 
-  // Add this route with the others related to profile updates
+  // Update the avatar upload route
   app.post("/api/profile/avatar", isAuthenticated, upload.single("avatar"), async (req, res) => {
     try {
       console.log('Avatar upload request received:', req.file); // Debug log
@@ -516,8 +518,25 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         return res.status(400).send("No file uploaded");
       }
 
-      // Get the URL path for the uploaded file
-      const avatarUrl = `/uploads/${req.file.filename}`;
+      // Process the image with sharp
+      const processedImageFilename = `${Date.now()}_processed.jpg`;
+      const processedImagePath = path.join("uploads", processedImageFilename);
+
+      await sharp(req.file.path)
+        .resize(256, 256, {
+          fit: 'cover',
+          position: 'center'
+        })
+        .jpeg({ quality: 90 })
+        .toFile(processedImagePath);
+
+      // Delete the original uploaded file
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Error deleting original file:', err);
+      });
+
+      // Get the URL path for the processed file
+      const avatarUrl = `/uploads/${processedImageFilename}`;
       console.log('Generated avatar URL:', avatarUrl); // Debug log
 
       // Update user's profile with new avatar URL
@@ -727,8 +746,8 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         if (likes > 0) {
           // Remove reputation gained from comment likes
           await db.execute(sql`
-            UPDATE users 
-            SET karma = GREATEST(0, karma - ${likes}) 
+            UPDATE users
+            SET karma = GREATEST(0, karma - ${likes})
             WHERE id = ${comment.authorId}
           `);
           console.log(`Updated karma for comment author ${comment.authorId} by -${likes} due to post deletion`);
@@ -742,7 +761,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       if (reputationChange !== 0) {
         // Ensure karma doesn't go below 0
         await db.execute(sql`
-          UPDATE users 
+          UPDATE users
           SET karma = GREATEST(0, karma + ${reputationChange})
           WHERE id = ${targetUser.id}
         `);
@@ -800,7 +819,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       if (likes > 0) {
         // Ensure karma doesn't go below 0
         await db.execute(sql`
-          UPDATE users 
+          UPDATE users
           SET karma = GREATEST(0, karma - ${likes})
           WHERE id = ${targetUser.id}
         `);
