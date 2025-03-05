@@ -4,13 +4,14 @@ import { Navbar } from "@/components/layout/navbar";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trophy, UserPlus, UserMinus } from "lucide-react";
+import { Loader2, Trophy, UserPlus, UserMinus, BadgeCheck } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 export default function UserProfilePage() {
   const { username } = useParams();
@@ -117,7 +118,15 @@ export default function UserProfilePage() {
           <div className="flex items-center gap-4">
             <UserAvatar user={profile} size="lg" />
             <div>
-              <h1 className="text-4xl font-bold">{profile.username}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-4xl font-bold">{profile.username}</h1>
+                {profile.verified && (
+                  <Badge variant="default" className="bg-blue-500">
+                    <BadgeCheck className="h-4 w-4 mr-1" />
+                    Verified
+                  </Badge>
+                )}
+              </div>
               <div className="flex gap-4 mt-2">
                 <span className="text-muted-foreground">{followers?.length || 0} followers</span>
                 <span className="text-muted-foreground">{following?.length || 0} following</span>

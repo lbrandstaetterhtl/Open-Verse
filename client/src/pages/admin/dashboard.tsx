@@ -24,8 +24,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { User, Report } from "@shared/schema";
-import { Loader2, Shield, Users, Flag, CheckCircle, XCircle, Search, Ban, Check, AlertTriangle, Trophy } from "lucide-react";
+import { Loader2, Shield, Users, Flag, CheckCircle, XCircle, Search, Ban, Check, AlertTriangle, Trophy, BadgeCheck } from "lucide-react";
 import { useState } from "react";
+import { Link } from "wouter";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -202,17 +204,32 @@ export default function AdminDashboard() {
                       <TableBody>
                         {filteredUsers?.map((u) => (
                           <TableRow key={u.id}>
-                            <TableCell className="font-medium">{u.username}</TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <UserAvatar user={u} size="sm" />
+                                <Link href={`/users/${u.username}`} className="hover:underline">
+                                  {u.username}
+                                </Link>
+                              </div>
+                            </TableCell>
                             <TableCell>{u.email}</TableCell>
                             <TableCell>
-                              <Badge variant={u.emailVerified ? "default" : "secondary"}>
-                                {u.emailVerified ? "Verified" : "Unverified"}
-                              </Badge>
-                              {u.karma < 0 && (
-                                <Badge variant="destructive" className="ml-2">
-                                  Banned
+                              <div className="flex gap-2">
+                                <Badge variant={u.emailVerified ? "default" : "secondary"}>
+                                  {u.emailVerified ? "Verified" : "Unverified"}
                                 </Badge>
-                              )}
+                                {u.verified && (
+                                  <Badge variant="default" className="bg-blue-500">
+                                    <BadgeCheck className="h-4 w-4 mr-1" />
+                                    Verified
+                                  </Badge>
+                                )}
+                                {u.karma < 0 && (
+                                  <Badge variant="destructive" className="ml-2">
+                                    Banned
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               <Badge variant={
@@ -234,9 +251,25 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center space-x-2">
-                                {/* Show actions only if the current user has permission */}
                                 {(user.role === 'owner' || (user.role === 'admin' && u.role === 'user')) && (
                                   <>
+                                    <Button
+                                      size="sm"
+                                      variant={u.verified ? "default" : "outline"}
+                                      onClick={() => {
+                                        const action = u.verified ? 'unverify' : 'verify';
+                                        if (window.confirm(`Are you sure you want to ${action} ${u.username}?`)) {
+                                          updateUserMutation.mutate({
+                                            userId: u.id,
+                                            data: { verified: !u.verified }
+                                          });
+                                        }
+                                      }}
+                                      disabled={updateUserMutation.isPending}
+                                    >
+                                      <BadgeCheck className="h-4 w-4 mr-1" />
+                                      {u.verified ? "Remove Verification" : "Verify User"}
+                                    </Button>
                                     <Button
                                       size="sm"
                                       variant={u.karma < 0 ? "default" : "destructive"}
@@ -292,7 +325,6 @@ export default function AdminDashboard() {
                                             </>
                                           )}
                                         </Button>
-                                        {/* Allow both admins and owners to promote users to admin */}
                                         {(user.role === 'owner' || user.role === 'admin') && u.role === 'user' && (
                                           <Button
                                             size="sm"
@@ -314,7 +346,6 @@ export default function AdminDashboard() {
                                             Make Admin
                                           </Button>
                                         )}
-                                        {/* Only owner can demote admins */}
                                         {user.role === 'owner' && u.role === 'admin' && (
                                           <Button
                                             size="sm"
