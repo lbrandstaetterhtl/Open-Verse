@@ -499,10 +499,10 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  // Update the profile route
+  // Update the profile route to handle profile_picture_url correctly
   app.patch("/api/profile", isAuthenticated, async (req, res) => {
     try {
-      const updateData: Partial<{ username: string; email: string; role: string; avatarUrl: string; profile_picture_url: string }> = {};
+      const updateData: Partial<{ username: string; email: string; role: string; profile_picture_url: string }> = {};
 
       if (req.body.username) {
         updateData.username = req.body.username;
@@ -542,18 +542,15 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
       // Update user profile with new avatar URL
       const updatedUser = await storage.updateUserProfile(req.user!.id, {
-        profile_picture_url: avatarUrl // Changed from avatarUrl to profile_picture_url to match DB schema
+        profile_picture_url: avatarUrl
       });
 
       console.log('Updated user:', updatedUser); // Debug log
 
-      // Transform the response to include avatarUrl instead of profile_picture_url
-      const responseUser = {
+      res.json({
         ...updatedUser,
         avatarUrl: updatedUser.profile_picture_url
-      };
-
-      res.json(responseUser);
+      });
     } catch (error) {
       console.error('Error uploading avatar:', error);
       res.status(500).send("Failed to upload avatar");
