@@ -129,7 +129,8 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
             ...comment,
             author: {
               username: commentAuthor?.username || 'Unknown',
-              role: commentAuthor?.role || 'user'
+              role: commentAuthor?.role || 'user',
+              verified: commentAuthor?.verified || false
             },
             likes,
             isLiked
@@ -145,6 +146,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
           author: {
             id: author?.id,
             username: author?.username || 'Unknown',
+            verified: author?.verified || false,
             isFollowing
           },
           comments: commentsWithAuthors,
@@ -801,7 +803,8 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         username: user.username,
         karma: user.karma,
         createdAt: user.createdAt,
-        role: user.role
+        role: user.role,
+        verified: user.verified
       };
 
       console.log('Returning user data:', safeUser);
@@ -904,8 +907,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
           },
           content: reportedContent ? {
             type: contentType,
-            title: contentType === 'comment' ? null : reportedContent.title,
-            content: reportedContent.content
+            title: contentType === 'comment' ? null : reportedContent.title,            content: reportedContent.content
           } : null
         };
 

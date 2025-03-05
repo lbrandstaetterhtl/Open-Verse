@@ -32,6 +32,7 @@ type PostWithAuthor = Post & {
     id: number;
     isFollowing: boolean;
     role: string;
+    verified: boolean;
   };
   comments: Array<{
     id: number;
@@ -39,6 +40,7 @@ type PostWithAuthor = Post & {
     author: {
       username: string;
       role: string;
+      verified: boolean;
     };
     createdAt: string;
     likes: number;
