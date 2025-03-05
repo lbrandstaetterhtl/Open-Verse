@@ -1,3 +1,3 @@
-import type { OurFileRouter } from "../../../server/uploadthing";
+import type { OurFileRouter } from "@/api/uploadthing";
 
 export type { OurFileRouter };

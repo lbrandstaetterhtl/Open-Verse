@@ -1,7 +1,7 @@
 import { UploadButton } from "@uploadthing/react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { OurFileRouter } from "@/lib/uploadthing";
+import type { OurFileRouter } from "@/api/uploadthing";
 
 interface ImageUploadProps {
   onUploadComplete: (url: string) => void;
@@ -11,7 +11,7 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   return (
-    <UploadButton<OurFileRouter, { uploadedBy: string }>
+    <UploadButton<OurFileRouter, any>
       endpoint="imageUploader"
       onUploadBegin={() => {
         setIsUploading(true);
@@ -30,7 +30,7 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
         setIsUploading(false);
         toast({
           title: "Error",
-          description: error.message,
+          description: error.message || "Failed to upload image",
           variant: "destructive",
         });
       }}

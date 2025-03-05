@@ -4,9 +4,8 @@ const f = createUploadthing();
 
 export const ourFileRouter = {
   imageUploader: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
-    // Set validator for the file
-    .middleware(async () => {
-      // Validate session if needed
+    .middleware(async ({ req }) => {
+      // You can add authentication check here if needed
       return { uploadedBy: "user" };
     })
     .onUploadComplete(async ({ metadata, file }) => {
