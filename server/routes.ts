@@ -9,6 +9,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema } from "@shared/schema";
 import type { Knex } from 'knex';
 import session from 'express-session';
+import { sql } from 'drizzle-orm';
 
 // WebSocket connections store
 const connections = new Map<number, WebSocket>();
@@ -263,7 +264,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         await storage.removePostReaction(userId, postId);
       }
 
-      // Add reputation impact of new reaction if different from current
+      // Add new reaction if different from current
       if (currentReaction === null || currentReaction.isLike !== isLike) {
         reputationChange += isLike ? 1 : -1; // Add new impact
         await storage.createPostLike(userId, postId, isLike);
@@ -271,13 +272,15 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
       // Update author's reputation if there's a change
       if (reputationChange !== 0) {
-        await storage.updateUserProfile(postAuthor.id, {
-          karma: postAuthor.karma + reputationChange
-        });
+        // Execute direct SQL update for karma
+        await db.raw(sql`UPDATE users SET karma = karma + ${reputationChange} WHERE id = ${postAuthor.id}`);
       }
 
       const reactions = await storage.getPostReactions(postId);
       const userReaction = await storage.getUserPostReaction(userId, postId);
+
+      const updatedAuthor = await storage.getUser(postAuthor.id);
+      console.log('Updated author karma:', updatedAuthor?.karma); // Debug log
 
       res.json({ ...post, reactions, userReaction });
     } catch (error) {
@@ -306,19 +309,18 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
       if (isLiked) {
         await storage.unlikeComment(userId, commentId);
-        // Decrease author's reputation when unlike
-        await storage.updateUserProfile(commentAuthor.id, {
-          karma: commentAuthor.karma - 1
-        });
+        // Execute direct SQL update for karma
+        await db.raw(sql`UPDATE users SET karma = karma - 1 WHERE id = ${commentAuthor.id}`);
       } else {
         await storage.likeComment(userId, commentId);
-        // Increase author's reputation when like
-        await storage.updateUserProfile(commentAuthor.id, {
-          karma: commentAuthor.karma + 1
-        });
+        // Execute direct SQL update for karma
+        await db.raw(sql`UPDATE users SET karma = karma + 1 WHERE id = ${commentAuthor.id}`);
       }
 
       const likesCount = await storage.getCommentLikes(commentId);
+      const updatedAuthor = await storage.getUser(commentAuthor.id);
+      console.log('Updated author karma:', updatedAuthor?.karma); // Debug log
+
       res.json({ likes: likesCount, isLiked: !isLiked });
     } catch (error) {
       console.error('Error updating comment like:', error);
@@ -897,7 +899,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         await storage.deleteUser(userId);
         res.json({ message: "User banned and deleted successfully" });
       } else {
-        // For role updates, ensure proper permissions
+        //        // For role updates, ensure proper permissions
         if (req.body.role === 'admin' && req.user.role !== 'owner') {
           req.body.isAdmin = true; // Ensure isAdmin is set when promoting to admin
         }
@@ -907,7 +909,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         }
 
         // For non-ban updates
-        const updatedUser = await storage.updateUserProfile(userId, reqreq.body);
+        const updatedUser = await storage.updateUserProfile(userId, req.body);
         console.log('Updated user:', updatedUser);
         res.json(updatedUser);
       }
