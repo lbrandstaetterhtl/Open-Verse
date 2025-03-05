@@ -234,7 +234,7 @@ export default function AdminDashboard() {
   return (
     <>
       <Navbar />
-      <main className="container mx-auto px-4 pt-24">
+      <main className="container mx-auto px-4 pt-24 pb-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
@@ -345,7 +345,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          <Tabs defaultValue="users">
+          <Tabs defaultValue="users" className="space-y-4">
             <TabsList>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -357,7 +357,7 @@ export default function AdminDashboard() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="users" className="mt-6">
+            <TabsContent value="users">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle>User Management</CardTitle>
@@ -396,205 +396,209 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                   {usersLoading ? (
                     <div className="flex justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Username</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Karma</TableHead>
-                          <TableHead>Joined</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredUsers?.map((u) => (
-                          <TableRow key={u.id}>
-                            <TableCell className="font-medium">
-                              <div className="flex items-center gap-2">
-                                <UserAvatar
-                                  user={{
-                                    username: u.username
-                                  }}
-                                  size="sm"
-                                />
-                                <div className="flex items-center gap-1">
-                                  <Link href={`/users/${u.username}`} className="hover:underline text-sm">
-                                    {u.username}
-                                  </Link>
-                                  {u.verified && (
-                                    <BadgeCheck className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{u.email}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Badge variant={u.emailVerified ? "default" : "secondary"}>
-                                  {u.emailVerified ? "Verified" : "Unverified"}
-                                </Badge>
-                                {u.verified && (
-                                  <Badge variant="default" className="bg-blue-500 flex items-center gap-1">
-                                    <BadgeCheck className="h-4 w-4 text-white flex-shrink-0" />
-                                    <span className="text-sm">Verified</span>
-                                  </Badge>
-                                )}
-                                {u.karma < 0 && (
-                                  <Badge variant="destructive" className="ml-2">
-                                    Banned
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={
-                                u.role === 'owner' ? "destructive" :
-                                  u.role === 'admin' ? "default" :
-                                    "secondary"
-                              }>
-                                {u.role}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={u.karma >= 0 ? "default" : "destructive"} className="flex items-center gap-1">
-                                <Trophy className="h-3 w-3" />
-                                {u.karma} reputation
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {format(new Date(u.createdAt), "PPp")}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                {(user.role === 'owner' || (user.role === 'admin' && u.role === 'user')) && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      variant={u.verified ? "default" : "outline"}
-                                      onClick={() => handleVerificationToggle(u.id, u.verified)}
-                                      disabled={updateUserMutation.isPending}
-                                      className="flex items-center gap-1"
-                                    >
-                                      <BadgeCheck className="h-4 w-4 flex-shrink-0" />
-                                      {u.verified ? "Remove Verification" : "Verify User"}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant={u.karma < 0 ? "default" : "destructive"}
-                                      onClick={() => {
-                                        const action = u.karma < 0 ? 'restore' : 'ban';
-                                        const newKarma = u.karma < 0 ? 5 : -100;
-
-                                        if (window.confirm(
-                                          action === 'ban'
-                                            ? `Are you sure you want to ban ${u.username}? This will prevent them from accessing most features.`
-                                            : `Are you sure you want to restore ${u.username}'s account?`
-                                        )) {
-                                          updateUserMutation.mutate({
-                                            userId: u.id,
-                                            data: { karma: newKarma }
-                                          });
-                                        }
+                    <div className="relative overflow-hidden rounded-b-lg">
+                      <div className="overflow-auto h-[600px]">
+                        <Table>
+                          <TableHeader className="sticky top-0 bg-card z-10 border-b">
+                            <TableRow>
+                              <TableHead>Username</TableHead>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Role</TableHead>
+                              <TableHead>Karma</TableHead>
+                              <TableHead>Joined</TableHead>
+                              <TableHead className="sticky right-0 bg-card">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredUsers?.map((u) => (
+                              <TableRow key={u.id}>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-2">
+                                    <UserAvatar
+                                      user={{
+                                        username: u.username
                                       }}
-                                      disabled={updateUserMutation.isPending}
-                                    >
-                                      {u.karma < 0 ? (
-                                        <>
-                                          <Check className="h-4 w-4 mr-1" />
-                                          Restore Account
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Ban className="h-4 w-4 mr-1" />
-                                          Ban User
-                                        </>
-                                      )}
-                                    </Button>
-                                    <Button
                                       size="sm"
-                                      variant={u.emailVerified ? "ghost" : "default"}
-                                      onClick={() => updateUserMutation.mutate({
-                                        userId: u.id,
-                                        data: { emailVerified: !u.emailVerified }
-                                      })}
-                                      disabled={updateUserMutation.isPending}
-                                    >
-                                      {u.emailVerified ? (
-                                        <>
-                                          <AlertTriangle className="h-4 w-4 mr-1" />
-                                          Unverify
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Check className="h-4 w-4 mr-1" />
-                                          Verify
-                                        </>
+                                    />
+                                    <div className="flex items-center gap-1">
+                                      <Link href={`/users/${u.username}`} className="hover:underline text-sm">
+                                        {u.username}
+                                      </Link>
+                                      {u.verified && (
+                                        <BadgeCheck className="h-4 w-4 text-blue-500 flex-shrink-0" />
                                       )}
-                                    </Button>
-                                    {(user.role === 'owner' || user.role === 'admin') && u.role === 'user' && (
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        onClick={() => {
-                                          if (window.confirm(`Are you sure you want to make ${u.username} an admin? This will give them administrative privileges.`)) {
-                                            updateUserMutation.mutate({
-                                              userId: u.id,
-                                              data: {
-                                                role: 'admin',
-                                                isAdmin: true
-                                              }
-                                            });
-                                          }
-                                        }}
-                                        disabled={updateUserMutation.isPending}
-                                      >
-                                        <Shield className="h-4 w-4 mr-1" />
-                                        Make Admin
-                                      </Button>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>{u.email}</TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                    <Badge variant={u.emailVerified ? "default" : "secondary"}>
+                                      {u.emailVerified ? "Verified" : "Unverified"}
+                                    </Badge>
+                                    {u.verified && (
+                                      <Badge variant="default" className="bg-blue-500 flex items-center gap-1">
+                                        <BadgeCheck className="h-4 w-4 text-white flex-shrink-0" />
+                                        <span className="text-sm">Verified</span>
+                                      </Badge>
                                     )}
-                                    {user.role === 'owner' && u.role === 'admin' && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          if (window.confirm(`Are you sure you want to remove ${u.username}'s admin privileges? They will be demoted to a regular user.`)) {
-                                            updateUserMutation.mutate({
-                                              userId: u.id,
-                                              data: {
-                                                role: 'user',
-                                                isAdmin: false
-                                              }
-                                            });
-                                          }
-                                        }}
-                                        disabled={updateUserMutation.isPending}
-                                      >
-                                        <Shield className="h-4 w-4 mr-1" />
-                                        Remove Admin
-                                      </Button>
+                                    {u.karma < 0 && (
+                                      <Badge variant="destructive" className="ml-2">
+                                        Banned
+                                      </Badge>
                                     )}
-                                  </>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={
+                                    u.role === 'owner' ? "destructive" :
+                                      u.role === 'admin' ? "default" :
+                                        "secondary"
+                                  }>
+                                    {u.role}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={u.karma >= 0 ? "default" : "destructive"} className="flex items-center gap-1">
+                                    <Trophy className="h-3 w-3" />
+                                    {u.karma} reputation
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {format(new Date(u.createdAt), "PPp")}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center space-x-2">
+                                    {(user.role === 'owner' || (user.role === 'admin' && u.role === 'user')) && (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant={u.verified ? "default" : "outline"}
+                                          onClick={() => handleVerificationToggle(u.id, u.verified)}
+                                          disabled={updateUserMutation.isPending}
+                                          className="flex items-center gap-1"
+                                        >
+                                          <BadgeCheck className="h-4 w-4 flex-shrink-0" />
+                                          {u.verified ? "Remove Verification" : "Verify User"}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant={u.karma < 0 ? "default" : "destructive"}
+                                          onClick={() => {
+                                            const action = u.karma < 0 ? 'restore' : 'ban';
+                                            const newKarma = u.karma < 0 ? 5 : -100;
+
+                                            if (window.confirm(
+                                              action === 'ban'
+                                                ? `Are you sure you want to ban ${u.username}? This will prevent them from accessing most features.`
+                                                : `Are you sure you want to restore ${u.username}'s account?`
+                                            )) {
+                                              updateUserMutation.mutate({
+                                                userId: u.id,
+                                                data: { karma: newKarma }
+                                              });
+                                            }
+                                          }}
+                                          disabled={updateUserMutation.isPending}
+                                        >
+                                          {u.karma < 0 ? (
+                                            <>
+                                              <Check className="h-4 w-4 mr-1" />
+                                              Restore Account
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Ban className="h-4 w-4 mr-1" />
+                                              Ban User
+                                            </>
+                                          )}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant={u.emailVerified ? "ghost" : "default"}
+                                          onClick={() => updateUserMutation.mutate({
+                                            userId: u.id,
+                                            data: { emailVerified: !u.emailVerified }
+                                          })}
+                                          disabled={updateUserMutation.isPending}
+                                        >
+                                          {u.emailVerified ? (
+                                            <>
+                                              <AlertTriangle className="h-4 w-4 mr-1" />
+                                              Unverify
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Check className="h-4 w-4 mr-1" />
+                                              Verify
+                                            </>
+                                          )}
+                                        </Button>
+                                        {(user.role === 'owner' || user.role === 'admin') && u.role === 'user' && (
+                                          <Button
+                                            size="sm"
+                                            variant="default"
+                                            onClick={() => {
+                                              if (window.confirm(`Are you sure you want to make ${u.username} an admin? This will give them administrative privileges.`)) {
+                                                updateUserMutation.mutate({
+                                                  userId: u.id,
+                                                  data: {
+                                                    role: 'admin',
+                                                    isAdmin: true
+                                                  }
+                                                });
+                                              }
+                                            }}
+                                            disabled={updateUserMutation.isPending}
+                                          >
+                                            <Shield className="h-4 w-4 mr-1" />
+                                            Make Admin
+                                          </Button>
+                                        )}
+                                        {user.role === 'owner' && u.role === 'admin' && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              if (window.confirm(`Are you sure you want to remove ${u.username}'s admin privileges? They will be demoted to a regular user.`)) {
+                                                updateUserMutation.mutate({
+                                                  userId: u.id,
+                                                  data: {
+                                                    role: 'user',
+                                                    isAdmin: false
+                                                  }
+                                                });
+                                              }
+                                            }}
+                                            disabled={updateUserMutation.isPending}
+                                          >
+                                            <Shield className="h-4 w-4 mr-1" />
+                                            Remove Admin
+                                          </Button>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="reports" className="mt-6">
+            <TabsContent value="reports">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle>Content Reports</CardTitle>
@@ -622,72 +626,76 @@ export default function AdminDashboard() {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                   {reportsLoading ? (
                     <div className="flex justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Reporter</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Content</TableHead>
-                          <TableHead>Reason</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Reported On</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredReports?.map((report) => (
-                          <TableRow key={report.id}>
-                            <TableCell>{report.reporter?.username}</TableCell>
-                            <TableCell>
-                              {report.reportedContent?.type === 'post' ? "Post" :
-                                report.reportedContent?.type === 'discussion' ? "Discussion" :
-                                  "Comment"}
-                            </TableCell>
-                            <TableCell className="max-w-xs truncate">
-                              {report.reportedContent?.title || report.reportedContent?.content}
-                            </TableCell>
-                            <TableCell>{report.reason}</TableCell>
-                            <TableCell>
-                              <Badge variant={
-                                report.status === "resolved" ? "default" :
-                                  report.status === "rejected" ? "destructive" : "secondary"
-                              }>
-                                {report.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {format(new Date(report.createdAt), "PPp")}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleReportAction(report.id, "resolved")}
-                                  disabled={report.status !== "pending" || updateReportMutation.isPending}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleReportAction(report.id, "rejected")}
-                                  disabled={report.status !== "pending" || updateReportMutation.isPending}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <div className="relative overflow-hidden rounded-b-lg">
+                      <div className="overflow-auto h-[600px]">
+                        <Table>
+                          <TableHeader className="sticky top-0 bg-card z-10 border-b">
+                            <TableRow>
+                              <TableHead>Reporter</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Content</TableHead>
+                              <TableHead>Reason</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Reported On</TableHead>
+                              <TableHead className="sticky right-0 bg-card">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredReports?.map((report) => (
+                              <TableRow key={report.id}>
+                                <TableCell>{report.reporter?.username}</TableCell>
+                                <TableCell>
+                                  {report.reportedContent?.type === 'post' ? "Post" :
+                                    report.reportedContent?.type === 'discussion' ? "Discussion" :
+                                      "Comment"}
+                                </TableCell>
+                                <TableCell className="max-w-xs truncate">
+                                  {report.reportedContent?.title || report.reportedContent?.content}
+                                </TableCell>
+                                <TableCell>{report.reason}</TableCell>
+                                <TableCell>
+                                  <Badge variant={
+                                    report.status === "resolved" ? "default" :
+                                      report.status === "rejected" ? "destructive" : "secondary"
+                                  }>
+                                    {report.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {format(new Date(report.createdAt), "PPp")}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleReportAction(report.id, "resolved")}
+                                      disabled={report.status !== "pending" || updateReportMutation.isPending}
+                                    >
+                                      <CheckCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleReportAction(report.id, "rejected")}
+                                      disabled={report.status !== "pending" || updateReportMutation.isPending}
+                                    >
+                                      <XCircle className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
