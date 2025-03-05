@@ -294,7 +294,10 @@ export async function registerRoutes(app: Express, db: any): Promise<Server> {
   // Update the profile route to handle avatar uploads
   app.patch("/api/profile", isAuthenticated, avatarUpload.single('avatarFile'), async (req, res) => {
     try {
-      console.log('Profile update request received:', { body: req.body, file: req.file });
+      console.log('Profile update request received:', { 
+        body: req.body, 
+        file: req.file 
+      });
 
       const updateData: Partial<{ username: string; email: string; avatarUrl: string; isAdmin: boolean; role: string; emailVerified: boolean; verified: boolean }> = {};
 
@@ -316,6 +319,10 @@ export async function registerRoutes(app: Express, db: any): Promise<Server> {
 
       const updatedUser = await storage.updateUserProfile(req.user!.id, updateData);
       console.log('User updated in database:', updatedUser);
+
+      // Double-check the update was successful
+      const verifiedUser = await storage.getUser(req.user!.id);
+      console.log('Verified user after update:', verifiedUser);
 
       // Update the user in session
       req.login(updatedUser, (err) => {
@@ -890,7 +897,7 @@ export async function registerRoutes(app: Express, db: any): Promise<Server> {
   // Add these routes after the existing /api/users/:username endpoint
   app.get("/api/followers/:username", async (req, res) => {
     try {
-      console.log('Fetching followers for:` req.params.username);
+      console.log('Fetching followers for:', req.params.username);
       const user = await storage.getUserByUsername(req.params.username);
       if (!user) {
         console.log('User not found for followers:', req.params.username);
