@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -24,12 +23,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, UserPlus, UserMinus, Trophy, Camera } from "lucide-react";
+import { Loader2, UserPlus, UserMinus, Trophy } from "lucide-react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [fileInputRef, setFileInputRef] = useState<HTMLInputElement | null>(null);
 
   const { data: followers } = useQuery({
     queryKey: ["/api/followers"],
@@ -46,46 +44,6 @@ export default function ProfilePage() {
       const res = await fetch("/api/following");
       if (!res.ok) throw new Error("Failed to fetch following");
       return res.json();
-    },
-  });
-
-  const avatarMutation = useMutation({
-    mutationFn: async (file: File) => {
-      console.log('Uploading file:', file); // Debug log
-      const formData = new FormData();
-      formData.append("avatar", file);
-
-      const res = await fetch("/api/profile/avatar", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error);
-      }
-
-      return res.json();
-    },
-    onSuccess: () => {
-      // Invalidate all queries that might contain user data
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/followers"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/following"] });
-
-      toast({
-        title: "Avatar updated",
-        description: "Your profile picture has been updated successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      console.error('Avatar upload error:', error);
-      toast({
-        title: "Update failed",
-        description: error.message,
-        variant: "destructive",
-      });
     },
   });
 
@@ -176,38 +134,13 @@ export default function ProfilePage() {
     },
   });
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      console.log('Selected file:', file); // Debug log
-      avatarMutation.mutate(file);
-    }
-  };
-
   return (
     <>
       <Navbar />
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <UserAvatar user={{ username: user?.username || '', avatarUrl: user?.avatarUrl }} size="lg" />
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute bottom-0 right-0 rounded-full"
-                onClick={() => fileInputRef?.click()}
-              >
-                <Camera className="h-4 w-4" />
-              </Button>
-              <input
-                type="file"
-                ref={setFileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleAvatarChange}
-              />
-            </div>
+            <UserAvatar user={{ username: user?.username || '' }} size="lg" />
             <div>
               <h1 className="text-4xl font-bold">Profile Settings</h1>
               <div className="flex gap-4 mt-2">
