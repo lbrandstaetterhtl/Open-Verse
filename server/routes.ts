@@ -713,6 +713,37 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
+  // Add these routes after the existing /api/users/:username endpoint
+  app.get("/api/followers/:username", async (req, res) => {
+    try {
+      const user = await storage.getUserByUsername(req.params.username);
+      if (!user) {
+        return res.status(404).send("User not found");
+      }
+
+      const followers = await storage.getFollowers(user.id);
+      res.json(followers);
+    } catch (error) {
+      console.error('Error getting followers:', error);
+      res.status(500).send("Failed to get followers");
+    }
+  });
+
+  app.get("/api/following/:username", async (req, res) => {
+    try {
+      const user = await storage.getUserByUsername(req.params.username);
+      if (!user) {
+        return res.status(404).send("User not found");
+      }
+
+      const following = await storage.getFollowing(user.id);
+      res.json(following);
+    } catch (error) {
+      console.error('Error getting following:', error);
+      res.status(500).send("Failed to get following");
+    }
+  });
+
   app.get("/api/admin/users", isAdmin, async (req, res) => {
     try {
       const users = await storage.getUsers(); // Use storage interface
