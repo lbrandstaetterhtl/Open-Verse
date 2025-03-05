@@ -235,7 +235,7 @@ export default function AdminDashboard() {
     <>
       <Navbar />
       <main className="container mx-auto px-4 pt-24 pb-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <Shield className="h-8 w-8 text-primary" />
@@ -407,13 +407,13 @@ export default function AdminDashboard() {
                         <Table>
                           <TableHeader className="sticky top-0 bg-card z-10 border-b">
                             <TableRow>
-                              <TableHead>Username</TableHead>
-                              <TableHead>Email</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Role</TableHead>
-                              <TableHead>Karma</TableHead>
-                              <TableHead>Joined</TableHead>
-                              <TableHead className="sticky right-0 bg-card">Actions</TableHead>
+                              <TableHead className="w-[200px]">Username</TableHead>
+                              <TableHead className="w-[200px]">Email</TableHead>
+                              <TableHead className="w-[200px]">Status</TableHead>
+                              <TableHead className="w-[100px]">Role</TableHead>
+                              <TableHead className="w-[150px]">Karma</TableHead>
+                              <TableHead className="w-[200px]">Joined</TableHead>
+                              <TableHead className="sticky right-0 bg-card w-[400px]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -637,13 +637,13 @@ export default function AdminDashboard() {
                         <Table>
                           <TableHeader className="sticky top-0 bg-card z-10 border-b">
                             <TableRow>
-                              <TableHead>Reporter</TableHead>
-                              <TableHead>Type</TableHead>
-                              <TableHead>Content</TableHead>
-                              <TableHead>Reason</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Reported On</TableHead>
-                              <TableHead className="sticky right-0 bg-card">Actions</TableHead>
+                              <TableHead className="w-[150px]">Reporter</TableHead>
+                              <TableHead className="w-[100px]">Type</TableHead>
+                              <TableHead className="w-[300px]">Content</TableHead>
+                              <TableHead className="w-[200px]">Reason</TableHead>
+                              <TableHead className="w-[100px]">Status</TableHead>
+                              <TableHead className="w-[200px]">Reported On</TableHead>
+                              <TableHead className="sticky right-0 bg-card w-[150px]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
