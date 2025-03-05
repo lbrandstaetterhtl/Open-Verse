@@ -41,10 +41,13 @@ export default function AdminDashboard() {
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
-  });
-
-  const { data: reports, isLoading: reportsLoading } = useQuery<Report[]>({
-    queryKey: ["/api/admin/reports"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/users");
+      if (!res.ok) throw new Error("Failed to fetch users");
+      const data = await res.json();
+      console.log("Fetched users:", data); // Debug log
+      return data;
+    },
   });
 
   const updateUserMutation = useMutation({
@@ -130,6 +133,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleVerificationToggle = async (userId: number, currentVerified: boolean) => {
+    const action = currentVerified ? 'unverify' : 'verify';
+    if (window.confirm(`Are you sure you want to ${action} this user?`)) {
+      try {
+        await updateUserMutation.mutateAsync({
+          userId,
+          data: { verified: !currentVerified }
+        });
+        // Force refetch to ensure we have the latest data
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      } catch (error) {
+        console.error('Error toggling verification:', error);
+      }
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -206,7 +225,13 @@ export default function AdminDashboard() {
                           <TableRow key={u.id}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
-                                <UserAvatar user={u} size="sm" />
+                                <UserAvatar
+                                  user={{
+                                    username: u.username,
+                                    verified: u.verified
+                                  }}
+                                  size="sm"
+                                />
                                 <Link href={`/users/${u.username}`} className="hover:underline">
                                   {u.username}
                                 </Link>
@@ -256,15 +281,7 @@ export default function AdminDashboard() {
                                     <Button
                                       size="sm"
                                       variant={u.verified ? "default" : "outline"}
-                                      onClick={() => {
-                                        const action = u.verified ? 'unverify' : 'verify';
-                                        if (window.confirm(`Are you sure you want to ${action} ${u.username}?`)) {
-                                          updateUserMutation.mutate({
-                                            userId: u.id,
-                                            data: { verified: !u.verified }
-                                          });
-                                        }
-                                      }}
+                                      onClick={() => handleVerificationToggle(u.id, u.verified)}
                                       disabled={updateUserMutation.isPending}
                                     >
                                       <BadgeCheck className="h-4 w-4 mr-1" />
