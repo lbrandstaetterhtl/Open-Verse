@@ -50,6 +50,16 @@ export default function AdminDashboard() {
     },
   });
 
+  // Add back the reports query
+  const { data: reports, isLoading: reportsLoading } = useQuery<Report[]>({
+    queryKey: ["/api/admin/reports"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/reports");
+      if (!res.ok) throw new Error("Failed to fetch reports");
+      return res.json();
+    },
+  });
+
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, data }: { userId: number; data: any }) => {
       const res = await apiRequest("PATCH", `/api/admin/users/${userId}`, data);
@@ -137,14 +147,33 @@ export default function AdminDashboard() {
     const action = currentVerified ? 'unverify' : 'verify';
     if (window.confirm(`Are you sure you want to ${action} this user?`)) {
       try {
+        console.log('Toggling verification:', { userId, currentVerified, newValue: !currentVerified });
+
         await updateUserMutation.mutateAsync({
           userId,
-          data: { verified: !currentVerified }
+          data: { 
+            verified: !currentVerified,
+            // Include role and isAdmin to prevent accidental role changes
+            role: users?.find(u => u.id === userId)?.role,
+            isAdmin: users?.find(u => u.id === userId)?.isAdmin
+          }
         });
-        // Force refetch to ensure we have the latest data
-        queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+
+        // Force refetch all user data
+        await queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+
+        toast({
+          title: "Success",
+          description: `User ${action}d successfully`,
+        });
       } catch (error) {
         console.error('Error toggling verification:', error);
+        toast({
+          title: "Error",
+          description: `Failed to ${action} user`,
+          variant: "destructive"
+        });
       }
     }
   };
@@ -319,72 +348,68 @@ export default function AdminDashboard() {
                                         </>
                                       )}
                                     </Button>
-                                    {u.karma >= 0 && (
-                                      <>
-                                        <Button
-                                          size="sm"
-                                          variant={u.emailVerified ? "ghost" : "default"}
-                                          onClick={() => updateUserMutation.mutate({
-                                            userId: u.id,
-                                            data: { emailVerified: !u.emailVerified }
-                                          })}
-                                          disabled={updateUserMutation.isPending}
-                                        >
-                                          {u.emailVerified ? (
-                                            <>
-                                              <AlertTriangle className="h-4 w-4 mr-1" />
-                                              Unverify
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Check className="h-4 w-4 mr-1" />
-                                              Verify
-                                            </>
-                                          )}
-                                        </Button>
-                                        {(user.role === 'owner' || user.role === 'admin') && u.role === 'user' && (
-                                          <Button
-                                            size="sm"
-                                            variant="default"
-                                            onClick={() => {
-                                              if (window.confirm(`Are you sure you want to make ${u.username} an admin? This will give them administrative privileges.`)) {
-                                                updateUserMutation.mutate({
-                                                  userId: u.id,
-                                                  data: {
-                                                    role: 'admin',
-                                                    isAdmin: true
-                                                  }
-                                                });
+                                    <Button
+                                      size="sm"
+                                      variant={u.emailVerified ? "ghost" : "default"}
+                                      onClick={() => updateUserMutation.mutate({
+                                        userId: u.id,
+                                        data: { emailVerified: !u.emailVerified }
+                                      })}
+                                      disabled={updateUserMutation.isPending}
+                                    >
+                                      {u.emailVerified ? (
+                                        <>
+                                          <AlertTriangle className="h-4 w-4 mr-1" />
+                                          Unverify
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Check className="h-4 w-4 mr-1" />
+                                          Verify
+                                        </>
+                                      )}
+                                    </Button>
+                                    {(user.role === 'owner' || user.role === 'admin') && u.role === 'user' && (
+                                      <Button
+                                        size="sm"
+                                        variant="default"
+                                        onClick={() => {
+                                          if (window.confirm(`Are you sure you want to make ${u.username} an admin? This will give them administrative privileges.`)) {
+                                            updateUserMutation.mutate({
+                                              userId: u.id,
+                                              data: {
+                                                role: 'admin',
+                                                isAdmin: true
                                               }
-                                            }}
-                                            disabled={updateUserMutation.isPending}
-                                          >
-                                            <Shield className="h-4 w-4 mr-1" />
-                                            Make Admin
-                                          </Button>
-                                        )}
-                                        {user.role === 'owner' && u.role === 'admin' && (
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => {
-                                              if (window.confirm(`Are you sure you want to remove ${u.username}'s admin privileges? They will be demoted to a regular user.`)) {
-                                                updateUserMutation.mutate({
-                                                  userId: u.id,
-                                                  data: {
-                                                    role: 'user',
-                                                    isAdmin: false
-                                                  }
-                                                });
+                                            });
+                                          }
+                                        }}
+                                        disabled={updateUserMutation.isPending}
+                                      >
+                                        <Shield className="h-4 w-4 mr-1" />
+                                        Make Admin
+                                      </Button>
+                                    )}
+                                    {user.role === 'owner' && u.role === 'admin' && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          if (window.confirm(`Are you sure you want to remove ${u.username}'s admin privileges? They will be demoted to a regular user.`)) {
+                                            updateUserMutation.mutate({
+                                              userId: u.id,
+                                              data: {
+                                                role: 'user',
+                                                isAdmin: false
                                               }
-                                            }}
-                                            disabled={updateUserMutation.isPending}
-                                          >
-                                            <Shield className="h-4 w-4 mr-1" />
-                                            Remove Admin
-                                          </Button>
-                                        )}
-                                      </>
+                                            });
+                                          }
+                                        }}
+                                        disabled={updateUserMutation.isPending}
+                                      >
+                                        <Shield className="h-4 w-4 mr-1" />
+                                        Remove Admin
+                                      </Button>
                                     )}
                                   </>
                                 )}

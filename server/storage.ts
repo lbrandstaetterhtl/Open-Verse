@@ -13,7 +13,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUserProfile(id: number, profile: Partial<{ username: string; email: string; profilePictureUrl: string; isAdmin: boolean; role: string; emailVerified: boolean }>): Promise<User>;
+  updateUserProfile(id: number, profile: Partial<{ username: string; email: string; profilePictureUrl: string; isAdmin: boolean; role: string; emailVerified: boolean; verified: boolean }>): Promise<User>;
   updateUserPassword(id: number, password: string): Promise<User>;
   updateUserKarma(id: number, karma: number): Promise<User>;
 
@@ -124,7 +124,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserProfile(id: number, profile: Partial<{ username: string; email: string; profilePictureUrl: string; isAdmin: boolean; role: string; emailVerified: boolean }>): Promise<User> {
+  async updateUserProfile(id: number, profile: Partial<{ username: string; email: string; profilePictureUrl: string; isAdmin: boolean; role: string; emailVerified: boolean; verified: boolean }>): Promise<User> {
     const updateData: Record<string, any> = {};
     if (profile.username) updateData.username = profile.username;
     if (profile.email) updateData.email = profile.email;
@@ -132,6 +132,9 @@ export class DatabaseStorage implements IStorage {
     if (typeof profile.isAdmin !== 'undefined') updateData.isAdmin = profile.isAdmin;
     if (profile.role) updateData.role = profile.role;
     if (typeof profile.emailVerified !== 'undefined') updateData.emailVerified = profile.emailVerified;
+    if (typeof profile.verified !== 'undefined') updateData.verified = profile.verified;
+
+    console.log('Updating user profile with data:', updateData); // Debug log
 
     if (Object.keys(updateData).length === 0) {
       return this.getUser(id) as Promise<User>;
@@ -141,6 +144,8 @@ export class DatabaseStorage implements IStorage {
       .set(updateData)
       .where(eq(users.id, id))
       .returning();
+
+    console.log('Updated user:', user); // Debug log
     return user;
   }
 

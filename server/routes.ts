@@ -902,7 +902,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
         const enrichedReport = {
           ...report,
-          reporter:{
+          reporter: {
             username: reporter?.username || 'Unknown'
           },
           content: reportedContent ? {
@@ -922,7 +922,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  // Update the admin user update route
+  // Update the admin user update route to log SQL statements and handle verified status
   app.patch("/api/admin/users/:id", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
@@ -945,46 +945,35 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       }
 
       // Only owner can modify admins
-      if (user.role === 'admin' && req.user.role !== 'owner') {
+      if (user.role === 'admin' && req.user?.role !== 'owner') {
         return res.status(403).send("Only owner can modify admin accounts");
       }
 
-      // If this is a ban action
-      if (req.body.karma < 0) {
-        // Send ban notification to the user if they're connected
-        const userWs = connections.get(userId);
-        if (userWs && userWs.readyState === WebSocket.OPEN) {
-          userWs.send(JSON.stringify({
-            type: 'banned',
-            message: 'Your account has been banned by an administrator.'
-          }));
-        }
+      const updateData = { ...req.body };
 
-        // Delete the user's data
-        await storage.deleteUser(userId);
-        res.json({ message: "User banned and deleted successfully" });
-      } else {
-        //        // For role updates, ensure proper permissions
-        if (req.body.role === 'admin' && req.user.role !== 'owner') {
-          req.body.isAdmin = true; // Ensure isAdmin is set when promoting to admin
-        }
-
-        if (req.body.role === 'owner') {
-          return res.status(403).send("Cannot grant owner role");
-        }
-
-        // For non-ban updates
-        const updatedUser = await storage.updateUserProfile(userId, req.body);
-        console.log('Updated user:', updatedUser);
-        res.json(updatedUser);
+      // Handle special case for verified status
+      if (typeof updateData.verified === 'boolean') {
+        console.log('Updating user verification status:', {
+          userId,
+          currentVerified: user.verified,
+          newVerified: updateData.verified
+        });
       }
+
+      const updatedUser = await storage.updateUserProfile(userId, updateData);
+      console.log('Updated user:', updatedUser);
+
+      // After update, fetch fresh user data to confirm changes
+      const confirmedUser = await storage.getUser(userId);
+      console.log('Confirmed user state after update:', confirmedUser);
+
+      res.json(confirmedUser);
     } catch (error) {
       console.error('Error updating user:', error);
       res.status(500).send("Failed to update user");
     }
   });
 
-  // Add this after the existing admin update route
   app.patch("/api/admin/users/:id/verify", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
