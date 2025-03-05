@@ -691,9 +691,11 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   // Add this route after the other user-related routes, before the admin routes
   app.get("/api/users/:username", async (req, res) => {
     try {
+      console.log('User data requested for:', req.params.username);
       const user = await storage.getUserByUsername(req.params.username);
 
       if (!user) {
+        console.log('User not found:', req.params.username);
         return res.status(404).send("User not found");
       }
 
@@ -706,6 +708,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         role: user.role
       };
 
+      console.log('Returning user data:', safeUser);
       res.json(safeUser);
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -716,12 +719,15 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   // Add these routes after the existing /api/users/:username endpoint
   app.get("/api/followers/:username", async (req, res) => {
     try {
+      console.log('Fetching followers for:', req.params.username);
       const user = await storage.getUserByUsername(req.params.username);
       if (!user) {
+        console.log('User not found for followers:', req.params.username);
         return res.status(404).send("User not found");
       }
 
       const followers = await storage.getFollowers(user.id);
+      console.log('Found followers:', followers?.length);
       res.json(followers);
     } catch (error) {
       console.error('Error getting followers:', error);
@@ -731,12 +737,15 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
   app.get("/api/following/:username", async (req, res) => {
     try {
+      console.log('Fetching following for:', req.params.username);
       const user = await storage.getUserByUsername(req.params.username);
       if (!user) {
+        console.log('User not found for following:', req.params.username);
         return res.status(404).send("User not found");
       }
 
       const following = await storage.getFollowing(user.id);
+      console.log('Found following:', following?.length);
       res.json(following);
     } catch (error) {
       console.error('Error getting following:', error);

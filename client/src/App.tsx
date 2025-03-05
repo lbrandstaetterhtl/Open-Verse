@@ -42,7 +42,7 @@ function Router() {
 
       {/* User Routes */}
       <ProtectedRoute path="/profile" component={ProfilePage} />
-      <ProtectedRoute path="/users/:username" component={UserProfilePage} />
+      <Route path="/users/:username" component={UserProfilePage} />
 
       {/* Chat Route */}
       <ProtectedRoute path="/chat" component={ChatPage} />
