@@ -8,10 +8,9 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Loader2, Info, Menu } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useWebSocket } from "@/hooks/use-websocket"; // Correct import path without .tsx extension
 
 type Message = {
   id: number;
@@ -37,38 +36,28 @@ export default function ChatPage() {
   const { toast } = useToast();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [messageInput, setMessageInput] = useState("");
-  const [showUserList, setShowUserList] = useState(true); 
+  const [showUserList, setShowUserList] = useState(true); // For mobile toggle
 
-  useWebSocket();
-
-  useEffect(() => {
-    console.log('Chat page mounted, user:', user?.username);
-  }, [user]);
-
+  // Fetch both followers and following
   const { data: following } = useQuery<User[]>({
     queryKey: ["/api/following"],
     queryFn: async () => {
-      console.log('Fetching following list');
       const res = await fetch("/api/following");
       if (!res.ok) throw new Error("Failed to fetch following");
-      const data = await res.json();
-      console.log('Following data:', data);
-      return data;
+      return res.json();
     },
   });
 
   const { data: followers } = useQuery<User[]>({
     queryKey: ["/api/followers"],
     queryFn: async () => {
-      console.log('Fetching followers list');
       const res = await fetch("/api/followers");
       if (!res.ok) throw new Error("Failed to fetch followers");
-      const data = await res.json();
-      console.log('Followers data:', data);
-      return data;
+      return res.json();
     },
   });
 
+  // Calculate mutual followers (users who follow each other)
   const mutualFollowers = following?.filter(
     (followedUser) => followers?.some((follower) => follower.id === followedUser.id)
   );
@@ -77,19 +66,15 @@ export default function ChatPage() {
     queryKey: ["/api/messages", selectedUserId],
     queryFn: async () => {
       if (!selectedUserId) return [];
-      console.log('Fetching messages for user:', selectedUserId);
       const res = await fetch(`/api/messages/${selectedUserId}`);
       if (!res.ok) throw new Error("Failed to fetch messages");
-      const data = await res.json();
-      console.log('Messages data:', data);
-      return data;
+      return res.json();
     },
     enabled: !!selectedUserId,
   });
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ receiverId, content }: { receiverId: number; content: string }) => {
-      console.log('Sending message to user:', receiverId);
       const res = await apiRequest("POST", "/api/messages", { receiverId, content });
       if (!res.ok) {
         const error = await res.text();
@@ -100,14 +85,12 @@ export default function ChatPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/messages", selectedUserId] });
       setMessageInput("");
-      console.log('Message sent successfully');
       toast({
         title: "Success",
         description: "Message sent successfully",
       });
     },
     onError: (error: Error) => {
-      console.error('Error sending message:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -118,7 +101,6 @@ export default function ChatPage() {
 
   const handleSendMessage = () => {
     if (!selectedUserId || !messageInput.trim()) return;
-    console.log('Handling send message to:', selectedUserId);
     sendMessageMutation.mutate({
       receiverId: selectedUserId,
       content: messageInput.trim(),
@@ -130,6 +112,7 @@ export default function ChatPage() {
       <Navbar />
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-4xl mx-auto">
+          {/* Mobile Header */}
           <div className="flex items-center justify-between mb-4 lg:mb-8">
             <h1 className="text-2xl lg:text-4xl font-bold">Messages</h1>
             <Button
@@ -143,6 +126,7 @@ export default function ChatPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+            {/* Users List - Collapsible on mobile */}
             <Card className={`lg:block ${showUserList ? 'block' : 'hidden'}`}>
               <CardHeader>
                 <CardTitle className="text-lg">Mutual Followers</CardTitle>
@@ -152,7 +136,7 @@ export default function ChatPage() {
                   <Alert>
                     <Info className="h-4 w-4" />
                     <AlertDescription className="text-sm">
-                      You can only chat with users who follow you and whom you follow.
+                      You can only chat with users who follow you back.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -165,7 +149,7 @@ export default function ChatPage() {
                       }`}
                       onClick={() => {
                         setSelectedUserId(followedUser.id);
-                        setShowUserList(false); 
+                        setShowUserList(false); // Hide user list on mobile after selection
                       }}
                     >
                       <UserAvatar user={followedUser} size="sm" />
@@ -176,6 +160,7 @@ export default function ChatPage() {
               </CardContent>
             </Card>
 
+            {/* Chat Area */}
             <Card className={`lg:col-span-3 ${showUserList ? 'hidden' : 'block'} lg:block`}>
               <CardHeader className="border-b">
                 <CardTitle className="text-lg">
@@ -185,6 +170,7 @@ export default function ChatPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
+                {/* Messages */}
                 <div className="h-[calc(100vh-400px)] lg:h-[400px] overflow-y-auto p-4 space-y-4">
                   {messagesLoading ? (
                     <div className="flex justify-center py-4">
@@ -227,6 +213,7 @@ export default function ChatPage() {
                   )}
                 </div>
 
+                {/* Message Input */}
                 {selectedUserId && (
                   <div className="border-t p-4">
                     <div className="flex gap-2">

@@ -73,62 +73,35 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     res.status(401).send("Unauthorized");
   };
 
-  // WebSocket server setup section only
+  // Setup WebSocket server
   const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws',
     verifyClient: (info, done) => {
-      console.log("WebSocket connection attempt from:", info.req.socket.remoteAddress);
-      try {
-        sessionParser(info.req, {} as any, () => {
-          const session = (info.req as any).session;
-          const userId = session?.passport?.user;
-          if (userId) {
-            console.log("WebSocket authenticated for user:", userId);
-            (info.req as any).userId = userId; // Store userId for later use
-            done(true);
-          } else {
-            console.log("WebSocket authentication failed. Session:", session);
-            done(false, 401, "Unauthorized");
-          }
-        });
-      } catch (error) {
-        console.error("WebSocket session parsing error:", error);
-        done(false, 500, "Internal Server Error");
-      }
+      console.log("WebSocket connection attempt");
+      sessionParser(info.req, {} as any, () => {
+        const session = (info.req as any).session;
+        const userId = session?.passport?.user;
+        if (userId) {
+          console.log("WebSocket authenticated for user:", userId);
+          done(true);
+        } else {
+          console.log("WebSocket authentication failed");
+          done(false, 401, "Unauthorized");
+        }
+      });
     }
   });
 
   wss.on('connection', (ws, req: any) => {
-    const userId = req.userId; // Use stored userId from verifyClient
+    const userId = req.session.passport.user;
     console.log("WebSocket connected for user:", userId);
-
-    // Store connection with error handling
-    try {
-      connections.set(userId, ws);
-    } catch (error) {
-      console.error("Error storing WebSocket connection:", error);
-    }
+    connections.set(userId, ws);
 
     ws.on('close', () => {
       console.log("WebSocket disconnected for user:", userId);
       connections.delete(userId);
     });
-
-    ws.on('error', (error) => {
-      console.error("WebSocket error for user:", userId, error);
-      connections.delete(userId);
-    });
-
-    // Send initial connection success message
-    try {
-      ws.send(JSON.stringify({ 
-        type: 'connected', 
-        message: 'WebSocket connected successfully' 
-      }));
-    } catch (error) {
-      console.error("Error sending connection confirmation:", error);
-    }
   });
 
   // Serve uploaded files
@@ -197,19 +170,10 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         authorId: req.user!.id,
       });
 
-      // Get author details
-      const author = await storage.getUser(req.user!.id);
-
       // Broadcast new post to all connected clients
       const message = JSON.stringify({
         type: 'new_post',
-        data: {
-          ...post,
-          author: {
-            username: author?.username || 'Unknown',
-            verified: author?.verified || false
-          }
-        }
+        data: post
       });
 
       connections.forEach(client => {
@@ -663,23 +627,6 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         receiverId,
         content,
       });
-
-      // Get sender details for the notification
-      const sender = await storage.getUser(senderId);
-
-      // Send real-time notification to receiver
-      const receiverSocket = connections.get(receiverId);
-      if (receiverSocket?.readyState === WebSocket.OPEN) {
-        receiverSocket.send(JSON.stringify({
-          type: 'new_message',
-          message: {
-            ...message,
-            sender: {
-              username: sender?.username || 'Unknown'
-            }
-          }
-        }));
-      }
 
       // Create notification for new message
       await storage.createNotification({
