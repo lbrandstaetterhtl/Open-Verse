@@ -688,6 +688,21 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         return res.status(403).send("You don't have permission to delete this post");
       }
 
+      // First handle reputation impact from comments
+      const comments = await storage.getComments(postId);
+      for (const comment of comments) {
+        const likes = await storage.getCommentLikes(comment.id);
+        if (likes > 0) {
+          // Remove reputation gained from comment likes
+          await db.execute(sql`
+            UPDATE users 
+            SET karma = GREATEST(0, karma - ${likes}) 
+            WHERE id = ${comment.authorId}
+          `);
+          console.log(`Updated karma for comment author ${comment.authorId} by -${likes} due to post deletion`);
+        }
+      }
+
       // Calculate reputation impact from post reactions
       const reactions = await storage.getPostReactions(postId);
       const reputationChange = -(reactions.likes - reactions.dislikes); // Subtract likes-dislikes from reputation
@@ -884,7 +899,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
         const enrichedReport = {
           ...report,
-          reporter: {
+          reporter:{
             username: reporter?.username || 'Unknown'
           },
           content: reportedContent ? {
