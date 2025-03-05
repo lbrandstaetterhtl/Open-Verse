@@ -7,6 +7,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,34 +25,69 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { User, Report } from "@shared/schema";
-import { Loader2, Shield, Users, Flag, CheckCircle, XCircle, Search, Ban, Check, AlertTriangle, Trophy, BadgeCheck } from "lucide-react";
+import {
+  Loader2, Shield, Users, Flag, CheckCircle, XCircle, Search,
+  Ban, Check, AlertTriangle, Trophy, BadgeCheck, Activity,
+  TrendingUp, UserCheck, UserX, MessagesSquare
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import { UserAvatar } from "@/components/ui/user-avatar";
+
+// Extended Report type to include additional fields
+interface ExtendedReport extends Report {
+  reporter?: {
+    username: string;
+  };
+  reportedContent?: {
+    type: 'post' | 'discussion' | 'comment';
+    title?: string;
+    content: string;
+  };
+}
+
+interface DashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  verifiedUsers: number;
+  bannedUsers: number;
+  totalPosts: number;
+  totalReports: number;
+  pendingReports: number;
+  resolvedReports: number;
+}
 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [userFilter, setUserFilter] = useState<"all" | "verified" | "banned">("all");
+  const [reportFilter, setReportFilter] = useState<"all" | "pending" | "resolved">("all");
 
-  // Allow any user with admin privileges to access admin features
   if (!user || !user.isAdmin) {
     return <Redirect to="/" />;
   }
+
+  // Fetch dashboard statistics
+  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
+    queryKey: ["/api/admin/stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/stats");
+      if (!res.ok) throw new Error("Failed to fetch stats");
+      return res.json();
+    },
+  });
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
     queryFn: async () => {
       const res = await fetch("/api/admin/users");
       if (!res.ok) throw new Error("Failed to fetch users");
-      const data = await res.json();
-      console.log("Fetched users:", data); // Debug log
-      return data;
+      return res.json();
     },
   });
 
-  // Add back the reports query
-  const { data: reports, isLoading: reportsLoading } = useQuery<Report[]>({
+  const { data: reports, isLoading: reportsLoading } = useQuery<ExtendedReport[]>({
     queryKey: ["/api/admin/reports"],
     queryFn: async () => {
       const res = await fetch("/api/admin/reports");
@@ -132,10 +168,27 @@ export default function AdminDashboard() {
     },
   });
 
-  const filteredUsers = users?.filter(user =>
-    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users?.filter(user => {
+    const matchesSearch = user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    switch (userFilter) {
+      case "verified":
+        return user.verified;
+      case "banned":
+        return user.karma < 0;
+      default:
+        return true;
+    }
+  });
+
+  const filteredReports = reports?.filter(report => {
+    if (reportFilter === "pending") return report.status === "pending";
+    if (reportFilter === "resolved") return report.status === "resolved";
+    return true;
+  });
 
   const handleReportAction = (reportId: number, status: string) => {
     if (window.confirm(`Are you sure you want to ${status === 'resolved' ? 'resolve' : 'reject'} this report? ${status === 'resolved' ? 'This will delete the reported content.' : ''}`)) {
@@ -182,7 +235,7 @@ export default function AdminDashboard() {
     <>
       <Navbar />
       <main className="container mx-auto px-4 pt-24">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <Shield className="h-8 w-8 text-primary" />
@@ -192,7 +245,7 @@ export default function AdminDashboard() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  if (window.confirm('Are you sure you want to reset all roles? This will set all users to "user" role except for pure-coffee who will be set as "owner".')) {
+                  if (window.confirm('Are you sure you want to reset all roles?')) {
                     resetRolesMutation.mutate();
                   }
                 }}
@@ -202,6 +255,95 @@ export default function AdminDashboard() {
               </Button>
             )}
           </div>
+
+          {/* Statistics Cards */}
+          {statsLoading ? (
+            <div className="grid gap-4 md:grid-cols-4 mb-8">
+              {[...Array(8)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader className="space-y-2">
+                    <div className="h-4 bg-muted rounded w-1/2" />
+                    <div className="h-8 bg-muted rounded w-3/4" />
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-4 mb-8">
+              <Card>
+                <CardHeader>
+                  <CardDescription className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Total Users
+                  </CardDescription>
+                  <CardTitle>{stats?.totalUsers || 0}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardDescription className="flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Active Users
+                  </CardDescription>
+                  <CardTitle>{stats?.activeUsers || 0}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardDescription className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    Verified Users
+                  </CardDescription>
+                  <CardTitle>{stats?.verifiedUsers || 0}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardDescription className="flex items-center gap-2">
+                    <UserX className="h-4 w-4" />
+                    Banned Users
+                  </CardDescription>
+                  <CardTitle>{stats?.bannedUsers || 0}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardDescription className="flex items-center gap-2">
+                    <MessagesSquare className="h-4 w-4" />
+                    Total Posts
+                  </CardDescription>
+                  <CardTitle>{stats?.totalPosts || 0}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardDescription className="flex items-center gap-2">
+                    <Flag className="h-4 w-4" />
+                    Total Reports
+                  </CardDescription>
+                  <CardTitle>{stats?.totalReports || 0}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardDescription className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Pending Reports
+                  </CardDescription>
+                  <CardTitle>{stats?.pendingReports || 0}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardDescription className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Resolved Reports
+                  </CardDescription>
+                  <CardTitle>{stats?.resolvedReports || 0}</CardTitle>
+                </CardHeader>
+              </Card>
+            </div>
+          )}
 
           <Tabs defaultValue="users">
             <TabsList>
@@ -220,6 +362,29 @@ export default function AdminDashboard() {
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle>User Management</CardTitle>
                   <div className="flex items-center space-x-2">
+                    <div className="flex gap-2">
+                      <Button
+                        variant={userFilter === "all" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setUserFilter("all")}
+                      >
+                        All
+                      </Button>
+                      <Button
+                        variant={userFilter === "verified" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setUserFilter("verified")}
+                      >
+                        Verified
+                      </Button>
+                      <Button
+                        variant={userFilter === "banned" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setUserFilter("banned")}
+                      >
+                        Banned
+                      </Button>
+                    </div>
                     <div className="relative">
                       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -431,8 +596,31 @@ export default function AdminDashboard() {
 
             <TabsContent value="reports" className="mt-6">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle>Content Reports</CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={reportFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setReportFilter("all")}
+                    >
+                      All
+                    </Button>
+                    <Button
+                      variant={reportFilter === "pending" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setReportFilter("pending")}
+                    >
+                      Pending
+                    </Button>
+                    <Button
+                      variant={reportFilter === "resolved" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setReportFilter("resolved")}
+                    >
+                      Resolved
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {reportsLoading ? (
@@ -453,18 +641,16 @@ export default function AdminDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {reports?.map((report) => (
+                        {filteredReports?.map((report) => (
                           <TableRow key={report.id}>
                             <TableCell>{report.reporter?.username}</TableCell>
                             <TableCell>
-                              {report.content?.type === 'post' ? "Post" :
-                                report.content?.type === 'discussion' ? "Discussion" :
+                              {report.reportedContent?.type === 'post' ? "Post" :
+                                report.reportedContent?.type === 'discussion' ? "Discussion" :
                                   "Comment"}
                             </TableCell>
                             <TableCell className="max-w-xs truncate">
-                              {report.content?.type === 'post' ? report.content.title :
-                                report.content?.type === 'discussion' ? report.content.title :
-                                  report.content?.content}
+                              {report.reportedContent?.title || report.reportedContent?.content}
                             </TableCell>
                             <TableCell>{report.reason}</TableCell>
                             <TableCell>
