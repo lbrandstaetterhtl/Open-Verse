@@ -30,25 +30,7 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-function generateVerificationToken(): string {
-  return randomBytes(32).toString("hex");
-}
-
-async function createVerificationToken(userId: number): Promise<string> {
-  const token = generateVerificationToken();
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + 24); // Token expires in 24 hours
-
-  await storage.createVerificationToken({
-    token,
-    userId,
-    expiresAt,
-  });
-
-  return token;
-}
-
-export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
+export function setupAuth(app: Express, sessionParser: any) {
   app.set("trust proxy", 1);
   app.use(sessionParser);
   app.use(passport.initialize());
@@ -69,7 +51,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        console.log("Login successful for user:", username);
+        console.log("Login successful for user:", username, "Avatar URL:", user.avatarUrl);
         return done(null, user);
       } catch (err) {
         console.error("Login error:", err);
@@ -79,23 +61,41 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
   );
 
   passport.serializeUser((user, done) => {
-    console.log("Serializing user:", user.id, "with avatar:", user.avatarUrl);
+    console.log("Serializing user:", user.id, "Avatar URL:", user.avatarUrl);
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log("Deserializing user:", id);
       const user = await storage.getUser(id);
       if (!user) {
         console.log("Session invalid: User not found:", id);
         return done(null, false);
       }
-      console.log("Deserialized user:", user.id, "with avatar:", user.avatarUrl);
+      console.log("Deserialized user:", {
+        id: user.id,
+        username: user.username,
+        avatarUrl: user.avatarUrl
+      });
       done(null, user);
     } catch (err) {
       console.error("Session error:", err);
       done(err);
     }
+  });
+
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      console.log("Unauthenticated access attempt to /api/user");
+      return res.sendStatus(401);
+    }
+    console.log("User data requested. User:", {
+      id: req.user?.id,
+      username: req.user?.username,
+      avatarUrl: req.user?.avatarUrl
+    });
+    res.json(req.user);
   });
 
   app.post("/api/register", async (req, res) => {
@@ -166,14 +166,6 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      console.log("Unauthenticated access attempt to /api/user");
-      return res.sendStatus(401);
-    }
-    console.log("User data requested for:", req.user?.username, "with avatar:", req.user?.avatarUrl);
-    res.json(req.user);
-  });
 
   app.patch("/api/profile", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

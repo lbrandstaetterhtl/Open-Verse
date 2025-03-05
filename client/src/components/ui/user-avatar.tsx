@@ -20,7 +20,15 @@ export function UserAvatar({ user, size = "md" }: UserAvatarProps) {
   return (
     <Avatar className={sizeClasses[size]}>
       {user.avatarUrl ? (
-        <AvatarImage src={user.avatarUrl} alt={user.username} />
+        <AvatarImage 
+          src={user.avatarUrl} 
+          alt={user.username}
+          onError={(e) => {
+            console.error('Error loading avatar:', e);
+            // Reset src to trigger fallback on error
+            (e.target as HTMLImageElement).src = '';
+          }}
+        />
       ) : (
         <AvatarFallback>
           <UserCircle className="h-4 w-4" />

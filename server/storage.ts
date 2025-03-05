@@ -129,26 +129,50 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserProfile(id: number, profile: Partial<{ username: string; email: string; avatarUrl: string; isAdmin: boolean; role: string; emailVerified: boolean; verified: boolean }>): Promise<User> {
-    console.log('Updating user profile. ID:', id, 'Profile data:', profile);
+    console.log('Starting profile update. User ID:', id);
+    console.log('Update data received:', profile);
 
-    const updateData: Record<string, any> = {};
-    if (profile.username) updateData.username = profile.username;
-    if (profile.email) updateData.email = profile.email;
-    if (profile.avatarUrl !== undefined) updateData.avatarUrl = profile.avatarUrl;
-    if (typeof profile.isAdmin !== 'undefined') updateData.isAdmin = profile.isAdmin;
-    if (profile.role) updateData.role = profile.role;
-    if (typeof profile.emailVerified !== 'undefined') updateData.emailVerified = profile.emailVerified;
-    if (typeof profile.verified !== 'undefined') updateData.verified = profile.verified;
+    try {
+      // Start a transaction
+      const [user] = await db.transaction(async (tx) => {
+        // First get current user data
+        const [currentUser] = await tx
+          .select()
+          .from(users)
+          .where(eq(users.id, id));
 
-    console.log('Final update data:', updateData);
+        console.log('Current user data:', currentUser);
 
-    const [user] = await db.update(users)
-      .set(updateData)
-      .where(eq(users.id, id))
-      .returning();
+        const updateData: Record<string, any> = {};
+        if (profile.username) updateData.username = profile.username;
+        if (profile.email) updateData.email = profile.email;
+        if (profile.avatarUrl !== undefined) {
+          console.log('Setting new avatar URL:', profile.avatarUrl);
+          updateData.avatarUrl = profile.avatarUrl;
+        }
+        if (typeof profile.isAdmin !== 'undefined') updateData.isAdmin = profile.isAdmin;
+        if (profile.role) updateData.role = profile.role;
+        if (typeof profile.emailVerified !== 'undefined') updateData.emailVerified = profile.emailVerified;
+        if (typeof profile.verified !== 'undefined') updateData.verified = profile.verified;
 
-    console.log('Updated user in database:', user);
-    return user;
+        console.log('Final update data:', updateData);
+
+        // Perform the update
+        const [updatedUser] = await tx
+          .update(users)
+          .set(updateData)
+          .where(eq(users.id, id))
+          .returning();
+
+        console.log('User updated in database:', updatedUser);
+        return [updatedUser];
+      });
+
+      return user;
+    } catch (error) {
+      console.error('Error in updateUserProfile:', error);
+      throw error;
+    }
   }
 
   async updateUserPassword(id: number, password: string): Promise<User> {

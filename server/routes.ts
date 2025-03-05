@@ -6,32 +6,32 @@ import multer from "multer";
 import path from "path";
 import express from "express";
 import { WebSocketServer, WebSocket } from 'ws';
-import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema } from "@shared/schema";
-import type { Knex } from 'knex';
-import session from 'express-session';
-import { sql } from 'drizzle-orm';
 import fs from 'fs';
+import session from 'express-session';
 
-// WebSocket connections store
-const connections = new Map<number, WebSocket>();
 
-// Create uploads directory if it doesn't exist
+// Create uploads directory with proper permissions
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const AVATAR_UPLOAD_DIR = path.join(UPLOAD_DIR, "avatars");
 if (!fs.existsSync(AVATAR_UPLOAD_DIR)) {
   fs.mkdirSync(AVATAR_UPLOAD_DIR, { recursive: true });
+  // Set directory permissions to be readable by all
+  fs.chmodSync(AVATAR_UPLOAD_DIR, 0o755);
 }
 
-// Configure multer for avatar uploads with proper error handling
+// Configure multer for avatar uploads
 const avatarUpload = multer({
   storage: multer.diskStorage({
     destination: AVATAR_UPLOAD_DIR,
     filename: function (req, file, cb) {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+      const filename = 'avatar-' + uniqueSuffix + path.extname(file.originalname);
+      console.log('Generating filename for avatar:', filename);
+      cb(null, filename);
     }
   }),
   fileFilter: (req, file, cb) => {
+    console.log('Checking file type:', file.mimetype);
     const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
@@ -43,6 +43,21 @@ const avatarUpload = multer({
     fileSize: 1024 * 1024 // 1MB limit
   }
 });
+
+// Middleware to handle multer errors
+const handleMulterError = (err: any, req: any, res: any, next: any) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File size is too large. Maximum size is 1MB.' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+  next(err);
+};
+
+// WebSocket connections store
+const connections = new Map<number, WebSocket>();
+
 
 // Update the isAdmin middleware to check role
 const isAdmin = (req: any, res: any, next: any) => {
@@ -80,7 +95,7 @@ const upload = multer({
 });
 
 
-export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Promise<Server> {
+export async function registerRoutes(app: Express, db: any): Promise<Server> {
   // Create HTTP server
   const httpServer = createServer(app);
 
@@ -105,7 +120,15 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   };
 
   // Serve uploaded files - place this before other routes
-  app.use("/uploads", express.static(UPLOAD_DIR));
+  app.use("/uploads", express.static(UPLOAD_DIR, {
+    setHeaders: (res, filepath) => {
+      res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      res.set('Access-Control-Allow-Origin', '*'); // Allow access from any origin
+    }
+  }));
+
+  // Use multer error handling middleware
+  app.use(handleMulterError);
 
   // Setup WebSocket server
   const wss = new WebSocketServer({
@@ -268,9 +291,11 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  // Update the profile route to handle avatar URL and ensure session is updated
+  // Update the profile route to handle avatar uploads
   app.patch("/api/profile", isAuthenticated, avatarUpload.single('avatarFile'), async (req, res) => {
     try {
+      console.log('Profile update request received:', { body: req.body, file: req.file });
+
       const updateData: Partial<{ username: string; email: string; avatarUrl: string; isAdmin: boolean; role: string; emailVerified: boolean; verified: boolean }> = {};
 
       if (req.body.username) updateData.username = req.body.username;
@@ -278,16 +303,19 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
       // Handle avatar file upload
       if (req.file) {
+        // Set proper file permissions
+        fs.chmodSync(req.file.path, 0o644);
+
         // Create absolute URL for the avatar
         const avatarUrl = `/uploads/avatars/${req.file.filename}`;
         updateData.avatarUrl = avatarUrl;
-        console.log('Setting avatar URL:', avatarUrl); // Debug log
+        console.log('Setting avatar URL:', avatarUrl);
       }
 
-      console.log('Updating profile with data:', updateData); // Debug log
+      console.log('Updating profile with data:', updateData);
 
       const updatedUser = await storage.updateUserProfile(req.user!.id, updateData);
-      console.log('Updated user:', updatedUser); // Debug log
+      console.log('User updated in database:', updatedUser);
 
       // Update the user in session
       req.login(updatedUser, (err) => {
@@ -862,7 +890,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   // Add these routes after the existing /api/users/:username endpoint
   app.get("/api/followers/:username", async (req, res) => {
     try {
-      console.log('Fetching followers for:', req.params.username);
+      console.log('Fetching followers for:` req.params.username);
       const user = await storage.getUserByUsername(req.params.username);
       if (!user) {
         console.log('User not found for followers:', req.params.username);

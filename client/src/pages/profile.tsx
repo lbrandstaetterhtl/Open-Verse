@@ -81,8 +81,12 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      // Update the local user data in useAuth
+      if (window.location) {
+        window.location.reload(); // Force reload to update session
+      }
       setAvatarPreview(null);
       toast({
         title: "Profile updated",
