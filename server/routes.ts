@@ -14,20 +14,6 @@ import { sql } from 'drizzle-orm';
 // WebSocket connections store
 const connections = new Map<number, WebSocket>();
 
-// Update the isAdmin middleware to check role
-const isAdmin = (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-  if (req.user.role !== 'admin' && req.user.role !== 'owner') return res.status(403).send("Forbidden");
-  next();
-};
-
-// Add owner middleware for owner-only actions
-const isOwner = (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-  if (req.user.role !== 'owner') return res.status(403).send("Forbidden");
-  next();
-};
-
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.diskStorage({
@@ -49,7 +35,7 @@ const upload = multer({
   }
 });
 
-// Add multer configuration for avatar uploads
+// Configure multer for avatar uploads
 const avatarUpload = multer({
   storage: multer.diskStorage({
     destination: "./uploads/avatars",
@@ -71,6 +57,21 @@ const avatarUpload = multer({
   }
 });
 
+// Update the isAdmin middleware to check role
+const isAdmin = (req: any, res: any, next: any) => {
+  if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+  if (req.user.role !== 'admin' && req.user.role !== 'owner') return res.status(403).send("Forbidden");
+  next();
+};
+
+// Add owner middleware for owner-only actions
+const isOwner = (req: any, res: any, next: any) => {
+  if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+  if (req.user.role !== 'owner') return res.status(403).send("Forbidden");
+  next();
+};
+
+
 export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Promise<Server> {
   // Create HTTP server
   const httpServer = createServer(app);
@@ -89,6 +90,10 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
   // Setup auth with session parser
   setupAuth(app, sessionParser);
+
+  // Serve uploaded files
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+  app.use("/uploads/avatars", express.static(path.join(process.cwd(), "uploads/avatars")));
 
   const isAuthenticated = (req: any, res: any, next: any) => {
     if (req.isAuthenticated()) return next();
@@ -125,9 +130,6 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       connections.delete(userId);
     });
   });
-
-  // Serve uploaded files
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
   // Posts
   app.get("/api/posts", async (req, res) => {
@@ -497,7 +499,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  // Updated profile route
+  // Update the profile route
   app.patch("/api/profile", isAuthenticated, async (req, res) => {
     try {
       const updateData: Partial<{ username: string; email: string; role: string; avatarUrl: string }> = {};
@@ -514,6 +516,10 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         updateData.role = req.body.role;
       }
 
+      if (req.body.avatarUrl) {
+        updateData.avatarUrl = req.body.avatarUrl;
+      }
+
       const updatedUser = await storage.updateUserProfile(req.user!.id, updateData);
       res.json(updatedUser);
     } catch (error) {
@@ -522,7 +528,6 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-
   // Add profile picture upload endpoint
   app.post("/api/profile/avatar", isAuthenticated, avatarUpload.single('avatar'), async (req, res) => {
     try {
@@ -530,12 +535,17 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         return res.status(400).send("No file uploaded");
       }
 
+      console.log('Uploaded file:', req.file); // Debug log
+
       const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      console.log('Avatar URL:', avatarUrl); // Debug log
 
       // Update user profile with new avatar URL
       const updatedUser = await storage.updateUserProfile(req.user!.id, {
         avatarUrl
       });
+
+      console.log('Updated user:', updatedUser); // Debug log
 
       res.json(updatedUser);
     } catch (error) {
@@ -827,7 +837,6 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   });
 
   // Admin Routes
-  // Add this route after the other user-related routes, before the admin routes
   app.get("/api/users/:username", async (req, res) => {
     try {
       console.log('User data requested for:', req.params.username);
@@ -856,7 +865,6 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  // Add these routes after the existing /api/users/:username endpoint
   app.get("/api/followers/:username", async (req, res) => {
     try {
       console.log('Fetching followers for:', req.params.username);
