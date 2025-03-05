@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useState } from "react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -9,27 +9,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
-import { Bell, Loader2 } from "lucide-react";
+import { Bell, MessageCircle, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Notification, Message } from "@shared/schema";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useLocation } from "wouter";
 
-type NotificationWithUser = {
-  id: number;
-  type: string;
+type NotificationWithUser = Notification & {
   fromUser: {
     username: string;
   };
-  message: string;
-  read: boolean;
-  createdAt: string;
-  postId?: number;
-  commentId?: number;
 };
 
 export function NotificationsDialog() {
   const [open, setOpen] = useState(false);
-  const [, setLocation] = useLocation();
 
   const { data: notifications, isLoading } = useQuery<NotificationWithUser[]>({
     queryKey: ["/api/notifications"],
@@ -53,16 +47,6 @@ export function NotificationsDialog() {
   // Calculate unread notifications count
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
-  const handleNotificationClick = (notification: NotificationWithUser) => {
-    if (notification.postId) {
-      setOpen(false);
-      if (!notification.read) {
-        markAsReadMutation.mutate(notification.id);
-      }
-      setLocation(`/post/${notification.postId}`);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -80,7 +64,7 @@ export function NotificationsDialog() {
           <DialogTitle>Notifications</DialogTitle>
         </DialogHeader>
         {isLoading ? (
-          <div className="flex justify-center p-8">
+          <div className="flex justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : notifications?.length === 0 ? (
@@ -88,22 +72,31 @@ export function NotificationsDialog() {
             <AlertDescription>No notifications yet</AlertDescription>
           </Alert>
         ) : (
-          <div className="space-y-0">
+          <div className="space-y-4 mt-4">
             {notifications?.map((notification) => (
               <div
                 key={notification.id}
-                className={`px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors ${
-                  !notification.read ? "bg-muted/30" : ""
+                className={`flex items-start gap-3 p-3 rounded-lg ${
+                  notification.read ? "bg-muted/50" : "bg-muted"
                 }`}
-                onClick={() => handleNotificationClick(notification)}
+                onClick={() => {
+                  if (!notification.read) {
+                    markAsReadMutation.mutate(notification.id);
+                  }
+                }}
               >
-                <div className="flex flex-col gap-1">
+                <UserAvatar user={{ username: notification.fromUser.username }} size="sm" />
+                <div className="flex-1">
                   <p className="text-sm">
-                    <span className="font-semibold text-foreground">{notification.fromUser.username}</span>{" "}
-                    <span className="text-muted-foreground">{notification.message}</span>
+                    <span className="font-medium">{notification.fromUser.username}</span>{" "}
+                    {notification.type === "new_follower"
+                      ? "started following you"
+                      : notification.type === "new_message"
+                      ? "sent you a message"
+                      : "interacted with your post"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {format(new Date(notification.createdAt), "MMM d")}
+                    {format(new Date(notification.createdAt), "PPp")}
                   </p>
                 </div>
               </div>

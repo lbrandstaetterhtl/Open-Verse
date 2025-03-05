@@ -204,7 +204,6 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  // Update comment creation handler
   app.post("/api/comments", isAuthenticated, async (req, res) => {
     const result = insertCommentSchema.safeParse(req.body);
     if (!result.success) return res.status(400).json(result.error);
@@ -215,19 +214,17 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         authorId: req.user!.id,
       });
 
-      // Get the post to find its author
-      const post = await storage.getPost(result.data.postId);
-      if (post && post.authorId !== req.user!.id) {
-        // Create notification for the post author about the new comment
-        await storage.createNotification({
-          userId: post.authorId,
-          type: "new_comment",
-          fromUserId: req.user!.id,
-          message: `${req.user!.username} commented on your post: "${result.data.content.substring(0, 50)}${result.data.content.length > 50 ? '...' : ''}"`,
-          postId: post.id,
-          commentId: comment.id
-        });
-      }
+      // Broadcast new comment to all connected clients
+      const message = JSON.stringify({
+        type: 'new_comment',
+        data: comment
+      });
+
+      connections.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
 
       res.status(201).json(comment);
     } catch (error) {
@@ -251,25 +248,8 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
       if (isLiked) {
         await storage.unlikeComment(userId, commentId);
-        // Decrease the author's reputation when unliked
-        await storage.updateUserKarma(comment.authorId, -1);
       } else {
         await storage.likeComment(userId, commentId);
-        // Increase the author's reputation when liked
-        await storage.updateUserKarma(comment.authorId, 1);
-
-        // Create notification for comment like
-        if (comment.authorId !== userId) {
-          const post = await storage.getPost(comment.postId);
-          await storage.createNotification({
-            userId: comment.authorId,
-            type: "comment_like",
-            fromUserId: userId,
-            message: `${req.user!.username} liked your comment: "${comment.content.substring(0, 50)}${comment.content.length > 50 ? '...' : ''}"`,
-            postId: post.id,
-            commentId: comment.id
-          });
-        }
       }
 
       const likesCount = await storage.getCommentLikes(commentId);
@@ -290,39 +270,20 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         return res.status(400).send("Invalid reaction type");
       }
 
-      const post = await storage.getPost(postId);
-      if (!post) return res.status(404).send("Post not found");
-
       const currentReaction = await storage.getUserPostReaction(userId, postId);
 
       // Remove existing reaction if it exists
       if (currentReaction !== null) {
         await storage.removePostReaction(userId, postId);
-        // Decrease karma if previously liked
-        if (currentReaction.isLike) {
-          await storage.updateUserKarma(post.authorId, -1);
-        }
       }
 
       // Add new reaction if it's different from the current one
       if (currentReaction === null || currentReaction.isLike !== isLike) {
         await storage.createPostLike(userId, postId, isLike);
-        // Adjust karma based on the new reaction
-        if (isLike) {
-          await storage.updateUserKarma(post.authorId, 1);
-
-          // Create notification for post like
-          if (post.authorId !== userId) {
-            await storage.createNotification({
-              userId: post.authorId,
-              type: "post_like",
-              fromUserId: userId,
-              message: `${req.user!.username} liked your ${post.category} post: "${post.title}"`,
-              postId: post.id
-            });
-          }
-        }
       }
+
+      const post = await storage.getPost(postId);
+      if (!post) return res.status(404).send("Post not found");
 
       const reactions = await storage.getPostReactions(postId);
       const userReaction = await storage.getUserPostReaction(userId, postId);
@@ -905,7 +866,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         await storage.deleteUser(userId);
         res.json({ message: "User banned and deleted successfully" });
       } else {
-        // For role updates, ensure properpermissions
+        // For role updates, ensure proper permissions
         if (req.body.role === 'admin' && req.user.role !== 'owner') {
           req.body.isAdmin = true; // Ensure isAdmin is set when promoting to admin
         }
@@ -950,21 +911,6 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     } catch (error) {
       console.error('Error resetting roles:', error);
       res.status(500).send("Failed to reset roles");
-    }
-  });
-
-  // Ensure new users start with 0 reputation
-  app.post("/api/users", async (req, res) => {
-    try {
-      const result = insertUserSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json(result.error);
-      }
-      const newUser = await storage.createUser({ ...result.data, karma: 0 });
-      res.status(201).json(newUser);
-    } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(500).send("Failed to create user");
     }
   });
 
