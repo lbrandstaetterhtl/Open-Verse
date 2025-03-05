@@ -405,7 +405,7 @@ export default function AdminDashboard() {
                     <div className="relative overflow-hidden rounded-b-lg">
                       <div className="overflow-auto h-[600px]">
                         <Table>
-                          <TableHeader className="sticky top-0 bg-card z-10 border-b">
+                          <TableHeader className="sticky top-0 bg-card z-20 border-b"> {/*Added z-index*/}
                             <TableRow>
                               <TableHead className="w-[200px]">Username</TableHead>
                               <TableHead className="w-[200px]">Email</TableHead>
@@ -413,7 +413,7 @@ export default function AdminDashboard() {
                               <TableHead className="w-[100px]">Role</TableHead>
                               <TableHead className="w-[150px]">Karma</TableHead>
                               <TableHead className="w-[200px]">Joined</TableHead>
-                              <TableHead className="sticky right-0 bg-card w-[400px]">Actions</TableHead>
+                              <TableHead className="sticky right-0 bg-card w-[400px] z-20">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -598,7 +598,7 @@ export default function AdminDashboard() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="reports">
+            <TabsContent value="reports" style={{position: 'relative', zIndex: 1}}> {/*Added style for new stacking context*/}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle>Content Reports</CardTitle>
@@ -635,7 +635,7 @@ export default function AdminDashboard() {
                     <div className="relative overflow-hidden rounded-b-lg">
                       <div className="overflow-auto h-[600px]">
                         <Table>
-                          <TableHeader className="sticky top-0 bg-card z-10 border-b">
+                          <TableHeader className="sticky top-0 bg-card z-20 border-b"> {/*Added z-index*/}
                             <TableRow>
                               <TableHead className="w-[150px]">Reporter</TableHead>
                               <TableHead className="w-[100px]">Type</TableHead>
@@ -643,7 +643,7 @@ export default function AdminDashboard() {
                               <TableHead className="w-[200px]">Reason</TableHead>
                               <TableHead className="w-[100px]">Status</TableHead>
                               <TableHead className="w-[200px]">Reported On</TableHead>
-                              <TableHead className="sticky right-0 bg-card w-[150px]">Actions</TableHead>
+                              <TableHead className="sticky right-0 bg-card w-[150px] z-20">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>

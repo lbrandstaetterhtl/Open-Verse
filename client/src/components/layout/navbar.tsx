@@ -20,8 +20,8 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <div className="container flex h-16 items-center px-4">
+    <nav className="fixed top-0 left-0 right-0 border-b bg-white shadow-md z-[100]">
+      <div className="container flex h-16 items-center px-4 relative z-[100]">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="flex items-center space-x-2">
             <Coffee className="h-6 w-6 text-primary" />
