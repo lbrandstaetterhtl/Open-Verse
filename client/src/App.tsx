@@ -24,9 +24,6 @@ import PostNewsPage from "@/pages/post/news";
 import PostEntertainmentPage from "@/pages/post/entertainment";
 
 function Router() {
-  // Initialize WebSocket connection
-  useWebSocket();
-
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
@@ -58,14 +55,22 @@ function Router() {
 }
 
 function App() {
+  // Initialize WebSocket connection inside AuthProvider to ensure user context is available
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <WebSocketProvider />
         <Router />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+// Separate component to handle WebSocket initialization
+function WebSocketProvider() {
+  useWebSocket(); // This will only initialize when user is authenticated
+  return null;
 }
 
 export default App;
