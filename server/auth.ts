@@ -79,6 +79,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
   );
 
   passport.serializeUser((user, done) => {
+    console.log("Serializing user:", user.id, "with avatar:", user.avatarUrl);
     done(null, user.id);
   });
 
@@ -89,6 +90,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
         console.log("Session invalid: User not found:", id);
         return done(null, false);
       }
+      console.log("Deserialized user:", user.id, "with avatar:", user.avatarUrl);
       done(null, user);
     } catch (err) {
       console.error("Session error:", err);
@@ -128,7 +130,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
         console.log('SendGrid API key not properly configured - skipping verification email');
       }
 
-      // Log the user in
+      // Log the user in with the complete user object including avatarUrl
       req.login(user, (err) => {
         if (err) return res.status(500).send(err.message);
         res.status(201).json(user);
@@ -146,7 +148,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
 
       req.login(user, (err) => {
         if (err) return next(err);
-        console.log("User logged in successfully:", user.username);
+        console.log("User logged in successfully:", user.username, "with avatar:", user.avatarUrl);
         res.json(user);
       });
     })(req, res, next);
@@ -169,11 +171,10 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
       console.log("Unauthenticated access attempt to /api/user");
       return res.sendStatus(401);
     }
-    console.log("User data requested for:", req.user?.username);
+    console.log("User data requested for:", req.user?.username, "with avatar:", req.user?.avatarUrl);
     res.json(req.user);
   });
 
-  // Add profile update endpoints
   app.patch("/api/profile", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -195,7 +196,12 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
     }
 
     const updatedUser = await storage.updateUserProfile(req.user!.id, result.data);
-    res.json(updatedUser);
+
+    // Force session update with new user data
+    req.login(updatedUser, (err) => {
+      if (err) return res.status(500).send(err.message);
+      res.json(updatedUser);
+    });
   });
 
   app.patch("/api/profile/password", async (req, res) => {

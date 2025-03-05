@@ -503,7 +503,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  // Update the profile route to handle file uploads
+  // Update the profile route to handle file uploads and ensure session is updated
   app.patch("/api/profile", isAuthenticated, avatarUpload.single('avatarFile'), async (req, res) => {
     try {
       const updateData: Partial<{ username: string; email: string; profilePictureUrl: string; isAdmin: boolean; role: string; emailVerified: boolean; verified: boolean }> = {};
@@ -521,6 +521,12 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       console.log('Updating profile with data:', updateData); // Debug log
 
       const updatedUser = await storage.updateUserProfile(req.user!.id, updateData);
+
+      // Update the user in session
+      if (req.user) {
+        req.user = updatedUser;
+      }
+
       res.json(updatedUser);
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -881,7 +887,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
   // Add this route in the existing routes file, after other user-related routes
 
   app.get("/api/admin/users", isAdmin, async (req, res) => {
-    try {
+    try{
       const users = await storage.getUsers(); // Use storage interface
       res.json(users);
     } catch (error) {
