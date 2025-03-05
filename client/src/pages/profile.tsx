@@ -58,7 +58,6 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile/avatar", {
         method: "POST",
         body: formData,
-        // Don't set Content-Type header, let the browser set it with the boundary
       });
 
       if (!res.ok) {
@@ -69,14 +68,19 @@ export default function ProfilePage() {
       return res.json();
     },
     onSuccess: () => {
+      // Invalidate all queries that might contain user data
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/followers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/following"] });
+
       toast({
         title: "Avatar updated",
         description: "Your profile picture has been updated successfully.",
       });
     },
     onError: (error: Error) => {
-      console.error('Avatar upload error:', error); // Debug log
+      console.error('Avatar upload error:', error);
       toast({
         title: "Update failed",
         description: error.message,

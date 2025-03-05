@@ -76,6 +76,45 @@ export default function DiscussionsFeedPage() {
     },
   });
 
+  const avatarMutation = useMutation({
+    mutationFn: async (file: File) => {
+      console.log('Uploading file:', file); 
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const res = await fetch("/api/profile/avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/followers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/following"] });
+
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Avatar upload error:', error);
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const followMutation = useMutation({
     mutationFn: async (userId: number) => {
       const res = await apiRequest("POST", `/api/follow/${userId}`);
@@ -85,8 +124,9 @@ export default function DiscussionsFeedPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/following"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Success",
         description: "User followed successfully",
@@ -110,8 +150,9 @@ export default function DiscussionsFeedPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/following"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Success",
         description: "User unfollowed successfully",
@@ -136,7 +177,8 @@ export default function DiscussionsFeedPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Success",
         description: "Comment added successfully",
