@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { TutorialDialog } from "@/components/ui/tutorial-dialog";
 
 // Pages
 import AuthPage from "@/pages/auth-page";
@@ -62,6 +63,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router />
+        <TutorialDialog />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

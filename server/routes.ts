@@ -852,6 +852,23 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
+  // Add this route in the existing routes file, after other user-related routes
+  app.patch("/api/user/tutorial", isAuthenticated, async (req, res) => {
+    try {
+      const { step, completed } = req.body;
+
+      const updateData: any = {};
+      if (typeof step === 'number') updateData.tutorialStep = step;
+      if (typeof completed === 'boolean') updateData.tutorialCompleted = completed;
+
+      const updatedUser = await storage.updateUserProfile(req.user!.id, updateData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating tutorial progress:', error);
+      res.status(500).send("Failed to update tutorial progress");
+    }
+  });
+
   app.get("/api/admin/users", isAdmin, async (req, res) => {
     try {
       const users = await storage.getUsers(); // Use storage interface
