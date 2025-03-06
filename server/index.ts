@@ -9,11 +9,18 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Ensure uploads directory exists
+// Ensure uploads directory exists and set proper permissions
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log("Created uploads directory:", uploadsDir);
 }
+
+// Log static file requests for debugging
+app.use("/uploads", (req, res, next) => {
+  console.log("Static file request:", req.url);
+  next();
+}, express.static(uploadsDir));
 
 // Add request logging middleware
 app.use((req, res, next) => {

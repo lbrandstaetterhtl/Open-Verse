@@ -163,11 +163,35 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  app.post("/api/posts", isAuthenticated, upload.single("media"), async (req, res) => {
+  app.post("/api/posts", isAuthenticated, upload.single("mediaFile"), async (req, res) => {
     try {
+      console.log("Creating post with file:", {
+        file: req.file,
+        body: req.body,
+        mediaType: req.body.mediaType
+      });
+
+      if (req.file) {
+        console.log("File details:", {
+          filename: req.file.filename,
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          path: req.file.path
+        });
+      }
+
       const post = await storage.createPost({
         ...req.body,
         authorId: req.user!.id,
+        mediaUrl: req.file ? req.file.filename : null,
+        mediaType: req.file ? (req.file.mimetype.startsWith('image/') ? 'image' : 'video') : null
+      });
+
+      // Log the created post details
+      console.log("Created post with media:", {
+        id: post.id,
+        mediaUrl: post.mediaUrl,
+        mediaType: post.mediaType
       });
 
       // Broadcast new post to all connected clients

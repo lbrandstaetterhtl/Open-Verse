@@ -316,10 +316,10 @@ export default function MediaFeedPage() {
                             {console.log("Attempting to load image:", {
                               postId: post.id,
                               mediaUrl: post.mediaUrl,
-                              fullUrl: post.mediaUrl.startsWith('/') ? post.mediaUrl : `/uploads/${post.mediaUrl}`
+                              fullUrl: `/uploads/${post.mediaUrl}`
                             })}
                             <img
-                              src={post.mediaUrl.startsWith('/') ? post.mediaUrl : `/uploads/${post.mediaUrl}`}
+                              src={`/uploads/${post.mediaUrl}`}
                               alt={post.title || "Post image"}
                               className="max-w-full h-auto max-h-[500px] rounded-lg"
                               onError={(e) => {
@@ -334,7 +334,7 @@ export default function MediaFeedPage() {
                         ) : post.mediaType === "video" ? (
                           <div className="flex items-center justify-center min-h-[200px] max-h-[500px] bg-muted/5">
                             <video
-                              src={post.mediaUrl.startsWith('/') ? post.mediaUrl : `/uploads/${post.mediaUrl}`}
+                              src={`/uploads/${post.mediaUrl}`}
                               controls
                               className="max-w-full max-h-[500px] rounded-lg"
                               onError={(e) => {
