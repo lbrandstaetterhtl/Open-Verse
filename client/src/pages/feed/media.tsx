@@ -314,7 +314,7 @@ export default function MediaFeedPage() {
                         {post.mediaType === "image" ? (
                           <div className="flex items-center justify-center min-h-[200px] max-h-[500px] bg-muted/5">
                             <img
-                              src={post.mediaUrl}
+                              src={post.mediaUrl.startsWith('/') ? post.mediaUrl : `/${post.mediaUrl}`}
                               alt={post.title || "Post image"}
                               className="max-w-full h-auto max-h-[500px] rounded-lg"
                               onError={(e) => {
@@ -327,7 +327,7 @@ export default function MediaFeedPage() {
                         ) : post.mediaType === "video" ? (
                           <div className="flex items-center justify-center min-h-[200px] max-h-[500px] bg-muted/5">
                             <video
-                              src={post.mediaUrl}
+                              src={post.mediaUrl.startsWith('/') ? post.mediaUrl : `/${post.mediaUrl}`}
                               controls
                               className="max-w-full max-h-[500px] rounded-lg"
                               onError={(e) => {
