@@ -163,6 +163,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
+  // Replace the existing post creation endpoint
   app.post("/api/posts", isAuthenticated, upload.single("mediaFile"), async (req, res) => {
     try {
       console.log("Creating post with file:", {
@@ -192,18 +193,6 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         id: post.id,
         mediaUrl: post.mediaUrl,
         mediaType: post.mediaType
-      });
-
-      // Broadcast new post to all connected clients
-      const message = JSON.stringify({
-        type: 'new_post',
-        data: post
-      });
-
-      connections.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
       });
 
       res.status(201).json(post);
@@ -901,12 +890,11 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       res.json(followers);
     } catch (error) {
       console.error('Error getting followers:', error);
-      res.status(500).send("Failed to get followers");
+      res.status(50).send("Failed to get followers");
     }
   });
 
-  app.get("/api/following/:username", async (req, res) => {
-    try {
+  app.get("/api/following/:username", async (req, res)=> {    try {
       console.log('Fetching following for:', req.params.username);
       const user = await storage.getUserByUsername(req.params.username);
       if (!user) {
@@ -980,7 +968,8 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
           },
           content: reportedContent ? {
             type: contentType,
-            title: contentType === 'comment' ? null : reportedContent.title,            content: reportedContent.content
+            title: contentType === 'comment' ? null : reportedContent.title,
+            content: reportedContent.content
           } : null
         };
 

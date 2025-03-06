@@ -83,7 +83,7 @@ export default function EntertainmentPage() {
       const mediaFile = form.getValues("mediaFile");
       if (mediaFile?.[0]) {
         console.log("Appending media file:", mediaFile[0]); // Debug log
-        formData.append("media", mediaFile[0]);
+        formData.append("mediaFile", mediaFile[0]);  // Match the field name with server
       }
 
       const res = await fetch("/api/posts", {
@@ -298,28 +298,34 @@ export default function EntertainmentPage() {
                       <div className="mt-4 rounded-lg overflow-hidden bg-gray-100">
                         {post.mediaType === 'image' ? (
                           <img
-                            src={post.mediaUrl}
+                            src={`/uploads/${post.mediaUrl}`}
                             alt="Entertainment content"
                             className="w-full h-auto max-h-[500px] object-contain"
+                            onError={(e) => {
+                              console.error("Failed to load image:", e);
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
                           />
                         ) : post.mediaType === 'video' ? (
                           <video
-                            src={post.mediaUrl}
+                            src={`/uploads/${post.mediaUrl}`}
                             controls
                             className="w-full max-h-[500px]"
+                            onError={(e) => {
+                              console.error("Failed to load video:", e);
+                              (e.target as HTMLVideoElement).style.display = 'none';
+                            }}
                           />
                         ) : null}
                       </div>
                     )}
 
-                    {/* Comments Section */}
                     <div className="mt-6 space-y-4">
                       <h3 className="font-semibold flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
                         Comments
                       </h3>
 
-                      {/* Comment Form */}
                       <div className="flex gap-2">
                         <Input
                           placeholder="Write a comment..."
@@ -351,7 +357,6 @@ export default function EntertainmentPage() {
                         </Button>
                       </div>
 
-                      {/* Comments List */}
                       <div className="space-y-3">
                         {post.comments?.map((comment) => (
                           <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
