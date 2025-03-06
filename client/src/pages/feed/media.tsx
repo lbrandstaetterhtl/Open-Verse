@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, Trash2, Plus, Heart, BadgeCheck } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, Trash2, Plus, Heart, BadgeCheck, ImageOff } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +44,7 @@ type PostWithAuthor = Post & {
 export default function MediaFeedPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
 
   const { data: posts, isLoading, error } = useQuery<PostWithAuthor[]>({
     queryKey: ["/api/posts", "media"],
@@ -307,17 +308,42 @@ export default function MediaFeedPage() {
                   </CardHeader>
                   <CardContent className="p-4 lg:p-6">
                     <p className="text-sm lg:text-base whitespace-pre-wrap mb-4">{post.content}</p>
-                    {post.mediaUrl && (
-                      <div className="mt-4 rounded-lg overflow-hidden">
+
+                    {post.mediaUrl && !imageLoadErrors[post.id] && (
+                      <div className="mt-4 rounded-lg overflow-hidden bg-muted/10">
                         {post.mediaType === "image" ? (
-                          <img
-                            src={post.mediaUrl}
-                            alt="Post media"
-                            className="w-full h-auto max-h-96 object-cover"
-                          />
+                          <div className="flex items-center justify-center min-h-[200px] max-h-[500px] bg-muted/5">
+                            <img
+                              src={post.mediaUrl}
+                              alt={post.title || "Post image"}
+                              className="max-w-full h-auto max-h-[500px] rounded-lg"
+                              onError={(e) => {
+                                console.error('Image failed to load:', post.mediaUrl);
+                                setImageLoadErrors((prev) => ({ ...prev, [post.id]: true }));
+                              }}
+                              loading="lazy"
+                            />
+                          </div>
                         ) : post.mediaType === "video" ? (
-                          <video src={post.mediaUrl} controls className="w-full max-h-96" />
+                          <div className="flex items-center justify-center min-h-[200px] max-h-[500px] bg-muted/5">
+                            <video
+                              src={post.mediaUrl}
+                              controls
+                              className="max-w-full max-h-[500px] rounded-lg"
+                              onError={(e) => {
+                                console.error('Video failed to load:', post.mediaUrl);
+                                setImageLoadErrors((prev) => ({ ...prev, [post.id]: true }));
+                              }}
+                            />
+                          </div>
                         ) : null}
+                      </div>
+                    )}
+
+                    {imageLoadErrors[post.id] && (
+                      <div className="mt-4 p-4 rounded-lg bg-muted/10 flex items-center justify-center gap-2 text-muted-foreground">
+                        <ImageOff className="h-5 w-5" />
+                        <span>Media failed to load</span>
                       </div>
                     )}
 
