@@ -73,6 +73,8 @@ export default function EntertainmentPage() {
 
   const createPostMutation = useMutation<Post, Error, FormData>({
     mutationFn: async (data) => {
+      console.log("Creating post with data:", data); // Debug log
+
       const formData = new FormData();
       formData.append("title", data.title);
       formData.append("content", data.content);
@@ -80,6 +82,7 @@ export default function EntertainmentPage() {
 
       const mediaFile = form.getValues("mediaFile");
       if (mediaFile?.[0]) {
+        console.log("Appending media file:", mediaFile[0]); // Debug log
         formData.append("media", mediaFile[0]);
       }
 
@@ -88,8 +91,15 @@ export default function EntertainmentPage() {
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Failed to create post");
-      return res.json();
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Failed to create post:", errorText); // Debug log
+        throw new Error(errorText || "Failed to create post");
+      }
+
+      const post = await res.json();
+      console.log("Created post:", post); // Debug log
+      return post;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts", "entertainment"] });
@@ -97,6 +107,14 @@ export default function EntertainmentPage() {
       toast({
         title: "Post created",
         description: "Your entertainment post has been shared successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error("Post creation error:", error); // Debug log
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -170,6 +188,7 @@ export default function EntertainmentPage() {
                 <form
                   onSubmit={form.handleSubmit((data) => createPostMutation.mutate(data))}
                   className="space-y-4"
+                  encType="multipart/form-data"
                 >
                   <FormField
                     control={form.control}
@@ -214,6 +233,7 @@ export default function EntertainmentPage() {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                console.log("Selected file:", file); // Debug log
                                 onChange(e.target.files);
                                 form.setValue("mediaType", file.type.startsWith("image/") ? "image" : "video");
                               }
