@@ -79,7 +79,3 @@ A modern, full-stack social media application designed for content sharing and c
     npm run dev
     ```
     The application will be available at `http://localhost:5000`.
-
-## 🛡️ License
-
-This project is licensed under the MIT License.
