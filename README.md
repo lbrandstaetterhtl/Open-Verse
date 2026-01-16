@@ -1,18 +1,6 @@
 # PureCoffee ☕
 > Version 0.2.0
 
-### Quality News Coverage
-Access fact-checked news and in-depth analysis from reliable sources on politics and current events.
-
-### Meaningful Discussions
-Engage in civil discourse about important political and social issues that matter.
-
-### Entertainment & Trends
-Stay updated with the latest in entertainment, culture, and trending topics.
-
-### Community Impact
-Connect with others who share your interests in politics, news, and entertainment.
-
 ## ✨ Key Features
 
 *   **Multi-language Support**: Fully localized interface in English, German, Italian, Spanish, French, and Mandarin (ZH).
