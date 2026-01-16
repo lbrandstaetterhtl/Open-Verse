@@ -1,22 +1,25 @@
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Coffee, MessageSquare, Newspaper, UserCircle, MessageCircle, Shield } from "lucide-react";
 import { NotificationsDialog } from "@/components/notifications/notifications-dialog";
 import { ModeToggle } from "@/components/mode-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
 
 export function Navbar() {
+  const { t } = useTranslation();
   const [location] = useLocation();
   const { logoutMutation, user } = useAuth();
 
   const links = [
-    { href: "/feed/media", icon: Newspaper, label: "Media Feed" },
-    { href: "/feed/discussions", icon: MessageSquare, label: "Discussions Feed" },
-    { href: "/chat", icon: MessageCircle, label: "Messages" },
-    { href: "/profile", icon: UserCircle, label: "Profile" },
+    { href: "/feed/media", icon: Newspaper, label: t('navbar.media_feed') },
+    { href: "/feed/discussions", icon: MessageSquare, label: t('navbar.discussions_feed') },
+    { href: "/chat", icon: MessageCircle, label: t('navbar.messages') },
+    { href: "/profile", icon: UserCircle, label: t('navbar.profile') },
     // Show admin link for users with admin privileges
     ...(user?.isAdmin || user?.role === 'admin' || user?.role === 'owner' ? [
-      { href: "/admin", icon: Shield, label: "Admin" }
+      { href: "/admin", icon: Shield, label: t('navbar.admin') }
     ] : []),
   ];
 
@@ -47,13 +50,14 @@ export function Navbar() {
 
           <div className="flex items-center space-x-2">
             <NotificationsDialog />
+            <LanguageToggle />
             <ModeToggle />
             <Button
               variant="ghost"
               onClick={() => logoutMutation.mutate()}
               disabled={logoutMutation.isPending}
             >
-              Logout
+              {t('navbar.logout')}
             </Button>
           </div>
         </div>

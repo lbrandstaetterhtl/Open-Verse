@@ -15,6 +15,7 @@ import { Bell, MessageCircle, Loader2, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Notification, Message } from "@shared/schema";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useTranslation } from "react-i18next";
 
 type NotificationWithUser = Notification & {
   fromUser: {
@@ -24,6 +25,7 @@ type NotificationWithUser = Notification & {
 
 export function NotificationsDialog() {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
 
   const { data: notifications, isLoading } = useQuery<NotificationWithUser[]>({
     queryKey: ["/api/notifications"],
@@ -76,7 +78,7 @@ export function NotificationsDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Notifications</DialogTitle>
+          <DialogTitle>{t('notifications.title')}</DialogTitle>
         </DialogHeader>
         {isLoading ? (
           <div className="flex justify-center py-8">
@@ -84,7 +86,7 @@ export function NotificationsDialog() {
           </div>
         ) : notifications?.length === 0 ? (
           <Alert>
-            <AlertDescription>No notifications yet</AlertDescription>
+            <AlertDescription>{t('notifications.empty')}</AlertDescription>
           </Alert>
         ) : (
           <div className="space-y-4 mt-4">
@@ -104,14 +106,14 @@ export function NotificationsDialog() {
                   <p className="text-sm">
                     <span className="font-medium">{notification.fromUser.username}</span>{" "}
                     {notification.type === "new_follower"
-                      ? "started following you"
+                      ? t('notifications.new_follower')
                       : notification.type === "new_message"
-                        ? "sent you a message"
+                        ? t('notifications.new_message')
                         : notification.type === "report_resolved"
-                          ? "resolved your report"
+                          ? t('notifications.report_resolved')
                           : notification.type === "report_rejected"
-                            ? "reviewed your report (no violation found)"
-                            : "interacted with your post"}
+                            ? t('notifications.report_rejected')
+                            : t('notifications.interaction')}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(notification.createdAt), "PPp")}

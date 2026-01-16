@@ -1,0 +1,137 @@
+{
+    "navbar": {
+        "brand": "Pure Coffee",
+        "media_feed": "Fil d'actualité",
+        "discussions_feed": "Fil de discussions",
+        "messages": "Messages",
+        "profile": "Profil",
+        "admin": "Administration",
+        "logout": "Déconnexion"
+    },
+    "common": {
+        "loading": "Chargement...",
+        "error": "Une erreur est survenue",
+        "submit": "Envoyer",
+        "cancel": "Annuler",
+        "delete": "Supprimer",
+        "edit": "Modifier",
+        "save": "Enregistrer",
+        "theme": {
+            "light": "Clair",
+            "dark": "Sombre",
+            "system": "Système"
+        }
+    },
+    "feed": {
+        "media_title": "Fil d'actualité",
+        "discussions_title": "Fil de discussions",
+        "create_discussion": "Lancer une discussion",
+        "post_news": "Publier Info",
+        "post_entertainment": "Publier Divertissement",
+        "following": "Abonnements",
+        "follow": "Suivre",
+        "all": "Tous",
+        "news": "Info",
+        "entertainment": "Divertissement",
+        "no_discussions": "Aucune discussion pour le moment. Soyez le premier à en lancer une !",
+        "no_posts": "Pas encore de posts. Soyez le premier à partager quelque chose !"
+    },
+    "comments": {
+        "title": "Commentaires",
+        "placeholder": "Écrire un commentaire...",
+        "post_button": "Publier"
+    },
+    "actions": {
+        "report": "Signaler",
+        "delete": "Supprimer",
+        "cancel": "Annuler",
+        "delete_post_confirm": "Êtes-vous sûr de vouloir supprimer ce post ? Cette action est irréversible.",
+        "delete_comment_confirm": "Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible."
+    },
+    "admin": {
+        "title": "Tableau de Bord Admin",
+        "reset_roles": "Réinitialiser les rôles",
+        "stats": {
+            "total_users": "Utilisateurs totaux",
+            "active_users": "Utilisateurs actifs",
+            "verified_users": "Vérifiés",
+            "banned_users": "Bannis",
+            "deleted_users": "Supprimés",
+            "total_posts": "Posts totaux",
+            "total_reports": "Signalements totaux",
+            "pending_reports": "En attente",
+            "resolved_reports": "Résolus",
+            "rejected_reports": "Rejetés"
+        },
+        "tabs": {
+            "users": "Utilisateurs",
+            "reports": "Signalements"
+        },
+        "roles": {
+            "owner": "Propriétaire",
+            "admin": "Admin",
+            "user": "Utilisateur"
+        },
+        "users_table": {
+            "search_placeholder": "Rechercher...",
+            "username": "Nom d'utilisateur",
+            "email": "Email",
+            "status": "Statut",
+            "role": "Rôle",
+            "karma": "Karma",
+            "joined": "Rejoint",
+            "actions": "Actions",
+            "make_admin": "Nommer Admin",
+            "make_owner": "Nommer Proprio",
+            "remove_admin": "Retirer Admin",
+            "remove_owner": "Retirer Proprio",
+            "ban_user": "Bannir",
+            "restore_user": "Restaurer",
+            "verify_user": "Vérifier",
+            "unverify_user": "Enlever Vérif",
+            "verify_email": "Vérifier Email",
+            "unverify_email": "Dé-vérifier Email",
+            "verify_user_confirm": "Êtes-vous sûr de vouloir vérifier {{username}} ? Un badge de vérification apparaîtra à côté de son nom.",
+            "unverify_user_confirm": "Êtes-vous sûr de vouloir retirer la vérification de {{username}} ? Le badge de vérification sera retiré.",
+            "restore_user_confirm": "Êtes-vous sûr de vouloir restaurer le compte de {{username}} ?",
+            "ban_user_confirm": "Êtes-vous sûr de vouloir bannir {{username}} ? Cela empêchera l'accès à la plupart des fonctionnalités.",
+            "delete_user_confirm": "Êtes-vous sûr de vouloir supprimer définitivement {{username}} ? Cette action est irréversible et supprimera toutes les données de l'utilisateur.",
+            "make_admin_confirm": "Êtes-vous sûr de vouloir nommer {{username}} administrateur ? Cela accordera des privilèges administratifs.",
+            "make_owner_confirm": "Êtes-vous sûr de vouloir promouvoir {{username}} Propriétaire ? Cela accorde un accès complet au système.",
+            "remove_owner_confirm": "Êtes-vous sûr de vouloir retirer le statut de Propriétaire à {{username}} ? Il sera rétrogradé Administrateur.",
+            "remove_admin_confirm": "Êtes-vous sûr de vouloir retirer les privilèges d'administrateur à {{username}} ? Il sera rétrogradé utilisateur normal."
+        },
+        "reports_table": {
+            "reporter": "Signaleur",
+            "poster": "Auteur",
+            "type": "Type",
+            "content": "Contenu",
+            "reason": "Raison",
+            "status": "Statut",
+            "reported_on": "Signalé le",
+            "actions": "Actions",
+            "resolve": "Résoudre",
+            "reject": "Rejeter",
+            "resolve_title": "Résoudre le signalement",
+            "resolve_desc": "Êtes-vous sûr de vouloir résoudre ce signalement ? Le contenu signalé sera supprimé.",
+            "reject_title": "Rejeter le signalement",
+            "reject_desc": "Êtes-vous sûr de vouloir rejeter ce signalement ? Le contenu signalé restera.",
+            "status_all": "Tous",
+            "status_pending": "En attente",
+            "status_resolved": "Résolu",
+            "status_rejected": "Rejeté",
+            "type_post": "Post",
+            "type_discussion": "Discussion",
+            "type_comment": "Commentaire"
+        }
+    },
+    "notifications": {
+        "title": "Notifications",
+        "empty": "Pas encore de notifications",
+        "new_follower": "a commencé à vous suivre",
+        "new_message": "vous a envoyé un message",
+        "report_resolved": "a résolu votre signalement",
+        "report_rejected": "a examiné votre signalement (aucune violation)",
+        "interaction": "a interagi avec votre publication"
+    }
+}

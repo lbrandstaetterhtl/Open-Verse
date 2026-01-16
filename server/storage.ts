@@ -199,7 +199,7 @@ export class DatabaseStorage implements IStorage {
         username: insertUser.username,
         email: insertUser.email,
         password: insertUser.password,
-        emailVerified: insertUser.emailVerified ? 1 : 0
+        emailVerified: 0
       });
 
       const user = sqlite.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);

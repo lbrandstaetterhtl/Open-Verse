@@ -1,0 +1,137 @@
+{
+    "navbar": {
+        "brand": "Pure Coffee",
+        "media_feed": "Feed de Medios",
+        "discussions_feed": "Feed de Discusiones",
+        "messages": "Mensajes",
+        "profile": "Perfil",
+        "admin": "Administración",
+        "logout": "Cerrar Sesión"
+    },
+    "common": {
+        "loading": "Cargando...",
+        "error": "Ocurrió un error",
+        "submit": "Enviar",
+        "cancel": "Cancelar",
+        "delete": "Eliminar",
+        "edit": "Editar",
+        "save": "Guardar",
+        "theme": {
+            "light": "Claro",
+            "dark": "Oscuro",
+            "system": "Sistema"
+        }
+    },
+    "feed": {
+        "media_title": "Feed de Medios",
+        "discussions_title": "Feed de Discusiones",
+        "create_discussion": "Iniciar Discusión",
+        "post_news": "Publicar Noticias",
+        "post_entertainment": "Publicar Entretenimiento",
+        "following": "Siguiendo",
+        "follow": "Seguir",
+        "all": "Todos",
+        "news": "Noticias",
+        "entertainment": "Entretenimiento",
+        "no_discussions": "Aún no hay discusiones. ¡Sé el primero en iniciar una!",
+        "no_posts": "Aún no hay publicaciones. ¡Sé el primero en compartir algo!"
+    },
+    "comments": {
+        "title": "Comentarios",
+        "placeholder": "Escribe un comentario...",
+        "post_button": "Publicar"
+    },
+    "actions": {
+        "report": "Reportar",
+        "delete": "Eliminar",
+        "cancel": "Cancelar",
+        "delete_post_confirm": "¿Seguro que quieres eliminar esta publicación? Esta acción no se puede deshacer.",
+        "delete_comment_confirm": "¿Seguro que quieres eliminar este comentario? Esta acción no se puede deshacer."
+    },
+    "admin": {
+        "title": "Panel de Administración",
+        "reset_roles": "Restablecer Todos los Roles",
+        "stats": {
+            "total_users": "Usuarios Totales",
+            "active_users": "Usuarios Activos",
+            "verified_users": "Usuarios Verificados",
+            "banned_users": "Usuarios Baneados",
+            "deleted_users": "Usuarios Eliminados",
+            "total_posts": "Publicaciones Totales",
+            "total_reports": "Reportes Totales",
+            "pending_reports": "Pendientes",
+            "resolved_reports": "Resueltos",
+            "rejected_reports": "Rechazados"
+        },
+        "tabs": {
+            "users": "Usuarios",
+            "reports": "Reportes"
+        },
+        "roles": {
+            "owner": "Dueño",
+            "admin": "Admin",
+            "user": "Usuario"
+        },
+        "users_table": {
+            "search_placeholder": "Buscar usuarios...",
+            "username": "Usuario",
+            "email": "Correo",
+            "status": "Estado",
+            "role": "Rol",
+            "karma": "Karma",
+            "joined": "Se unió",
+            "actions": "Acciones",
+            "make_admin": "Hacer Admin",
+            "make_owner": "Hacer Dueño",
+            "remove_admin": "Remover Admin",
+            "remove_owner": "Remover Dueño",
+            "ban_user": "Banear Usuario",
+            "restore_user": "Restaurar Cuenta",
+            "verify_user": "Verificar Usuario",
+            "unverify_user": "Remover Verificación",
+            "verify_email": "Verificar Correo",
+            "unverify_email": "Desverificar Correo",
+            "verify_user_confirm": "¿Seguro que quieres verificar a {{username}}? Se mostrará una insignia de verificado.",
+            "unverify_user_confirm": "¿Seguro que quieres quitar la verificación a {{username}}? La insignia de verificado será eliminada.",
+            "restore_user_confirm": "¿Seguro que quieres restaurar la cuenta de {{username}}?",
+            "ban_user_confirm": "¿Seguro que quieres banear a {{username}}? Esto evitará que acceda a la mayoría de las funciones.",
+            "delete_user_confirm": "¿Seguro que quieres eliminar permanentemente a {{username}}? Esta acción es irreversible y eliminará todos sus datos.",
+            "make_admin_confirm": "¿Seguro que quieres hacer admin a {{username}}? Tendrá privilegios administrativos.",
+            "make_owner_confirm": "¿Seguro que quieres promover a {{username}} a Dueño? Tendrá acceso total al sistema.",
+            "remove_owner_confirm": "¿Seguro que quieres quitar el estado de Dueño a {{username}}? Será degradado a Admin.",
+            "remove_admin_confirm": "¿Seguro que quieres quitar los permisos de admin a {{username}}? Será degradado a usuario normal."
+        },
+        "reports_table": {
+            "reporter": "Reportador",
+            "poster": "Autor",
+            "type": "Tipo",
+            "content": "Contenido",
+            "reason": "Razón",
+            "status": "Estado",
+            "reported_on": "Reportado el",
+            "actions": "Acciones",
+            "resolve": "Resolver",
+            "reject": "Rechazar",
+            "resolve_title": "Resolver Reporte",
+            "resolve_desc": "¿Seguro que quieres resolver este reporte? El contenido reportado será eliminado.",
+            "reject_title": "Rechazar Reporte",
+            "reject_desc": "¿Seguro que quieres rechazar este reporte? El contenido reportado permanecerá.",
+            "status_all": "Todos",
+            "status_pending": "Pendiente",
+            "status_resolved": "Resuelto",
+            "status_rejected": "Rechazado",
+            "type_post": "Publicación",
+            "type_discussion": "Discusión",
+            "type_comment": "Comentario"
+        }
+    },
+    "notifications": {
+        "title": "Notificaciones",
+        "empty": "Sin notificaciones",
+        "new_follower": "comenzó a seguirte",
+        "new_message": "te envió un mensaje",
+        "report_resolved": "resolvió tu reporte",
+        "report_rejected": "revisó tu reporte (sin infracción)",
+        "interaction": "interactuó con tu publicación"
+    }
+}

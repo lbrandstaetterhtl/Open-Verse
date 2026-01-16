@@ -1,0 +1,137 @@
+{
+    "navbar": {
+        "brand": "Pure Coffee",
+        "media_feed": "Feed Media",
+        "discussions_feed": "Feed Discussioni",
+        "messages": "Messaggi",
+        "profile": "Profilo",
+        "admin": "Amministrazione",
+        "logout": "Disconnetti"
+    },
+    "common": {
+        "loading": "Caricamento...",
+        "error": "Si è verificato un errore",
+        "submit": "Invia",
+        "cancel": "Annulla",
+        "delete": "Elimina",
+        "edit": "Modifica",
+        "save": "Salva",
+        "theme": {
+            "light": "Chiaro",
+            "dark": "Scuro",
+            "system": "Sistema"
+        }
+    },
+    "feed": {
+        "media_title": "Feed Media",
+        "discussions_title": "Feed Discussioni",
+        "create_discussion": "Inizia Discussione",
+        "post_news": "Pubblica Notizie",
+        "post_entertainment": "Pubblica Intrattenimento",
+        "following": "Seguiti",
+        "follow": "Segui",
+        "all": "Tutti",
+        "news": "Notizie",
+        "entertainment": "Intrattenimento",
+        "no_discussions": "Ancora nessuna discussione. Sii il primo a iniziarne una!",
+        "no_posts": "Nessun post ancora. Sii il primo a condividere qualcosa!"
+    },
+    "comments": {
+        "title": "Commenti",
+        "placeholder": "Scrivi un commento...",
+        "post_button": "Pubblica"
+    },
+    "actions": {
+        "report": "Segnala",
+        "delete": "Elimina",
+        "cancel": "Annulla",
+        "delete_post_confirm": "Sei sicuro di voler eliminare questo post? Questa azione non può essere annullata.",
+        "delete_comment_confirm": "Sei sicuro di voler eliminare questo commento? Questa azione non può essere annullata."
+    },
+    "admin": {
+        "title": "Cruscotto Amministratore",
+        "reset_roles": "Resetta Tutti i Ruoli",
+        "stats": {
+            "total_users": "Utenti Totali",
+            "active_users": "Utenti Attivi",
+            "verified_users": "Utenti Verificati",
+            "banned_users": "Utenti Bannati",
+            "deleted_users": "Utenti Eliminati",
+            "total_posts": "Post Totali",
+            "total_reports": "Segnalazioni Totali",
+            "pending_reports": "In Sospeso",
+            "resolved_reports": "Risolti",
+            "rejected_reports": "Respinti"
+        },
+        "tabs": {
+            "users": "Utenti",
+            "reports": "Segnalazioni"
+        },
+        "roles": {
+            "owner": "Proprietario",
+            "admin": "Admin",
+            "user": "Utente"
+        },
+        "users_table": {
+            "search_placeholder": "Cerca utenti...",
+            "username": "Nome utente",
+            "email": "Email",
+            "status": "Stato",
+            "role": "Ruolo",
+            "karma": "Karma",
+            "joined": "Iscritto",
+            "actions": "Azioni",
+            "make_admin": "Rendi Admin",
+            "make_owner": "Rendi Proprietario",
+            "remove_admin": "Rimuovi Admin",
+            "remove_owner": "Rimuovi Proprietario",
+            "ban_user": "Banna Utente",
+            "restore_user": "Ripristina Account",
+            "verify_user": "Verifica Utente",
+            "unverify_user": "Rimuovi Verifica",
+            "verify_email": "Verifica Email",
+            "unverify_email": "Rimuovi Verifica Email",
+            "verify_user_confirm": "Sei sicuro di voler verificare {{username}}? Verrà visualizzato un badge verificato accanto al nome.",
+            "unverify_user_confirm": "Sei sicuro di voler rimuovere la verifica da {{username}}? Il badge verificato verrà rimosso.",
+            "restore_user_confirm": "Sei sicuro di voler ripristinare l'account di {{username}}?",
+            "ban_user_confirm": "Sei sicuro di voler bannare {{username}}? Questo impedirà l'accesso alla maggior parte delle funzionalità.",
+            "delete_user_confirm": "Sei sicuro di voler eliminare permanentemente {{username}}? Questa azione è irreversibile ed eliminerà tutti i dati dell'utente.",
+            "make_admin_confirm": "Sei sicuro di voler rendere {{username}} un amministratore? Questo conferirà privilegi amministrativi.",
+            "make_owner_confirm": "Sei sicuro di voler promuovere {{username}} a Proprietario? Questo conferisce accesso completo al sistema.",
+            "remove_owner_confirm": "Sei sicuro di voler rimuovere lo status di Proprietario da {{username}}? Verrà retrocesso ad Amministratore.",
+            "remove_admin_confirm": "Sei sicuro di voler rimuovere i privilegi di amministratore da {{username}}? Verrà retrocesso a utente normale."
+        },
+        "reports_table": {
+            "reporter": "Segnalatore",
+            "poster": "Autore",
+            "type": "Tipo",
+            "content": "Contenuto",
+            "reason": "Motivo",
+            "status": "Stato",
+            "reported_on": "Segnalato il",
+            "actions": "Azioni",
+            "resolve": "Risolvi",
+            "reject": "Respingi",
+            "resolve_title": "Risolvi Segnalazione",
+            "resolve_desc": "Sei sicuro di voler risolvere questa segnalazione? Il contenuto segnalato verrà eliminato.",
+            "reject_title": "Respingi Segnalazione",
+            "reject_desc": "Sei sicuro di voler respingere questa segnalazione? Il contenuto segnalato rimarrà.",
+            "status_all": "Tutti",
+            "status_pending": "In Sospeso",
+            "status_resolved": "Risolto",
+            "status_rejected": "Respinto",
+            "type_post": "Post",
+            "type_discussion": "Discussione",
+            "type_comment": "Commento"
+        }
+    },
+    "notifications": {
+        "title": "Notifiche",
+        "empty": "Nessuna notifica",
+        "new_follower": "ha iniziato a seguirti",
+        "new_message": "ti ha inviato un messaggio",
+        "report_resolved": "ha risolto la tua segnalazione",
+        "report_rejected": "ha esaminato la tua segnalazione (nessuna violazione)",
+        "interaction": "ha interagito con il tuo post"
+    }
+}

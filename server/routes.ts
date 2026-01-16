@@ -407,7 +407,10 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       }
 
       const report = await storage.createReport({
-        ...result.data,
+        reason: result.data.reason,
+        postId: result.data.postId ?? null,
+        commentId: result.data.commentId ?? null,
+        discussionId: result.data.discussionId ?? null,
         reporterId: req.user!.id,
       });
 
@@ -1029,7 +1032,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
           },
           content: reportedContent ? {
             type: contentType,
-            title: contentType === 'comment' ? null : reportedContent.title,
+            title: (contentType !== 'comment' && reportedContent && 'title' in reportedContent) ? reportedContent.title : null,
             content: reportedContent.content,
             author: contentAuthor
           } : null

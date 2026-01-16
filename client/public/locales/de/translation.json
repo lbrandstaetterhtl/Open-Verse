@@ -1,0 +1,137 @@
+{
+    "navbar": {
+        "brand": "Pure Coffee",
+        "media_feed": "Medien-Feed",
+        "discussions_feed": "Diskussions-Feed",
+        "messages": "Nachrichten",
+        "profile": "Profil",
+        "admin": "Administrator",
+        "logout": "Abmelden"
+    },
+    "common": {
+        "loading": "Laden...",
+        "error": "Ein Fehler ist aufgetreten",
+        "submit": "Absenden",
+        "cancel": "Abbrechen",
+        "delete": "Löschen",
+        "edit": "Bearbeiten",
+        "save": "Speichern",
+        "theme": {
+            "light": "Hell",
+            "dark": "Dunkel",
+            "system": "System"
+        }
+    },
+    "feed": {
+        "media_title": "Medien-Feed",
+        "discussions_title": "Diskussions-Feed",
+        "create_discussion": "Diskussion starten",
+        "post_news": "Nachrichten posten",
+        "post_entertainment": "Unterhaltung posten",
+        "following": "Folge ich",
+        "follow": "Folgen",
+        "all": "Alle",
+        "news": "Nachrichten",
+        "entertainment": "Unterhaltung",
+        "no_discussions": "Noch keine Diskussionen. Sei der Erste, der eine startet!",
+        "no_posts": "Noch keine Beiträge. Sei der Erste, der etwas teilt!"
+    },
+    "comments": {
+        "title": "Kommentare",
+        "placeholder": "Schreibe einen Kommentar...",
+        "post_button": "Senden"
+    },
+    "actions": {
+        "report": "Melden",
+        "delete": "Löschen",
+        "cancel": "Abbrechen",
+        "delete_post_confirm": "Sind Sie sicher, dass Sie diesen Beitrag löschen wollen? Diese Aktion kann nicht rückgängig gemacht werden.",
+        "delete_comment_confirm": "Sind Sie sicher, dass Sie diesen Kommentar löschen wollen? Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "admin": {
+        "title": "Admin-Dashboard",
+        "reset_roles": "Alle Rollen zurücksetzen",
+        "stats": {
+            "total_users": "Benutzer gesamt",
+            "active_users": "Aktive Benutzer",
+            "verified_users": "Verifizierte Benutzer",
+            "banned_users": "Verbannt",
+            "deleted_users": "Gelöschte Benutzer",
+            "total_posts": "Beiträge gesamt",
+            "total_reports": "Meldungen gesamt",
+            "pending_reports": "Offene Meldungen",
+            "resolved_reports": "Gelöste Meldungen",
+            "rejected_reports": "Abgelehnte Meldungen"
+        },
+        "tabs": {
+            "users": "Benutzer",
+            "reports": "Meldungen"
+        },
+        "roles": {
+            "owner": "Inhaber",
+            "admin": "Administrator",
+            "user": "Benutzer"
+        },
+        "users_table": {
+            "search_placeholder": "Benutzer suchen...",
+            "username": "Benutzername",
+            "email": "E-Mail",
+            "status": "Status",
+            "role": "Rolle",
+            "karma": "Karma",
+            "joined": "Beigetreten",
+            "actions": "Aktionen",
+            "make_admin": "Zum Admin machen",
+            "make_owner": "Zum Owner machen",
+            "remove_admin": "Admin entfernen",
+            "remove_owner": "Owner entfernen",
+            "ban_user": "Benutzer bannen",
+            "restore_user": "Konto wiederherstellen",
+            "verify_user": "Benutzer verifizieren",
+            "unverify_user": "Verifizierung entfernen",
+            "verify_email": "E-Mail verifiziert",
+            "unverify_email": "E-Mail nicht verifiziert",
+            "verify_user_confirm": "Möchten Sie {{username}} wirklich verifizieren? Dadurch wird ein Verifiziert-Abzeichen neben dem Namen angezeigt.",
+            "unverify_user_confirm": "Möchten Sie die Verifizierung von {{username}} wirklich entfernen? Das Verifiziert-Abzeichen wird entfernt.",
+            "restore_user_confirm": "Möchten Sie das Konto von {{username}} wirklich wiederherstellen?",
+            "ban_user_confirm": "Möchten Sie {{username}} wirklich bannen? Dies verhindert den Zugriff auf die meisten Funktionen.",
+            "delete_user_confirm": "Möchten Sie {{username}} wirklich dauerhaft löschen? Diese Aktion kann nicht rückgängig gemacht werden und löscht alle Beiträge, Kommentare und andere Daten des Benutzers.",
+            "make_admin_confirm": "Möchten Sie {{username}} wirklich zum Admin machen? Dies gewährt administrative Rechte.",
+            "make_owner_confirm": "Möchten Sie {{username}} wirklich zum Inhaber befördern? Dies gewährt vollen Systemzugriff.",
+            "remove_owner_confirm": "Möchten Sie den Inhaber-Status von {{username}} wirklich entfernen? Der Benutzer wird zum Admin herabgestuft.",
+            "remove_admin_confirm": "Möchten Sie die Admin-Rechte von {{username}} wirklich entfernen? Der Benutzer wird zu einem regulären Benutzer herabgestuft."
+        },
+        "reports_table": {
+            "reporter": "Melder",
+            "poster": "Ersteller",
+            "type": "Typ",
+            "content": "Inhalt",
+            "reason": "Grund",
+            "status": "Status",
+            "reported_on": "Gemeldet am",
+            "actions": "Aktionen",
+            "resolve": "Lösen",
+            "reject": "Ablehnen",
+            "resolve_title": "Meldung lösen",
+            "resolve_desc": "Sind Sie sicher, dass Sie diese Meldung lösen wollen? Der gemeldete Inhalt wird gelöscht.",
+            "reject_title": "Meldung ablehnen",
+            "reject_desc": "Sind Sie sicher, dass Sie diese Meldung ablehnen wollen? Der gemeldete Inhalt bleibt bestehen.",
+            "status_all": "Alle",
+            "status_pending": "Offen",
+            "status_resolved": "Gelöst",
+            "status_rejected": "Abgelehnt",
+            "type_post": "Beitrag",
+            "type_discussion": "Diskussion",
+            "type_comment": "Kommentar"
+        }
+    },
+    "notifications": {
+        "title": "Benachrichtigungen",
+        "empty": "Noch keine Benachrichtigungen",
+        "new_follower": "folgt dir jetzt",
+        "new_message": "hat dir eine Nachricht gesendet",
+        "report_resolved": "hat deine Meldung gelöst",
+        "report_rejected": "hat deine Meldung geprüft (kein Verstoß gefunden)",
+        "interaction": "hat auf deinen Beitrag reagiert"
+    }
+}

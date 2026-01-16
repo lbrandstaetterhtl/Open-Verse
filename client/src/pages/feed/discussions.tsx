@@ -1,7 +1,8 @@
+import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Post, Report } from "@shared/schema";
+import { Post } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,8 +18,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, Trash2, Plus, Heart, BadgeCheck, ImageOff } from "lucide-react";
 import { ReportDialog } from "@/components/report-dialog";
-import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, Trash2, Heart } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +28,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Input } from "@/components/ui/input";
 
-type PostWithAuthor = Post & {
+type DiscussionWithAuthor = Post & {
   author: {
     username: string;
     id: number;
@@ -38,11 +39,7 @@ type PostWithAuthor = Post & {
   comments: Array<{
     id: number;
     content: string;
-    author: {
-      username: string;
-      role: string;
-      verified: boolean;
-    };
+    author: { username: string; role: string; verified: boolean };
     createdAt: string;
     likes: number;
     isLiked: boolean;
@@ -57,30 +54,29 @@ type PostWithAuthor = Post & {
 };
 
 export default function DiscussionsFeedPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Invalidate and refetch posts when navigating to this page
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
-  }, []);
-
-  const { data: posts, isLoading } = useQuery<PostWithAuthor[]>({
-    queryKey: ["/api/posts", "discussions"],
+  const { data: discussions, isLoading } = useQuery<DiscussionWithAuthor[]>({
+    queryKey: ["/api/discussions"],
     queryFn: async () => {
-      const res = await fetch("/api/posts?category=discussion");
-      if (!res.ok) throw new Error("Failed to fetch posts");
+      const res = await fetch("/api/discussions?include=author,comments,reactions,userReaction");
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to fetch discussions");
+      }
       return res.json();
     },
   });
 
-  const reactionMutation = useMutation<Post, Error, { postId: number; isLike: boolean }>({
-    mutationFn: async ({ postId, isLike }) => {
-      const res = await apiRequest("POST", `/api/posts/${postId}/react`, { isLike });
+  const reactionMutation = useMutation<Post, Error, { discussionId: number; isLike: boolean }>({
+    mutationFn: async ({ discussionId, isLike }) => {
+      const res = await apiRequest("POST", `/api/discussions/${discussionId}/react`, { isLike });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
     },
   });
 
@@ -93,7 +89,7 @@ export default function DiscussionsFeedPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/following"] });
       toast({
         title: "Success",
@@ -118,7 +114,7 @@ export default function DiscussionsFeedPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/following"] });
       toast({
         title: "Success",
@@ -135,16 +131,13 @@ export default function DiscussionsFeedPage() {
   });
 
   const createCommentMutation = useMutation({
-    mutationFn: async ({ postId, content }: { postId: number; content: string }) => {
-      const res = await apiRequest("POST", "/api/comments", { postId, content });
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error);
-      }
+    mutationFn: async ({ discussionId, content }: { discussionId: number; content: string }) => {
+      // API expects postId, so we pass discussionId as postId
+      const res = await apiRequest("POST", "/api/comments", { postId: discussionId, content });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
       toast({
         title: "Success",
         description: "Comment added successfully",
@@ -160,15 +153,15 @@ export default function DiscussionsFeedPage() {
   });
 
   const deletePostMutation = useMutation({
-    mutationFn: async (postId: number) => {
-      const res = await apiRequest("DELETE", `/api/posts/${postId}`);
+    mutationFn: async (discussionId: number) => {
+      const res = await apiRequest("DELETE", `/api/discussions/${discussionId}`);
       if (!res.ok) {
         const error = await res.text();
         throw new Error(error);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
       toast({
         title: "Success",
         description: "Post deleted successfully",
@@ -192,7 +185,7 @@ export default function DiscussionsFeedPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
       toast({
         title: "Success",
         description: "Comment deleted successfully",
@@ -213,7 +206,7 @@ export default function DiscussionsFeedPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
     },
   });
 
@@ -223,18 +216,18 @@ export default function DiscussionsFeedPage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-3xl mx-auto">
           <div className="lg:hidden mb-6">
-            <h1 className="text-2xl font-bold mb-4">Discussions Feed</h1>
+            <h1 className="text-2xl font-bold mb-4">{t('feed.discussions_title')}</h1>
             <Button asChild size="sm" className="whitespace-nowrap">
-              <Link href="/post/discussions">
-                Start Discussion
+              <Link href="/post/discussion">
+                {t('feed.create_discussion')}
               </Link>
             </Button>
           </div>
 
           <div className="hidden lg:flex items-center justify-between mb-8">
-            <h1 className="text-4xl font-bold">Discussions Feed</h1>
+            <h1 className="text-4xl font-bold">{t('feed.discussions_title')}</h1>
             <Button asChild>
-              <Link href="/post/discussions">Start Discussion</Link>
+              <Link href="/post/discussion">{t('feed.create_discussion')}</Link>
             </Button>
           </div>
 
@@ -242,15 +235,15 @@ export default function DiscussionsFeedPage() {
             <div className="flex justify-center p-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : posts?.length === 0 ? (
+          ) : discussions?.length === 0 ? (
             <Alert>
               <AlertDescription>
-                No discussions yet. Be the first to start one!
+                {t('feed.no_discussions')}
               </AlertDescription>
             </Alert>
           ) : (
             <div className="space-y-4 lg:space-y-6">
-              {posts?.map((post) => (
+              {discussions?.map((post) => (
                 <Card key={post.id} className="overflow-hidden">
                   <CardHeader className="p-4 lg:p-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -283,7 +276,7 @@ export default function DiscussionsFeedPage() {
                           disabled={followMutation.isPending || unfollowMutation.isPending}
                           className="text-xs lg:text-sm"
                         >
-                          {post.author.isFollowing ? "Following" : "Follow"}
+                          {post.author.isFollowing ? t('feed.following') : t('feed.follow')}
                         </Button>
                       )}
                     </div>
@@ -294,18 +287,18 @@ export default function DiscussionsFeedPage() {
                     <div className="mt-6 space-y-4">
                       <h3 className="text-sm lg:text-base font-semibold flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        Comments
+                        {t('comments.title')}
                       </h3>
 
                       <div className="flex gap-2">
                         <Input
-                          data-post-id={post.id}
-                          placeholder="Write a comment..."
+                          data-discussion-id={post.id}
+                          placeholder={t('comments.placeholder')}
                           className="text-sm"
                           onKeyPress={(e) => {
                             if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
                               createCommentMutation.mutate({
-                                postId: post.id,
+                                discussionId: post.id,
                                 content: (e.target as HTMLInputElement).value.trim()
                               });
                               (e.target as HTMLInputElement).value = '';
@@ -316,17 +309,17 @@ export default function DiscussionsFeedPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            const input = document.querySelector(`input[data-post-id="${post.id}"]`) as HTMLInputElement;
+                            const input = document.querySelector(`input[data-discussion-id="${post.id}"]`) as HTMLInputElement;
                             if (input?.value?.trim()) {
                               createCommentMutation.mutate({
-                                postId: post.id,
+                                discussionId: post.id,
                                 content: input.value.trim()
                               });
                               input.value = '';
                             }
                           }}
                         >
-                          Post
+                          {t('comments.post_button')}
                         </Button>
                       </div>
 
@@ -374,18 +367,18 @@ export default function DiscussionsFeedPage() {
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
                                         <AlertDialogHeader>
-                                          <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+                                          <AlertDialogTitle>{t('actions.delete')}</AlertDialogTitle>
                                           <AlertDialogDescription>
-                                            Are you sure you want to delete this comment? This action cannot be undone.
+                                            {t('actions.delete_comment_confirm')}
                                           </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
                                           <AlertDialogAction
                                             onClick={() => deleteCommentMutation.mutate({ postId: post.id, commentId: comment.id })}
                                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                           >
-                                            Delete
+                                            {t('actions.delete')}
                                           </AlertDialogAction>
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
@@ -404,7 +397,7 @@ export default function DiscussionsFeedPage() {
                       <Button
                         variant={post.userReaction?.isLike ? "default" : "ghost"}
                         size="sm"
-                        onClick={() => reactionMutation.mutate({ postId: post.id, isLike: true })}
+                        onClick={() => reactionMutation.mutate({ discussionId: post.id, isLike: true })}
                         className="h-8"
                       >
                         <ThumbsUp className={`h-4 w-4 mr-1 ${post.userReaction?.isLike ? "fill-current" : ""}`} />
@@ -413,7 +406,7 @@ export default function DiscussionsFeedPage() {
                       <Button
                         variant={post.userReaction?.isLike === false ? "default" : "ghost"}
                         size="sm"
-                        onClick={() => reactionMutation.mutate({ postId: post.id, isLike: false })}
+                        onClick={() => reactionMutation.mutate({ discussionId: post.id, isLike: false })}
                         className="h-8"
                       >
                         <ThumbsDown className={`h-4 w-4 mr-1 ${post.userReaction?.isLike === false ? "fill-current" : ""}`} />
@@ -438,25 +431,25 @@ export default function DiscussionsFeedPage() {
                                 ) : (
                                   <>
                                     <Trash2 className="h-4 w-4 mr-1" />
-                                    <span className="text-xs lg:text-sm">Delete</span>
+                                    <span className="text-xs lg:text-sm">{t('actions.delete')}</span>
                                   </>
                                 )}
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Post</AlertDialogTitle>
+                                <AlertDialogTitle>{t('actions.delete')}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete this post? This action cannot be undone.
+                                  {t('actions.delete_post_confirm')}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => deletePostMutation.mutate(post.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  Delete
+                                  {t('actions.delete')}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

@@ -1,0 +1,137 @@
+{
+    "navbar": {
+        "brand": "Pure Coffee",
+        "media_feed": "媒体动态",
+        "discussions_feed": "讨论动态",
+        "messages": "消息",
+        "profile": "个人资料",
+        "admin": "管理后台",
+        "logout": "退出登录"
+    },
+    "common": {
+        "loading": "加载中...",
+        "error": "发生错误",
+        "submit": "提交",
+        "cancel": "取消",
+        "delete": "删除",
+        "edit": "编辑",
+        "save": "保存",
+        "theme": {
+            "light": "浅色",
+            "dark": "深色",
+            "system": "系统"
+        }
+    },
+    "feed": {
+        "media_title": "媒体动态",
+        "discussions_title": "讨论动态",
+        "create_discussion": "发起讨论",
+        "post_news": "发布新闻",
+        "post_entertainment": "发布娱乐",
+        "following": "关注",
+        "follow": "关注",
+        "all": "全部",
+        "news": "新闻",
+        "entertainment": "娱乐",
+        "no_discussions": "暂无讨论。成为第一个发起讨论的人！",
+        "no_posts": "暂无帖子。成为第一个分享的人！"
+    },
+    "comments": {
+        "title": "评论",
+        "placeholder": "写下你的评论...",
+        "post_button": "发布"
+    },
+    "actions": {
+        "report": "举报",
+        "delete": "删除",
+        "cancel": "取消",
+        "delete_post_confirm": "确定要删除此帖子吗？此操作无法撤销。",
+        "delete_comment_confirm": "确定要删除此评论吗？此操作无法撤销。"
+    },
+    "admin": {
+        "title": "管理仪表板",
+        "reset_roles": "重置所有角色",
+        "stats": {
+            "total_users": "总用户",
+            "active_users": "活跃用户",
+            "verified_users": "已验证用户",
+            "banned_users": "被封禁",
+            "deleted_users": "已删除用户",
+            "total_posts": "总帖子",
+            "total_reports": "总举报",
+            "pending_reports": "待处理",
+            "resolved_reports": "已解决",
+            "rejected_reports": "已驳回"
+        },
+        "tabs": {
+            "users": "用户",
+            "reports": "举报"
+        },
+        "roles": {
+            "owner": "拥有者",
+            "admin": "管理员",
+            "user": "用户"
+        },
+        "users_table": {
+            "search_placeholder": "搜索用户...",
+            "username": "用户名",
+            "email": "邮箱",
+            "status": "状态",
+            "role": "角色",
+            "karma": "Karma",
+            "joined": "加入时间",
+            "actions": "操作",
+            "make_admin": "设为管理员",
+            "make_owner": "设为拥有者",
+            "remove_admin": "移除管理员",
+            "remove_owner": "移除拥有者",
+            "ban_user": "封禁用户",
+            "restore_user": "恢复账户",
+            "verify_user": "验证用户",
+            "unverify_user": "移除验证",
+            "verify_email": "验证邮箱",
+            "unverify_email": "取消邮箱验证",
+            "verify_user_confirm": "您确定要验证 {{username}} 吗？这将在其名字旁边显示已验证徽章。",
+            "unverify_user_confirm": "您确定要取消 {{username}} 的验证吗？这将移除其已验证徽章。",
+            "restore_user_confirm": "您确定要恢复 {{username}} 的账户吗？",
+            "ban_user_confirm": "您确定要封禁 {{username}} 吗？这将阻止其访问大多数功能。",
+            "delete_user_confirm": "您确定要永久删除 {{username}} 吗？此操作无法撤销，将删除该用户的所有帖子、评论和其他数据。",
+            "make_admin_confirm": "您确定要将 {{username}} 设为管理员吗？这将授予其管理权限。",
+            "make_owner_confirm": "您确定要将 {{username}} 提升为拥有者吗？这将授予其完全系统访问权限。",
+            "remove_owner_confirm": "您确定要移除 {{username}} 的拥有者身份吗？其将被降级为管理员。",
+            "remove_admin_confirm": "您确定要移除 {{username}} 的管理员权限吗？其将被降级为普通用户。"
+        },
+        "reports_table": {
+            "reporter": "举报人",
+            "poster": "发布者",
+            "type": "类型",
+            "content": "内容",
+            "reason": "原因",
+            "status": "状态",
+            "reported_on": "举报时间",
+            "actions": "操作",
+            "resolve": "解决",
+            "reject": "驳回",
+            "resolve_title": "解决举报",
+            "resolve_desc": "您确定要解决此举报吗？这将删除被举报的内容。",
+            "reject_title": "驳回举报",
+            "reject_desc": "您确定要驳回此举报吗？被举报的内容将保留。",
+            "status_all": "全部",
+            "status_pending": "待处理",
+            "status_resolved": "已解决",
+            "status_rejected": "已驳回",
+            "type_post": "帖子",
+            "type_discussion": "讨论",
+            "type_comment": "评论"
+        }
+    },
+    "notifications": {
+        "title": "通知",
+        "empty": "暂无通知",
+        "new_follower": "开始关注你",
+        "new_message": "给你发了一条消息",
+        "report_resolved": "解决了你的举报",
+        "report_rejected": "审核了你的举报（未发现违规）",
+        "interaction": "与你的帖子进行了互动"
+    }
+}

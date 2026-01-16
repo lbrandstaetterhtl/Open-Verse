@@ -130,7 +130,11 @@ const ReportRowSkeleton = () => (
   </TableRow>
 );
 
+import { useTranslation } from "react-i18next";
+// ... imports
+
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -293,9 +297,6 @@ export default function AdminDashboard() {
     return true;
   });
 
-
-
-
   const handleVerificationToggle = async (userId: number, currentVerified: boolean) => {
     // Confirmation is now handled by AlertDialog in the UI
     try {
@@ -337,7 +338,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <Shield className="h-8 w-8 text-primary" />
-              <h1 className="text-4xl font-bold">Admin Dashboard</h1>
+              <h1 className="text-4xl font-bold">{t('admin.title')}</h1>
             </div>
             {user.role === 'owner' && (
               <Button
@@ -349,7 +350,7 @@ export default function AdminDashboard() {
                 }}
                 disabled={resetRolesMutation.isPending}
               >
-                Reset All Roles
+                {t('admin.reset_roles')}
               </Button>
             )}
           </div>
@@ -367,7 +368,7 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardDescription className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    Total Users
+                    {t('admin.stats.total_users')}
                   </CardDescription>
                   <CardTitle>{stats?.totalUsers || 0}</CardTitle>
                 </CardHeader>
@@ -376,7 +377,7 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardDescription className="flex items-center gap-2">
                     <Activity className="h-4 w-4" />
-                    Active Users
+                    {t('admin.stats.active_users')}
                   </CardDescription>
                   <CardTitle>{stats?.activeUsers || 0}</CardTitle>
                 </CardHeader>
@@ -385,7 +386,7 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardDescription className="flex items-center gap-2">
                     <UserCheck className="h-4 w-4" />
-                    Verified Users
+                    {t('admin.stats.verified_users')}
                   </CardDescription>
                   <CardTitle>{stats?.verifiedUsers || 0}</CardTitle>
                 </CardHeader>
@@ -394,7 +395,7 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardDescription className="flex items-center gap-2">
                     <UserX className="h-4 w-4" />
-                    Banned Users
+                    {t('admin.stats.banned_users')}
                   </CardDescription>
                   <CardTitle>{stats?.bannedUsers || 0}</CardTitle>
                 </CardHeader>
@@ -403,7 +404,7 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardDescription className="flex items-center gap-2">
                     <Trash2 className="h-4 w-4" />
-                    Deleted Users
+                    {t('admin.stats.deleted_users')}
                   </CardDescription>
                   <CardTitle>{stats?.deletedUsers || 0}</CardTitle>
                 </CardHeader>
@@ -412,7 +413,7 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardDescription className="flex items-center gap-2">
                     <MessagesSquare className="h-4 w-4" />
-                    Total Posts
+                    {t('admin.stats.total_posts')}
                   </CardDescription>
                   <CardTitle>{stats?.totalPosts || 0}</CardTitle>
                 </CardHeader>
@@ -421,7 +422,7 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardDescription className="flex items-center gap-2">
                     <Flag className="h-4 w-4" />
-                    Total Reports
+                    {t('admin.stats.total_reports')}
                   </CardDescription>
                   <CardTitle>{stats?.totalReports || 0}</CardTitle>
                 </CardHeader>
@@ -430,7 +431,7 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardDescription className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4" />
-                    Pending Reports
+                    {t('admin.stats.pending_reports')}
                   </CardDescription>
                   <CardTitle>{stats?.pendingReports || 0}</CardTitle>
                 </CardHeader>
@@ -439,7 +440,7 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardDescription className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
-                    Resolved Reports
+                    {t('admin.stats.resolved_reports')}
                   </CardDescription>
                   <CardTitle>{stats?.resolvedReports || 0}</CardTitle>
                 </CardHeader>
@@ -448,7 +449,7 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardDescription className="flex items-center gap-2">
                     <XCircle className="h-4 w-4" />
-                    Rejected Reports
+                    {t('admin.stats.rejected_reports')}
                   </CardDescription>
                   <CardTitle>{stats?.rejectedReports || 0}</CardTitle>
                 </CardHeader>
@@ -467,11 +468,11 @@ export default function AdminDashboard() {
             <TabsList>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Users
+                {t('admin.tabs.users')}
               </TabsTrigger>
               <TabsTrigger value="reports" className="flex items-center gap-2">
                 <Flag className="h-4 w-4" />
-                Reports
+                {t('admin.tabs.reports')}
               </TabsTrigger>
             </TabsList>
 
@@ -486,21 +487,21 @@ export default function AdminDashboard() {
                         size="sm"
                         onClick={() => setUserFilter("all")}
                       >
-                        All
+                        {t('feed.all')}
                       </Button>
                       <Button
                         variant={userFilter === "verified" ? "default" : "outline"}
                         size="sm"
                         onClick={() => setUserFilter("verified")}
                       >
-                        Verified
+                        {t('admin.stats.verified_users')}
                       </Button>
                       <Button
                         variant={userFilter === "banned" ? "default" : "outline"}
                         size="sm"
                         onClick={() => setUserFilter("banned")}
                       >
-                        Banned
+                        {t('admin.stats.banned_users')}
                       </Button>
                     </div>
                     <div className="relative">
@@ -578,17 +579,17 @@ export default function AdminDashboard() {
                                 <TableCell>
                                   <div className="flex gap-2">
                                     <Badge variant={u.emailVerified ? "default" : "secondary"} className="whitespace-nowrap">
-                                      {u.emailVerified ? "Verified E-Mail" : "Unverified E-Mail"}
+                                      {u.emailVerified ? t('admin.users_table.verify_email') : t('admin.users_table.unverify_email')}
                                     </Badge>
                                     {u.verified && (
                                       <Badge variant="default" className="bg-blue-500 flex items-center gap-1">
                                         <BadgeCheck className="h-4 w-4 text-white flex-shrink-0" />
-                                        <span className="text-sm">Verified</span>
+                                        <span className="text-sm">{t('admin.stats.verified_users')}</span>
                                       </Badge>
                                     )}
                                     {u.karma < 0 && (
                                       <Badge variant="destructive" className="ml-2">
-                                        Banned
+                                        {t('admin.users_table.ban_user')}
                                       </Badge>
                                     )}
                                   </div>
@@ -599,16 +600,16 @@ export default function AdminDashboard() {
                                       u.role === 'admin' ? "default" :
                                         "secondary"
                                   }>
-                                    {u.role}
+                                    {t(`admin.roles.${u.role}`)}
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant={u.karma >= 0 ? "default" : "destructive"} className="flex items-center gap-1">
+                                  <Badge variant={u.karma >= 0 ? "default" : "destructive"} className="flex items-center gap-1 whitespace-nowrap">
                                     <Trophy className="h-3 w-3" />
-                                    {u.karma} reputation
+                                    {u.karma} {t('admin.users_table.karma')}
                                   </Badge>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="whitespace-nowrap">
                                   {format(new Date(u.createdAt), "PPp")}
                                 </TableCell>
                                 <TableCell>
@@ -624,26 +625,26 @@ export default function AdminDashboard() {
                                               className="flex items-center gap-1"
                                             >
                                               <BadgeCheck className="h-4 w-4 flex-shrink-0" />
-                                              {u.verified ? "Remove Verification" : "Verify User"}
+                                              {u.verified ? t('admin.users_table.unverify_user') : t('admin.users_table.verify_user')}
                                             </Button>
                                           </AlertDialogTrigger>
                                           <AlertDialogContent>
                                             <AlertDialogHeader>
                                               <AlertDialogTitle>
-                                                {u.verified ? 'Remove Verification' : 'Verify User'}
+                                                {u.verified ? t('admin.users_table.unverify_user') : t('admin.users_table.verify_user')}
                                               </AlertDialogTitle>
                                               <AlertDialogDescription>
                                                 {u.verified
-                                                  ? `Are you sure you want to remove verification from ${u.username}? This will remove their verified badge.`
-                                                  : `Are you sure you want to verify ${u.username}? This will display a verified badge next to their name.`}
+                                                  ? t('admin.users_table.unverify_user_confirm', { username: u.username })
+                                                  : t('admin.users_table.verify_user_confirm', { username: u.username })}
                                               </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
-                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                              <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
                                               <AlertDialogAction
                                                 onClick={() => handleVerificationToggle(u.id, u.verified)}
                                               >
-                                                {u.verified ? 'Remove' : 'Verify'}
+                                                {u.verified ? t('admin.users_table.unverify_user') : t('admin.users_table.verify_user')}
                                               </AlertDialogAction>
                                             </AlertDialogFooter>
                                           </AlertDialogContent>
@@ -658,12 +659,12 @@ export default function AdminDashboard() {
                                               {u.karma < 0 ? (
                                                 <>
                                                   <Check className="h-4 w-4 mr-1" />
-                                                  Restore Account
+                                                  {t('admin.users_table.restore_user')}
                                                 </>
                                               ) : (
                                                 <>
                                                   <Ban className="h-4 w-4 mr-1" />
-                                                  Ban User
+                                                  {t('admin.users_table.ban_user')}
                                                 </>
                                               )}
                                             </Button>
@@ -671,12 +672,12 @@ export default function AdminDashboard() {
                                           <AlertDialogContent>
                                             <AlertDialogHeader>
                                               <AlertDialogTitle>
-                                                {u.karma < 0 ? 'Restore Account' : 'Ban User'}
+                                                {u.karma < 0 ? t('admin.users_table.restore_user') : t('admin.users_table.ban_user')}
                                               </AlertDialogTitle>
                                               <AlertDialogDescription>
                                                 {u.karma < 0
-                                                  ? `Are you sure you want to restore ${u.username}'s account?`
-                                                  : `Are you sure you want to ban ${u.username}? This will prevent them from accessing most features.`}
+                                                  ? t('admin.users_table.restore_user_confirm', { username: u.username })
+                                                  : t('admin.users_table.ban_user_confirm', { username: u.username })}
                                               </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
@@ -691,7 +692,7 @@ export default function AdminDashboard() {
                                                 }}
                                                 className={u.karma < 0 ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
                                               >
-                                                {u.karma < 0 ? 'Restore' : 'Ban'}
+                                                {u.karma < 0 ? t('admin.users_table.restore_user') : t('admin.users_table.ban_user')}
                                               </AlertDialogAction>
                                             </AlertDialogFooter>
                                           </AlertDialogContent>
@@ -708,12 +709,12 @@ export default function AdminDashboard() {
                                           {u.emailVerified ? (
                                             <>
                                               <AlertTriangle className="h-4 w-4 mr-1" />
-                                              Unverify E-Mail
+                                              {t('admin.users_table.unverify_email')}
                                             </>
                                           ) : (
                                             <>
                                               <Check className="h-4 w-4 mr-1" />
-                                              Verify E-Mail
+                                              {t('admin.users_table.verify_email')}
                                             </>
                                           )}
                                         </Button>
@@ -725,14 +726,14 @@ export default function AdminDashboard() {
                                               disabled={deleteUserMutation.isPending}
                                             >
                                               <Trash2 className="h-4 w-4 mr-1" />
-                                              Delete
+                                              {t('actions.delete')}
                                             </Button>
                                           </AlertDialogTrigger>
                                           <AlertDialogContent>
                                             <AlertDialogHeader>
-                                              <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                              <AlertDialogTitle>{t('actions.delete')}</AlertDialogTitle>
                                               <AlertDialogDescription>
-                                                Are you sure you want to permanently delete {u.username}? This action cannot be undone and will delete all of the user's posts, comments, and other data.
+                                                {t('admin.users_table.delete_user_confirm', { username: u.username })}
                                               </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
@@ -741,7 +742,7 @@ export default function AdminDashboard() {
                                                 onClick={() => deleteUserMutation.mutate(u.id)}
                                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                               >
-                                                Delete User
+                                                {t('actions.delete')}
                                               </AlertDialogAction>
                                             </AlertDialogFooter>
                                           </AlertDialogContent>
@@ -755,14 +756,14 @@ export default function AdminDashboard() {
                                                 disabled={updateUserMutation.isPending}
                                               >
                                                 <Shield className="h-4 w-4 mr-1" />
-                                                Make Admin
+                                                {t('admin.users_table.make_admin')}
                                               </Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                               <AlertDialogHeader>
-                                                <AlertDialogTitle>Make Admin</AlertDialogTitle>
+                                                <AlertDialogTitle>{t('admin.users_table.make_admin')}</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                  Are you sure you want to make {u.username} an admin? This will give them administrative privileges.
+                                                  {t('admin.users_table.make_admin_confirm', { username: u.username })}
                                                 </AlertDialogDescription>
                                               </AlertDialogHeader>
                                               <AlertDialogFooter>
@@ -778,7 +779,7 @@ export default function AdminDashboard() {
                                                     });
                                                   }}
                                                 >
-                                                  Make Admin
+                                                  {t('admin.users_table.make_admin')}
                                                 </AlertDialogAction>
                                               </AlertDialogFooter>
                                             </AlertDialogContent>
@@ -794,14 +795,14 @@ export default function AdminDashboard() {
                                                 disabled={updateUserMutation.isPending}
                                               >
                                                 <Trophy className="h-4 w-4 mr-1" />
-                                                Make Owner
+                                                {t('admin.users_table.make_owner')}
                                               </Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                               <AlertDialogHeader>
-                                                <AlertDialogTitle>Make Owner</AlertDialogTitle>
+                                                <AlertDialogTitle>{t('admin.users_table.make_owner')}</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                  Are you sure you want to promote {u.username} to Owner? This grants them full system access.
+                                                  {t('admin.users_table.make_owner_confirm', { username: u.username })}
                                                 </AlertDialogDescription>
                                               </AlertDialogHeader>
                                               <AlertDialogFooter>
@@ -817,7 +818,7 @@ export default function AdminDashboard() {
                                                     });
                                                   }}
                                                 >
-                                                  Make Owner
+                                                  {t('admin.users_table.make_owner')}
                                                 </AlertDialogAction>
                                               </AlertDialogFooter>
                                             </AlertDialogContent>
@@ -833,14 +834,14 @@ export default function AdminDashboard() {
                                                 disabled={updateUserMutation.isPending}
                                               >
                                                 <ShieldOff className="h-4 w-4 mr-1" />
-                                                Remove Owner
+                                                {t('admin.users_table.remove_owner')}
                                               </Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                               <AlertDialogHeader>
-                                                <AlertDialogTitle>Remove Owner Status</AlertDialogTitle>
+                                                <AlertDialogTitle>{t('admin.users_table.remove_owner')}</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                  Are you sure you want to remove Owner status from {u.username}? They will be demoted to an Admin.
+                                                  {t('admin.users_table.remove_owner_confirm', { username: u.username })}
                                                 </AlertDialogDescription>
                                               </AlertDialogHeader>
                                               <AlertDialogFooter>
@@ -856,7 +857,7 @@ export default function AdminDashboard() {
                                                     });
                                                   }}
                                                 >
-                                                  Remove Owner
+                                                  {t('admin.users_table.remove_owner')}
                                                 </AlertDialogAction>
                                               </AlertDialogFooter>
                                             </AlertDialogContent>
@@ -871,14 +872,14 @@ export default function AdminDashboard() {
                                                 disabled={updateUserMutation.isPending}
                                               >
                                                 <ShieldOff className="h-4 w-4 mr-1" />
-                                                Remove Admin
+                                                {t('admin.users_table.remove_admin')}
                                               </Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                               <AlertDialogHeader>
-                                                <AlertDialogTitle>Remove Admin</AlertDialogTitle>
+                                                <AlertDialogTitle>{t('admin.users_table.remove_admin')}</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                  Are you sure you want to remove {u.username}'s admin privileges? They will be demoted to a regular user.
+                                                  {t('admin.users_table.remove_admin_confirm', { username: u.username })}
                                                 </AlertDialogDescription>
                                               </AlertDialogHeader>
                                               <AlertDialogFooter>
@@ -894,7 +895,7 @@ export default function AdminDashboard() {
                                                     });
                                                   }}
                                                 >
-                                                  Remove Admin
+                                                  {t('admin.users_table.remove_admin')}
                                                 </AlertDialogAction>
                                               </AlertDialogFooter>
                                             </AlertDialogContent>
@@ -925,28 +926,28 @@ export default function AdminDashboard() {
                       size="sm"
                       onClick={() => setReportFilter("all")}
                     >
-                      All
+                      {t('admin.reports_table.status_all')}
                     </Button>
                     <Button
                       variant={reportFilter === "pending" ? "default" : "outline"}
                       size="sm"
                       onClick={() => setReportFilter("pending")}
                     >
-                      Pending
+                      {t('admin.reports_table.status_pending')}
                     </Button>
                     <Button
                       variant={reportFilter === "resolved" ? "default" : "outline"}
                       size="sm"
                       onClick={() => setReportFilter("resolved")}
                     >
-                      Resolved
+                      {t('admin.reports_table.status_resolved')}
                     </Button>
                     <Button
                       variant={reportFilter === "rejected" ? "default" : "outline"}
                       size="sm"
                       onClick={() => setReportFilter("rejected")}
                     >
-                      Rejected
+                      {t('admin.reports_table.status_rejected')}
                     </Button>
                   </div>
                 </CardHeader>
@@ -980,14 +981,14 @@ export default function AdminDashboard() {
                         <Table>
                           <TableHeader className="sticky top-0 bg-card z-20 border-b">
                             <TableRow>
-                              <TableHead className="w-[150px]">Reporter</TableHead>
-                              <TableHead className="w-[150px]">Poster</TableHead>
-                              <TableHead className="w-[100px]">Type</TableHead>
-                              <TableHead className="w-[250px]">Content</TableHead>
-                              <TableHead className="w-[180px]">Reason</TableHead>
-                              <TableHead className="w-[100px]">Status</TableHead>
-                              <TableHead className="w-[180px]">Reported On</TableHead>
-                              <TableHead className="sticky right-0 bg-card w-[150px] z-20">Actions</TableHead>
+                              <TableHead className="w-[150px]">{t('admin.reports_table.reporter')}</TableHead>
+                              <TableHead className="w-[150px]">{t('admin.reports_table.poster')}</TableHead>
+                              <TableHead className="w-[100px]">{t('admin.reports_table.type')}</TableHead>
+                              <TableHead className="w-[250px]">{t('admin.reports_table.content')}</TableHead>
+                              <TableHead className="w-[180px]">{t('admin.reports_table.reason')}</TableHead>
+                              <TableHead className="w-[100px]">{t('admin.reports_table.status')}</TableHead>
+                              <TableHead className="w-[180px]">{t('admin.reports_table.reported_on')}</TableHead>
+                              <TableHead className="sticky right-0 bg-card w-[150px] z-20">{t('admin.reports_table.actions')}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -998,9 +999,9 @@ export default function AdminDashboard() {
                                   {report.content?.author?.username || 'Unknown'}
                                 </TableCell>
                                 <TableCell>
-                                  {report.content?.type === 'post' ? "Post" :
-                                    report.content?.type === 'discussion' ? "Discussion" :
-                                      "Comment"}
+                                  {report.content?.type === 'post' ? t('admin.reports_table.type_post') :
+                                    report.content?.type === 'discussion' ? t('admin.reports_table.type_discussion') :
+                                      t('admin.reports_table.type_comment')}
                                 </TableCell>
                                 <TableCell className="max-w-xs truncate">
                                   {report.content?.title || report.content?.content || 'Content deleted'}
@@ -1011,7 +1012,7 @@ export default function AdminDashboard() {
                                     report.status === "resolved" ? "default" :
                                       report.status === "rejected" ? "destructive" : "secondary"
                                   }>
-                                    {report.status}
+                                    {t(`admin.reports_table.status_${report.status}`)}
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
@@ -1031,17 +1032,17 @@ export default function AdminDashboard() {
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
                                         <AlertDialogHeader>
-                                          <AlertDialogTitle>Resolve Report</AlertDialogTitle>
+                                          <AlertDialogTitle>{t('admin.reports_table.resolve_title')}</AlertDialogTitle>
                                           <AlertDialogDescription>
-                                            Are you sure you want to resolve this report? This will delete the reported content.
+                                            {t('admin.reports_table.resolve_desc')}
                                           </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
                                           <AlertDialogAction
                                             onClick={() => updateReportMutation.mutate({ reportId: report.id, status: "resolved" })}
                                           >
-                                            Resolve
+                                            {t('admin.reports_table.resolve')}
                                           </AlertDialogAction>
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
@@ -1058,17 +1059,17 @@ export default function AdminDashboard() {
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
                                         <AlertDialogHeader>
-                                          <AlertDialogTitle>Reject Report</AlertDialogTitle>
+                                          <AlertDialogTitle>{t('admin.reports_table.reject_title')}</AlertDialogTitle>
                                           <AlertDialogDescription>
-                                            Are you sure you want to reject this report? The reported content will remain.
+                                            {t('admin.reports_table.reject_desc')}
                                           </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
                                           <AlertDialogAction
                                             onClick={() => updateReportMutation.mutate({ reportId: report.id, status: "rejected" })}
                                           >
-                                            Reject
+                                            {t('admin.reports_table.reject')}
                                           </AlertDialogAction>
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
@@ -1086,8 +1087,8 @@ export default function AdminDashboard() {
               </Card>
             </TabsContent>
           </Tabs>
-        </div>
-      </main>
+        </div >
+      </main >
     </>
   );
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -54,6 +55,7 @@ type PostWithAuthor = Post & {
 };
 
 export default function MediaFeedPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
@@ -212,31 +214,31 @@ export default function MediaFeedPage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-3xl mx-auto">
           <div className="lg:hidden mb-6">
-            <h1 className="text-2xl font-bold mb-4">Media Feed</h1>
+            <h1 className="text-2xl font-bold mb-4">{t('feed.media_title')}</h1>
             <div className="flex gap-2 overflow-x-auto pb-2">
               <Button asChild size="sm" className="whitespace-nowrap">
                 <Link href="/post/news">
                   <Plus className="h-4 w-4 mr-1" />
-                  Post News
+                  {t('feed.post_news')}
                 </Link>
               </Button>
               <Button asChild size="sm" className="whitespace-nowrap">
                 <Link href="/post/entertainment">
                   <Plus className="h-4 w-4 mr-1" />
-                  Post Entertainment
+                  {t('feed.post_entertainment')}
                 </Link>
               </Button>
             </div>
           </div>
 
           <div className="hidden lg:flex items-center justify-between mb-8">
-            <h1 className="text-4xl font-bold">Media Feed</h1>
+            <h1 className="text-4xl font-bold">{t('feed.media_title')}</h1>
             <div className="space-x-4">
               <Button asChild>
-                <Link href="/post/news">Post News</Link>
+                <Link href="/post/news">{t('feed.post_news')}</Link>
               </Button>
               <Button asChild>
-                <Link href="/post/entertainment">Post Entertainment</Link>
+                <Link href="/post/entertainment">{t('feed.post_entertainment')}</Link>
               </Button>
             </div>
           </div>
@@ -252,7 +254,7 @@ export default function MediaFeedPage() {
           ) : posts?.length === 0 ? (
             <Alert>
               <AlertDescription>
-                No posts yet. Be the first to share something!
+                {t('feed.no_posts')}
               </AlertDescription>
             </Alert>
           ) : (
@@ -299,7 +301,7 @@ export default function MediaFeedPage() {
                             disabled={followMutation.isPending || unfollowMutation.isPending}
                             className="text-xs lg:text-sm"
                           >
-                            {post.author.isFollowing ? "Following" : "Follow"}
+                            {post.author.isFollowing ? t('feed.following') : t('feed.follow')}
                           </Button>
                         )}
                       </div>
@@ -312,11 +314,6 @@ export default function MediaFeedPage() {
                       <div className="mt-4 rounded-lg overflow-hidden bg-muted/10">
                         {post.mediaType === "image" ? (
                           <div className="flex items-center justify-center min-h-[200px] max-h-[500px] bg-muted/5">
-                            {console.log("Attempting to load image:", {
-                              postId: post.id,
-                              mediaUrl: post.mediaUrl,
-                              fullUrl: `/uploads/${post.mediaUrl}`
-                            })}
                             <img
                               src={`/uploads/${post.mediaUrl}`}
                               alt={post.title || "Post image"}
@@ -358,13 +355,13 @@ export default function MediaFeedPage() {
                     <div className="mt-6 space-y-4">
                       <h3 className="text-sm lg:text-base font-semibold flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        Comments
+                        {t('comments.title')}
                       </h3>
 
                       <div className="flex gap-2">
                         <Input
                           data-post-id={post.id}
-                          placeholder="Write a comment..."
+                          placeholder={t('comments.placeholder')}
                           className="text-sm"
                           onKeyPress={(e) => {
                             if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
@@ -390,7 +387,7 @@ export default function MediaFeedPage() {
                             }
                           }}
                         >
-                          Post
+                          {t('comments.post_button')}
                         </Button>
                       </div>
 
@@ -507,7 +504,7 @@ export default function MediaFeedPage() {
                                 ) : (
                                   <>
                                     <Trash2 className="h-4 w-4 mr-1" />
-                                    <span className="text-xs lg:text-sm">Delete</span>
+                                    <span className="text-xs lg:text-sm">{t('actions.delete')}</span>
                                   </>
                                 )}
                               </Button>
