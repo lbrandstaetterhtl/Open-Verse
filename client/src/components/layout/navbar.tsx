@@ -4,8 +4,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Coffee, MessageSquare, Newspaper, UserCircle, MessageCircle, Shield } from "lucide-react";
 import { NotificationsDialog } from "@/components/notifications/notifications-dialog";
-import { ModeToggle } from "@/components/mode-toggle";
-import { LanguageToggle } from "@/components/language-toggle";
+import { ModeToggle } from "@/components/theme/mode-toggle";
+import { LanguageToggle } from "@/components/theme/language-toggle";
 
 export function Navbar() {
   const { t } = useTranslation();

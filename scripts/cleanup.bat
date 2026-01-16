@@ -1,3 +1,4 @@
 @echo off
 set PATH=C:\Program Files\nodejs;%PATH%
-npx tsx cleanup-db.cjs
+cd /d "%~dp0.."
+npx tsx scripts/db/cleanup-db.cjs

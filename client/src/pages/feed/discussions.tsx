@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, Trash2, Plus, Heart, BadgeCheck, ImageOff } from "lucide-react";
-import { ReportDialog } from "@/components/report-dialog";
+import { ReportDialog } from "@/components/dialogs/report-dialog";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -59,9 +59,9 @@ export default function DiscussionsFeedPage() {
   const { user } = useAuth();
 
   const { data: discussions, isLoading } = useQuery<DiscussionWithAuthor[]>({
-    queryKey: ["/api/discussions"],
+    queryKey: ["/api/posts", "discussion"],
     queryFn: async () => {
-      const res = await fetch("/api/discussions?include=author,comments,reactions,userReaction");
+      const res = await fetch("/api/posts?category=discussion");
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(errorText || "Failed to fetch discussions");
@@ -76,7 +76,7 @@ export default function DiscussionsFeedPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
     },
   });
 
@@ -89,7 +89,7 @@ export default function DiscussionsFeedPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
       queryClient.invalidateQueries({ queryKey: ["/api/following"] });
       toast({
         title: "Success",
@@ -114,7 +114,7 @@ export default function DiscussionsFeedPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
       queryClient.invalidateQueries({ queryKey: ["/api/following"] });
       toast({
         title: "Success",
@@ -137,7 +137,7 @@ export default function DiscussionsFeedPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
       toast({
         title: "Success",
         description: "Comment added successfully",
@@ -161,7 +161,7 @@ export default function DiscussionsFeedPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
       toast({
         title: "Success",
         description: "Post deleted successfully",
@@ -185,7 +185,7 @@ export default function DiscussionsFeedPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
       toast({
         title: "Success",
         description: "Comment deleted successfully",
@@ -206,7 +206,7 @@ export default function DiscussionsFeedPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] });
     },
   });
 

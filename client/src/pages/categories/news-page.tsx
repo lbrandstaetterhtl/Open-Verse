@@ -30,8 +30,8 @@ import { ThumbsUp, ThumbsDown, Flag, AlertTriangle, Loader2, Newspaper, Image, V
 import { format } from "date-fns";
 import * as z from 'zod';
 import { Report } from "@shared/schema";
-import UserAvatar from "@/components/UserAvatar"; // Assuming this component exists
-import { ReportDialog } from "@/components/report-dialog";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { ReportDialog } from "@/components/dialogs/report-dialog";
 
 type PostWithAuthor = Post & {
   author: { username: string; verified: boolean }; // Added verified property

@@ -1,6 +1,7 @@
 {
-  "name": "rest-express",
-  "version": "1.0.0",
+  "name": "pure-coffee",
+  "description": "A localized social platform for coffee enthusiasts with news, entertainment, and discussions.",
+  "version": "0.2.0",
   "type": "module",
   "license": "MIT",
   "scripts": {

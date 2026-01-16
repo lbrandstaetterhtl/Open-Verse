@@ -1,7 +1,7 @@
 // Temporary script to fix user timestamps
 // Add this to routes.ts temporarily, then call via browser/curl
 
-import { storage } from './storage';
+import { storage } from '../storage';
 
 export async function fixUserTimestamps() {
     const users = await storage.getUsers();
@@ -26,7 +26,7 @@ export async function fixUserTimestamps() {
         console.log(`\nFound ${invalidUsers.length} users with invalid timestamps. Updating...`);
 
         // Import getSqlite
-        const { getSqlite } = await import('./db');
+        const { getSqlite } = await import('../db');
         const sqlite = getSqlite();
 
         if (sqlite && process.env.USE_SQLITE === 'true') {

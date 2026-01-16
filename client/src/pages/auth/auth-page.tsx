@@ -31,7 +31,7 @@ export default function AuthPage() {
           <Coffee className="h-8 w-8 text-primary" />
           <div>
             <h1 className="text-2xl font-bold">Pure Coffee</h1>
-            <p className="text-xs text-muted-foreground">Version 0.1</p>
+            <p className="text-xs text-muted-foreground">Version 0.2</p>
           </div>
         </div>
       </div>
@@ -81,13 +81,13 @@ export default function AuthPage() {
               <h3 className="font-medium">Latest Updates</h3>
             </div>
             <div className="text-sm text-muted-foreground">
-              <p>✨ New in Version 0.1:</p>
+              <p>✨ New in Version 0.2:</p>
               <ul className="list-disc list-inside space-y-1 mt-2">
-                <li>Delete posts & comments</li>
-                <li>Mobile-friendly design</li>
-                <li>Enhanced comments</li>
-                <li>Real-time updates</li>
-                <li>Follow system</li>
+                <li>Multi-language Support (EN, DE, IT, ES, FR, ZH)</li>
+                <li>Dark Mode & Theme Customization</li>
+                <li>Advanced Admin Dashboard</li>
+                <li>Secure Reporting System</li>
+                <li>Global Community Connection</li>
               </ul>
             </div>
           </div>
@@ -101,7 +101,7 @@ export default function AuthPage() {
             <Coffee className="h-12 w-12 text-primary" />
             <div>
               <h1 className="text-4xl font-bold">Pure Coffee</h1>
-              <p className="text-sm text-muted-foreground">Version 0.1</p>
+              <p className="text-sm text-muted-foreground">Version 0.2</p>
             </div>
           </div>
 
@@ -149,13 +149,13 @@ export default function AuthPage() {
                 <h3 className="font-semibold">Latest Updates</h3>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>✨ New in Version 0.1:</p>
+                <p>✨ New in Version 0.2:</p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>Delete your own posts and comments</li>
-                  <li>Improved mobile responsiveness</li>
-                  <li>Enhanced comment system with post button</li>
-                  <li>Real-time notifications</li>
-                  <li>Follow your favorite contributors</li>
+                  <li>Multi-language Support (EN, DE, IT, ES, FR, ZH)</li>
+                  <li>Dark Mode & Theme Customization</li>
+                  <li>Advanced Admin Dashboard</li>
+                  <li>Secure Reporting System</li>
+                  <li>Global Community Connection</li>
                 </ul>
               </div>
             </div>

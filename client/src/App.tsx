@@ -3,16 +3,16 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ProtectedRoute } from "./lib/protected-route";
 import { useWebSocket } from "@/hooks/use-websocket";
 
 // Pages
-import AuthPage from "@/pages/auth-page";
-import NotFound from "@/pages/not-found";
-import ProfilePage from "@/pages/profile";
-import UserProfilePage from "@/pages/user-profile";
-import ChatPage from "@/pages/chat";
+import AuthPage from "@/pages/auth/auth-page";
+import NotFound from "@/pages/misc/not-found";
+import ProfilePage from "@/pages/profile/my-profile";
+import UserProfilePage from "@/pages/profile/user-profile";
+import ChatPage from "@/pages/chat/chat-page";
 import AdminDashboard from "@/pages/admin/dashboard";
 
 // Feed Pages

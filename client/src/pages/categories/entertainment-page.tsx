@@ -28,7 +28,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { ThumbsUp, ThumbsDown, Flag, Loader2, Coffee, SmilePlus, MessageCircle, UserCircle } from "lucide-react";
 import { format } from "date-fns";
-import { ReportDialog } from "@/components/report-dialog";
+import { ReportDialog } from "@/components/dialogs/report-dialog";
 import * as z from 'zod';
 import { Report } from "@shared/schema";
 

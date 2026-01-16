@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ThumbsUp, ThumbsDown, Flag, Loader2, MessageCircle, Trash2, Plus, Heart, BadgeCheck, ImageOff } from "lucide-react";
-import { ReportDialog } from "@/components/report-dialog";
+import { ReportDialog } from "@/components/dialogs/report-dialog";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

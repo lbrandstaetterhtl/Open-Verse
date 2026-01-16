@@ -1,7 +1,13 @@
 import Database from 'better-sqlite3';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-console.log('Initializing SQLite database...');
-const db = new Database('local.db');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const dbPath = path.join(__dirname, '../../local.db');
+
+console.log('Initializing SQLite database at:', dbPath);
+const db = new Database(dbPath);
 
 // Create tables
 db.exec(`

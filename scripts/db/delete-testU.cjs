@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const dbPath = path.join(__dirname, 'local.db');
+const dbPath = path.join(__dirname, '../../local.db');
 console.log('Deleting TestU from database:', dbPath);
 
 const db = new Database(dbPath);
