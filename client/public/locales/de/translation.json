@@ -1,10 +1,11 @@
 {
     "navbar": {
-        "brand": "Pure Coffee",
+        "brand": "Open Verse",
         "media_feed": "Medien-Feed",
         "discussions_feed": "Diskussions-Feed",
         "messages": "Nachrichten",
         "profile": "Profil",
+        "theme_builder": "Theme anpassen",
         "admin": "Administrator",
         "logout": "Abmelden"
     },

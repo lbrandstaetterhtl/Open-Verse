@@ -2,10 +2,11 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Coffee, MessageSquare, Newspaper, UserCircle, MessageCircle, Shield } from "lucide-react";
+import { MessageSquare, Newspaper, UserCircle, MessageCircle, Shield, Palette } from "lucide-react";
 import { NotificationsDialog } from "@/components/notifications/notifications-dialog";
 import { ModeToggle } from "@/components/theme/mode-toggle";
 import { LanguageToggle } from "@/components/theme/language-toggle";
+import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
 
 export function Navbar() {
   const { t } = useTranslation();
@@ -17,6 +18,7 @@ export function Navbar() {
     { href: "/feed/discussions", icon: MessageSquare, label: t('navbar.discussions_feed') },
     { href: "/chat", icon: MessageCircle, label: t('navbar.messages') },
     { href: "/profile", icon: UserCircle, label: t('navbar.profile') },
+    { href: "/theme-builder", icon: Palette, label: t('navbar.theme_builder') },
     // Show admin link for users with admin privileges
     ...(user?.isAdmin || user?.role === 'admin' || user?.role === 'owner' ? [
       { href: "/admin", icon: Shield, label: t('navbar.admin') }
@@ -28,8 +30,8 @@ export function Navbar() {
       <div className="container flex h-16 items-center px-4 relative z-[100]">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="flex items-center space-x-2">
-            <Coffee className="h-6 w-6 text-primary" />
-            <span className="font-bold">Pure Coffee</span>
+            <OpenVerseIcon className="h-16 w-16 text-primary" />
+            <span className="font-bold">{t('navbar.brand')}</span>
           </Link>
         </div>
 

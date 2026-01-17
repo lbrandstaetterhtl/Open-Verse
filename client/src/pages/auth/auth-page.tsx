@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Coffee, MessageSquare, Newspaper, Users, TrendingUp, Info, Eye, EyeOff } from "lucide-react";
+import { Network, Newspaper, MessageSquare, Users, Sparkles, Globe, TrendingUp, Info, Eye, EyeOff } from "lucide-react";
+import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
 import { insertUserSchema, InsertUser, loginSchema, LoginCredentials } from "@shared/schema";
 import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -28,10 +29,10 @@ export default function AuthPage() {
       {/* Mobile Header - Only visible on mobile */}
       <div className="lg:hidden p-6 bg-primary/5">
         <div className="flex items-center space-x-2">
-          <Coffee className="h-8 w-8 text-primary" />
+          <OpenVerseIcon className="h-12 w-12 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold">Pure Coffee</h1>
-            <p className="text-xs text-muted-foreground">Version 0.2</p>
+            <h1 className="text-2xl font-bold">Open Verse</h1>
+            <p className="text-xs text-muted-foreground">Version 1.0</p>
           </div>
         </div>
       </div>
@@ -51,7 +52,7 @@ export default function AuthPage() {
 
           {/* Feature Highlights - Mobile Only */}
           <div className="lg:hidden space-y-4 py-6">
-            <h2 className="text-lg font-semibold text-center">Why Join Pure Coffee?</h2>
+            <h2 className="text-lg font-semibold text-center">Why Join Open Verse?</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-primary/5 rounded-lg">
                 <Newspaper className="h-5 w-5 text-primary mb-2" />
@@ -81,7 +82,7 @@ export default function AuthPage() {
               <h3 className="font-medium">Latest Updates</h3>
             </div>
             <div className="text-sm text-muted-foreground">
-              <p>✨ New in Version 0.2:</p>
+              <p>✨ New in Version 1.0:</p>
               <ul className="list-disc list-inside space-y-1 mt-2">
                 <li>Multi-language Support (EN, DE, IT, ES, FR, ZH)</li>
                 <li>Dark Mode & Theme Customization</li>
@@ -98,10 +99,10 @@ export default function AuthPage() {
       <div className="hidden lg:flex flex-col justify-center p-8 bg-primary/5">
         <div className="mx-auto max-w-md w-full">
           <div className="flex items-center space-x-2 mb-8">
-            <Coffee className="h-12 w-12 text-primary" />
+            <OpenVerseIcon className="h-20 w-20 text-primary" />
             <div>
-              <h1 className="text-4xl font-bold">Pure Coffee</h1>
-              <p className="text-sm text-muted-foreground">Version 0.2</p>
+              <h1 className="text-4xl font-bold">Open Verse</h1>
+              <p className="text-sm text-muted-foreground">Version 1.0</p>
             </div>
           </div>
 
@@ -149,7 +150,7 @@ export default function AuthPage() {
                 <h3 className="font-semibold">Latest Updates</h3>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>✨ New in Version 0.2:</p>
+                <p>✨ New in Version 1.0:</p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
                   <li>Multi-language Support (EN, DE, IT, ES, FR, ZH)</li>
                   <li>Dark Mode & Theme Customization</li>

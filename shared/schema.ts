@@ -95,6 +95,14 @@ export const commentLikes = pgTable("comment_likes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const themes = pgTable("themes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  colors: text("colors").notNull(), // JSON string of the theme configuration
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 const basePostSchema = createInsertSchema(posts).pick({
   title: true,
   content: true,
@@ -174,6 +182,11 @@ export const adminUpdateReportSchema = z.object({
   resolution: z.string().optional(),
 });
 
+export const insertThemeSchema = createInsertSchema(themes).pick({
+  name: true,
+  colors: true,
+});
+
 export type LoginCredentials = z.infer<typeof loginSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertDiscussionPost = z.infer<typeof insertDiscussionPostSchema>;
@@ -191,3 +204,5 @@ export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof messageSchema>;
 export type AdminUpdateUser = z.infer<typeof adminUpdateUserSchema>;
 export type AdminUpdateReport = z.infer<typeof adminUpdateReportSchema>;
+export type Theme = typeof themes.$inferSelect;
+export type InsertTheme = z.infer<typeof insertThemeSchema>;

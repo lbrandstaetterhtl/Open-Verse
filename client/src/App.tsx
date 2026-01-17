@@ -24,6 +24,9 @@ import PostDiscussionsPage from "@/pages/post/discussions";
 import PostNewsPage from "@/pages/post/news";
 import PostEntertainmentPage from "@/pages/post/entertainment";
 
+// Theme Page
+import ThemeBuilderPage from "@/pages/theme/theme-builder";
+
 function Router() {
   // Initialize WebSocket connection
   useWebSocket();
@@ -51,6 +54,9 @@ function Router() {
       {/* Admin Route */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />
 
+      {/* Theme Builder Route */}
+      <ProtectedRoute path="/theme-builder" component={ThemeBuilderPage} />
+
       {/* Other Routes */}
       <ProtectedRoute path="/" component={MediaFeedPage} />
       <Route component={NotFound} />
@@ -58,11 +64,20 @@ function Router() {
   );
 }
 
+// Helper component to ensure custom theme is applied globally
+import { useCustomTheme } from "@/hooks/use-custom-theme";
+
+function GlobalThemeManager() {
+  useCustomTheme();
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <AuthProvider>
+          <GlobalThemeManager />
           <Router />
           <Toaster />
         </AuthProvider>

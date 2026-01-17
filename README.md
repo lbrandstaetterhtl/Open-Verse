@@ -1,13 +1,23 @@
-# PureCoffee ☕
-> Version 0.2.0
+# Open Verse 🌌
+
+**Version:** 1.0.0  
+**An Open Social Universe**
+
+Open Verse is a modern social platform designed to connect people across diverse communities. Share your stories, engage in meaningful discussions, and explore a universe of perspectives on news, politics, entertainment, and more.
+
+### ✨ New in Version 1.0
+*   **Multi-language Support** (EN, DE, IT, ES, FR, ZH)
+*   **Dark Mode & Theme Customization**
+*   **Advanced Admin Dashboard**
+*   **Secure Reporting System**
+*   **Global Community Connection**
 
 ## ✨ Key Features
 
 *   **Multi-language Support**: Fully localized interface in English, German, Italian, Spanish, French, and Mandarin (ZH).
 *   **Role-Based Access Control**: Secure system with User, Admin, and Owner roles.
-*   **Dynamic Feeds**:
-    *   **Media Feed**: Share images and videos for News and Entertainment.
-    *   **Discussions Feed**: Text-based community discussions.
+- **Diverse Communities**: Connect with people across news, politics, discussions, and entertainment.
+    *   **Discussions Feed**: Text-based community discussions on news, politics, and more.
 *   **Interactive Community**:
     *   Like, Comment, and Reply to posts.
     *   Follow/Unfollow users.
@@ -16,6 +26,7 @@
 *   **Modern UI/UX**:
     *   Responsive design for Mobile and Desktop.
     *   Dark/Light mode support.
+    *   Professional blue color scheme.
 *   **Security**:
     *   Secure reporting system with predefined reasons.
     *   Moderation tools for Admins and Owners.

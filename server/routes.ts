@@ -6,7 +6,7 @@ import multer from "multer";
 import path from "path";
 import express from "express";
 import { WebSocketServer, WebSocket } from 'ws';
-import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema } from "@shared/schema";
+import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema, insertThemeSchema } from "@shared/schema";
 import type { Knex } from 'knex';
 import session from 'express-session';
 import { sql } from 'drizzle-orm';
@@ -548,6 +548,48 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     } catch (error) {
       console.error('Error updating profile:', error);
       res.status(500).send("Failed to update profile");
+    }
+  });
+
+  // Themes
+  app.get("/api/user/themes", isAuthenticated, async (req, res) => {
+    try {
+      const themes = await storage.getThemes(req.user!.id);
+      res.json(themes);
+    } catch (error) {
+      console.error('Error fetching themes:', error);
+      res.status(500).send("Failed to fetch themes");
+    }
+  });
+
+  app.post("/api/user/themes", isAuthenticated, async (req, res) => {
+    try {
+      const result = insertThemeSchema.safeParse(req.body);
+      if (!result.success) return res.status(400).json(result.error);
+
+      const theme = await storage.createTheme(req.user!.id, result.data);
+      res.json(theme);
+    } catch (error) {
+      console.error('Error creating theme:', error);
+      res.status(500).send("Failed to create theme");
+    }
+  });
+
+  app.delete("/api/user/themes/:id", isAuthenticated, async (req, res) => {
+    try {
+      const themeId = parseInt(req.params.id);
+      const themes = await storage.getThemes(req.user!.id);
+      const theme = themes.find(t => t.id === themeId);
+
+      if (!theme) {
+        return res.status(404).send("Theme not found or unauthorized");
+      }
+
+      await storage.deleteTheme(themeId);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error deleting theme:', error);
+      res.status(500).send("Failed to delete theme");
     }
   });
 
