@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { UpdateProfile, UpdatePassword, updateProfileSchema, updatePasswordSchema } from "@shared/schema";
+import { UpdateProfile, UpdatePassword, updateProfileSchema, updatePasswordSchema, User } from "@shared/schema";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   Card,
@@ -34,7 +34,7 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { data: followers } = useQuery({
+  const { data: followers } = useQuery<User[]>({
     queryKey: ["/api/followers"],
     queryFn: async () => {
       const res = await fetch("/api/followers");
@@ -43,7 +43,7 @@ export default function ProfilePage() {
     },
   });
 
-  const { data: following } = useQuery({
+  const { data: following } = useQuery<User[]>({
     queryKey: ["/api/following"],
     queryFn: async () => {
       const res = await fetch("/api/following");
@@ -169,17 +169,27 @@ export default function ProfilePage() {
                 {followers?.map((follower) => (
                   <div key={follower.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <UserAvatar user={follower} size="sm" />
-                      <span>{follower.username}</span>
+                      {follower.karma < 0 ? (
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                          <UserMinus className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      ) : (
+                        <UserAvatar user={follower} size="sm" />
+                      )}
+                      <span>{follower.karma < 0 ? <span className="text-muted-foreground italic">Banned User</span> : follower.username}</span>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => followMutation.mutate(follower.id)}
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Follow Back
-                    </Button>
+                    {follower.karma >= 0 ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => followMutation.mutate(follower.id)}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Follow Back
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="sm" disabled>Banned</Button>
+                    )}
                   </div>
                 ))}
                 {!followers?.length && (
@@ -198,17 +208,34 @@ export default function ProfilePage() {
                 {following?.map((followed) => (
                   <div key={followed.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <UserAvatar user={followed} size="sm" />
-                      <span>{followed.username}</span>
+                      {followed.karma < 0 ? (
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                          <UserMinus className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      ) : (
+                        <UserAvatar user={followed} size="sm" />
+                      )}
+                      <span>{followed.karma < 0 ? <span className="text-muted-foreground italic">Banned User</span> : followed.username}</span>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => unfollowMutation.mutate(followed.id)}
-                    >
-                      <UserMinus className="h-4 w-4 mr-2" />
-                      Unfollow
-                    </Button>
+                    {followed.karma >= 0 ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => unfollowMutation.mutate(followed.id)}
+                      >
+                        <UserMinus className="h-4 w-4 mr-2" />
+                        Unfollow
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => unfollowMutation.mutate(followed.id)}
+                      >
+                        <UserMinus className="h-4 w-4 mr-2" />
+                        Unfollow
+                      </Button>
+                    )}
                   </div>
                 ))}
                 {!following?.length && (

@@ -78,17 +78,11 @@ export interface IStorage {
   getMessages(userId1: number, userId2: number): Promise<Message[]>;
   getUnreadMessageCount(userId: number): Promise<number>;
 
-  // Messages
-  createMessage(message: {
-    senderId: number;
-    receiverId: number;
-    content: string;
-  }): Promise<Message>;
-  getMessages(userId1: number, userId2: number): Promise<Message[]>;
-  getUnreadMessageCount(userId: number): Promise<number>;
+
 
   deleteComments(postId: number): Promise<void>;
-  deletePostReactions(postId: number): Promise<void>;
+  deleteUserPosts(userId: number): Promise<void>;
+  deleteUserComments(userId: number): Promise<void>;
   deleteReports(postId: number): Promise<void>;
   deletePost(postId: number): Promise<void>;
 
@@ -510,13 +504,26 @@ export class DatabaseStorage implements IStorage {
     return comment;
   }
 
-  async getComment(id: number): Promise<Comment | undefined> {
-    const [comment] = await db.select().from(comments).where(eq(comments.id, id));
-    return comment;
-  }
-
   async deleteComment(id: number): Promise<void> {
     await db.delete(comments).where(eq(comments.id, id));
+  }
+
+  async deleteUserPosts(userId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === 'true' && sqlite) {
+      sqlite.prepare('DELETE FROM posts WHERE author_id = ?').run(userId);
+      return;
+    }
+    await db.delete(posts).where(eq(posts.authorId, userId));
+  }
+
+  async deleteUserComments(userId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === 'true' && sqlite) {
+      sqlite.prepare('DELETE FROM comments WHERE author_id = ?').run(userId);
+      return;
+    }
+    await db.delete(comments).where(eq(comments.authorId, userId));
   }
 
   async getCommentsByUser(userId: number): Promise<Comment[]> {
@@ -828,6 +835,24 @@ export class DatabaseStorage implements IStorage {
       console.error('Error deleting comments:', error);
       throw error;
     }
+  }
+
+  async getComment(id: number): Promise<Comment | undefined> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === 'true' && sqlite) {
+      const comment = sqlite.prepare('SELECT * FROM comments WHERE id = ?').get(id) as any;
+      if (!comment) return undefined;
+      return {
+        id: comment.id,
+        postId: comment.post_id,
+        content: comment.content,
+        authorId: comment.author_id,
+        karma: comment.karma,
+        createdAt: new Date(Number(comment.created_at) * 1000)
+      };
+    }
+    const [comment] = await db.select().from(comments).where(eq(comments.id, id));
+    return comment;
   }
 
   async deletePostReactions(postId: number): Promise<void> {

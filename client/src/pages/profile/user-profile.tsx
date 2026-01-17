@@ -15,14 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { MessageSquare, Calendar } from "lucide-react";
-import { Post } from "@shared/schema";
+import { Post, User } from "@shared/schema";
 
 export default function UserProfilePage() {
   const { username } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
+  const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<User>({
     queryKey: ["/api/users", username],
     queryFn: async () => {
       const res = await fetch(`/api/users/${username}`);
@@ -38,7 +38,7 @@ export default function UserProfilePage() {
     enabled: !!username,
   });
 
-  const { data: followers, isLoading: followersLoading } = useQuery({
+  const { data: followers, isLoading: followersLoading } = useQuery<User[]>({
     queryKey: ["/api/followers", username],
     queryFn: async () => {
       const res = await fetch(`/api/followers/${username}`);
@@ -48,7 +48,7 @@ export default function UserProfilePage() {
     enabled: !!username,
   });
 
-  const { data: following, isLoading: followingLoading } = useQuery({
+  const { data: following, isLoading: followingLoading } = useQuery<User[]>({
     queryKey: ["/api/following", username],
     queryFn: async () => {
       const res = await fetch(`/api/following/${username}`);
@@ -143,12 +143,17 @@ export default function UserProfilePage() {
             <UserAvatar user={profile} size="lg" />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-4xl font-bold">{profile.username}</h1>
-                {profile.verified && (
+                <h1 className="text-4xl font-bold">
+                  {profile.karma < 0 ? "Banned User" : profile.username}
+                </h1>
+                {profile.verified && profile.karma >= 0 && (
                   <Badge variant="default" className="bg-blue-500">
                     <BadgeCheck className="h-4 w-4 mr-1" />
                     Verified
                   </Badge>
+                )}
+                {profile.karma < 0 && (
+                  <Badge variant="destructive">Banned</Badge>
                 )}
               </div>
               <div className="flex gap-4 mt-2">
@@ -159,7 +164,7 @@ export default function UserProfilePage() {
                   <span>{profile.karma} reputation</span>
                 </div>
               </div>
-              {profile.bio && (
+              {profile.bio && profile.karma >= 0 && (
                 <p className="mt-4 text-muted-foreground whitespace-pre-wrap">{profile.bio}</p>
               )}
             </div>
@@ -182,14 +187,24 @@ export default function UserProfilePage() {
                     {followers?.map((follower) => (
                       <div key={follower.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Link href={`/users/${follower.username}`}>
-                            <UserAvatar user={follower} size="sm" />
-                          </Link>
-                          <Link href={`/users/${follower.username}`}>
-                            <span className="hover:underline">{follower.username}</span>
-                          </Link>
+                          {follower.karma < 0 ? (
+                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                              <UserMinus className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          ) : (
+                            <Link href={`/users/${follower.username}`}>
+                              <UserAvatar user={follower} size="sm" />
+                            </Link>
+                          )}
+                          {follower.karma < 0 ? (
+                            <span className="text-muted-foreground italic">Banned User</span>
+                          ) : (
+                            <Link href={`/users/${follower.username}`}>
+                              <span className="hover:underline">{follower.username}</span>
+                            </Link>
+                          )}
                         </div>
-                        {user && user.id !== follower.id && (
+                        {user && user.id !== follower.id && follower.karma >= 0 && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -217,14 +232,24 @@ export default function UserProfilePage() {
                     {following?.map((followed) => (
                       <div key={followed.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Link href={`/users/${followed.username}`}>
-                            <UserAvatar user={followed} size="sm" />
-                          </Link>
-                          <Link href={`/users/${followed.username}`}>
-                            <span className="hover:underline">{followed.username}</span>
-                          </Link>
+                          {followed.karma < 0 ? (
+                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                              <UserMinus className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          ) : (
+                            <Link href={`/users/${followed.username}`}>
+                              <UserAvatar user={followed} size="sm" />
+                            </Link>
+                          )}
+                          {followed.karma < 0 ? (
+                            <span className="text-muted-foreground italic">Banned User</span>
+                          ) : (
+                            <Link href={`/users/${followed.username}`}>
+                              <span className="hover:underline">{followed.username}</span>
+                            </Link>
+                          )}
                         </div>
-                        {user && user.id !== followed.id && (
+                        {user && user.id !== followed.id && followed.karma >= 0 && (
                           <Button
                             variant="outline"
                             size="sm"

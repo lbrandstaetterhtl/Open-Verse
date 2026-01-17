@@ -580,22 +580,22 @@ export default function AdminDashboard() {
                                 <TableCell>
                                   <div className="flex gap-2">
                                     {u.verified ? (
-                                      <Badge variant="default" className="bg-blue-500 flex items-center gap-1">
-                                        <BadgeCheck className="h-4 w-4 text-white flex-shrink-0" />
-                                        <span className="text-sm">Verified User</span>
+                                      <Badge variant="default" className="bg-blue-500 whitespace-nowrap text-xs px-2 py-1">
+                                        <BadgeCheck className="h-3 w-3 mr-1 flex-shrink-0" />
+                                        Verified User
                                       </Badge>
                                     ) : u.emailVerified ? (
-                                      <Badge variant="default" className="whitespace-nowrap">
-                                        {t('admin.users_table.verify_email')}
+                                      <Badge variant="default" className="bg-green-600 whitespace-nowrap text-xs px-2 py-1">
+                                        Verified E-Mail
                                       </Badge>
                                     ) : (
-                                      <Badge variant="secondary" className="whitespace-nowrap">
-                                        {t('admin.users_table.unverify_email')}
+                                      <Badge variant="secondary" className="whitespace-nowrap text-xs px-2 py-1">
+                                        Unverified E-Mail
                                       </Badge>
                                     )}
                                     {u.karma < 0 && (
-                                      <Badge variant="destructive" className="ml-2">
-                                        {t('admin.users_table.ban_user')}
+                                      <Badge variant="destructive" className="whitespace-nowrap text-xs px-2 py-1">
+                                        Banned User
                                       </Badge>
                                     )}
                                   </div>

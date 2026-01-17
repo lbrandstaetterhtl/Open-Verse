@@ -1308,6 +1308,31 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         });
       }
 
+      // Handle user banning (karma set to -100)
+      console.log('=== BAN CHECK ===');
+      console.log('updateData.karma:', updateData.karma);
+      console.log('typeof updateData.karma:', typeof updateData.karma);
+      console.log('updateData.karma !== undefined:', updateData.karma !== undefined);
+      console.log('Number(updateData.karma):', Number(updateData.karma));
+      console.log('Number(updateData.karma) === -100:', Number(updateData.karma) === -100);
+
+      if (updateData.karma !== undefined && Number(updateData.karma) === -100) {
+        console.log(`=== BANNING USER ${userId} - DELETING CONTENT ===`);
+        try {
+          console.log('Calling deleteUserPosts...');
+          await storage.deleteUserPosts(userId);
+          console.log('deleteUserPosts completed');
+          console.log('Calling deleteUserComments...');
+          await storage.deleteUserComments(userId);
+          console.log('deleteUserComments completed');
+          console.log(`Successfully deleted content for banned user ${userId}`);
+        } catch (error) {
+          console.error(`Error deleting content for banned user ${userId}:`, error);
+        }
+      } else {
+        console.log('Ban condition NOT met - no deletion will occur');
+      }
+
       const updatedUser = await storage.updateUserProfile(userId, updateData);
       console.log('Updated user:', updatedUser);
 
