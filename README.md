@@ -1,11 +1,11 @@
 # Osiris 🌌
 
-**Version:** 1.0.0  
+**Version:** 0.1.2  
 **An Open Social Universe**
 
 Osiris is a modern social platform designed to connect people across diverse communities. Share your stories, engage in meaningful discussions, and explore a universe of perspectives on news, politics, entertainment, and more.
 
-### ✨ New in Version 1.0
+### ✨ New in Version 0.1.2
 *   **Real-time Messaging System** 💬
 *   **Notification System** 🔔
 *   **Multi-language Support** (EN, DE, IT, ES, FR, ZH)
