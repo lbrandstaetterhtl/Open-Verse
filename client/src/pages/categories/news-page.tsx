@@ -365,6 +365,7 @@ export default function NewsPage() {
                         variant={post.userReaction?.isLike ? "default" : "ghost"}
                         size="sm"
                         onClick={() => reactionMutation.mutate({ postId: post.id, isLike: true })}
+                        disabled={reactionMutation.isPending}
                       >
                         <ThumbsUp className={`h-4 w-4 mr-1 ${post.userReaction?.isLike ? "fill-current" : ""}`} />
                         <span>{post.reactions.likes}</span>
@@ -373,6 +374,7 @@ export default function NewsPage() {
                         variant={post.userReaction?.isLike === false ? "default" : "ghost"}
                         size="sm"
                         onClick={() => reactionMutation.mutate({ postId: post.id, isLike: false })}
+                        disabled={reactionMutation.isPending}
                       >
                         <ThumbsDown className={`h-4 w-4 mr-1 ${post.userReaction?.isLike === false ? "fill-current" : ""}`} />
                         <span>{post.reactions.dislikes}</span>

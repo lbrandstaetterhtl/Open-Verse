@@ -403,6 +403,7 @@ export default function DiscussionsFeedPage() {
                         variant={post.userReaction?.isLike ? "default" : "ghost"}
                         size="sm"
                         onClick={() => reactionMutation.mutate({ discussionId: post.id, isLike: true })}
+                        disabled={reactionMutation.isPending}
                         className="h-8"
                       >
                         <ThumbsUp className={`h-4 w-4 mr-1 ${post.userReaction?.isLike ? "fill-current" : ""}`} />
@@ -412,6 +413,7 @@ export default function DiscussionsFeedPage() {
                         variant={post.userReaction?.isLike === false ? "default" : "ghost"}
                         size="sm"
                         onClick={() => reactionMutation.mutate({ discussionId: post.id, isLike: false })}
+                        disabled={reactionMutation.isPending}
                         className="h-8"
                       >
                         <ThumbsDown className={`h-4 w-4 mr-1 ${post.userReaction?.isLike === false ? "fill-current" : ""}`} />
