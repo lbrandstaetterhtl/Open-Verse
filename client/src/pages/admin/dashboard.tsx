@@ -154,6 +154,9 @@ export default function AdminDashboard() {
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
     },
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
@@ -163,6 +166,9 @@ export default function AdminDashboard() {
       if (!res.ok) throw new Error("Failed to fetch users");
       return res.json();
     },
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: reports, isLoading: reportsLoading } = useQuery<ExtendedReport[]>({
@@ -172,6 +178,9 @@ export default function AdminDashboard() {
       if (!res.ok) throw new Error("Failed to fetch reports");
       return res.json();
     },
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const updateUserMutation = useMutation({

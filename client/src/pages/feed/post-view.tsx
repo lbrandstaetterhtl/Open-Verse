@@ -79,6 +79,9 @@ export default function PostViewPage() {
             return res.json();
         },
         enabled: !!postId,
+        refetchInterval: 1000,
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
     });
 
     const reactionMutation = useMutation<Post, Error, { isLike: boolean }>({

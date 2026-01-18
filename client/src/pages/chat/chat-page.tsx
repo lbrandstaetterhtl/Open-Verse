@@ -46,6 +46,9 @@ export default function ChatPage() {
       if (!res.ok) throw new Error("Failed to fetch following");
       return res.json();
     },
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: followers } = useQuery<User[]>({
@@ -55,6 +58,9 @@ export default function ChatPage() {
       if (!res.ok) throw new Error("Failed to fetch followers");
       return res.json();
     },
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Calculate mutual followers (users who follow each other)
@@ -71,6 +77,9 @@ export default function ChatPage() {
       return res.json();
     },
     enabled: !!selectedUserId,
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const sendMessageMutation = useMutation({
@@ -144,9 +153,8 @@ export default function ChatPage() {
                   {mutualFollowers?.map((followedUser) => (
                     <div
                       key={followedUser.id}
-                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
-                        selectedUserId === followedUser.id ? "bg-muted" : ""
-                      }`}
+                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${selectedUserId === followedUser.id ? "bg-muted" : ""
+                        }`}
                       onClick={() => {
                         setSelectedUserId(followedUser.id);
                         setShowUserList(false); // Hide user list on mobile after selection
@@ -180,9 +188,8 @@ export default function ChatPage() {
                     messages.map((message) => (
                       <div
                         key={message.id}
-                        className={`flex items-start gap-2 ${
-                          message.senderId === user?.id ? "flex-row-reverse" : ""
-                        }`}
+                        className={`flex items-start gap-2 ${message.senderId === user?.id ? "flex-row-reverse" : ""
+                          }`}
                       >
                         <UserAvatar
                           user={
@@ -191,11 +198,10 @@ export default function ChatPage() {
                           size="sm"
                         />
                         <div
-                          className={`rounded-lg p-3 max-w-[70%] ${
-                            message.senderId === user?.id
+                          className={`rounded-lg p-3 max-w-[70%] ${message.senderId === user?.id
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted"
-                          }`}
+                            }`}
                         >
                           <p className="text-sm break-words">{message.content}</p>
                           <p className="text-[10px] mt-1 opacity-70">

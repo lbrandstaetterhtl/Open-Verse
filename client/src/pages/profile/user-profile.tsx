@@ -36,6 +36,9 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!username,
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: followers, isLoading: followersLoading } = useQuery<User[]>({
@@ -46,6 +49,9 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!username,
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: following, isLoading: followingLoading } = useQuery<User[]>({
@@ -56,6 +62,9 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!username,
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: posts, isLoading: postsLoading } = useQuery<Post[]>({
@@ -66,6 +75,9 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!username,
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: comments, isLoading: commentsLoading } = useQuery({
@@ -76,6 +88,9 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!username,
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const followMutation = useMutation({

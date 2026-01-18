@@ -41,6 +41,9 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error("Failed to fetch followers");
       return res.json();
     },
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: following } = useQuery<User[]>({
@@ -50,6 +53,9 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error("Failed to fetch following");
       return res.json();
     },
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const followMutation = useMutation({

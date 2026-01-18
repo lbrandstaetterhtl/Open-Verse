@@ -60,6 +60,9 @@ export default function EntertainmentPage() {
       if (!res.ok) throw new Error("Failed to fetch posts");
       return res.json();
     },
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const form = useForm<z.infer<typeof insertMediaPostSchema>>({

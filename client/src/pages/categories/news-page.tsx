@@ -61,6 +61,9 @@ export default function NewsPage() {
       if (!res.ok) throw new Error("Failed to fetch posts");
       return res.json();
     },
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   type FormData = z.infer<typeof insertMediaPostSchema>;
