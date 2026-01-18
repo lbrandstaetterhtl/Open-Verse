@@ -34,6 +34,9 @@ export function NotificationsDialog() {
       if (!res.ok) throw new Error("Failed to fetch notifications");
       return res.json();
     },
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const markAsReadMutation = useMutation({
