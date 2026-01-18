@@ -1,0 +1,32 @@
+=== Theme Update Flow Test ===
+Started at: 2026-01-18T09:07:57.928Z
+
+Step 1: Finding user...
+✓ Found user: OwnerU (ID: 11)
+
+Step 2: Getting initial themes...
+Found 1 theme(s):
+  - ID: 19, Name: "Default Blue"
+
+Step 3: Setting up test theme...
+✓ Using existing theme ID: 19
+
+Step 4: Updating theme (simulating frontend save)...
+Updating theme ID 19 with new colors...
+✓ Update returned: ID 19, Name: "Default Blue"
+
+Step 5: Checking for duplicates...
+Total themes: 1
+"Default Blue" themes: 1
+✓ No duplicates found
+  Theme ID: 19
+✓ Theme was updated correctly (font changed to Roboto)
+
+Step 6: Testing rename...
+✓ Renamed to: "Default Blue Renamed"
+✓ Rename successful
+
+Step 7: Reverting name...
+✓ Name reverted to 'Default Blue'
+
+=== ALL TESTS PASSED ===

@@ -108,6 +108,7 @@ export interface IStorage {
   createTheme(userId: number, theme: InsertTheme): Promise<Theme>;
   getThemes(userId: number): Promise<Theme[]>;
   deleteTheme(id: number): Promise<void>;
+  updateTheme(id: number, theme: Partial<InsertTheme>): Promise<Theme>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1002,6 +1003,33 @@ export class DatabaseStorage implements IStorage {
       return;
     }
     await db.delete(themes).where(eq(themes.id, id));
+  }
+
+  async updateTheme(id: number, theme: Partial<InsertTheme>): Promise<Theme> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === 'true' && sqlite) {
+      const sets: string[] = [];
+      const params: any[] = [];
+      if (theme.name) { sets.push('name = ?'); params.push(theme.name); }
+      if (theme.colors) { sets.push('colors = ?'); params.push(theme.colors); }
+
+      params.push(id); // for WHERE id = ?
+
+      sqlite.prepare(`UPDATE themes SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+
+      const updated = sqlite.prepare('SELECT * FROM themes WHERE id = ?').get(id) as any;
+      return {
+        id: updated.id,
+        userId: updated.user_id,
+        name: updated.name,
+        colors: updated.colors,
+        createdAt: new Date(Number(updated.created_at) * 1000)
+      };
+    }
+
+    // Drizzle
+    const [updated] = await db.update(themes).set(theme).where(eq(themes.id, id)).returning();
+    return updated;
   }
 
   async updateAllReportsForContent(postId: number | null, commentId: number | null, discussionId: number | null, status: string): Promise<void> {

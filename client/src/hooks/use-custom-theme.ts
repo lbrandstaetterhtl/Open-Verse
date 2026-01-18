@@ -13,6 +13,7 @@ import {
     deleteNamedTheme,
     applySavedTheme,
     SAVED_THEMES_EVENT,
+    setActiveThemeInfo,
 } from "@/lib/theme-utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -85,7 +86,20 @@ export function useCustomTheme() {
             const res = await apiRequest("POST", "/api/user/themes", data);
             return await res.json();
         },
-        onSuccess: () => {
+        onSuccess: (newTheme, variables) => {
+            // Immediately update cache with new theme
+            queryClient.setQueryData<Theme[]>(["/api/user/themes"], (old) => {
+                if (!old) return [newTheme];
+                // Check if theme with same name exists and replace it, otherwise add
+                const existing = old.findIndex(t => t.name === variables.name);
+                if (existing >= 0) {
+                    const updated = [...old];
+                    updated[existing] = newTheme;
+                    return updated;
+                }
+                return [...old, newTheme];
+            });
+            // Also invalidate to ensure consistency
             queryClient.invalidateQueries({ queryKey: ["/api/user/themes"] });
         }
     });
@@ -94,7 +108,11 @@ export function useCustomTheme() {
         mutationFn: async (id: number) => {
             await apiRequest("DELETE", `/api/user/themes/${id}`);
         },
-        onSuccess: () => {
+        onSuccess: (_data, deletedId) => {
+            // Immediately remove from cache
+            queryClient.setQueryData<Theme[]>(["/api/user/themes"], (old) => {
+                return old?.filter(t => t.id !== deletedId) || [];
+            });
             queryClient.invalidateQueries({ queryKey: ["/api/user/themes"] });
         }
     });
@@ -142,13 +160,65 @@ export function useCustomTheme() {
         saveCustomTheme(theme);
     };
 
-    const saveThemeAs = async (name: string, id?: string | number): Promise<SavedTheme> => {
+    const updateThemeMutation = useMutation({
+        mutationFn: async ({ id, data }: { id: number; data: { name: string; colors: string } }) => {
+            const res = await apiRequest("PATCH", `/api/user/themes/${id}`, data);
+            return await res.json();
+        },
+        onSuccess: (updatedTheme) => {
+            // Immediately update cache
+            queryClient.setQueryData<Theme[]>(["/api/user/themes"], (old) => {
+                if (!old) return [updatedTheme];
+                return old.map(t => t.id === updatedTheme.id ? updatedTheme : t);
+            });
+            queryClient.invalidateQueries({ queryKey: ["/api/user/themes"] });
+        }
+    });
+
+    const saveThemeAs = async (name: string, id?: string | number, themeColors?: CustomTheme): Promise<SavedTheme> => {
+        const colorsToSave = themeColors || customTheme;
+
         if (user) {
-            // Note: Update not supported on backend yet, always creating new
+            // Check if ID is likely a server ID (number or numeric string)
+            const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+            const isNumericId = typeof numericId === 'number' && !isNaN(numericId);
+
+            // Update existing theme if we have a valid numeric ID
+            if (isNumericId && numericId && numericId > 0) {
+                try {
+                    const updatedTheme = await updateThemeMutation.mutateAsync({
+                        id: numericId,
+                        data: {
+                            name,
+                            colors: JSON.stringify(colorsToSave)
+                        }
+                    });
+                    // Wait for queries to be refetched
+                    await queryClient.invalidateQueries({ queryKey: ["/api/user/themes"] });
+                    return {
+                        id: updatedTheme.id,
+                        name: updatedTheme.name,
+                        colors: JSON.parse(updatedTheme.colors),
+                        createdAt: new Date(updatedTheme.createdAt),
+                    };
+                } catch (error: any) {
+                    // If update fails with 404 (theme not found), fall back to create/update by name
+                    console.warn('[use-custom-theme] PATCH failed, falling back to POST:', error);
+                    if (error?.response?.status === 404 || error?.status === 404) {
+                        // Fall through to POST logic below
+                    } else {
+                        throw error; // Re-throw other errors
+                    }
+                }
+            }
+
+            // Create new (or overwrite by name via backend check)
             const newTheme = await createThemeMutation.mutateAsync({
                 name,
-                colors: JSON.stringify(customTheme)
+                colors: JSON.stringify(colorsToSave)
             });
+            // Wait for queries to be refetched
+            await queryClient.invalidateQueries({ queryKey: ["/api/user/themes"] });
             return {
                 id: newTheme.id,
                 name: newTheme.name,
@@ -156,7 +226,7 @@ export function useCustomTheme() {
                 createdAt: new Date(newTheme.createdAt),
             };
         } else {
-            return saveNamedTheme(name, customTheme, id as string);
+            return saveNamedTheme(name, colorsToSave, id as string);
         }
     };
 
@@ -170,7 +240,30 @@ export function useCustomTheme() {
         }
     };
 
-    const loadTheme = (theme: SavedTheme) => {
+    const loadTheme = async (theme: SavedTheme) => {
+        // If logged in and theme has numeric ID, fetch fresh data from server
+        if (user && typeof theme.id === 'number') {
+            try {
+                // Force refetch to get latest data
+                const freshThemes = await queryClient.fetchQuery<Theme[]>({
+                    queryKey: ["/api/user/themes"],
+                    staleTime: 0,
+                    gcTime: 0,
+                });
+
+                const freshTheme = freshThemes.find(t => t.id === theme.id);
+
+                if (freshTheme) {
+                    const freshColors = JSON.parse(freshTheme.colors);
+                    saveCustomTheme(freshColors);
+                    setActiveThemeInfo(freshTheme.id, freshTheme.name);
+                    return;
+                }
+            } catch (error) {
+            }
+        }
+
+        // Fallback to cached data
         applySavedTheme(theme);
     };
 

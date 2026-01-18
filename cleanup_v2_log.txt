@@ -1,0 +1,8 @@
+--- Cleanup V2 run at 2026-01-18T09:02:25.955Z ---
+Found user: OwnerU (ID: 11)
+Found 2 themes for user.
+Found 2 themes with name 'Default Blue':
+ - ID: 23, Created At: Sun Jan 18 2026 09:59:24 GMT+0100 (Mitteleuropäische Normalzeit)
+ - ID: 19, Created At: Sat Jan 17 2026 14:17:20 GMT+0100 (Mitteleuropäische Normalzeit)
+Deleting duplicate theme ID: 23 (Created: Sun Jan 18 2026 09:59:24 GMT+0100 (Mitteleuropäische Normalzeit))
+Successfully deleted theme.

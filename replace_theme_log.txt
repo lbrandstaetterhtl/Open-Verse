@@ -1,0 +1,21 @@
+=== Replacing Default Blue Theme ===
+Started at: 2026-01-18T09:22:53.796Z
+
+User: OwnerU (ID: 11)
+
+Found 1 theme(s):
+  - ID: 19, Name: "Default Blue"
+
+Deleting old "Default Blue" theme (ID: 19)...
+✓ Old theme deleted
+
+Creating new 'Default Blue' theme...
+✓ New theme created (ID: 29)
+
+Verifying...
+✓ "Default Blue" theme exists (ID: 29)
+  Font: Inter
+  Light primary: 215 70% 50%
+  Dark primary: 217 91% 60%
+
+=== REPLACEMENT COMPLETE ===

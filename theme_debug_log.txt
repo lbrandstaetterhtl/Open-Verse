@@ -1,0 +1,17 @@
+=== Theme Debugging ===
+Started at: 2026-01-18T11:57:01.238Z
+
+User: OwnerU (ID: 11)
+
+Total themes in database: 1
+  - ID: 29, Name: "Default Blue", Created: Sun Jan 18 2026 10:22:53 GMT+0100 (Mitteleuropäische Normalzeit)
+
+"Default Blue" themes: 1
+  - ID: 29, Primary (light): 215 70% 50%
+
+"My Custom Theme" themes: 0
+
+Expected behavior:
+- If savedThemeAs was called with ID 16 (from localStorage),
+  it should have updated theme ID 16
+

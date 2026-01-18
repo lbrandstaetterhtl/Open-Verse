@@ -1,0 +1,36 @@
+=== Theme Color Persistence Test ===
+Started at: 2026-01-18T09:09:46.036Z
+
+User: OwnerU (ID: 11)
+
+Test Theme: ID 19, Name: "Default Blue"
+
+Original colors:
+  Light primary: undefined
+  Dark primary: undefined
+  Font: Roboto
+
+Step 1: Modifying colors...
+Modified colors:
+  Light primary: 120 100% 50% (changed to green)
+  Dark primary: 280 100% 70% (changed to purple)
+  Font: Ubuntu (changed to Ubuntu)
+
+Step 2: Saving changes...
+✓ Theme updated
+
+Step 3: Reloading theme from database...
+Saved colors from database:
+  Light primary: 120 100% 50%
+  Dark primary: 280 100% 70%
+  Font: Ubuntu
+
+Step 4: Verifying changes...
+✓ Light primary color saved correctly
+✓ Dark primary color saved correctly
+✓ Font saved correctly
+
+Step 5: Restoring original colors...
+✓ Original colors restored
+
+=== ALL COLOR PERSISTENCE TESTS PASSED ===

@@ -5,6 +5,8 @@
 
 Osiris is a modern social platform designed to connect people across diverse communities. Share your stories, engage in meaningful discussions, and explore a universe of perspectives on news, politics, entertainment, and more.
 
+> 📚 **Hinweis:** Eine ausführliche Einführung und Anleitung finden Sie in der [TUTORIAL.md](./TUTORIAL.md) Datei.
+
 ### ✨ New in Version 0.1.2
 *   **Real-time Messaging System** 💬
 *   **Notification System** 🔔

@@ -615,11 +615,43 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       const result = insertThemeSchema.safeParse(req.body);
       if (!result.success) return res.status(400).json(result.error);
 
+      // Check for existing theme with same name
+      const userThemes = await storage.getThemes(req.user!.id);
+      const existingTheme = userThemes.find(t => t.name.trim() === result.data.name.trim());
+
+      if (existingTheme) {
+        console.log(`Overwriting existing theme ${existingTheme.name} (ID: ${existingTheme.id})`);
+        const updatedTheme = await storage.updateTheme(existingTheme.id, result.data);
+        return res.json(updatedTheme);
+      }
+
       const theme = await storage.createTheme(req.user!.id, result.data);
       res.json(theme);
     } catch (error) {
-      console.error('Error creating theme:', error);
-      res.status(500).send("Failed to create theme");
+      console.error('Error creating/updating theme:', error);
+      res.status(500).send("Failed to save theme");
+    }
+  });
+
+  app.patch("/api/user/themes/:id", isAuthenticated, async (req, res) => {
+    try {
+      const themeId = parseInt(req.params.id);
+      const themes = await storage.getThemes(req.user!.id);
+      const theme = themes.find(t => t.id === themeId);
+
+      if (!theme) {
+        return res.status(404).json({ error: "Theme not found or unauthorized" });
+      }
+
+      // Validate body
+      const result = insertThemeSchema.partial().safeParse(req.body);
+      if (!result.success) return res.status(400).json(result.error);
+
+      const updatedTheme = await storage.updateTheme(themeId, result.data);
+      res.json(updatedTheme);
+    } catch (error) {
+      console.error('Error updating theme:', error);
+      res.status(500).json({ error: "Failed to update theme" });
     }
   });
 

@@ -1,0 +1,10 @@
+Starting cleanup at 2026-01-18T08:57:10.881Z
+Found user: OwnerU (ID: 11)
+Found 1 themes for user.
+Found 1 themes with name 'Default Blue':
+ - ID: 19, Created At: Sat Jan 17 2026 14:17:20 GMT+0100 (Mitteleuropäische Normalzeit)
+No duplicates found to delete.
+--- Inspection run at 2026-01-18T08:57:36.446Z ---
+Found user: OwnerU (ID: 11)
+Found 1 themes for user:
+ - ID: 19, Name: 'Default Blue', Created: Sat Jan 17 2026 14:17:20 GMT+0100 (Mitteleuropäische Normalzeit)
