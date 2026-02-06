@@ -111,6 +111,15 @@ export interface IStorage {
   updateTheme(id: number, theme: Partial<InsertTheme>): Promise<Theme>;
 }
 
+// Helper to strip sensitive data
+
+
+// Helper to strip sensitive data
+export function sanitizeUser(user: any): User {
+  const { password, ...safeUser } = user;
+  return safeUser as User;
+}
+
 export class DatabaseStorage implements IStorage {
   public sessionStore: session.Store;
   private deletedUsersCount: number = 0;
@@ -131,16 +140,21 @@ export class DatabaseStorage implements IStorage {
         // Ensure the counter row exists
         sqlite.exec(`INSERT OR IGNORE INTO global_stats (key, value) VALUES ('deleted_users_count', 0)`);
 
-        // Add bio column if it doesn't exist
         try {
           sqlite.exec('ALTER TABLE users ADD COLUMN bio TEXT');
+        } catch (e) {
+          // Column likely exists
+        }
+
+        try {
+          sqlite.exec('ALTER TABLE reports ADD COLUMN ip_address TEXT');
         } catch (e) {
           // Column likely exists
         }
       }
     } else {
       this.sessionStore = new PostgresSessionStore({
-        pool,
+        pool: pool ?? undefined,
         createTableIfMissing: true,
       });
     }
@@ -191,7 +205,7 @@ export class DatabaseStorage implements IStorage {
       if (!user) return undefined;
 
       return {
-        ...user,
+        ...sanitizeUser(user),
         emailVerified: Boolean(user.email_verified),
         isAdmin: Boolean(user.is_admin),
         verified: Boolean(user.verified),
@@ -199,7 +213,7 @@ export class DatabaseStorage implements IStorage {
       };
     }
     const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
+    return user ? sanitizeUser(user) : undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -222,7 +236,7 @@ export class DatabaseStorage implements IStorage {
 
       // Convert SQLite integers (0/1) back to booleans for the app
       return {
-        ...user,
+        ...sanitizeUser(user),
         emailVerified: Boolean(user.email_verified),
         isAdmin: Boolean(user.is_admin),
         verified: Boolean(user.verified),
@@ -231,7 +245,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
+    return sanitizeUser(user);
   }
 
   async updateUserProfile(id: number, profile: Partial<{ username: string; email: string; profilePictureUrl: string; isAdmin: boolean; role: string; emailVerified: boolean; verified: boolean; karma: number; bio: string }>): Promise<User> {
@@ -280,7 +294,7 @@ export class DatabaseStorage implements IStorage {
 
       const user = sqlite.prepare('SELECT * FROM users WHERE id = ?').get(id);
       return {
-        ...user,
+        ...sanitizeUser(user),
         emailVerified: Boolean(user.email_verified),
         isAdmin: Boolean(user.is_admin),
         verified: Boolean(user.verified),
@@ -294,12 +308,13 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     console.log('Updated user:', user); // Debug log
-    return user;
+    console.log('Updated user:', user); // Debug log
+    return sanitizeUser(user);
   }
 
   async updateUserPassword(id: number, password: string): Promise<User> {
     const [user] = await db.update(users).set({ password }).where(eq(users.id, id)).returning();
-    return user;
+    return sanitizeUser(user);
   }
 
 
@@ -546,13 +561,14 @@ export class DatabaseStorage implements IStorage {
   async createReport(report: Omit<Report, "id" | "createdAt" | "status">): Promise<Report> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === 'true' && sqlite) {
-      const { reporterId, postId, commentId, discussionId, reason } = report;
+      const { reporterId, postId, commentId, discussionId, reason, ipAddress } = report;
       const createdAt = Math.floor(Date.now() / 1000);
-      const res = sqlite.prepare('INSERT INTO reports (reporter_id, post_id, comment_id, discussion_id, reason, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+      const res = sqlite.prepare('INSERT INTO reports (reporter_id, post_id, comment_id, discussion_id, ip_address, reason, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
         reporterId,
         postId || null,
         commentId || null,
         discussionId || null,
+        ipAddress || null,
         reason,
         'pending',
         createdAt
@@ -563,6 +579,7 @@ export class DatabaseStorage implements IStorage {
         postId: postId || null,
         commentId: commentId || null,
         discussionId: discussionId || null,
+        ipAddress: report.ipAddress || null,
         reason,
         status: 'pending',
         createdAt: new Date(createdAt * 1000)
@@ -597,7 +614,8 @@ export class DatabaseStorage implements IStorage {
           reporterId: row.reporter_id,
           postId: row.post_id,
           commentId: row.comment_id,
-          discussionId: row.discussion_id
+          discussionId: row.discussion_id,
+          ipAddress: row.ip_address
         }
       });
     }
@@ -1230,7 +1248,8 @@ export class DatabaseStorage implements IStorage {
         reporterId: report.reporter_id,
         postId: report.post_id,
         commentId: report.comment_id,
-        discussionId: report.discussion_id
+        discussionId: report.discussion_id,
+        ipAddress: report.ip_address
       };
     }
     const [report] = await db.update(reports).set({ status }).where(eq(reports.id, id)).returning();

@@ -6,8 +6,9 @@ import path from "path";
 import { db } from "./db";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
 // Ensure uploads directory exists and set proper permissions
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -92,7 +93,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       serveStatic(app);
     }
 
-    const port = process.env.PORT || 5000;
+    const port = parseInt(process.env.PORT || "5000");
     server.listen(port, "127.0.0.1", () => {
       console.log(`Server started successfully on port ${port}`);
     });

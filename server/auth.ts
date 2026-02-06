@@ -4,10 +4,11 @@ import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { storage } from "./storage";
+import { storage, sanitizeUser } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { updateProfileSchema, updatePasswordSchema } from '@shared/schema';
 import { sendVerificationEmail } from "./utils/email";
+import rateLimit from "express-rate-limit";
 
 declare global {
   namespace Express {
@@ -54,6 +55,12 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // Limit each IP to 20 login attempts per window
+    message: "Too many login attempts, please try again later"
+  });
+
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -95,14 +102,14 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
         console.log("Session invalid: User not found:", id);
         return done(null, false);
       }
-      done(null, user);
+      done(null, sanitizeUser(user));
     } catch (err) {
       console.error("Session error:", err);
       done(err);
     }
   });
 
-  app.post("/api/register", async (req, res) => {
+  app.post("/api/register", authLimiter, async (req, res) => {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
@@ -200,7 +207,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
+  app.post("/api/login", authLimiter, (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
       if (err) return next(err);
       if (!user) return res.status(401).send(info?.message || "Invalid credentials");
@@ -208,7 +215,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
       req.login(user, (err) => {
         if (err) return next(err);
         console.log("User logged in successfully:", user.username);
-        res.json(user);
+        res.json(sanitizeUser(user));
       });
     })(req, res, next);
   });

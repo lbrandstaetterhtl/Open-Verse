@@ -11,14 +11,26 @@ import type { Knex } from 'knex';
 import session from 'express-session';
 import { sql } from 'drizzle-orm';
 import { z } from "zod";
+import helmet from "helmet";
 
 // WebSocket connections store
 const connections = new Map<number, WebSocket>();
 
 // Update the isAdmin middleware to check role
 const isAdmin = (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-  if (req.user.role !== 'admin' && req.user.role !== 'owner') return res.status(403).send("Forbidden");
+  console.log(`[AUTH-DEBUG] isAdmin middleware hit. Path: ${req.path}, Method: ${req.method}`);
+  console.log(`[AUTH-DEBUG] req.isAuthenticated(): ${req.isAuthenticated()}`);
+  console.log(`[AUTH-DEBUG] req.user:`, req.user);
+  console.log(`[AUTH-DEBUG] SessionID: ${req.sessionID}`);
+
+  if (!req.isAuthenticated()) {
+    console.log('[AUTH-DEBUG] isAdmin failed: User not authenticated');
+    return res.status(401).send("Unauthorized");
+  }
+  if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+    console.log(`[AUTH-DEBUG] isAdmin failed: Role mismatch. User role: ${req.user.role}`);
+    return res.status(403).send("Forbidden");
+  }
   next();
 };
 
@@ -55,6 +67,17 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Promise<Server> {
+  // Security Headers
+  app.use(helmet({
+    contentSecurityPolicy: false,
+  }));
+  app.disable('x-powered-by');
+
+  // Session Secret Check
+  if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+    throw new Error("FATAL: SESSION_SECRET environment variable is required in production.");
+  }
+
   // Create HTTP server
   const httpServer = createServer(app);
 
@@ -66,6 +89,8 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'lax',
       maxAge: 1000 * 60 * 60 * 24 // 24 hours
     }
   });
@@ -87,6 +112,14 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
       }
     }),
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "video/mp4", "video/webm"];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`Invalid file type. Allowed types are: ${allowedTypes.join(', ')}`));
+      }
+    },
     limits: { fileSize: 50 * 1024 * 1024 } // Increase limit to 50MB
   });
 
@@ -523,12 +556,16 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         }
       }
 
+      // Get IP address from request
+      const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+
       const report = await storage.createReport({
         reason: result.data.reason,
         postId: result.data.postId ?? null,
         commentId: result.data.commentId ?? null,
         discussionId: result.data.discussionId ?? null,
         reporterId: req.user!.id,
+        ipAddress: ipAddress
       });
 
       console.log('Created report:', report); // Debug log

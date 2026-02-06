@@ -104,6 +104,7 @@
         },
         "reports_table": {
             "reporter": "Reporter",
+            "ip_address": "IP Address",
             "poster": "Poster",
             "type": "Type",
             "content": "Content",
