@@ -28,6 +28,7 @@ export function useWebSocket() {
         switch (message.type) {
           case 'new_post':
             queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] });
             break;
           case 'new_comment':
             queryClient.invalidateQueries({ queryKey: ["/api/posts"] });

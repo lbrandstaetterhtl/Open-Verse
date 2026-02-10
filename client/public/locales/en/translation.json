@@ -135,5 +135,66 @@
         "report_resolved": "resolved your report",
         "report_rejected": "reviewed your report (no violation found)",
         "interaction": "interacted with your post"
+    },
+    "ai_generator": {
+        "title": "AI Post Generator",
+        "description": "Select a feed, upload an image (optional), and let AI write for you.",
+        "select_feed": "Select Feed",
+        "select_language": "Select Language",
+        "upload_image": "1. Choose an Image (Optional)",
+        "enter_topic": "2. Enter a Topic",
+        "topic_placeholder": "E.g., Morning Coffee, Tech Trends, Weekend Vibes...",
+        "remove_image": "Remove",
+        "generate_button": "Generate Post",
+        "generating": "Generating Magic...",
+        "generated_label": "Your Generated Post",
+        "copy": "Copy",
+        "post_button": "Post to Feed",
+        "posting": "Posting...",
+        "toast_generated": "Content Generated!",
+        "toast_generated_desc": "Your perfect post is ready. You can now edit or post it.",
+        "toast_posted": "Posted!",
+        "toast_posted_desc": "Your post is now live on the feed.",
+        "feeds": {
+            "news": "News Feed",
+            "entertainment": "Entertainment Feed",
+            "discussion": "Discussion Feed"
+        },
+        "languages": {
+            "english": "English",
+            "german": "German",
+            "spanish": "Spanish",
+            "french": "French"
+        }
+    },
+    "create_post": {
+        "news": {
+            "title": "Share News",
+            "headline": "Headline",
+            "content": "Article Content",
+            "placeholder": "Write your news article here. Please ensure it's factual and properly sourced.",
+            "submit": "Submit News",
+            "success_title": "News posted",
+            "success_desc": "Your news article has been posted successfully."
+        },
+        "entertainment": {
+            "title": "Share Something Fun",
+            "title_label": "Title",
+            "content_label": "Content",
+            "placeholder": "Share a joke, a funny story, or something interesting!",
+            "submit": "Share",
+            "success_title": "Post created",
+            "success_desc": "Your entertainment post has been shared successfully."
+        },
+        "discussion": {
+            "title": "Start a Discussion",
+            "title_label": "Title",
+            "content_label": "Content",
+            "placeholder": "Share your thoughts...",
+            "submit": "Post Discussion",
+            "success_title": "Discussion created",
+            "success_desc": "Your discussion has been posted successfully."
+        },
+        "media_label": "Media (Image or Video)"
     }
 }

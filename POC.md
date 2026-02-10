@@ -1,35 +1,38 @@
-
 # Proof of Concept Runbook
 
-## SEC-001: Password Hash Leak
+## SEC-001: Stored XSS via File Upload
 
-**Risk:** Critical
-**Description:** Leaks user password hashes via `GET /api/posts/:id`.
+**Purpose:** Demonstrate that a file with `.html` contents can be uploaded as `image/jpeg` and executed by the browser.
+**Script:** `poc/SEC-001.sh`
+**Environment Variables:**
+-   `TARGET_URL`: Base URL of the application (default: http://localhost:5000)
+-   `AUTH_COOKIE`: A valid `connect.sid` cookie from an authenticated session.
 
-**Prerequisites:**
-1. Server running (`npm run dev`).
-2. At least one post created in the system.
+**Steps:**
+1.  Login to the application manually.
+2.  Copy the `connect.sid` cookie value.
+3.  Run: `./poc/SEC-001.sh`
+4.  Observe the output URL.
+5.  Open the URL in a browser. Alert box "XSS" should appear.
 
-**Execution:**
-Run the following command from the project root:
+## SEC-002: Admin Password Leak
 
+**Purpose:** Show that admin API returns password hashes.
+**Script:** Manual verification via `curl`.
+**Command:**
 ```bash
-npx tsx poc/SEC-001.ts
+curl -H "Cookie: connect.sid=ADMIN_COOKIE" http://localhost:5000/api/admin/users
 ```
+**Expected Output:** JSON response containing `"password": "..."` fields.
 
-**Expected Output:**
-If vulnerable:
-```
-[*] Testing Detail View for Post ID: ...
-[+] VULNERABILITY CONFIRMED: Password hash leaked in detail view!
-User: ...
-Hash Leaked: ...
-```
+## SEC-003: Banned User Persistence
 
-If fixed:
-```
-[-] Detail view appears safe.
-```
-
-**Code:**
-See `poc/SEC-001.ts` for the implementation.
+**Purpose:** Verify a banned user can still access API.
+**Script:** Manual verification.
+**Steps:**
+1.  Login as User A. Keep session open.
+2.  Login as Admin in incognito.
+3.  Set User A karma to -100 (Ban).
+4.  User A (in original session) makes a request (e.g., `POST /api/posts`).
+5.  **Expected:** Request succeeds (Status 201).
+6.  **Fixed Behavior:** Request fails (Status 401/403).

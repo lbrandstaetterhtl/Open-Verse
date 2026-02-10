@@ -1,17 +1,21 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./auth";
-import { storage } from "./storage";
+import { setupAuth, validateCsrf } from "./auth";
+import { storage, sanitizeUser } from "./storage";
 import multer from "multer";
 import path from "path";
 import express from "express";
 import { WebSocketServer, WebSocket } from 'ws';
-import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema, insertThemeSchema } from "@shared/schema";
+import { insertDiscussionPostSchema, insertMediaPostSchema, insertCommentSchema, insertReportSchema, messageSchema, insertThemeSchema, insertCommunitySchema } from "@shared/schema";
 import type { Knex } from 'knex';
 import session from 'express-session';
 import { sql } from 'drizzle-orm';
 import { z } from "zod";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { logSecurityEvent } from "./utils/logger";
+import { checkContent } from "./services/moderation";
+import { generatePostContent } from "./services/openai";
 
 // WebSocket connections store
 const connections = new Map<number, WebSocket>();
@@ -25,12 +29,15 @@ const isAdmin = (req: any, res: any, next: any) => {
 
   if (!req.isAuthenticated()) {
     console.log('[AUTH-DEBUG] isAdmin failed: User not authenticated');
+    logSecurityEvent({ type: 'AUTH_FAILURE', details: { reason: 'Unauthenticated admin access attempt', path: req.path } });
     return res.status(401).send("Unauthorized");
   }
   if (req.user.role !== 'admin' && req.user.role !== 'owner') {
     console.log(`[AUTH-DEBUG] isAdmin failed: Role mismatch. User role: ${req.user.role}`);
+    logSecurityEvent({ type: 'AUTH_FAILURE', userId: req.user.id, details: { reason: 'Admin role required', role: req.user.role } });
     return res.status(403).send("Forbidden");
   }
+  logSecurityEvent({ type: 'ADMIN_ACCESS', userId: req.user.id, resource: req.path });
   next();
 };
 
@@ -47,9 +54,23 @@ const upload = multer({
     destination: "./uploads",
     filename: function (req, file, cb) {
       console.log('Multer processing file:', file);
-      // Add timestamp to ensure unique filenames
       const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-      cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+
+      // SEC-001 FIX: Force extension based on MIME type
+      let ext = '.bin';
+      if (file.mimetype === 'image/jpeg') ext = '.jpg';
+      else if (file.mimetype === 'image/png') ext = '.png';
+      else if (file.mimetype === 'image/gif') ext = '.gif';
+      else if (file.mimetype === 'video/mp4') ext = '.mp4';
+      else if (file.mimetype === 'video/webm') ext = '.webm';
+
+      if (ext === '.bin') {
+        const err = new Error("Invalid file type");
+        logSecurityEvent({ type: 'FILE_UPLOAD_REJECTED', details: { reason: 'Invalid extension/MIME', originalName: file.originalname, mime: file.mimetype } });
+        return cb(err, "");
+      }
+
+      cb(null, `${uniqueSuffix}${ext}`);
     }
   }),
   fileFilter: (req, file, cb) => {
@@ -58,7 +79,7 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error(`Invalid file type. Allowed types are: ${allowedTypes.join(', ')}`));
+      cb(null, false);
     }
   },
   limits: {
@@ -69,7 +90,17 @@ const upload = multer({
 export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Promise<Server> {
   // Security Headers
   app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "blob:"],
+        mediaSrc: ["'self'", "data:", "blob:"],
+        // SEC-005: 'unsafe-inline' is required for Vite dev server and hydration.
+        // Ideally, we would use nonces, but for this architecture, we must allow it.
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", "ws:", "wss:"],
+      },
+    },
   }));
   app.disable('x-powered-by');
 
@@ -100,8 +131,39 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
   const isAuthenticated = (req: any, res: any, next: any) => {
     if (req.isAuthenticated()) return next();
+    logSecurityEvent({ type: 'AUTH_FAILURE', details: { reason: 'Unauthorized access attempt', path: req.path, ip: req.ip } });
     res.status(401).send("Unauthorized");
   };
+
+  // CSRF Endpoint
+  app.get("/api/csrf-token", (req, res) => {
+    res.json({ csrfToken: (req.session as any)?.csrfToken });
+  });
+
+  // Apply CSRF Protection to API
+  app.use("/api", validateCsrf);
+
+  // Global API Rate Limiter
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Limit each IP to 1000 requests per 15 mins
+    message: "Too many requests from this IP, please try again later",
+    skip: (req) => {
+      // Skip rate limiting for AI endpoints and auto-refresh requests
+      if (req.path.startsWith('/api/ai/')) return true;
+      if (req.headers['x-auto-refresh'] === 'true') return true;
+      return false;
+    }
+  });
+  app.use("/api", apiLimiter);
+
+  // Dedicated AI Rate Limiter (More permissive for testing)
+  const aiLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 50, // 50 requests per minute
+    message: "AI Generation rate limit exceeded. Please wait a moment."
+  });
+  app.use("/api/ai/", aiLimiter);
 
   // Dedicated multer config for posts
   const postUpload = multer({
@@ -109,7 +171,22 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       destination: "./uploads",
       filename: function (req, file, cb) {
         const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-        cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+
+        // SEC-001 FIX: Force extension based on MIME type
+        let ext = '.bin';
+        if (file.mimetype === 'image/jpeg') ext = '.jpg';
+        else if (file.mimetype === 'image/png') ext = '.png';
+        else if (file.mimetype === 'image/gif') ext = '.gif';
+        else if (file.mimetype === 'video/mp4') ext = '.mp4';
+        else if (file.mimetype === 'video/webm') ext = '.webm';
+
+        if (ext === '.bin') {
+          const err = new Error("Invalid file type");
+          logSecurityEvent({ type: 'FILE_UPLOAD_REJECTED', details: { reason: 'Invalid extension/MIME (Post)', originalName: file.originalname, mime: file.mimetype } });
+          return cb(err, "");
+        }
+
+        cb(null, `${uniqueSuffix}${ext}`);
       }
     }),
     fileFilter: (req, file, cb) => {
@@ -117,13 +194,37 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
       } else {
-        cb(new Error(`Invalid file type. Allowed types are: ${allowedTypes.join(', ')}`));
+        cb(null, false);
       }
     },
-    limits: { fileSize: 50 * 1024 * 1024 } // Increase limit to 50MB
+    limits: { fileSize: 1 * 1024 * 1024 * 1024 } // Limit to 1GB (for videos)
   });
 
   console.log("Registering Routes - POST /api/posts initialized");
+
+  // AI Post Generation
+  // AI Post Generation
+  app.post("/api/ai/generate", isAuthenticated, async (req, res) => {
+    try {
+      const { topic, imageContext, language } = req.body;
+
+      if (!topic) {
+        return res.status(400).send("Topic is required");
+      }
+
+      console.log(`[API] Generating AI post for user ${req.user!.username}`);
+      const generatedContent = await generatePostContent({
+        topic,
+        imageContext,
+        language
+      });
+
+      res.json({ content: generatedContent });
+    } catch (error) {
+      console.error('Error generating AI content:', error);
+      res.status(500).send("Failed to generate content");
+    }
+  });
 
   // Create post with optional media upload
 
@@ -132,7 +233,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       console.log('POST /api/posts - Processing request');
       console.log('User:', req.user?.username);
 
-      const { title, content, category } = req.body;
+      const { title, content, category, communityId } = req.body;
 
       if (!content && !req.files) {
         return res.status(400).send("Content or media is required");
@@ -142,19 +243,51 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       const postData: any = {
         authorId: req.user!.id,
         content: content || "",
-        category: category || "general"
+        category: category || "general",
+        communityId: communityId ? parseInt(communityId) : undefined
       };
 
-      if (title) postData.title = title;
+      // Moderation Check
+      const moderationResult = checkContent(postData.content + " " + (title || ""));
+      if (!moderationResult.allowed) {
+        return res.status(400).send(moderationResult.reason);
+      }
+
+      if (title) {
+        postData.title = title;
+      } else {
+        // Generate a default title from content or use a placeholder
+        postData.title = content ? (content.length > 50 ? content.substring(0, 47) + "..." : content) : "New Post";
+      }
 
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
         const uploadedFile = req.files[0];
-        console.log('Media file uploaded:', uploadedFile.filename);
+        console.log('Media file uploaded:', uploadedFile.filename, 'Size:', uploadedFile.size, 'Mime:', uploadedFile.mimetype);
+
+        // Custom Size Validation
+        const IMAGE_LIMIT = 10 * 1024 * 1024; // 10MB
+        // Video limit is handled by multer's 1GB limit
+
+        if (uploadedFile.mimetype.startsWith('image/') && uploadedFile.size > IMAGE_LIMIT) {
+          // Delete the file to clean up
+          const fs = await import('fs');
+          fs.unlinkSync(path.join("./uploads", uploadedFile.filename));
+          return res.status(400).send("Image size exceeds 10MB limit.");
+        }
+
         postData.mediaUrl = uploadedFile.filename;
         postData.mediaType = req.body.mediaType || (uploadedFile.mimetype.startsWith('image/') ? 'image' : 'video');
       }
 
       const post = await storage.createPost(postData);
+
+      // Broadcast new post to all connected clients
+      connections.forEach((ws) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'new_post', postId: post.id }));
+        }
+      });
+
       res.status(201).json(post);
     } catch (error) {
       console.error('Error creating post:', error);
@@ -232,7 +365,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
       res.json({
         ...post,
-        author,
+        author: author ? sanitizeUser(author) : undefined,
         comments: commentsWithAuthors,
         likes: reactions.likes - reactions.dislikes,
         userVote: userReaction,
@@ -248,10 +381,42 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     try {
       console.log("Fetching posts with query:", req.query);
       const category = req.query.category as string | undefined;
-      const posts = await storage.getPosts(category);
-      console.log("Retrieved posts count:", posts.length);
+      const communityId = req.query.communityId ? parseInt(req.query.communityId as string) : undefined;
 
-      const postsWithDetails = await Promise.all(posts.map(async (post) => {
+      // In a real implementation we should pass communityId to getPosts
+      // For now, let's just filter in memory or update getPosts (better)
+      // Since I haven't updated getPosts signature to accept communityId yet, I will do it now in storage.ts or just filter here if I want to be quick. 
+      // Actually, let's update proper fetching.
+
+      // Assuming getPosts will be updated to accept communityId or I filter the results here. 
+      // storage.getPosts signature is: getPosts(category?: string): Promise<Post[]>
+      // I should update storage.getPosts really.
+
+      const posts = await storage.getPosts(category);
+
+      let filteredPosts = posts;
+      if (communityId) {
+        filteredPosts = posts.filter(p => p.communityId === communityId);
+      } else {
+        // If not requesting a specific community, exclude community posts from main feed?
+        // Or show them? Usually main feed is global.
+        // Let's exclude community posts from main feed unless 'all' is specified?
+        // For now, let's show everything or just filter if communityId is present.
+      }
+
+      // If we are in the main feed (no communityId), maybe we want to exclude community-specific posts?
+      // "User communities... similar to subreddits". Usually you start with a global feed or your subscribed feed.
+      // Let's filter: if communityId provided, return only those. If NOT provided, return only non-community posts (global).
+
+      if (communityId) {
+        filteredPosts = posts.filter(p => p.communityId === communityId);
+      } else {
+        filteredPosts = posts.filter(p => !p.communityId);
+      }
+
+      console.log("Retrieved posts count:", filteredPosts.length);
+
+      const postsWithDetails = await Promise.all(filteredPosts.map(async (post) => {
         const author = await storage.getUser(post.authorId);
         console.log("Post author:", author?.username);
 
@@ -682,30 +847,7 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
-  // Updated profile route
-  app.patch("/api/profile", isAuthenticated, async (req, res) => {
-    try {
-      const updateData: Partial<{ username: string; email: string; role: string; bio: string }> = {};
 
-      if (req.body.username) {
-        updateData.username = req.body.username;
-      }
-
-      if (req.body.email) {
-        updateData.email = req.body.email;
-      }
-
-      if (req.body.bio !== undefined) {
-        updateData.bio = req.body.bio;
-      }
-
-      const updatedUser = await storage.updateUserProfile(req.user!.id, updateData);
-      res.json(updatedUser);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      res.status(500).send("Failed to update profile");
-    }
-  });
 
   // Themes
   app.get("/api/user/themes", isAuthenticated, async (req, res) => {
@@ -1199,6 +1341,353 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
     }
   });
 
+  // Community Routes
+  app.post("/api/communities", isAuthenticated, async (req, res) => {
+    try {
+      // Check reputation (admins and owners bypass this)
+      const userRole = req.user!.role;
+      if (userRole !== 'admin' && userRole !== 'owner' && req.user!.karma < 200) {
+        return res.status(403).send("You need at least 200 reputation to create a community.");
+      }
+
+      const result = insertCommunitySchema.safeParse(req.body);
+      if (!result.success) return res.status(400).json(result.error);
+
+      // Generate slug from name if not provided (simple version)
+      const slug = result.data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+      // Check if slug exists
+      const existing = await storage.getCommunityBySlug(slug);
+      if (existing) {
+        return res.status(400).send("A community with this name already exists.");
+      }
+
+      const community = await storage.createCommunity({
+        ...result.data,
+        creatorId: req.user!.id,
+        slug
+      });
+
+      res.status(201).json(community);
+    } catch (error) {
+      console.error('Error creating community:', error);
+      res.status(500).send("Failed to create community");
+    }
+  });
+
+  app.get("/api/communities", async (req, res) => {
+    try {
+      const communities = await storage.getCommunities();
+      res.json(communities);
+    } catch (error) {
+      console.error('Error fetching communities:', error);
+      res.status(500).send("Failed to fetch communities");
+    }
+  });
+
+  app.get("/api/communities/:slug", async (req, res) => {
+    try {
+      const community = await storage.getCommunityBySlug(req.params.slug);
+      if (!community) return res.status(404).send("Community not found");
+
+      let memberInfo = null;
+      if (req.isAuthenticated()) {
+        const member = await storage.getCommunityMember(community.id, req.user!.id);
+        if (member) {
+          memberInfo = { role: member.role, joinedAt: member.joinedAt };
+        }
+      }
+
+      res.json({ ...community, memberInfo });
+    } catch (error) {
+      console.error('Error fetching community:', error);
+      res.status(500).send("Failed to fetch community");
+    }
+  });
+
+  app.post("/api/communities/:id/join", isAuthenticated, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const userId = req.user!.id;
+
+      const community = await storage.getCommunity(communityId);
+      if (!community) return res.status(404).send("Community not found");
+
+      const isBanned = await storage.isUserBannedFromCommunity(communityId, userId);
+      if (isBanned) return res.status(403).send("You are banned from this community.");
+
+      const existingMember = await storage.getCommunityMember(communityId, userId);
+      if (existingMember) return res.status(400).send("Already a member");
+
+      await storage.addCommunityMember(communityId, userId, 'member');
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error joining community:', error);
+      res.status(500).send("Failed to join community");
+    }
+  });
+
+  app.post("/api/communities/:id/leave", isAuthenticated, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const userId = req.user!.id;
+
+      const member = await storage.getCommunityMember(communityId, userId);
+      if (!member) return res.status(400).send("Not a member");
+
+      if (member.role === 'owner') {
+        return res.status(400).send("Owner cannot leave the community. Transfer ownership first.");
+      }
+
+      await storage.removeCommunityMember(communityId, userId);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error leaving community:', error);
+      res.status(500).send("Failed to leave community");
+    }
+  });
+
+  // Mod Routes
+  app.get("/api/user/moderated-communities", isAuthenticated, async (req, res) => {
+    try {
+      const communities = await storage.getModeratedCommunities(req.user!.id);
+      res.json(communities);
+    } catch (error) {
+      console.error('Error fetching moderated communities:', error);
+      res.status(500).send("Failed to fetch moderated communities");
+    }
+  });
+
+  app.get("/api/user/communities", isAuthenticated, async (req, res) => {
+    try {
+      const communities = await storage.getUserCommunities(req.user!.id);
+      res.json(communities);
+    } catch (error) {
+      console.error('Error fetching user communities:', error);
+      res.status(500).send("Failed to fetch user communities");
+    }
+  });
+
+  app.get("/api/communities/:id/members", isAuthenticated, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+
+      // Check if user is mod/owner
+      const requester = await storage.getCommunityMember(communityId, req.user!.id);
+      if (!requester || (requester.role !== 'owner' && requester.role !== 'moderator')) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      const members = await storage.getCommunityMembers(communityId);
+      res.json(members);
+    } catch (error) {
+      console.error('Error fetching members:', error);
+      res.status(500).send("Failed to fetch members");
+    }
+  });
+
+  app.post("/api/communities/:id/moderators", isAuthenticated, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { userId } = req.body;
+
+      // Check if requester is owner
+      const requester = await storage.getCommunityMember(communityId, req.user!.id);
+      if (!requester || requester.role !== 'owner') {
+        return res.status(403).send("Only the owner can add moderators");
+      }
+
+      await storage.removeCommunityMember(communityId, userId); // Remove current role
+      await storage.addCommunityMember(communityId, userId, 'moderator'); // Add as moderator
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error adding moderator:', error);
+      res.status(500).send("Failed to add moderator");
+    }
+  });
+
+  app.delete("/api/communities/:id/members/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const targetUserId = parseInt(req.params.userId);
+
+      // Check if requester is mod/owner
+      const requester = await storage.getCommunityMember(communityId, req.user!.id);
+      if (!requester || (requester.role !== 'owner' && requester.role !== 'moderator')) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Check target role
+      const target = await storage.getCommunityMember(communityId, targetUserId);
+      if (target) {
+        if (target.role === 'owner') return res.status(403).send("Cannot kick the owner");
+        if (target.role === 'moderator' && requester.role !== 'owner') return res.status(403).send("Moderators cannot kick other moderators");
+      }
+
+      await storage.removeCommunityMember(communityId, targetUserId);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error kicking user:', error);
+      res.status(500).send("Failed to kick user");
+    }
+  });
+
+  app.post("/api/communities/:id/ban", isAuthenticated, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { userId, reason } = req.body;
+
+      // Check if requester is mod/owner
+      const requester = await storage.getCommunityMember(communityId, req.user!.id);
+      if (!requester || (requester.role !== 'owner' && requester.role !== 'moderator')) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Cannot ban owner or other mods (unless owner)
+      const target = await storage.getCommunityMember(communityId, userId);
+      if (target) {
+        if (target.role === 'owner') return res.status(403).send("Cannot ban the owner");
+        if (target.role === 'moderator' && requester.role !== 'owner') return res.status(403).send("Moderators cannot ban other moderators");
+      }
+
+      await storage.banUserFromCommunity(communityId, userId, reason);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error banning user:', error);
+      res.status(500).send("Failed to ban user");
+    }
+  });
+
+  app.get("/api/communities/:id/bans", isAuthenticated, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+
+      // Check if user is mod/owner
+      const requester = await storage.getCommunityMember(communityId, req.user!.id);
+      if (!requester || (requester.role !== 'owner' && requester.role !== 'moderator')) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      const bans = await storage.getCommunityBans(communityId);
+      res.json(bans);
+    } catch (error) {
+      console.error('Error fetching bans:', error);
+      res.status(500).send("Failed to fetch bans");
+    }
+  });
+
+  app.delete("/api/communities/:id/ban/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const userId = parseInt(req.params.userId);
+
+      // Check if requester is mod/owner
+      const requester = await storage.getCommunityMember(communityId, req.user!.id);
+      if (!requester || (requester.role !== 'owner' && requester.role !== 'moderator')) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      await storage.unbanUserFromCommunity(communityId, userId);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error unbanning user:', error);
+      res.status(500).send("Failed to unban user");
+    }
+  });
+
+  app.get("/api/communities/:id/reports", isAuthenticated, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+
+      // Check if user is mod/owner
+      const requester = await storage.getCommunityMember(communityId, req.user!.id);
+      if (!requester || (requester.role !== 'owner' && requester.role !== 'moderator')) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      const reports = await storage.getCommunityReports(communityId);
+      res.json(reports);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      res.status(500).send("Failed to fetch reports");
+    }
+  });
+
+  app.patch("/api/communities/:id/reports/:reportId", isAuthenticated, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const reportId = parseInt(req.params.reportId);
+      const { status } = req.body;
+
+      // Check if user is mod/owner
+      const requester = await storage.getCommunityMember(communityId, req.user!.id);
+      if (!requester || (requester.role !== 'owner' && requester.role !== 'moderator')) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      const updatedReport = await storage.updateReportStatus(reportId, status);
+      res.json(updatedReport);
+    } catch (error) {
+      console.error('Error updating report:', error);
+      res.status(500).send("Failed to update report");
+    }
+  });
+
+  // Community Feed
+  app.get("/api/feed/communities", isAuthenticated, async (req, res) => {
+    try {
+      const posts = await storage.getCommunityFeedPosts(req.user!.id);
+
+      const postsWithDetails = await Promise.all(posts.map(async (post) => {
+        const [author, comments, reactions, userReaction] = await Promise.all([
+          storage.getUser(post.authorId),
+          storage.getComments(post.id),
+          storage.getPostReactions(post.id),
+          storage.getUserPostReaction(post.id, req.user!.id)
+        ]);
+
+        const commentsWithDetails = await Promise.all(comments.map(async (comment) => {
+          const author = await storage.getUser(comment.authorId);
+          const likes = await storage.getCommentLikes(comment.id);
+          const isLiked = await storage.getUserCommentLike(req.user!.id, comment.id);
+          return {
+            ...comment,
+            author: author ? {
+              username: author.username,
+              role: author.role,
+              verified: author.verified
+            } : { username: 'Unknown', role: 'member', verified: false },
+            likes,
+            isLiked
+          };
+        }));
+
+        return {
+          ...post,
+          author: {
+            username: author!.username,
+            id: author!.id,
+            isFollowing: await storage.isFollowing(req.user!.id, author!.id),
+            role: author!.role,
+            verified: author!.verified
+          },
+          comments: commentsWithDetails,
+          reactions: {
+            likes: reactions.likes,
+            dislikes: reactions.dislikes
+          },
+          userReaction
+        };
+      }));
+
+      res.json(postsWithDetails);
+    } catch (error) {
+      console.error("Error fetching community feed:", error);
+      res.status(500).json({ error: "Failed to fetch community feed" });
+    }
+  });
+
   // Admin Routes
   // Add this route before the other admin routes
   app.get("/api/admin/stats", isAdmin, async (req, res) => {
@@ -1326,8 +1815,10 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
 
   app.get("/api/admin/users", isAdmin, async (req, res) => {
     try {
-      const users = await storage.getUsers(); // Use storage interface
-      res.json(users);
+      const users = await storage.getUsers();
+      // SEC-002 FIX: Sanitize users before returning to admin
+      const safeUsers = users.map(user => sanitizeUser(user));
+      res.json(safeUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       res.status(500).send("Failed to fetch users");

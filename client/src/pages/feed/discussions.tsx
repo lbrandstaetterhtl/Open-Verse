@@ -61,7 +61,11 @@ export default function DiscussionsFeedPage() {
   const { data: discussions, isLoading } = useQuery<DiscussionWithAuthor[]>({
     queryKey: ["/api/posts", "discussion"],
     queryFn: async () => {
-      const res = await fetch("/api/posts?category=discussion");
+      const res = await fetch("/api/posts?category=discussion", {
+        headers: {
+          "x-auto-refresh": "true"
+        }
+      });
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(errorText || "Failed to fetch discussions");

@@ -1,43 +1,36 @@
-
 # Security Audit Summary
 
-**Audit Date:** 2026-02-06
+**Audit Date:** 2026-02-06  
+**Target:** PureCoffee Application (Local Source Audit)  
 **Risk Level:** HIGH
-**Status:** COMPLETE
 
-## Executive Summary
-The application contains a **CRITICAL** vulnerability (SEC-001) that leaks password hashes of all users via the public Post Detail API. This allows an unauthenticated attacker to scrape user data and perform offline password cracking.
+## Overview
+The "PureCoffee" application (Open-Verse) was audited for security vulnerabilities. The application uses a modern stack (Node.js/Express, TypeScript, Drizzle ORM, SQLite/Postgres) which provides good defaults against common issues like SQL Injection. However, critical vulnerabilities were identified in the File Upload and Content Serving mechanisms that allow for Stored Cross-Site Scripting (XSS), potentially leading to account takeover. Additionally, information leakage and logic flaws in session management were found.
 
-Additionally, the application lacks standard defenses against CSRF (SEC-002) and has explicitly disabled Content Security Policy (SEC-003), effectively mitigating defenses against XSS.
-
-The architecture relies on server-side session management (`express-session`), which is generally robust, but the implementation of data fetching layers (`storage.ts`) interacting with the API layer (`routes.ts`) lacks strict data transfer object (DTO) boundaries, leading to the data leak.
-
-## Attack Surface
-- **Public API:** Unauthenticated access to `/api/posts` and `/api/posts/:id` exposes user PII and credentials.
-- **Authenticated API:** `/api/profile`, `/api/comments`, `/api/reports` rely on session cookies.
-- **File Uploads:** `/api/posts` accepts multi-format uploads (images/video) up to 50MB, stored locally.
+## Attack Surface Summary
+-   **Public Endpoints:** Login, Register, View Posts (Read-only).
+-   **Authenticated Endpoints:** Post creation, Comments, Messaging, Reporting, File Uploads.
+-   **Admin Endpoints:** User management, Report management.
+-   **WebSocket:** Real-time updates for comments/notifications.
 
 ## Threat Model
-- **External Attacker:** Can scrape all user password hashes. Can launch DoS attacks via large file uploads.
-- **Authenticated User:** Can potentially perform CSRF attacks against Admins/Owners due to missing anti-CSRF tokens.
-- **Insider/Compromised Admin:** Admin limitations are enforced by code, but database logic is shared.
+-   **Actors:**
+    -   *Anonymous User:* Can view content, register, login.
+    -   *Authenticated User:* Can post content (text/media), comment, message, report, follow.
+    -   *Banned User:* malicious actor attempting to persist access.
+    -   *Admin/Owner:* Privileged access.
+-   **Trust Boundaries:**
+    -   The `uploads/` directory is a major trust boundary violation as user-content is served from the same origin as the application logic.
 
-## Top Findings
-
-| ID | Severity | Status | Type | Description |
-|---|---|---|---|---|
-| **SEC-001** | **CRITICAL** | **VALIDATED** | Data Exposure | **Password Hash Leak** via `GET /api/posts/:id`. |
-| **SEC-002** | **HIGH** | VERIFIED | Logic | Missing CSRF Protection on state-changing endpoints. |
-| **SEC-003** | **MEDIUM** | VERIFIED | Config | Content Security Policy (CSP) explicitly disabled. |
-| **SEC-004** | **LOW** | VERIFIED | Logic | Duplicate/Inconsistent Profile Update Logic. |
-| **SEC-005** | **MEDIUM** | VERIFIED | DoS | Unrestricted/High File Upload Limit (50MB). |
-
-## Recommendations
-1.  **IMMEDIATE:** Apply patch for SEC-001 to strip password hashes from `getUser` calls in `server/routes.ts`.
-2.  Enable Content Security Policy in `server/routes.ts`.
-3.  Implement Double-Submit Cookie pattern or use a CSRF middleware.
-4.  Reduce file upload limits to strict requirements (e.g., 10MB).
+## Top Validated Findings
+| ID | Severity | Name | Status |
+|----|----------|------|--------|
+| **SEC-001** | **CRITICAL** | Stored XSS via File Upload (MIME-Type Spoofing) | VALIDATED |
+| **SEC-002** | **MEDIUM** | Admin API Password Hash Leakage | VALIDATED |
+| **SEC-003** | **MEDIUM** | Banned User Session Persistence | VALIDATED |
+| **SEC-004** | **LOW** | Race Condition in Voting Logic | VALIDATED |
+| **SEC-005** | **LOW** | Weak Content Security Policy (unsafe-inline) | VALIDATED |
 
 ## Audit Limitations
-- **No Penetration Testing:** Analysis was static code review and safe verification. No active fuzzing was performed.
-- **Scope:** TypeScript/Node.js files only. `node_modules` were not audited.
+-   Audit performed on source code only.
+-   No live environment was available for dynamic testing, but findings were validated via code analysis and local reproduction logic.

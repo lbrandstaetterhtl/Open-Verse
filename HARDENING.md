@@ -1,30 +1,34 @@
+# Security Hardening Guide
 
-# Hardening Guide
+## 1. Content Security Policy (CSP) Improvement
+**Priority:** High
+**Effort:** Low
+Remove `'unsafe-inline'` from the CSP. This requires moving any inline scripts to external files or using a Nonce system. This is the single most effective mitigation against XSS.
 
-## 1. Content Security Policy (CSP)
-**Effort:** Low | **Impact:** High
-Enable CSP to mitigate XSS.
-*Action:* Remove `contentSecurityPolicy: false` in `server/routes.ts` and configure safe directives.
+## 2. Secure Cookie Attributes
+**Priority:** Medium
+**Effort:** Low
+Ensure cookies are set with `Secure`, `HttpOnly`, and `SameSite: Strict` (or Lax).
+Current config has `SameSite: 'lax'`, which is decent, but `Strict` is better for critical applications.
+`Secure` is currently set based on `NODE_ENV === 'production'`. Ensure production is always HTTPS.
 
-## 2. Rate Limiting (Global)
-**Effort:** Low | **Impact:** Medium
-Apply a global rate limiter to all API routes, not just auth.
-*Action:* Add `app.use("/api", rateLimit({ windowMs: 15*60*1000, max: 100 }));` in `server/auth.ts` or `index.ts`.
+## 3. Rate Limiting Granularity
+**Priority:** Medium
+**Effort:** Medium
+The current rate limiter (100 req / 15 min) is per IP. Consider implementing user-based rate limiting for authenticated routes to prevent compromised accounts from abusing the API.
 
-## 3. Upload Limits
-**Effort:** Very Low | **Impact:** Medium
-Reduce file upload size from 50MB to 10MB to prevent disk exhaustion.
-*Action:* Update `limits: { fileSize: 50 * ... }` in `server/routes.ts` to `10 * 1024 * 1024`.
+## 4. Input Validation strictness
+**Priority:** Low
+**Effort:** Medium
+Zod schemas are used, which is excellent. Ensure `strip()` is used to remove unknown keys (default in Zod, but explicit `strict()` is safer).
 
-## 4. CSRF Protection
-**Effort:** Medium | **Impact:** High
-Implement CSRF protection.
-*Action:*
-1. Add `csurf` or `tiny-csrf` (or custom logic).
-2. expose a `/api/csrf-token` endpoint.
-3. Client fetches token and includes it in `X-CSRF-Token` header for all mutation requests (`POST`, `PUT`, `DELETE`, `PATCH`).
+## 5. Security Headers
+**Priority:** Low
+**Effort:** Low
+Add `HSTS` (HTTP Strict Transport Security) header in production (`helmet` can do this).
+Add `X-Content-Type-Options: nosniff` (Helmet enables this by default).
 
-## 5. Cookie Security
-**Effort:** Low | **Impact:** Low
-Ensure `secure: true` is set for cookies even in dev if using localhost with HTTPS, or strictly enforced in prod.
-*Action:* Verify `process.env.NODE_ENV === 'production'` logic in `server/routes.ts` session config.
+## 6. Dependency Scanning
+**Priority:** Medium
+**Effort:** Low
+Integrate `npm audit` into the build/CI pipeline to catch vulnerable dependencies (like `verify_output.txt` references or old packages).

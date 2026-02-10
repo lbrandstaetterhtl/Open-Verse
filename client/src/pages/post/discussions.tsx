@@ -16,9 +16,14 @@ import { useLocation } from "wouter";
 
 type FormData = z.infer<typeof insertDiscussionPostSchema>;
 
+import { useTranslation } from "react-i18next";
+
 export default function CreateDiscussionPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const searchParams = new URLSearchParams(window.location.search);
+  const communityId = searchParams.get("communityId");
 
   const form = useForm<FormData>({
     resolver: zodResolver(insertDiscussionPostSchema),
@@ -31,16 +36,29 @@ export default function CreateDiscussionPage() {
 
   const createPostMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const res = await apiRequest("POST", "/api/posts", data);
+      const payload = { ...data };
+      if (communityId) {
+        (payload as any).communityId = communityId;
+      }
+      const res = await apiRequest("POST", "/api/posts", payload);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] });
       toast({
-        title: "Discussion created",
-        description: "Your discussion has been posted successfully.",
+        title: t('create_post.discussion.success_title'),
+        description: t('create_post.discussion.success_desc'),
       });
-      setLocation("/feed/discussions");
+
+      if (communityId) {
+        // Fetch community to redirect back to it
+        fetch(`/api/communities/${communityId}`).then(res => res.json()).then(community => {
+          setLocation(`/c/${community.slug}`);
+        }).catch(() => setLocation("/feed/discussions"));
+      } else {
+        setLocation("/feed/discussions");
+      }
     },
   });
 
@@ -53,7 +71,7 @@ export default function CreateDiscussionPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <MessageSquarePlus className="h-5 w-5" />
-                <span>Start a Discussion</span>
+                <span>{t('create_post.discussion.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -67,7 +85,7 @@ export default function CreateDiscussionPage() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Title</FormLabel>
+                        <FormLabel>{t('create_post.discussion.title_label')}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -80,11 +98,11 @@ export default function CreateDiscussionPage() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Content</FormLabel>
+                        <FormLabel>{t('create_post.discussion.content_label')}</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={6}
-                            placeholder="Share your thoughts..."
+                            placeholder={t('create_post.discussion.placeholder')}
                             {...field}
                           />
                         </FormControl>
@@ -100,7 +118,7 @@ export default function CreateDiscussionPage() {
                     {createPostMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      "Post Discussion"
+                      t('create_post.discussion.submit')
                     )}
                   </Button>
                 </form>

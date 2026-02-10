@@ -135,5 +135,66 @@
         "report_resolved": "hat deine Meldung gelöst",
         "report_rejected": "hat deine Meldung geprüft (kein Verstoß gefunden)",
         "interaction": "hat auf deinen Beitrag reagiert"
+    },
+    "ai_generator": {
+        "title": "KI-Beitragsgenerator",
+        "description": "Wähle einen Feed, lade ein Bild hoch (optional) und lass die KI für dich schreiben.",
+        "select_feed": "Feed auswählen",
+        "select_language": "Sprache auswählen",
+        "upload_image": "1. Bild auswählen (Optional)",
+        "enter_topic": "2. Thema eingeben",
+        "topic_placeholder": "z. B. Morgenkaffee, Tech-Trends, Wochenendstimmung...",
+        "remove_image": "Entfernen",
+        "generate_button": "Beitrag generieren",
+        "generating": "Magie wird gewirkt...",
+        "generated_label": "Dein generierter Beitrag",
+        "copy": "Kopieren",
+        "post_button": "Im Feed posten",
+        "posting": "Wird gepostet...",
+        "toast_generated": "Inhalt generiert!",
+        "toast_generated_desc": "Dein perfekter Beitrag ist fertig. Du kannst ihn jetzt bearbeiten oder posten.",
+        "toast_posted": "Gepostet!",
+        "toast_posted_desc": "Dein Beitrag ist jetzt im Feed live.",
+        "feeds": {
+            "news": "Nachrichten-Feed",
+            "entertainment": "Unterhaltungs-Feed",
+            "discussion": "Diskussions-Feed"
+        },
+        "languages": {
+            "english": "Englisch",
+            "german": "Deutsch",
+            "spanish": "Spanisch",
+            "french": "Französisch"
+        }
+    },
+    "create_post": {
+        "news": {
+            "title": "Nachrichten teilen",
+            "headline": "Schlagzeile",
+            "content": "Artikelinhalt",
+            "placeholder": "Schreiben Sie hier Ihren Nachrichtenartikel. Bitte stellen Sie sicher, dass er sachlich und ordnungsgemäß belegt ist.",
+            "submit": "Nachricht absenden",
+            "success_title": "Nachricht gepostet",
+            "success_desc": "Ihr Nachrichtenartikel wurde erfolgreich gepostet."
+        },
+        "entertainment": {
+            "title": "Etwas Lustiges teilen",
+            "title_label": "Titel",
+            "content_label": "Inhalt",
+            "placeholder": "Teile einen Witz, eine lustige Geschichte oder etwas Interessantes!",
+            "submit": "Teilen",
+            "success_title": "Beitrag erstellt",
+            "success_desc": "Dein Unterhaltungsbeitrag wurde erfolgreich geteilt."
+        },
+        "discussion": {
+            "title": "Diskussion starten",
+            "title_label": "Titel",
+            "content_label": "Inhalt",
+            "placeholder": "Teile deine Gedanken...",
+            "submit": "Diskussion posten",
+            "success_title": "Diskussion erstellt",
+            "success_desc": "Deine Diskussion wurde erfolgreich gepostet."
+        },
+        "media_label": "Medien (Bild oder Video)"
     }
 }

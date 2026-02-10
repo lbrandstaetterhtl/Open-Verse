@@ -64,7 +64,11 @@ export default function MediaFeedPage() {
     queryKey: ["/api/posts", "media"],
     queryFn: async () => {
       console.log("Fetching media posts...");
-      const res = await fetch("/api/posts?category=news,entertainment&include=author,comments,reactions,userReaction");
+      const res = await fetch("/api/posts?category=news,entertainment&include=author,comments,reactions,userReaction", {
+        headers: {
+          "x-auto-refresh": "true"
+        }
+      });
       if (!res.ok) {
         const errorText = await res.text();
         console.error("Failed to fetch posts:", errorText);

@@ -17,9 +17,14 @@ import { apiRequest } from "@/lib/queryClient";
 
 type FormData = z.infer<typeof insertMediaPostSchema>;
 
+import { useTranslation } from "react-i18next";
+
 export default function CreateNewsPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const searchParams = new URLSearchParams(window.location.search);
+  const communityId = searchParams.get("communityId");
 
   const form = useForm<FormData>({
     resolver: zodResolver(insertMediaPostSchema),
@@ -37,34 +42,37 @@ export default function CreateNewsPage() {
       formData.append("content", data.content);
       formData.append("category", data.category);
 
+      if (communityId) {
+        formData.append("communityId", communityId);
+      }
+
       const mediaFile = form.getValues("mediaFile");
       if (mediaFile?.[0]) {
         formData.append("media", mediaFile[0]);
         formData.append("mediaType", data.mediaType || (mediaFile[0].type.startsWith("image/") ? "image" : "video"));
       }
 
-      const res = await fetch("/api/posts", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Failed to create post");
-      }
-
+      const res = await apiRequest("POST", "/api/posts", formData);
       return res.json();
     },
     onSuccess: () => {
-      // Invalidate both the media feed and the specific category feed
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "news"] });
+      // Invalidate all post-related queries
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] });
       form.reset();
       toast({
-        title: "News posted",
-        description: "Your news article has been posted successfully.",
+        title: t('create_post.news.success_title'),
+        description: t('create_post.news.success_desc'),
       });
-      setLocation("/feed/media");
+
+      if (communityId) {
+        // Fetch community to redirect back to it
+        fetch(`/api/communities/${communityId}`).then(res => res.json()).then(community => {
+          setLocation(`/c/${community.slug}`);
+        }).catch(() => setLocation("/feed/media"));
+      } else {
+        setLocation("/feed/media");
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -84,7 +92,7 @@ export default function CreateNewsPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Newspaper className="h-5 w-5" />
-                <span>Share News</span>
+                <span>{t('create_post.news.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -98,7 +106,7 @@ export default function CreateNewsPage() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Headline</FormLabel>
+                        <FormLabel>{t('create_post.news.headline')}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -111,11 +119,11 @@ export default function CreateNewsPage() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Article Content</FormLabel>
+                        <FormLabel>{t('create_post.news.content')}</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={6}
-                            placeholder="Write your news article here. Please ensure it's factual and properly sourced."
+                            placeholder={t('create_post.news.placeholder')}
                             {...field}
                           />
                         </FormControl>
@@ -128,7 +136,7 @@ export default function CreateNewsPage() {
                     name="mediaFile"
                     render={({ field: { onChange, value, ...field } }) => (
                       <FormItem>
-                        <FormLabel>Media (Image or Video)</FormLabel>
+                        <FormLabel>{t('create_post.media_label')}</FormLabel>
                         <FormControl>
                           <Input
                             type="file"
@@ -155,7 +163,7 @@ export default function CreateNewsPage() {
                     {createPostMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      "Submit News"
+                      t('create_post.news.submit')
                     )}
                   </Button>
                 </form>

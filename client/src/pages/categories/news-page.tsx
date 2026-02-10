@@ -57,7 +57,11 @@ export default function NewsPage() {
   const { data: posts, isLoading } = useQuery<PostWithAuthor[]>({
     queryKey: ["/api/posts", "news"],
     queryFn: async () => {
-      const res = await fetch("/api/posts?category=news&include=author,comments,reactions,userReaction");
+      const res = await fetch("/api/posts?category=news&include=author,comments,reactions,userReaction", {
+        headers: {
+          "x-auto-refresh": "true"
+        }
+      });
       if (!res.ok) throw new Error("Failed to fetch posts");
       return res.json();
     },

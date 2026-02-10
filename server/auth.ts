@@ -9,6 +9,7 @@ import { User as SelectUser } from "@shared/schema";
 import { updateProfileSchema, updatePasswordSchema } from '@shared/schema';
 import { sendVerificationEmail } from "./utils/email";
 import rateLimit from "express-rate-limit";
+import { logSecurityEvent } from "./utils/logger";
 
 declare global {
   namespace Express {
@@ -49,11 +50,37 @@ async function createVerificationToken(userId: number): Promise<string> {
   return token;
 }
 
+export const validateCsrf = (req: any, res: any, next: any) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+
+  const token = req.headers['x-csrf-token'];
+  const sessionToken = (req.session as any)?.csrfToken;
+
+  if (!token || !sessionToken || token !== sessionToken) {
+    logSecurityEvent({
+      type: 'CSRF_FAILURE',
+      ip: req.ip || req.socket.remoteAddress,
+      resource: req.path,
+      details: { method: req.method }
+    });
+    return res.status(403).send('Invalid CSRF Token');
+  }
+  next();
+};
+
 export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
   app.set("trust proxy", 1);
   app.use(sessionParser);
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // CSRF Token Initialization
+  app.use((req, res, next) => {
+    if (req.session && !(req.session as any).csrfToken) {
+      (req.session as any).csrfToken = randomBytes(32).toString('hex');
+    }
+    next();
+  });
 
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -61,28 +88,34 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
     message: "Too many login attempts, please try again later"
   });
 
+
+
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
         if (!user) {
           console.log("Login failed: User not found:", username);
+          logSecurityEvent({ type: 'AUTH_FAILURE', details: { reason: 'User not found', username } });
           return done(null, false, { message: "Invalid username or password" });
         }
 
         const isValid = await comparePasswords(password, user.password);
         if (!isValid) {
           console.log("Login failed: Invalid password for user:", username);
+          logSecurityEvent({ type: 'AUTH_FAILURE', userId: user.id, details: { reason: 'Invalid password' } });
           return done(null, false, { message: "Invalid username or password" });
         }
 
         // Check if user is banned (negative karma)
         if (user.karma < 0) {
           console.log("Login blocked: User is banned:", username);
+          logSecurityEvent({ type: 'AUTH_BANNED_ATTEMPT', userId: user.id, details: { username } });
           return done(null, false, { message: "Your account has been banned. Please contact support." });
         }
 
         console.log("Login successful for user:", username);
+        logSecurityEvent({ type: 'AUTH_SUCCESS', userId: user.id });
         return done(null, user);
       } catch (err) {
         console.error("Login error:", err);
@@ -102,6 +135,13 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
         console.log("Session invalid: User not found:", id);
         return done(null, false);
       }
+
+      // SEC-003 FIX: Check ban status
+      if (user.karma < 0) {
+        console.log("Session invalid: User is banned:", id);
+        return done(null, false); // Invalidate session
+      }
+
       done(null, sanitizeUser(user));
     } catch (err) {
       console.error("Session error:", err);
@@ -199,6 +239,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
       // Log the user in
       req.login(user, (err) => {
         if (err) return res.status(500).send(err.message);
+        logSecurityEvent({ type: 'AUTH_SUCCESS', userId: user.id, details: { action: 'register' } });
         res.status(201).json(user);
       });
     } catch (err) {

@@ -108,14 +108,53 @@ if (useSqlite) {
       is_like INTEGER NOT NULL,
       created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_post_likes_user_post ON post_likes(user_id, post_id);
     CREATE TABLE IF NOT EXISTS comment_likes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       comment_id INTEGER NOT NULL,
       created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
+    CREATE TABLE IF NOT EXISTS communities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      description TEXT,
+      image_url TEXT,
+      creator_id INTEGER NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+    CREATE TABLE IF NOT EXISTS community_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      community_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      role TEXT NOT NULL DEFAULT 'member',
+      joined_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+    CREATE TABLE IF NOT EXISTS community_bans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      community_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      reason TEXT,
+      banned_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
   `);
   console.log('DEBUG: SQLite tables initialized');
+
+  // Add community_id column to posts if it doesn't exist yet
+  try {
+    sqlite.exec(`ALTER TABLE posts ADD COLUMN community_id INTEGER`);
+    console.log('DEBUG: Added community_id column to posts');
+  } catch (e: any) {
+    // Column already exists, ignore
+  }
+
+  // Add ip_address column to reports if it doesn't exist yet
+  try {
+    sqlite.exec(`ALTER TABLE reports ADD COLUMN ip_address TEXT`);
+  } catch (e: any) {
+    // Column already exists, ignore
+  }
 
 } else {
   console.log('Using Neon PostgreSQL database');

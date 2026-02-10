@@ -33,6 +33,7 @@ export const posts = pgTable("posts", {
   karma: integer("karma").notNull().default(0),
   mediaUrl: text("media_url"),
   mediaType: text("media_type"),
+  communityId: integer("community_id"), // Optional: if belongs to a community
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -97,6 +98,33 @@ export const commentLikes = pgTable("comment_likes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Community Tables
+export const communities = pgTable("communities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  slug: text("slug").notNull().unique(),
+  creatorId: integer("creator_id").notNull(),
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const communityMembers = pgTable("community_members", {
+  id: serial("id").primaryKey(),
+  communityId: integer("community_id").notNull(),
+  userId: integer("user_id").notNull(),
+  role: text("role").notNull().default("member"), // 'owner', 'moderator', 'member'
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
+});
+
+export const communityBans = pgTable("community_bans", {
+  id: serial("id").primaryKey(),
+  communityId: integer("community_id").notNull(),
+  userId: integer("user_id").notNull(),
+  reason: text("reason"),
+  bannedAt: timestamp("banned_at").notNull().defaultNow(),
+});
+
 export const themes = pgTable("themes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -111,14 +139,27 @@ const basePostSchema = createInsertSchema(posts).pick({
   category: true,
 });
 
+// Schemas for Communities
+export const insertCommunitySchema = createInsertSchema(communities).pick({
+  name: true,
+  description: true,
+  imageUrl: true,
+}).extend({
+  name: z.string().min(3, "Name must be at least 3 characters").max(50, "Name must be less than 50 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  imageUrl: z.string().optional(),
+});
+
 export const insertDiscussionPostSchema = basePostSchema.extend({
   category: z.literal("discussion"),
+  communityId: z.number().optional(),
 });
 
 export const insertMediaPostSchema = basePostSchema.extend({
   category: z.enum(["news", "entertainment"]),
   mediaFile: z.any().optional(),
   mediaType: z.enum(["image", "video"]).optional(),
+  communityId: z.number().optional(),
 });
 
 export const insertCommentSchema = createInsertSchema(comments).pick({
@@ -210,3 +251,9 @@ export type AdminUpdateUser = z.infer<typeof adminUpdateUserSchema>;
 export type AdminUpdateReport = z.infer<typeof adminUpdateReportSchema>;
 export type Theme = typeof themes.$inferSelect;
 export type InsertTheme = z.infer<typeof insertThemeSchema>;
+
+// Community Types
+export type Community = typeof communities.$inferSelect;
+export type CommunityMember = typeof communityMembers.$inferSelect;
+export type CommunityBan = typeof communityBans.$inferSelect;
+export type InsertCommunity = z.infer<typeof insertCommunitySchema>;

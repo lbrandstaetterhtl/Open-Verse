@@ -19,6 +19,7 @@ import AdminDashboard from "@/pages/admin/dashboard";
 // Feed Pages
 import MediaFeedPage from "@/pages/feed/media";
 import DiscussionsFeedPage from "@/pages/feed/discussions";
+import CommunityFeedPage from "@/pages/feed/communities";
 import PostViewPage from "@/pages/feed/post-view";
 
 // Post Pages
@@ -28,6 +29,14 @@ import PostEntertainmentPage from "@/pages/post/entertainment";
 
 // Theme Page
 import ThemeBuilderPage from "@/pages/theme/theme-builder";
+
+// AI Generator Page
+import AIGeneratorPage from "@/pages/ai-bot/ai-generator";
+
+// Community Pages
+import CreateCommunityPage from "@/pages/communities/create-community";
+import CommunityPage from "@/pages/communities/community-page";
+import ModPanel from "@/pages/communities/mod-panel";
 
 function Router() {
   // Initialize WebSocket connection
@@ -40,6 +49,7 @@ function Router() {
       {/* Feed Routes */}
       <ProtectedRoute path="/feed/media" component={MediaFeedPage} />
       <ProtectedRoute path="/feed/discussions" component={DiscussionsFeedPage} />
+      <ProtectedRoute path="/feed/communities" component={CommunityFeedPage} />
       <ProtectedRoute path="/posts/:id" component={PostViewPage} />
 
       {/* Post Routes */}
@@ -54,8 +64,16 @@ function Router() {
       {/* Chat Route */}
       <ProtectedRoute path="/chat" component={ChatPage} />
 
+      {/* AI Generator Route */}
+      <ProtectedRoute path="/ai-generator" component={AIGeneratorPage} />
+
       {/* Admin Route */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />
+
+      {/* Community Routes */}
+      <ProtectedRoute path="/create-community" component={CreateCommunityPage} />
+      <ProtectedRoute path="/c/:slug" component={CommunityPage} />
+      <ProtectedRoute path="/mod-panel" component={ModPanel} />
 
       {/* Theme Builder Route */}
       <ProtectedRoute path="/theme-builder" component={ThemeBuilderPage} />
@@ -72,7 +90,7 @@ import { useCustomTheme } from "@/hooks/use-custom-theme";
 
 function GlobalThemeManager() {
   useCustomTheme();
-  return null;
+  return <></>;
 }
 
 function App() {

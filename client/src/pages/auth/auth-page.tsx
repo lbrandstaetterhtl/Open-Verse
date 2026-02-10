@@ -29,7 +29,7 @@ export default function AuthPage() {
       {/* Mobile Header - Only visible on mobile */}
       <div className="lg:hidden p-6 bg-primary/5">
         <div className="flex items-center space-x-2">
-          <OpenVerseIcon className="w-32 h-24 text-primary" />
+          <OpenVerseIcon className="h-24 w-auto object-contain text-primary" />
           <div>
             <h1 className="text-2xl font-bold">Osiris</h1>
             <p className="text-xs text-muted-foreground">Version 0.1.2</p>
@@ -99,7 +99,7 @@ export default function AuthPage() {
       <div className="hidden lg:flex flex-col justify-center p-8 bg-primary/5">
         <div className="mx-auto max-w-md w-full">
           <div className="flex items-center space-x-2 mb-8">
-            <OpenVerseIcon className="w-64 h-48 text-primary" />
+            <OpenVerseIcon className="h-48 w-auto object-contain text-primary" />
             <div>
               <h1 className="text-4xl font-bold">Osiris</h1>
               <p className="text-sm text-muted-foreground">Version 0.1.2</p>

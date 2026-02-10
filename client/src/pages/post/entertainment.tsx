@@ -17,9 +17,14 @@ import { apiRequest } from "@/lib/queryClient";
 
 type FormData = z.infer<typeof insertMediaPostSchema>;
 
+import { useTranslation } from "react-i18next";
+
 export default function CreateEntertainmentPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const searchParams = new URLSearchParams(window.location.search);
+  const communityId = searchParams.get("communityId");
 
   const form = useForm<FormData>({
     resolver: zodResolver(insertMediaPostSchema),
@@ -37,34 +42,37 @@ export default function CreateEntertainmentPage() {
       formData.append("content", data.content);
       formData.append("category", data.category);
 
+      if (communityId) {
+        formData.append("communityId", communityId);
+      }
+
       const mediaFile = form.getValues("mediaFile");
       if (mediaFile?.[0]) {
         formData.append("media", mediaFile[0]);
         formData.append("mediaType", data.mediaType || (mediaFile[0].type.startsWith("image/") ? "image" : "video"));
       }
 
-      const res = await fetch("/api/posts", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Failed to create post");
-      }
-
+      const res = await apiRequest("POST", "/api/posts", formData);
       return res.json();
     },
     onSuccess: () => {
       // Invalidate both the media feed and the specific category feed
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/posts", "entertainment"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] });
       form.reset();
       toast({
-        title: "Post created",
-        description: "Your entertainment post has been shared successfully.",
+        title: t('create_post.entertainment.success_title'),
+        description: t('create_post.entertainment.success_desc'),
       });
-      setLocation("/feed/media");
+
+      if (communityId) {
+        // Fetch community to redirect back to it
+        fetch(`/api/communities/${communityId}`).then(res => res.json()).then(community => {
+          setLocation(`/c/${community.slug}`);
+        }).catch(() => setLocation("/feed/media"));
+      } else {
+        setLocation("/feed/media");
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -84,7 +92,7 @@ export default function CreateEntertainmentPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <SmilePlus className="h-5 w-5" />
-                <span>Share Something Fun</span>
+                <span>{t('create_post.entertainment.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -98,7 +106,7 @@ export default function CreateEntertainmentPage() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Title</FormLabel>
+                        <FormLabel>{t('create_post.entertainment.title_label')}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -111,11 +119,11 @@ export default function CreateEntertainmentPage() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Content</FormLabel>
+                        <FormLabel>{t('create_post.entertainment.content_label')}</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={6}
-                            placeholder="Share a joke, a funny story, or something interesting!"
+                            placeholder={t('create_post.entertainment.placeholder')}
                             {...field}
                           />
                         </FormControl>
@@ -128,7 +136,7 @@ export default function CreateEntertainmentPage() {
                     name="mediaFile"
                     render={({ field: { onChange, value, ...field } }) => (
                       <FormItem>
-                        <FormLabel>Media (Image or Video)</FormLabel>
+                        <FormLabel>{t('create_post.media_label')}</FormLabel>
                         <FormControl>
                           <Input
                             type="file"
@@ -155,7 +163,7 @@ export default function CreateEntertainmentPage() {
                     {createPostMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      "Share"
+                      t('create_post.entertainment.submit')
                     )}
                   </Button>
                 </form>
