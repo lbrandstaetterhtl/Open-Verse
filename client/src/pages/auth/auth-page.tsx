@@ -32,7 +32,7 @@ export default function AuthPage() {
           <OpenVerseIcon className="h-24 w-auto object-contain text-primary" />
           <div>
             <h1 className="text-2xl font-bold">Osiris</h1>
-            <p className="text-xs text-muted-foreground">Version 0.1.2</p>
+            <p className="text-xs text-muted-foreground">Version 0.2.0</p>
           </div>
         </div>
       </div>
@@ -82,13 +82,13 @@ export default function AuthPage() {
               <h3 className="font-medium">Latest Updates</h3>
             </div>
             <div className="text-sm text-muted-foreground">
-              <p>✨ New in Version 0.1.2:</p>
+              <p>✨ New in Version 0.2.0:</p>
               <ul className="list-disc list-inside space-y-1 mt-2">
-                <li>Multi-language Support (EN, DE, IT, ES, FR, ZH)</li>
-                <li>Dark Mode & Theme Customization</li>
-                <li>Advanced Admin Dashboard</li>
-                <li>Secure Reporting System</li>
-                <li>Global Community Connection</li>
+                <li>AI Content Generator v2.0</li>
+                <li>User Communities & Feeds</li>
+                <li>Advanced Moderation Tools</li>
+                <li>Kick Notifications</li>
+                <li>Global Language Support (6 Languages)</li>
               </ul>
             </div>
           </div>
@@ -102,7 +102,7 @@ export default function AuthPage() {
             <OpenVerseIcon className="h-48 w-auto object-contain text-primary" />
             <div>
               <h1 className="text-4xl font-bold">Osiris</h1>
-              <p className="text-sm text-muted-foreground">Version 0.1.2</p>
+              <p className="text-sm text-muted-foreground">Version 0.2.0</p>
             </div>
           </div>
 
@@ -150,13 +150,13 @@ export default function AuthPage() {
                 <h3 className="font-semibold">Latest Updates</h3>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>✨ New in Version 0.1.2:</p>
+                <p>✨ New in Version 0.2.0:</p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>Multi-language Support (EN, DE, IT, ES, FR, ZH)</li>
-                  <li>Dark Mode & Theme Customization</li>
-                  <li>Advanced Admin Dashboard</li>
-                  <li>Secure Reporting System</li>
-                  <li>Global Community Connection</li>
+                  <li>AI Content Generator v2.0</li>
+                  <li>User Communities & Feeds</li>
+                  <li>Advanced Moderation Tools</li>
+                  <li>Kick Notifications</li>
+                  <li>Global Language Support (6 Languages)</li>
                 </ul>
               </div>
             </div>
