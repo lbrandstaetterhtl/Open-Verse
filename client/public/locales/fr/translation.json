@@ -1,10 +1,14 @@
 {
     "navbar": {
         "brand": "Osiris",
-        "media_feed": "Fil d'actualité",
-        "discussions_feed": "Fil de discussions",
+        "media_feed": "Fil Média",
+        "discussions_feed": "Fil de Discussions",
         "messages": "Messages",
         "profile": "Profil",
+        "theme_builder": "Créateur de Thème",
+        "communities": "Communautés",
+        "ai_generator": "Générateur IA",
+        "mod_panel": "Panneau Modérateur",
         "admin": "Administration",
         "logout": "Déconnexion"
     },
@@ -23,15 +27,15 @@
         }
     },
     "feed": {
-        "media_title": "Fil d'actualité",
-        "discussions_title": "Fil de discussions",
-        "create_discussion": "Lancer une discussion",
+        "media_title": "Fil Média",
+        "discussions_title": "Fil de Discussions",
+        "create_discussion": "Lancer une Discussion",
         "post_news": "Publier Info",
         "post_entertainment": "Publier Divertissement",
         "following": "Abonnements",
         "follow": "Suivre",
         "all": "Tous",
-        "news": "Info",
+        "news": "Actu",
         "entertainment": "Divertissement",
         "no_discussions": "Aucune discussion pour le moment. Soyez le premier à en lancer une !",
         "no_posts": "Pas encore de posts. Soyez le premier à partager quelque chose !"
@@ -50,16 +54,16 @@
     },
     "admin": {
         "title": "Tableau de Bord Admin",
-        "reset_roles": "Réinitialiser les rôles",
+        "reset_roles": "Réinitialiser les Rôles",
         "stats": {
-            "total_users": "Utilisateurs totaux",
-            "active_users": "Utilisateurs actifs",
-            "verified_users": "Vérifiés",
-            "banned_users": "Bannis",
-            "deleted_users": "Supprimés",
-            "total_posts": "Posts totaux",
-            "total_reports": "Signalements totaux",
-            "pending_reports": "En attente",
+            "total_users": "Utilisateurs Totaux",
+            "active_users": "Utilisateurs Actifs",
+            "verified_users": "Utilisateurs Vérifiés",
+            "banned_users": "Utilisateurs Bannis",
+            "deleted_users": "Utilisateurs Supprimés",
+            "total_posts": "Posts Totaux",
+            "total_reports": "Signalements Totaux",
+            "pending_reports": "En Attente",
             "resolved_reports": "Résolus",
             "rejected_reports": "Rejetés"
         },
@@ -103,6 +107,7 @@
         },
         "reports_table": {
             "reporter": "Signaleur",
+            "ip_address": "Adresse IP",
             "poster": "Auteur",
             "type": "Type",
             "content": "Contenu",
@@ -112,12 +117,12 @@
             "actions": "Actions",
             "resolve": "Résoudre",
             "reject": "Rejeter",
-            "resolve_title": "Résoudre le signalement",
+            "resolve_title": "Résoudre le Signalement",
             "resolve_desc": "Êtes-vous sûr de vouloir résoudre ce signalement ? Le contenu signalé sera supprimé.",
-            "reject_title": "Rejeter le signalement",
+            "reject_title": "Rejeter le Signalement",
             "reject_desc": "Êtes-vous sûr de vouloir rejeter ce signalement ? Le contenu signalé restera.",
             "status_all": "Tous",
-            "status_pending": "En attente",
+            "status_pending": "En Attente",
             "status_resolved": "Résolu",
             "status_rejected": "Rejeté",
             "type_post": "Post",
@@ -133,5 +138,254 @@
         "report_resolved": "a résolu votre signalement",
         "report_rejected": "a examiné votre signalement (aucune violation)",
         "interaction": "a interagi avec votre publication"
+    },
+    "ai_generator": {
+        "title": "Générateur de Post IA",
+        "description": "Sélectionnez un fil, téléchargez une image (optionnel) et laissez l'IA écrire pour vous.",
+        "select_feed": "Sélectionner le Fil",
+        "select_language": "Sélectionner la Langue",
+        "upload_image": "1. Choisir une Image (Optionnel)",
+        "enter_topic": "2. Saisir un Sujet",
+        "topic_placeholder": "Ex : Café du Matin, Tendances Tech, Le Week-end...",
+        "remove_image": "Supprimer",
+        "generate_button": "Générer le Post",
+        "generating": "Création de la Magie...",
+        "generated_label": "Votre Post Généré",
+        "edit_placeholder": "Vous pouvez modifier le texte ici avant de publier...",
+        "copy": "Copier",
+        "post_button": "Publier sur le Fil",
+        "posting": "Publication...",
+        "toast_generated": "Contenu Généré !",
+        "toast_generated_desc": "Votre post parfait est prêt. Vous pouvez maintenant le modifier ou le publier.",
+        "toast_posted": "Publié !",
+        "toast_posted_desc": "Votre post est maintenant en ligne sur le fil.",
+        "feeds": {
+            "news": "Fil d'Actualité",
+            "entertainment": "Fil Divertissement",
+            "discussion": "Fil Discussion"
+        },
+        "languages": {
+            "english": "Anglais",
+            "german": "Allemand",
+            "spanish": "Espagnol",
+            "french": "Français"
+        }
+    },
+    "create_post": {
+        "news": {
+            "title": "Partager une Info",
+            "headline": "Titre",
+            "content": "Contenu de l'Article",
+            "placeholder": "Écrivez votre article ici. Assurez-vous qu'il est factuel et correctement sourcé.",
+            "submit": "Envoyer l'Info",
+            "success_title": "Info publiée",
+            "success_desc": "Votre article a été publié avec succès."
+        },
+        "entertainment": {
+            "title": "Partager du Fun",
+            "title_label": "Titre",
+            "content_label": "Contenu",
+            "placeholder": "Partagez une blague, une histoire drôle ou quelque chose d'intéressant !",
+            "submit": "Partager",
+            "success_title": "Post créé",
+            "success_desc": "Votre post de divertissement a été partagé avec succès."
+        },
+        "discussion": {
+            "title": "Lancer une Discussion",
+            "title_label": "Titre",
+            "content_label": "Contenu",
+            "placeholder": "Partagez vos pensées...",
+            "submit": "Publier la Discussion",
+            "success_title": "Discussion créée",
+            "success_desc": "Votre discussion a été publiée avec succès."
+        },
+        "media_label": "Média (Image ou Vidéo)"
+    },
+    "community": {
+        "create": {
+            "title": "Créer une Communauté",
+            "subtitle": "Construisez un espace pour partager et discuter d'intérêts communs.",
+            "name_label": "Nom de la Communauté",
+            "name_placeholder": "ex : Amateurs de Café, Tech News",
+            "desc_label": "Description",
+            "desc_placeholder": "De quoi parle cette communauté ?",
+            "image_label": "URL de l'Image (Optionnel)",
+            "allowed_feeds_label": "Fils Autorisés",
+            "feed_hint": "Sélectionnez au moins un type de fil pour votre communauté.",
+            "submit": "Créer la Communauté",
+            "success_title": "Communauté Créée",
+            "restriction_title": "Restriction",
+            "restriction_desc": "Vous avez besoin d'au moins 200 de réputation pour créer une communauté.",
+            "current_rep": "Votre réputation actuelle :"
+        },
+        "page": {
+            "not_found_title": "Communauté Non Trouvée",
+            "not_found_desc": "La communauté que vous cherchez n'existe pas.",
+            "back_to_communities": "Retour aux Communautés",
+            "about": "À propos",
+            "created": "Créée :",
+            "join_prompt": "Rejoignez cette communauté pour commencer à publier et interagir !",
+            "join_button": "Rejoindre",
+            "leave_button": "Quitter",
+            "owner_badge": "Propriétaire",
+            "create_post": "Créer un Post",
+            "joined_success": "Rejoint !",
+            "left_success": "Quitté",
+            "member_of": "Vous êtes maintenant membre de {{name}}",
+            "left_community": "Vous avez quitté {{name}}",
+            "tabs": {
+                "all": "Tout",
+                "news": "Actu",
+                "entertainment": "Divertissement",
+                "discussion": "Discussion"
+            },
+            "sort": {
+                "hot": "Populaire",
+                "new": "Nouveau",
+                "top": "Top"
+            },
+            "empty_posts": "Pas encore de posts",
+            "empty_posts_desc": "Soyez le premier à partager quelque chose !"
+        }
+    },
+    "mod_panel": {
+        "title": "Panneau de Modérateur",
+        "no_communities": "Vous ne modérez aucune communauté.",
+        "my_communities": "Mes Communautés",
+        "tabs": {
+            "overview": "Aperçu",
+            "reports": "Signalements",
+            "members": "Membres",
+            "bans": "Bannissements",
+            "staff": "Staff"
+        },
+        "overview": {
+            "title": "Aperçu de la Communauté",
+            "desc": "Métriques et actions rapides (Bientôt)",
+            "select_prompt": "Sélectionnez un onglet pour gérer votre communauté."
+        },
+        "reports": {
+            "updated_title": "Signalement Mis à Jour",
+            "updated_desc": "Le statut du signalement a été mis à jour.",
+            "filter_placeholder": "Filtrer par statut",
+            "all": "Tous les Signalements",
+            "pending": "En Attente",
+            "resolved": "Résolu",
+            "rejected": "Rejeté",
+            "table": {
+                "type": "Type",
+                "reason": "Raison",
+                "status": "Statut",
+                "date": "Date",
+                "actions": "Actions",
+                "empty": "Aucun signalement trouvé."
+            },
+            "types": {
+                "post": "Post",
+                "comment": "Commentaire",
+                "other": "Autre"
+            }
+        },
+        "members": {
+            "kicked_title": "Utilisateur Expulsé",
+            "kicked_desc": "Membre retiré de la communauté.",
+            "search_placeholder": "Rechercher des membres...",
+            "table": {
+                "user": "Utilisateur",
+                "role": "Rôle",
+                "actions": "Actions",
+                "empty": "Aucun membre trouvé."
+            },
+            "kick_dialog": {
+                "title": "Expulser le Membre ?",
+                "desc": "Êtes-vous sûr de vouloir retirer {{name}} de la communauté ? Il pourra rejoindre à nouveau plus tard.",
+                "confirm": "Expulser",
+                "cancel": "Annuler"
+            }
+        },
+        "bans": {
+            "banned_title": "Utilisateur Banni",
+            "banned_desc": "L'utilisateur a été banni de la communauté.",
+            "unbanned_title": "Utilisateur Débanni",
+            "unbanned_desc": "Accès restauré.",
+            "search_placeholder": "Rechercher des bannissements...",
+            "ban_button": "Bannir Utilisateur",
+            "table": {
+                "user": "Utilisateur",
+                "reason": "Raison",
+                "date": "Date",
+                "actions": "Actions",
+                "empty": "Aucun bannissement trouvé.",
+                "id": "ID :",
+                "no_reason": "Pas de raison"
+            },
+            "ban_dialog": {
+                "title": "Bannir Utilisateur de la Communauté",
+                "desc": "Empêcher un utilisateur de publier ou commenter dans cette communauté.",
+                "user_id_label": "ID Utilisateur",
+                "user_id_placeholder": "ID de l'utilisateur cible",
+                "reason_label": "Raison",
+                "reason_placeholder": "Raison du bannissement",
+                "confirm": "Bannir",
+                "cancel": "Annuler"
+            },
+            "unban_dialog": {
+                "title": "Débannir Utilisateur ?",
+                "desc": "Cela restaurera l'accès de {{name}} à la communauté.",
+                "confirm": "Débannir",
+                "cancel": "Annuler"
+            }
+        },
+        "staff": {
+            "added_title": "Modérateur Ajouté",
+            "added_desc": "Utilisateur promu modérateur.",
+            "title": "Staff de la Communauté",
+            "add_button": "Ajouter Modérateur",
+            "add_dialog": {
+                "title": "Ajouter Modérateur",
+                "desc": "Accorder des privilèges de modération. Seul le Propriétaire peut faire cela.",
+                "user_id_label": "ID Utilisateur",
+                "user_id_placeholder": "ID de l'utilisateur cible",
+                "confirm": "Ajouter Modérateur",
+                "cancel": "Annuler"
+            }
+        }
+    },
+    "communities_feed": {
+        "header_title": "Fil des Communautés",
+        "header_desc": "Posts des communautés que vous avez rejointes",
+        "create_button": "Créer une Communauté",
+        "search_title": "Rechercher des Communautés",
+        "search_placeholder": "Rechercher...",
+        "my_communities": "Mes Communautés",
+        "no_joined": "Vous n'avez rejoint aucune communauté pour le moment.",
+        "no_results": "Aucune communauté trouvée.",
+        "no_posts": "Pas encore de posts",
+        "no_posts_desc": "Rejoignez des communautés pour voir leurs posts ici, ou créez votre propre communauté !",
+        "join_suggestion": "Créer une Communauté"
+    },
+    "media_feed": {
+        "load_error": "Échec du chargement du média"
+    },
+    "ai_gen_errors": {
+        "generation_failed": "Échec de la Génération",
+        "posting_failed": "Échec de la Publication",
+        "topic_required": "Sujet Requis",
+        "topic_missing": "Veuillez saisir un sujet pour le post.",
+        "generic": "Quelque chose s'est mal passé.",
+        "copied": "Copié !",
+        "copied_desc": "Contenu copié dans le presse-papiers.",
+        "mascot_name": "Mecha Osiris",
+        "mascot_version": "Modèle v2.0"
+    },
+    "news_page": {
+        "fact_checked": "Vérifié",
+        "published_on": "Publié le",
+        "no_posts_desc": "Pas encore d'articles d'actualité. Soyez le premier à partager des nouvelles importantes !"
+    },
+    "entertainment_page": {
+        "fun_badge": "Fun",
+        "shared_on": "Partagé le",
+        "no_posts_desc": "Pas encore de posts de divertissement. Partagez quelque chose de drôle pour commencer !"
     }
 }

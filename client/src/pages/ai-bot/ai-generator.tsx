@@ -46,8 +46,8 @@ export default function AIGeneratorPage() {
         },
         onError: (error) => {
             toast({
-                title: "Generation Failed",
-                description: error.message || "Something went wrong.",
+                title: t('ai_gen_errors.generation_failed'),
+                description: error.message || t('ai_gen_errors.generic'),
                 variant: "destructive",
             });
         },
@@ -80,7 +80,7 @@ export default function AIGeneratorPage() {
         },
         onError: (error) => {
             toast({
-                title: "Posting Failed",
+                title: t('ai_gen_errors.posting_failed'),
                 description: error.message,
                 variant: "destructive",
             });
@@ -102,8 +102,8 @@ export default function AIGeneratorPage() {
     const handleGenerate = () => {
         if (!topic) {
             toast({
-                title: "Topic Required",
-                description: "Please enter a topic for the post.",
+                title: t('ai_gen_errors.topic_required'),
+                description: t('ai_gen_errors.topic_missing'),
                 variant: "destructive",
             });
             return;
@@ -119,8 +119,8 @@ export default function AIGeneratorPage() {
     const copyToClipboard = () => {
         navigator.clipboard.writeText(generatedContent);
         toast({
-            title: "Copied!",
-            description: "Content copied to clipboard.",
+            title: t('ai_gen_errors.copied'),
+            description: t('ai_gen_errors.copied_desc'),
         });
     };
 
@@ -136,8 +136,8 @@ export default function AIGeneratorPage() {
                                 alt="Mecha Osiris"
                                 className="w-64 h-64 object-contain hover:scale-105 transition-transform duration-300 drop-shadow-lg"
                             />
-                            <h2 className="text-xl font-bold mt-2 text-primary tracking-wide">Mecha Osiris</h2>
-                            <Badge variant="outline" className="mt-1">v2.0 Model</Badge>
+                            <h2 className="text-xl font-bold mt-2 text-primary tracking-wide">{t('ai_gen_errors.mascot_name')}</h2>
+                            <Badge variant="outline" className="mt-1">{t('ai_gen_errors.mascot_version')}</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                             <Sparkles className="w-6 h-6 text-primary" />
@@ -269,7 +269,7 @@ export default function AIGeneratorPage() {
                                     value={generatedContent}
                                     onChange={(e) => setGeneratedContent(e.target.value)}
                                     className="min-h-[150px] font-medium"
-                                    placeholder="You can edit the text here before posting..."
+                                    placeholder={t('ai_generator.edit_placeholder')}
                                 />
 
                                 <div className="flex gap-4 pt-4">

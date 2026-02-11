@@ -11,13 +11,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Users, UserPlus, UserMinus, PlusCircle, Flame, Clock, TrendingUp, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type SortMode = "hot" | "new" | "top";
 
 export default function CommunityPage() {
+    const { t } = useTranslation();
     const params = useParams<{ slug: string }>();
     const slug = params.slug || "";
     const [sortMode, setSortMode] = useState<SortMode>("hot");
+    const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
     const { user } = useAuth();
     const { toast } = useToast();
@@ -49,11 +52,12 @@ export default function CommunityPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [`/api/communities/${slug}`] });
             queryClient.invalidateQueries({ queryKey: ["/api/user/communities"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/user/moderated-communities"] });
             queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] });
-            toast({ title: "Joined!", description: `You are now a member of ${community!.name}` });
+            toast({ title: t('community.page.joined_success'), description: t('community.page.member_of', { name: community!.name }) });
         },
         onError: (error: Error) => {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            toast({ title: t('common.error'), description: error.message, variant: "destructive" });
         },
     });
 
@@ -64,16 +68,18 @@ export default function CommunityPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [`/api/communities/${slug}`] });
             queryClient.invalidateQueries({ queryKey: ["/api/user/communities"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/user/moderated-communities"] });
             queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] });
-            toast({ title: "Left", description: `You have left ${community!.name}` });
+            toast({ title: t('community.page.left_success'), description: t('community.page.left_community', { name: community!.name }) });
         },
         onError: (error: Error) => {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            toast({ title: t('common.error'), description: error.message, variant: "destructive" });
         },
     });
 
     // Sort posts based on mode
-    const sortedPosts = posts ? [...posts].sort((a, b) => {
+    const filteredPosts = posts?.filter(p => selectedCategory === "all" || p.category === selectedCategory) || [];
+    const sortedPosts = filteredPosts.sort((a, b) => {
         switch (sortMode) {
             case "new":
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -103,7 +109,7 @@ export default function CommunityPage() {
                 return scoreB - scoreA;
             }
         }
-    }) : [];
+    });
 
     if (isLoadingCommunity) {
         return (
@@ -127,10 +133,10 @@ export default function CommunityPage() {
                 <Navbar />
                 <main className="container mx-auto px-4 pt-24 text-center">
                     <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                    <h1 className="text-2xl font-bold mb-2">Community Not Found</h1>
-                    <p className="text-muted-foreground mb-6">The community you are looking for does not exist.</p>
+                    <h1 className="text-2xl font-bold mb-2">{t('community.page.not_found_title')}</h1>
+                    <p className="text-muted-foreground mb-6">{t('community.page.not_found_desc')}</p>
                     <Button asChild variant="outline">
-                        <Link href="/feed/communities">Back to Communities</Link>
+                        <Link href="/feed/communities">{t('community.page.back_to_communities')}</Link>
                     </Button>
                 </main>
             </>
@@ -141,10 +147,14 @@ export default function CommunityPage() {
     const isOwner = community.memberInfo?.role === "owner";
 
     const sortButtons: { mode: SortMode; icon: typeof Flame; label: string }[] = [
-        { mode: "hot", icon: Flame, label: "Hot" },
-        { mode: "new", icon: Clock, label: "New" },
-        { mode: "top", icon: TrendingUp, label: "Top" },
+        { mode: "hot", icon: Flame, label: t('community.page.sort.hot') },
+        { mode: "new", icon: Clock, label: t('community.page.sort.new') },
+        { mode: "top", icon: TrendingUp, label: t('community.page.sort.top') },
     ];
+
+    const allowed = community.allowedCategories?.split(',').map(c => c.trim()) || ["news", "entertainment", "discussion"];
+    const targetCategory = selectedCategory === "all" ? allowed[0] : selectedCategory;
+    const postLinkCategory = targetCategory === "discussion" ? "discussions" : targetCategory;
 
     return (
         <>
@@ -173,9 +183,9 @@ export default function CommunityPage() {
                             <div className="flex items-center gap-2">
                                 {isMember && (
                                     <Button variant="outline" asChild>
-                                        <Link href={`/post/news?communityId=${community.id}`}>
+                                        <Link href={`/post/${postLinkCategory}?communityId=${community.id}`}>
                                             <PlusCircle className="mr-2 h-4 w-4" />
-                                            Create Post
+                                            {t('community.page.create_post')}
                                         </Link>
                                     </Button>
                                 )}
@@ -187,12 +197,12 @@ export default function CommunityPage() {
                                         size="sm"
                                     >
                                         {leaveMutation.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : <UserMinus className="mr-2 h-4 w-4" />}
-                                        {isOwner ? "Owner" : "Leave"}
+                                        {isOwner ? t('community.page.owner_badge') : t('community.page.leave_button')}
                                     </Button>
                                 ) : (
                                     <Button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending}>
                                         {joinMutation.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                                        Join
+                                        {t('community.page.join_button')}
                                     </Button>
                                 )}
                             </div>
@@ -205,20 +215,46 @@ export default function CommunityPage() {
                     </div>
                 </div>
 
-                {/* Sort Filters */}
-                <div className="flex items-center gap-2 mb-6">
-                    {sortButtons.map(({ mode, icon: Icon, label }) => (
-                        <Button
-                            key={mode}
-                            variant={sortMode === mode ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setSortMode(mode)}
-                            className="flex items-center gap-1.5"
-                        >
-                            <Icon className="h-4 w-4" />
-                            {label}
-                        </Button>
-                    ))}
+                {/* Filters and Sort */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    {/* Category Tabs */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+                        {(() => {
+                            const allowed = community.allowedCategories?.split(',').map(c => c.trim()) || ["news", "entertainment", "discussion"];
+                            const tabs = [
+                                { id: "all", label: t('community.page.tabs.all') },
+                                ...allowed.map(c => ({ id: c, label: t(`community.page.tabs.${c}` as any) }))
+                            ];
+
+                            return tabs.map(tab => (
+                                <Button
+                                    key={tab.id}
+                                    variant={selectedCategory === tab.id ? "default" : "secondary"}
+                                    size="sm"
+                                    onClick={() => setSelectedCategory(tab.id)}
+                                    className="whitespace-nowrap"
+                                >
+                                    {tab.label}
+                                </Button>
+                            ));
+                        })()}
+                    </div>
+
+                    {/* Sort Buttons */}
+                    <div className="flex items-center gap-2">
+                        {sortButtons.map(({ mode, icon: Icon, label }) => (
+                            <Button
+                                key={mode}
+                                variant={sortMode === mode ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setSortMode(mode)}
+                                className="flex items-center gap-1.5"
+                            >
+                                <Icon className="h-4 w-4" />
+                                {label}
+                            </Button>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -237,13 +273,13 @@ export default function CommunityPage() {
                         ) : (
                             <div className="text-center py-16 border-2 border-dashed rounded-lg">
                                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
-                                <p className="text-muted-foreground mb-4">Be the first to share something!</p>
+                                <h3 className="text-lg font-semibold mb-2">{t('community.page.empty_posts')}</h3>
+                                <p className="text-muted-foreground mb-4">{t('community.page.empty_posts_desc')}</p>
                                 {isMember && (
                                     <Button asChild>
-                                        <Link href={`/post/news?communityId=${community.id}`}>
+                                        <Link href={`/post/${postLinkCategory}?communityId=${community.id}`}>
                                             <PlusCircle className="mr-2 h-4 w-4" />
-                                            Create Post
+                                            {t('community.page.create_post')}
                                         </Link>
                                     </Button>
                                 )}
@@ -255,11 +291,11 @@ export default function CommunityPage() {
                     <div className="space-y-4">
                         <Card>
                             <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-medium">About</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('community.page.about')}</CardTitle>
                             </CardHeader>
                             <CardContent className="text-sm text-muted-foreground space-y-2">
                                 {community.description && <p>{community.description}</p>}
-                                <p>Created: {new Date(community.createdAt).toLocaleDateString()}</p>
+                                <p>{t('community.page.created')} {new Date(community.createdAt).toLocaleDateString()}</p>
                             </CardContent>
                         </Card>
 
@@ -267,11 +303,11 @@ export default function CommunityPage() {
                             <Card>
                                 <CardContent className="pt-6 text-center">
                                     <p className="text-sm text-muted-foreground mb-3">
-                                        Join this community to start posting and interacting!
+                                        {t('community.page.join_prompt')}
                                     </p>
                                     <Button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending} className="w-full">
                                         <UserPlus className="mr-2 h-4 w-4" />
-                                        Join Community
+                                        {t('community.page.join_button')}
                                     </Button>
                                 </CardContent>
                             </Card>

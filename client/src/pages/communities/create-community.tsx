@@ -13,8 +13,10 @@ import { Navbar } from "@/components/layout/navbar";
 import { useLocation } from "wouter";
 import { Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useTranslation } from "react-i18next";
 
 export default function CreateCommunityPage() {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const [, setLocation] = useLocation();
     const { user } = useAuth();
@@ -25,6 +27,7 @@ export default function CreateCommunityPage() {
             name: "",
             description: "",
             imageUrl: "",
+            allowedCategories: "news,entertainment,discussion",
         },
     });
 
@@ -35,15 +38,17 @@ export default function CreateCommunityPage() {
         },
         onSuccess: (community) => {
             queryClient.invalidateQueries({ queryKey: ["/api/communities"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/user/moderated-communities"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/user/communities"] });
             toast({
-                title: "Community Created",
+                title: t('community.create.success_title'),
                 description: `Welcome to ${community.name}!`,
             });
             setLocation(`/c/${community.slug}`);
         },
         onError: (error: Error) => {
             toast({
-                title: "Error",
+                title: t('common.error'),
                 description: error.message,
                 variant: "destructive",
             });
@@ -62,12 +67,12 @@ export default function CreateCommunityPage() {
                         <CardHeader className="text-center">
                             <CardTitle className="flex flex-col items-center gap-2">
                                 <Users className="h-10 w-10 text-muted-foreground" />
-                                <span>Restriction</span>
+                                <span>{t('community.create.restriction_title')}</span>
                             </CardTitle>
                             <CardDescription>
-                                You need at least 200 reputation to create a community.
+                                {t('community.create.restriction_desc')}
                                 <br />
-                                Your current reputation: {user.karma}
+                                {t('community.create.current_rep')} {user.karma}
                             </CardDescription>
                         </CardHeader>
                     </Card>
@@ -83,9 +88,9 @@ export default function CreateCommunityPage() {
                 <div className="max-w-2xl mx-auto">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Create a Community</CardTitle>
+                            <CardTitle>{t('community.create.title')}</CardTitle>
                             <CardDescription>
-                                Build a space for people to share and discuss common interests.
+                                {t('community.create.subtitle')}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -94,10 +99,10 @@ export default function CreateCommunityPage() {
                                 className="space-y-6"
                             >
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Community Name</Label>
+                                    <Label htmlFor="name">{t('community.create.name_label')}</Label>
                                     <Input
                                         id="name"
-                                        placeholder="e.g. Coffee Lovers, Tech News"
+                                        placeholder={t('community.create.name_placeholder')}
                                         {...form.register("name")}
                                     />
                                     {form.formState.errors.name && (
@@ -106,10 +111,10 @@ export default function CreateCommunityPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="description">Description</Label>
+                                    <Label htmlFor="description">{t('community.create.desc_label')}</Label>
                                     <Textarea
                                         id="description"
-                                        placeholder="What is this community about?"
+                                        placeholder={t('community.create.desc_placeholder')}
                                         rows={4}
                                         {...form.register("description")}
                                     />
@@ -119,12 +124,79 @@ export default function CreateCommunityPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="imageUrl">Image URL (Optional)</Label>
+                                    <Label htmlFor="imageUrl">{t('community.create.image_label')}</Label>
                                     <Input
                                         id="imageUrl"
                                         placeholder="https://..."
                                         {...form.register("imageUrl")}
                                     />
+                                </div>
+
+                                <div className="space-y-3">
+                                    <Label>{t('community.create.allowed_feeds_label')}</Label>
+                                    <div className="flex gap-4">
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id="cat-news"
+                                                value="news"
+                                                defaultChecked
+                                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                onChange={(e) => {
+                                                    const current = form.getValues("allowedCategories")?.split(',') || ["news", "entertainment", "discussion"];
+                                                    let newCats;
+                                                    if (e.target.checked) {
+                                                        newCats = [...current, "news"];
+                                                    } else {
+                                                        newCats = current.filter(c => c !== "news");
+                                                    }
+                                                    form.setValue("allowedCategories", newCats.join(','));
+                                                }}
+                                            />
+                                            <Label htmlFor="cat-news" className="font-normal">{t('feed.news')}</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id="cat-entertainment"
+                                                value="entertainment"
+                                                defaultChecked
+                                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                onChange={(e) => {
+                                                    const current = form.getValues("allowedCategories")?.split(',') || ["news", "entertainment", "discussion"];
+                                                    let newCats;
+                                                    if (e.target.checked) {
+                                                        newCats = [...current, "entertainment"];
+                                                    } else {
+                                                        newCats = current.filter(c => c !== "entertainment");
+                                                    }
+                                                    form.setValue("allowedCategories", newCats.join(','));
+                                                }}
+                                            />
+                                            <Label htmlFor="cat-entertainment" className="font-normal">{t('feed.entertainment')}</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id="cat-discussion"
+                                                value="discussion"
+                                                defaultChecked
+                                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                onChange={(e) => {
+                                                    const current = form.getValues("allowedCategories")?.split(',') || ["news", "entertainment", "discussion"];
+                                                    let newCats;
+                                                    if (e.target.checked) {
+                                                        newCats = [...current, "discussion"];
+                                                    } else {
+                                                        newCats = current.filter(c => c !== "discussion");
+                                                    }
+                                                    form.setValue("allowedCategories", newCats.join(','));
+                                                }}
+                                            />
+                                            <Label htmlFor="cat-discussion" className="font-normal">{t('community.page.tabs.discussion')}</Label>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">{t('community.create.feed_hint')}</p>
                                 </div>
 
                                 <Button
@@ -135,7 +207,7 @@ export default function CreateCommunityPage() {
                                     {createCommunityMutation.isPending ? (
                                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                                     ) : (
-                                        "Create Community"
+                                        t('community.create.submit')
                                     )}
                                 </Button>
                             </form>

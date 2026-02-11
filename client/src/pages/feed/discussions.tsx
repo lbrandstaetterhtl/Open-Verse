@@ -468,7 +468,6 @@ export default function DiscussionsFeedPage() {
                                   onClick={() => deletePostMutation.mutate(post.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  {t('actions.delete')}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

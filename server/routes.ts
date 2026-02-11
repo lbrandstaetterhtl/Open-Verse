@@ -247,6 +247,18 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
         communityId: communityId ? parseInt(communityId) : undefined
       };
 
+      if (postData.communityId) {
+        const community = await storage.getCommunity(postData.communityId);
+        if (community) {
+          const allowed = community.allowedCategories.split(',').map((c: string) => c.trim());
+          if (!allowed.includes(postData.category)) {
+            return res.status(400).send(`Category '${postData.category}' is not allowed in this community. Allowed: ${allowed.join(', ')}`);
+          }
+        } else {
+          return res.status(404).send("Community not found");
+        }
+      }
+
       // Moderation Check
       const moderationResult = checkContent(postData.content + " " + (title || ""));
       if (!moderationResult.allowed) {
@@ -1526,6 +1538,17 @@ export async function registerRoutes(app: Express, db: Knex<any, unknown[]>): Pr
       }
 
       await storage.removeCommunityMember(communityId, targetUserId);
+
+      // Notify the user they were kicked
+      const community = await storage.getCommunity(communityId);
+      if (community) {
+        await storage.createNotification({
+          userId: targetUserId,
+          type: `community_kick|${community.name}`,
+          fromUserId: req.user!.id
+        });
+      }
+
       res.sendStatus(200);
     } catch (error) {
       console.error('Error kicking user:', error);

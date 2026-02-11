@@ -41,8 +41,10 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 
 export default function ModPanel() {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const { toast } = useToast();
     const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export default function ModPanel() {
             <main className="container mx-auto px-4 pt-24 pb-12">
                 <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
                     <ShieldAlert className="h-8 w-8 text-primary" />
-                    Moderator Panel
+                    {t('mod_panel.title')}
                 </h1>
 
                 {isLoadingCommunities ? (
@@ -70,14 +72,14 @@ export default function ModPanel() {
                 ) : !communities || communities.length === 0 ? (
                     <Card>
                         <CardContent className="pt-6 text-center text-muted-foreground">
-                            You are not moderating any communities.
+                            {t('mod_panel.no_communities')}
                         </CardContent>
                     </Card>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         {/* Sidebar for Community Selection */}
                         <div className="md:col-span-1 space-y-2">
-                            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">My Communities</h2>
+                            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('mod_panel.my_communities')}</h2>
                             {communities.map((c) => (
                                 <Button
                                     key={c.id}
@@ -104,24 +106,25 @@ export default function ModPanel() {
 }
 
 function ModContext({ communityId }: { communityId: number }) {
+    const { t } = useTranslation();
     return (
         <Tabs defaultValue="overview" className="w-full">
             <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="files">Reports</TabsTrigger>
-                <TabsTrigger value="members">Members</TabsTrigger>
-                <TabsTrigger value="bans">Bans</TabsTrigger>
-                <TabsTrigger value="moderators">Staff</TabsTrigger>
+                <TabsTrigger value="overview">{t('mod_panel.tabs.overview')}</TabsTrigger>
+                <TabsTrigger value="files">{t('mod_panel.tabs.reports')}</TabsTrigger>
+                <TabsTrigger value="members">{t('mod_panel.tabs.members')}</TabsTrigger>
+                <TabsTrigger value="bans">{t('mod_panel.tabs.bans')}</TabsTrigger>
+                <TabsTrigger value="moderators">{t('mod_panel.tabs.staff')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Community Overview</CardTitle>
-                        <CardDescription>Metrics and quick actions (Coming Soon)</CardDescription>
+                        <CardTitle>{t('mod_panel.overview.title')}</CardTitle>
+                        <CardDescription>{t('mod_panel.overview.desc')}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">Select a tab to manage your community.</p>
+                        <p className="text-muted-foreground">{t('mod_panel.overview.select_prompt')}</p>
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -146,6 +149,7 @@ function ModContext({ communityId }: { communityId: number }) {
 }
 
 function ReportsManager({ communityId }: { communityId: number }) {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const [filterStatus, setFilterStatus] = useState<string>("all");
 
@@ -163,10 +167,10 @@ function ReportsManager({ communityId }: { communityId: number }) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "reports"] });
-            toast({ title: "Report Updated", description: "The report status has been updated." });
+            toast({ title: t('mod_panel.reports.updated_title'), description: t('mod_panel.reports.updated_desc') });
         },
         onError: (err: Error) => {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+            toast({ title: t('common.error'), description: err.message, variant: "destructive" });
         }
     });
 
@@ -178,13 +182,13 @@ function ReportsManager({ communityId }: { communityId: number }) {
                 <div className="w-64">
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
                         <SelectTrigger>
-                            <SelectValue placeholder="Filter by status" />
+                            <SelectValue placeholder={t('mod_panel.reports.filter_placeholder')} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Reports</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="resolved">Resolved</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
+                            <SelectItem value="all">{t('mod_panel.reports.all')}</SelectItem>
+                            <SelectItem value="pending">{t('mod_panel.reports.pending')}</SelectItem>
+                            <SelectItem value="resolved">{t('mod_panel.reports.resolved')}</SelectItem>
+                            <SelectItem value="rejected">{t('mod_panel.reports.rejected')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -194,11 +198,11 @@ function ReportsManager({ communityId }: { communityId: number }) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Reason</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>{t('mod_panel.reports.table.type')}</TableHead>
+                            <TableHead>{t('mod_panel.reports.table.reason')}</TableHead>
+                            <TableHead>{t('mod_panel.reports.table.status')}</TableHead>
+                            <TableHead>{t('mod_panel.reports.table.date')}</TableHead>
+                            <TableHead className="text-right">{t('mod_panel.reports.table.actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -211,16 +215,16 @@ function ReportsManager({ communityId }: { communityId: number }) {
                         ) : filteredReports.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                                    No reports found.
+                                    {t('mod_panel.reports.table.empty')}
                                 </TableCell>
                             </TableRow>
                         ) : (
                             filteredReports.map((report) => (
                                 <TableRow key={report.id}>
                                     <TableCell>
-                                        {report.postId ? <Badge variant="outline">Post</Badge> :
-                                            report.commentId ? <Badge variant="outline">Comment</Badge> :
-                                                <Badge variant="outline">Other</Badge>}
+                                        {report.postId ? <Badge variant="outline">{t('mod_panel.reports.types.post')}</Badge> :
+                                            report.commentId ? <Badge variant="outline">{t('mod_panel.reports.types.comment')}</Badge> :
+                                                <Badge variant="outline">{t('mod_panel.reports.types.other')}</Badge>}
                                     </TableCell>
                                     <TableCell>{report.reason}</TableCell>
                                     <TableCell>
@@ -267,6 +271,7 @@ function ReportsManager({ communityId }: { communityId: number }) {
 }
 
 function MembersManager({ communityId }: { communityId: number }) {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const { user: currentUser } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
@@ -285,10 +290,10 @@ function MembersManager({ communityId }: { communityId: number }) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
-            toast({ title: "User Kicked", description: "Member removed from community." });
+            toast({ title: t('mod_panel.members.kicked_title'), description: t('mod_panel.members.kicked_desc') });
         },
         onError: (err: Error) => {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+            toast({ title: t('common.error'), description: err.message, variant: "destructive" });
         }
     });
 
@@ -302,7 +307,7 @@ function MembersManager({ communityId }: { communityId: number }) {
                 <div className="relative w-72">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search members..."
+                        placeholder={t('mod_panel.members.search_placeholder')}
                         className="pl-8"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
@@ -314,9 +319,9 @@ function MembersManager({ communityId }: { communityId: number }) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>{t('mod_panel.members.table.user')}</TableHead>
+                            <TableHead>{t('mod_panel.members.table.role')}</TableHead>
+                            <TableHead className="text-right">{t('mod_panel.members.table.actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -329,7 +334,7 @@ function MembersManager({ communityId }: { communityId: number }) {
                         ) : filteredMembers.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                                    No members found.
+                                    {t('mod_panel.members.table.empty')}
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -352,18 +357,18 @@ function MembersManager({ communityId }: { communityId: number }) {
                                                     </AlertDialogTrigger>
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
-                                                            <AlertDialogTitle>Kick Member?</AlertDialogTitle>
+                                                            <AlertDialogTitle>{t('mod_panel.members.kick_dialog.title')}</AlertDialogTitle>
                                                             <AlertDialogDescription>
-                                                                Are you sure you want to remove {member.user.username} from the community? They can join again later.
+                                                                {t('mod_panel.members.kick_dialog.desc', { name: member.user.username })}
                                                             </AlertDialogDescription>
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
-                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogCancel>{t('mod_panel.members.kick_dialog.cancel')}</AlertDialogCancel>
                                                             <AlertDialogAction
                                                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                                                 onClick={() => kickMutation.mutate(member.user.id)}
                                                             >
-                                                                Kick User
+                                                                {t('mod_panel.members.kick_dialog.confirm')}
                                                             </AlertDialogAction>
                                                         </AlertDialogFooter>
                                                     </AlertDialogContent>
@@ -382,6 +387,7 @@ function MembersManager({ communityId }: { communityId: number }) {
 }
 
 function BansManager({ communityId }: { communityId: number }) {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const [searchTerm, setSearchTerm] = useState("");
     const [banDialogOpen, setBanDialogOpen] = useState(false);
@@ -408,10 +414,10 @@ function BansManager({ communityId }: { communityId: number }) {
             setBanUserId("");
             setBanReason("");
             setBanDialogOpen(false);
-            toast({ title: "User Banned", description: "The user has been banned from the community." });
+            toast({ title: t('mod_panel.bans.banned_title'), description: t('mod_panel.bans.banned_desc') });
         },
         onError: (err: Error) => {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+            toast({ title: t('common.error'), description: err.message, variant: "destructive" });
         }
     });
 
@@ -421,7 +427,7 @@ function BansManager({ communityId }: { communityId: number }) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "bans"] });
-            toast({ title: "User Unbanned", description: "Access restored." });
+            toast({ title: t('mod_panel.bans.unbanned_title'), description: t('mod_panel.bans.unbanned_desc') });
         },
     });
 
@@ -436,7 +442,7 @@ function BansManager({ communityId }: { communityId: number }) {
                 <div className="relative w-72">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search bans..."
+                        placeholder={t('mod_panel.bans.search_placeholder')}
                         className="pl-8"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
@@ -444,42 +450,42 @@ function BansManager({ communityId }: { communityId: number }) {
                 </div>
                 <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button variant="destructive"><Ban className="mr-2 h-4 w-4" /> Ban User</Button>
+                        <Button variant="destructive"><Ban className="mr-2 h-4 w-4" /> {t('mod_panel.bans.ban_button')}</Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Ban User from Community</DialogTitle>
+                            <DialogTitle>{t('mod_panel.bans.ban_dialog.title')}</DialogTitle>
                             <DialogDescription>
-                                Prevent a user from posting or commenting in this community.
+                                {t('mod_panel.bans.ban_dialog.desc')}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
-                                <Label>User ID</Label>
+                                <Label>{t('mod_panel.bans.ban_dialog.user_id_label')}</Label>
                                 <Input
-                                    placeholder="Target User ID"
+                                    placeholder={t('mod_panel.bans.ban_dialog.user_id_placeholder')}
                                     value={banUserId}
                                     onChange={e => setBanUserId(e.target.value)}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Reason</Label>
+                                <Label>{t('mod_panel.bans.ban_dialog.reason_label')}</Label>
                                 <Input
-                                    placeholder="Reason for ban"
+                                    placeholder={t('mod_panel.bans.ban_dialog.reason_placeholder')}
                                     value={banReason}
                                     onChange={e => setBanReason(e.target.value)}
                                 />
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setBanDialogOpen(false)}>Cancel</Button>
+                            <Button variant="outline" onClick={() => setBanDialogOpen(false)}>{t('mod_panel.bans.ban_dialog.cancel')}</Button>
                             <Button
                                 variant="destructive"
                                 onClick={() => banMutation.mutate()}
                                 disabled={!banUserId || banMutation.isPending}
                             >
                                 {banMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Ban User
+                                {t('mod_panel.bans.ban_dialog.confirm')}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -490,10 +496,10 @@ function BansManager({ communityId }: { communityId: number }) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Reason</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>{t('mod_panel.bans.table.user')}</TableHead>
+                            <TableHead>{t('mod_panel.bans.table.reason')}</TableHead>
+                            <TableHead>{t('mod_panel.bans.table.date')}</TableHead>
+                            <TableHead className="text-right">{t('mod_panel.bans.table.actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -506,7 +512,7 @@ function BansManager({ communityId }: { communityId: number }) {
                         ) : filteredBans.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                    No bans found.
+                                    {t('mod_panel.bans.table.empty')}
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -514,9 +520,9 @@ function BansManager({ communityId }: { communityId: number }) {
                                 <TableRow key={ban.id}>
                                     <TableCell>
                                         <div className="font-medium">{ban.user.username}</div>
-                                        <div className="text-xs text-muted-foreground">ID: {ban.userId}</div>
+                                        <div className="text-xs text-muted-foreground">{t('mod_panel.bans.table.id')} {ban.userId}</div>
                                     </TableCell>
-                                    <TableCell>{ban.reason || "No reason"}</TableCell>
+                                    <TableCell>{ban.reason || t('mod_panel.bans.table.no_reason')}</TableCell>
                                     <TableCell>{new Date(ban.bannedAt).toLocaleDateString()}</TableCell>
                                     <TableCell className="text-right">
                                         <AlertDialog>
@@ -527,15 +533,15 @@ function BansManager({ communityId }: { communityId: number }) {
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
-                                                    <AlertDialogTitle>Unban User?</AlertDialogTitle>
+                                                    <AlertDialogTitle>{t('mod_panel.bans.unban_dialog.title')}</AlertDialogTitle>
                                                     <AlertDialogDescription>
-                                                        This will restore access for {ban.user.username} to the community.
+                                                        {t('mod_panel.bans.unban_dialog.desc', { name: ban.user.username })}
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogCancel>{t('mod_panel.bans.unban_dialog.cancel')}</AlertDialogCancel>
                                                     <AlertDialogAction onClick={() => unbanMutation.mutate(ban.userId)}>
-                                                        Unban
+                                                        {t('mod_panel.bans.unban_dialog.confirm')}
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
@@ -552,6 +558,7 @@ function BansManager({ communityId }: { communityId: number }) {
 }
 
 function ModeratorsManager({ communityId }: { communityId: number }) {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const [modUserId, setModUserId] = useState("");
     const [modDialogOpen, setModDialogOpen] = useState(false);
@@ -576,46 +583,46 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
             queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
             setModUserId("");
             setModDialogOpen(false);
-            toast({ title: "Moderator Added", description: "User promoted to moderator." });
+            toast({ title: t('mod_panel.staff.added_title'), description: t('mod_panel.staff.added_desc') });
         },
         onError: (err: Error) => {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+            toast({ title: t('common.error'), description: err.message, variant: "destructive" });
         }
     });
 
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Community Staff</h3>
+                <h3 className="text-lg font-medium">{t('mod_panel.staff.title')}</h3>
                 <Dialog open={modDialogOpen} onOpenChange={setModDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button><UserPlus className="mr-2 h-4 w-4" /> Add Moderator</Button>
+                        <Button><UserPlus className="mr-2 h-4 w-4" /> {t('mod_panel.staff.add_button')}</Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Add Moderator</DialogTitle>
+                            <DialogTitle>{t('mod_panel.staff.add_dialog.title')}</DialogTitle>
                             <DialogDescription>
-                                Grant moderation privileges. Only the Owner can do this.
+                                {t('mod_panel.staff.add_dialog.desc')}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
-                                <Label>User ID</Label>
+                                <Label>{t('mod_panel.staff.add_dialog.user_id_label')}</Label>
                                 <Input
-                                    placeholder="Target User ID"
+                                    placeholder={t('mod_panel.staff.add_dialog.user_id_placeholder')}
                                     value={modUserId}
                                     onChange={e => setModUserId(e.target.value)}
                                 />
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setModDialogOpen(false)}>Cancel</Button>
+                            <Button variant="outline" onClick={() => setModDialogOpen(false)}>{t('mod_panel.staff.add_dialog.cancel')}</Button>
                             <Button
                                 onClick={() => addModMutation.mutate()}
                                 disabled={!modUserId || addModMutation.isPending}
                             >
                                 {addModMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Add Moderator
+                                {t('mod_panel.staff.add_dialog.confirm')}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -626,9 +633,9 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>{t('mod_panel.members.table.user')}</TableHead>
+                            <TableHead>{t('mod_panel.members.table.role')}</TableHead>
+                            <TableHead className="text-right">{t('mod_panel.members.table.actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

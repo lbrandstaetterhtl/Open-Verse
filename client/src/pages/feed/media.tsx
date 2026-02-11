@@ -357,7 +357,7 @@ export default function MediaFeedPage() {
                     {imageLoadErrors[post.id] && (
                       <div className="mt-4 p-4 rounded-lg bg-muted/10 flex items-center justify-center gap-2 text-muted-foreground">
                         <ImageOff className="h-5 w-5" />
-                        <span>Media failed to load</span>
+                        <span>{t('media_feed.load_error')}</span>
                       </div>
                     )}
 
@@ -449,18 +449,18 @@ export default function MediaFeedPage() {
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
                                         <AlertDialogHeader>
-                                          <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+                                          <AlertDialogTitle>{t('actions.delete')}</AlertDialogTitle>
                                           <AlertDialogDescription>
-                                            Are you sure you want to delete this comment? This action cannot be undone.
+                                            {t('actions.delete_comment_confirm')}
                                           </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
                                           <AlertDialogAction
                                             onClick={() => deleteCommentMutation.mutate({ postId: post.id, commentId: comment.id })}
                                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                           >
-                                            Delete
+                                            {t('actions.delete')}
                                           </AlertDialogAction>
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
@@ -522,18 +522,18 @@ export default function MediaFeedPage() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Post</AlertDialogTitle>
+                                <AlertDialogTitle>{t('actions.delete')}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete this post? This action cannot be undone.
+                                  {t('actions.delete_post_confirm')}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => deletePostMutation.mutate(post.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  Delete
+                                  {t('actions.delete')}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

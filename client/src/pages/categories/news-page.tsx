@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/layout/navbar";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Post, insertMediaPostSchema, insertCommentSchema } from "@shared/schema";
@@ -51,6 +52,7 @@ type PostWithAuthor = Post & {
 };
 
 export default function NewsPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -104,8 +106,8 @@ export default function NewsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       form.reset();
       toast({
-        title: "News posted",
-        description: "Your news article has been posted successfully.",
+        title: t('create_post.news.success_title'),
+        description: t('create_post.news.success_desc'),
       });
     },
   });
@@ -118,8 +120,8 @@ export default function NewsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
-        title: "Comment added",
-        description: "Your comment has been posted successfully.",
+        title: t('ai_generator.toast_posted'),
+        description: t('ai_generator.toast_posted_desc'),
       });
     },
   });
@@ -152,10 +154,10 @@ export default function NewsPage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center space-x-4 mb-8">
-            <h1 className="text-4xl font-bold">News</h1>
+            <h1 className="text-4xl font-bold">{t('feed.news')}</h1>
             <Badge variant="secondary" className="text-primary">
               <AlertTriangle className="h-4 w-4 mr-1" />
-              Fact-checked
+              {t('news_page.fact_checked')}
             </Badge>
           </div>
 
@@ -163,7 +165,7 @@ export default function NewsPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Newspaper className="h-5 w-5" />
-                <span>Share News</span>
+                <span>{t('create_post.news.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -177,7 +179,7 @@ export default function NewsPage() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Headline</FormLabel>
+                        <FormLabel>{t('create_post.news.headline')}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -190,11 +192,11 @@ export default function NewsPage() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Article Content</FormLabel>
+                        <FormLabel>{t('create_post.news.content')}</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={6}
-                            placeholder="Write your news article here. Please ensure it's factual and properly sourced."
+                            placeholder={t('create_post.news.placeholder')}
                             {...field}
                           />
                         </FormControl>
@@ -207,7 +209,7 @@ export default function NewsPage() {
                     name="mediaFile"
                     render={({ field: { onChange, value, ...field } }) => (
                       <FormItem>
-                        <FormLabel>Media (Image or Video)</FormLabel>
+                        <FormLabel>{t('create_post.media_label')}</FormLabel>
                         <FormControl>
                           <Input
                             type="file"
@@ -234,7 +236,7 @@ export default function NewsPage() {
                     {createPostMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      "Submit News"
+                      t('create_post.news.submit')
                     )}
                   </Button>
                 </form>
@@ -249,7 +251,7 @@ export default function NewsPage() {
           ) : posts?.length === 0 ? (
             <Alert>
               <AlertDescription>
-                No news articles yet. Be the first to share important news!
+                {t('news_page.no_posts_desc')}
               </AlertDescription>
             </Alert>
           ) : (
@@ -273,11 +275,11 @@ export default function NewsPage() {
                         </div>
                       </div>
                       <Badge variant="outline" className="text-primary">
-                        News
+                        {t('feed.news')}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Published on {format(new Date(post.createdAt), "PPP")}
+                      {t('news_page.published_on')} {format(new Date(post.createdAt), "PPP")}
                     </p>
                   </CardHeader>
                   <CardContent>
@@ -304,13 +306,13 @@ export default function NewsPage() {
                     <div className="mt-6 space-y-4">
                       <h3 className="font-semibold flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        Comments
+                        {t('comments.title')}
                       </h3>
 
                       {/* Comment Form */}
                       <div className="flex gap-2">
                         <Input
-                          placeholder="Write a comment..."
+                          placeholder={t('comments.placeholder')}
                           onKeyPress={(e) => {
                             if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
                               createCommentMutation.mutate({
@@ -335,7 +337,7 @@ export default function NewsPage() {
                             }
                           }}
                         >
-                          Post
+                          {t('comments.post_button')}
                         </Button>
                       </div>
 

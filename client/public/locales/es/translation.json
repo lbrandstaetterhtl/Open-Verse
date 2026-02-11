@@ -1,11 +1,14 @@
 {
     "navbar": {
         "brand": "Osiris",
-        "media_feed": "Feed de Medios",
+        "media_feed": "Feed Multimedia",
         "discussions_feed": "Feed de Discusiones",
         "messages": "Mensajes",
         "profile": "Perfil",
-        "theme_builder": "Personalizar Tema",
+        "theme_builder": "Constructor de Temas",
+        "communities": "Comunidades",
+        "ai_generator": "Generador IA",
+        "mod_panel": "Panel de Moderador",
         "admin": "Administración",
         "logout": "Cerrar Sesión"
     },
@@ -24,7 +27,7 @@
         }
     },
     "feed": {
-        "media_title": "Feed de Medios",
+        "media_title": "Feed Multimedia",
         "discussions_title": "Feed de Discusiones",
         "create_discussion": "Iniciar Discusión",
         "post_news": "Publicar Noticias",
@@ -46,65 +49,66 @@
         "report": "Reportar",
         "delete": "Eliminar",
         "cancel": "Cancelar",
-        "delete_post_confirm": "¿Seguro que quieres eliminar esta publicación? Esta acción no se puede deshacer.",
-        "delete_comment_confirm": "¿Seguro que quieres eliminar este comentario? Esta acción no se puede deshacer."
+        "delete_post_confirm": "¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.",
+        "delete_comment_confirm": "¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer."
     },
     "admin": {
         "title": "Panel de Administración",
         "reset_roles": "Restablecer Todos los Roles",
         "stats": {
-            "total_users": "Usuarios Totales",
+            "total_users": "Total de Usuarios",
             "active_users": "Usuarios Activos",
             "verified_users": "Usuarios Verificados",
             "banned_users": "Usuarios Baneados",
             "deleted_users": "Usuarios Eliminados",
-            "total_posts": "Publicaciones Totales",
-            "total_reports": "Reportes Totales",
-            "pending_reports": "Pendientes",
-            "resolved_reports": "Resueltos",
-            "rejected_reports": "Rechazados"
+            "total_posts": "Total de Publicaciones",
+            "total_reports": "Total de Reportes",
+            "pending_reports": "Reportes Pendientes",
+            "resolved_reports": "Reportes Resueltos",
+            "rejected_reports": "Reportes Rechazados"
         },
         "tabs": {
             "users": "Usuarios",
             "reports": "Reportes"
         },
         "roles": {
-            "owner": "Dueño",
+            "owner": "Propietario",
             "admin": "Admin",
             "user": "Usuario"
         },
         "users_table": {
             "search_placeholder": "Buscar usuarios...",
-            "username": "Usuario",
-            "email": "Correo",
+            "username": "Nombre de usuario",
+            "email": "Correo electrónico",
             "status": "Estado",
             "role": "Rol",
             "karma": "Karma",
             "joined": "Se unió",
             "actions": "Acciones",
             "make_admin": "Hacer Admin",
-            "make_owner": "Hacer Dueño",
-            "remove_admin": "Remover Admin",
-            "remove_owner": "Remover Dueño",
+            "make_owner": "Hacer Propietario",
+            "remove_admin": "Quitar Admin",
+            "remove_owner": "Quitar Propietario",
             "ban_user": "Banear Usuario",
             "restore_user": "Restaurar Cuenta",
             "verify_user": "Verificar Usuario",
-            "unverify_user": "Remover Verificación",
+            "unverify_user": "Desverificar Usuario",
             "verify_email": "Verificar Correo",
             "unverify_email": "Desverificar Correo",
-            "verify_user_confirm": "¿Seguro que quieres verificar a {{username}}? Se mostrará una insignia de verificado.",
-            "unverify_user_confirm": "¿Seguro que quieres quitar la verificación a {{username}}? La insignia de verificado será eliminada.",
-            "restore_user_confirm": "¿Seguro que quieres restaurar la cuenta de {{username}}?",
-            "ban_user_confirm": "¿Seguro que quieres banear a {{username}}? Esto evitará que acceda a la mayoría de las funciones.",
-            "delete_user_confirm": "¿Seguro que quieres eliminar permanentemente a {{username}}? Esta acción es irreversible y eliminará todos sus datos.",
-            "make_admin_confirm": "¿Seguro que quieres hacer admin a {{username}}? Tendrá privilegios administrativos.",
-            "make_owner_confirm": "¿Seguro que quieres promover a {{username}} a Dueño? Tendrá acceso total al sistema.",
-            "remove_owner_confirm": "¿Seguro que quieres quitar el estado de Dueño a {{username}}? Será degradado a Admin.",
-            "remove_admin_confirm": "¿Seguro que quieres quitar los permisos de admin a {{username}}? Será degradado a usuario normal."
+            "verify_user_confirm": "¿Estás seguro de que quieres verificar a {{username}}? Esto mostrará una insignia de verificado junto a su nombre.",
+            "unverify_user_confirm": "¿Estás seguro de que quieres quitar la verificación a {{username}}? Esto eliminará su insignia de verificado.",
+            "restore_user_confirm": "¿Estás seguro de que quieres restaurar la cuenta de {{username}}?",
+            "ban_user_confirm": "¿Estás seguro de que quieres banear a {{username}}? Esto les impedirá acceder a la mayoría de las funciones.",
+            "delete_user_confirm": "¿Estás seguro de que quieres eliminar permanentemente a {{username}}? Esta acción no se puede deshacer y eliminará todas las publicaciones, comentarios y otros datos del usuario.",
+            "make_admin_confirm": "¿Estás seguro de que quieres hacer administrador a {{username}}? Esto les dará privilegios administrativos.",
+            "make_owner_confirm": "¿Estás seguro de que quieres promover a {{username}} a Propietario? Esto les otorga acceso total al sistema.",
+            "remove_owner_confirm": "¿Estás seguro de que quieres quitar el estado de Propietario a {{username}}? Serán degradados a Administrador.",
+            "remove_admin_confirm": "¿Estás seguro de que quieres quitar los privilegios de administrador a {{username}}? Serán degradados a un usuario regular."
         },
         "reports_table": {
             "reporter": "Reportador",
-            "poster": "Autor",
+            "ip_address": "Dirección IP",
+            "poster": "Lata",
             "type": "Tipo",
             "content": "Contenido",
             "reason": "Razón",
@@ -114,9 +118,9 @@
             "resolve": "Resolver",
             "reject": "Rechazar",
             "resolve_title": "Resolver Reporte",
-            "resolve_desc": "¿Seguro que quieres resolver este reporte? El contenido reportado será eliminado.",
+            "resolve_desc": "¿Estás seguro de que quieres resolver este reporte? Esto eliminará el contenido reportado.",
             "reject_title": "Rechazar Reporte",
-            "reject_desc": "¿Seguro que quieres rechazar este reporte? El contenido reportado permanecerá.",
+            "reject_desc": "¿Estás seguro de que quieres rechazar este reporte? El contenido reportado permanecerá.",
             "status_all": "Todos",
             "status_pending": "Pendiente",
             "status_resolved": "Resuelto",
@@ -128,11 +132,261 @@
     },
     "notifications": {
         "title": "Notificaciones",
-        "empty": "Sin notificaciones",
-        "new_follower": "comenzó a seguirte",
+        "empty": "No hay notificaciones todavía",
+        "new_follower": "empezó a seguirte",
         "new_message": "te envió un mensaje",
-        "report_resolved": "resolvió tu reporte",
-        "report_rejected": "revisó tu reporte (sin infracción)",
+        "report_resolved": "ha resuelto su reporte",
+        "report_rejected": "ha rechazado su reporte",
+        "community_kick": "te ha expulsado de {{name}}",
         "interaction": "interactuó con tu publicación"
+    },
+    "ai_generator": {
+        "title": "Generador de Posts con IA",
+        "description": "Selecciona un feed, sube una imagen (opcional) y deja que la IA escriba por ti.",
+        "select_feed": "Seleccionar Feed",
+        "select_language": "Seleccionar Idioma",
+        "upload_image": "1. Elige una Imagen (Opcional)",
+        "enter_topic": "2. Introduce un Tema",
+        "topic_placeholder": "Ej., Café Matutino, Tendencias Tech, Vibras de Fin de Semana...",
+        "remove_image": "Eliminar",
+        "generate_button": "Generar Post",
+        "generating": "Creando Magia...",
+        "generated_label": "Tu Post Generado",
+        "edit_placeholder": "Puedes editar el texto aquí antes de publicar...",
+        "copy": "Copiar",
+        "post_button": "Publicar en Feed",
+        "posting": "Publicando...",
+        "toast_generated": "¡Contenido Generado!",
+        "toast_generated_desc": "Tu post perfecto está listo. Ahora puedes editarlo o publicarlo.",
+        "toast_posted": "¡Publicado!",
+        "toast_posted_desc": "Tu post está ahora en vivo en el feed.",
+        "feeds": {
+            "news": "Feed de Noticias",
+            "entertainment": "Feed de Entretenimiento",
+            "discussion": "Feed de Discusión"
+        },
+        "languages": {
+            "english": "Inglés",
+            "german": "Alemán",
+            "spanish": "Español",
+            "french": "Francés"
+        }
+    },
+    "create_post": {
+        "news": {
+            "title": "Compartir Noticia",
+            "headline": "Titular",
+            "content": "Contenido del Artículo",
+            "placeholder": "Escribe tu artículo de noticias aquí. Asegúrate de que sea factual y tenga fuentes adecuadas.",
+            "submit": "Enviar Noticia",
+            "success_title": "Noticia publicada",
+            "success_desc": "Tu artículo de noticias ha sido publicado exitosamente."
+        },
+        "entertainment": {
+            "title": "Compartir Algo Divertido",
+            "title_label": "Título",
+            "content_label": "Contenido",
+            "placeholder": "¡Comparte un chiste, una historia divertida o algo interesante!",
+            "submit": "Compartir",
+            "success_title": "Post creado",
+            "success_desc": "Tu post de entretenimiento ha sido compartido exitosamente."
+        },
+        "discussion": {
+            "title": "Iniciar una Discusión",
+            "title_label": "Título",
+            "content_label": "Contenido",
+            "placeholder": "Comparte tus pensamientos...",
+            "submit": "Publicar Discusión",
+            "success_title": "Discusión creada",
+            "success_desc": "Tu discusión ha sido publicada exitosamente."
+        },
+        "media_label": "Media (Imagen o Video)"
+    },
+    "community": {
+        "create": {
+            "title": "Crear una Comunidad",
+            "subtitle": "Construye un espacio para que la gente comparta y discuta intereses comunes.",
+            "name_label": "Nombre de la Comunidad",
+            "name_placeholder": "ej. Amantes del Café, Noticias Tech",
+            "desc_label": "Descripción",
+            "desc_placeholder": "¿De qué trata esta comunidad?",
+            "image_label": "URL de Imagen (Opcional)",
+            "allowed_feeds_label": "Feeds Permitidos",
+            "feed_hint": "Selecciona al menos un tipo de feed para tu comunidad.",
+            "submit": "Crear Comunidad",
+            "success_title": "Comunidad Creada",
+            "restriction_title": "Restricción",
+            "restriction_desc": "Necesitas al menos 200 de reputación para crear una comunidad.",
+            "current_rep": "Tu reputación actual:"
+        },
+        "page": {
+            "not_found_title": "Comunidad No Encontrada",
+            "not_found_desc": "La comunidad que buscas no existe.",
+            "back_to_communities": "Volver a Comunidades",
+            "about": "Acerca de",
+            "created": "Creada:",
+            "join_prompt": "¡Únete a esta comunidad para empezar a publicar e interactuar!",
+            "join_button": "Unirse a Comunidad",
+            "leave_button": "Salir",
+            "owner_badge": "Propietario",
+            "create_post": "Crear Post",
+            "joined_success": "¡Te has unido!",
+            "left_success": "Has salido",
+            "member_of": "Ahora eres miembro de {{name}}",
+            "left_community": "Has dejado {{name}}",
+            "tabs": {
+                "all": "Todo",
+                "news": "Noticias",
+                "entertainment": "Entretenimiento",
+                "discussion": "Discusión"
+            },
+            "sort": {
+                "hot": "Tendencias",
+                "new": "Nuevo",
+                "top": "Top"
+            },
+            "empty_posts": "No hay posts todavía",
+            "empty_posts_desc": "¡Sé el primero en compartir algo!"
+        }
+    },
+    "mod_panel": {
+        "title": "Panel de Moderador",
+        "no_communities": "No estás moderando ninguna comunidad.",
+        "my_communities": "Mis Comunidades",
+        "tabs": {
+            "overview": "Resumen",
+            "reports": "Reportes",
+            "members": "Miembros",
+            "bans": "Baneos",
+            "staff": "Staff"
+        },
+        "overview": {
+            "title": "Resumen de la Comunidad",
+            "desc": "Métricas y acciones rápidas (Próximamente)",
+            "select_prompt": "Selecciona una pestaña para gestionar tu comunidad."
+        },
+        "reports": {
+            "updated_title": "Reporte Actualizado",
+            "updated_desc": "El estado del reporte ha sido actualizado.",
+            "filter_placeholder": "Filtrar por estado",
+            "all": "Todos los Reportes",
+            "pending": "Pendiente",
+            "resolved": "Resuelto",
+            "rejected": "Rechazado",
+            "table": {
+                "type": "Tipo",
+                "reason": "Razón",
+                "status": "Estado",
+                "date": "Fecha",
+                "actions": "Acciones",
+                "empty": "No hay reportes encontrados."
+            },
+            "types": {
+                "post": "Post",
+                "comment": "Comentario",
+                "other": "Otro"
+            }
+        },
+        "members": {
+            "kicked_title": "Usuario Expulsado",
+            "kicked_desc": "Miembro eliminado de la comunidad.",
+            "search_placeholder": "Buscar miembros...",
+            "table": {
+                "user": "Usuario",
+                "role": "Rol",
+                "actions": "Acciones",
+                "empty": "No hay miembros encontrados."
+            },
+            "kick_dialog": {
+                "title": "¿Expulsar Miembro?",
+                "desc": "¿Estás seguro de que quieres eliminar a {{name}} de la comunidad? Pueden unirse de nuevo más tarde.",
+                "confirm": "Expulsar Usuario",
+                "cancel": "Cancelar"
+            }
+        },
+        "bans": {
+            "banned_title": "Usuario Baneado",
+            "banned_desc": "El usuario ha sido baneado de la comunidad.",
+            "unbanned_title": "Usuario Desbaneado",
+            "unbanned_desc": "Acceso restaurado.",
+            "search_placeholder": "Buscar baneos...",
+            "ban_button": "Banear Usuario",
+            "table": {
+                "user": "Usuario",
+                "reason": "Razón",
+                "date": "Fecha",
+                "actions": "Acciones",
+                "empty": "No hay baneos encontrados.",
+                "id": "ID:",
+                "no_reason": "Sin razón"
+            },
+            "ban_dialog": {
+                "title": "Banear Usuario de la Comunidad",
+                "desc": "Prevenir que un usuario publique o comente en esta comunidad.",
+                "user_id_label": "ID de Usuario",
+                "user_id_placeholder": "ID de Usuario Objetivo",
+                "reason_label": "Razón",
+                "reason_placeholder": "Razón del baneo",
+                "confirm": "Banear Usuario",
+                "cancel": "Cancelar"
+            },
+            "unban_dialog": {
+                "title": "¿Desbanear Usuario?",
+                "desc": "Esto restaurará el acceso de {{name}} a la comunidad.",
+                "confirm": "Desbanear",
+                "cancel": "Cancelar"
+            }
+        },
+        "staff": {
+            "added_title": "Moderador Añadido",
+            "added_desc": "Usuario promovido a moderador.",
+            "title": "Staff de la Comunidad",
+            "add_button": "Añadir Moderador",
+            "add_dialog": {
+                "title": "Añadir Moderador",
+                "desc": "Otorgar privilegios de moderación. Solo el Propietario puede hacer esto.",
+                "user_id_label": "ID de Usuario",
+                "user_id_placeholder": "ID de Usuario Objetivo",
+                "confirm": "Añadir Moderador",
+                "cancel": "Cancelar"
+            }
+        }
+    },
+    "communities_feed": {
+        "header_title": "Feed de Comunidades",
+        "header_desc": "Publicaciones de comunidades a las que te has unido",
+        "create_button": "Crear Comunidad",
+        "search_title": "Buscar Comunidades",
+        "search_placeholder": "Buscar...",
+        "my_communities": "Mis Comunidades",
+        "no_joined": "Aún no te has unido a ninguna comunidad.",
+        "no_results": "No se encontraron comunidades.",
+        "no_posts": "No hay posts todavía",
+        "no_posts_desc": "¡Únete a comunidades para ver sus posts aquí, o crea tu propia comunidad!",
+        "join_suggestion": "Crear Comunidad"
+    },
+    "media_feed": {
+        "load_error": "Media falló al cargar"
+    },
+    "ai_gen_errors": {
+        "generation_failed": "Generación Fallida",
+        "posting_failed": "Publicación Fallida",
+        "topic_required": "Tema Requerido",
+        "topic_missing": "Por favor introduce un tema para el post.",
+        "generic": "Algo salió mal.",
+        "copied": "¡Copiado!",
+        "copied_desc": "Contenido copiado al portapapeles.",
+        "mascot_name": "Mecha Osiris",
+        "mascot_version": "Modelo v2.0"
+    },
+    "news_page": {
+        "fact_checked": "Verificado",
+        "published_on": "Publicado el",
+        "no_posts_desc": "Aún no hay artículos de noticias. ¡Sé el primero en compartir noticias importantes!"
+    },
+    "entertainment_page": {
+        "fun_badge": "Diversión",
+        "shared_on": "Compartido el",
+        "no_posts_desc": "No hay posts de entretenimiento todavía. ¡Comparte algo divertido para empezar!"
     }
 }

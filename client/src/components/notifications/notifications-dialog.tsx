@@ -108,15 +108,17 @@ export function NotificationsDialog() {
                 <div className="flex-1">
                   <p className="text-sm">
                     <span className="font-medium">{notification.fromUser.username}</span>{" "}
-                    {notification.type === "new_follower"
-                      ? t('notifications.new_follower')
-                      : notification.type === "new_message"
-                        ? t('notifications.new_message')
-                        : notification.type === "report_resolved"
-                          ? t('notifications.report_resolved')
-                          : notification.type === "report_rejected"
-                            ? t('notifications.report_rejected')
-                            : t('notifications.interaction')}
+                    {notification.type.startsWith("community_kick|")
+                      ? t('notifications.community_kick', { name: notification.type.split('|')[1] })
+                      : notification.type === "new_follower"
+                        ? t('notifications.new_follower')
+                        : notification.type === "new_message"
+                          ? t('notifications.new_message')
+                          : notification.type === "report_resolved"
+                            ? t('notifications.report_resolved')
+                            : notification.type === "report_rejected"
+                              ? t('notifications.report_rejected')
+                              : t('notifications.interaction')}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(notification.createdAt), "PPp")}

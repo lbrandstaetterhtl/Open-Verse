@@ -25,13 +25,13 @@ export function Navbar() {
   const links = [
     { href: "/feed/media", icon: Newspaper, label: t('navbar.media_feed') },
     { href: "/feed/discussions", icon: MessageSquare, label: t('navbar.discussions_feed') },
-    { href: "/feed/communities", icon: Users, label: "Communities" }, // New feed
-    { href: "/ai-generator", icon: Bot, label: "AI Generator" },
+    { href: "/feed/communities", icon: Users, label: t('navbar.communities') }, // New feed
+    { href: "/ai-generator", icon: Bot, label: t('navbar.ai_generator') },
     { href: "/chat", icon: MessageCircle, label: t('navbar.messages') },
     { href: "/profile", icon: UserCircle, label: t('navbar.profile') },
     { href: "/theme-builder", icon: Palette, label: t('navbar.theme_builder') },
     ...(isModerator ? [
-      { href: "/mod-panel", icon: ShieldAlert, label: "Mod Panel" }
+      { href: "/mod-panel", icon: ShieldAlert, label: t('navbar.mod_panel') }
     ] : []),
     // Show admin link for users with admin privileges
     ...(user?.isAdmin || user?.role === 'admin' || user?.role === 'owner' ? [

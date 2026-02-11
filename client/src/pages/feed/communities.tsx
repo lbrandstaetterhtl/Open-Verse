@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Users, Loader2, Search, Hash } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useTranslation } from "react-i18next";
 
 interface Community {
     id: number;
@@ -20,6 +21,7 @@ interface Community {
 }
 
 export default function CommunityFeedPage() {
+    const { t } = useTranslation();
     const [searchQuery, setSearchQuery] = useState("");
 
     // Fetch posts from joined communities
@@ -73,12 +75,12 @@ export default function CommunityFeedPage() {
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                                         <Search className="h-4 w-4" />
-                                        Search Communities
+                                        {t('communities_feed.search_title')}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="pt-0">
                                     <Input
-                                        placeholder="Search..."
+                                        placeholder={t('communities_feed.search_placeholder')}
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         className="h-9"
@@ -97,7 +99,7 @@ export default function CommunityFeedPage() {
                                         </div>
                                     )}
                                     {filteredCommunities && filteredCommunities.length === 0 && (
-                                        <p className="text-xs text-muted-foreground mt-2">No communities found.</p>
+                                        <p className="text-xs text-muted-foreground mt-2">{t('communities_feed.no_results')}</p>
                                     )}
                                 </CardContent>
                             </Card>
@@ -108,7 +110,7 @@ export default function CommunityFeedPage() {
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-sm font-medium flex items-center gap-2">
                                             <Users className="h-4 w-4" />
-                                            My Communities
+                                            {t('communities_feed.my_communities')}
                                         </CardTitle>
                                         <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
                                             <Link href="/create-community">
@@ -142,7 +144,7 @@ export default function CommunityFeedPage() {
                                         </div>
                                     ) : (
                                         <p className="text-xs text-muted-foreground text-center py-3">
-                                            You haven't joined any communities yet.
+                                            {t('communities_feed.no_joined')}
                                         </p>
                                     )}
                                 </CardContent>
@@ -157,16 +159,16 @@ export default function CommunityFeedPage() {
                             <div>
                                 <h1 className="text-3xl font-bold flex items-center gap-2">
                                     <Users className="h-8 w-8 text-primary" />
-                                    Community Feed
+                                    {t('communities_feed.header_title')}
                                 </h1>
                                 <p className="text-muted-foreground mt-1">
-                                    Posts from communities you have joined
+                                    {t('communities_feed.header_desc')}
                                 </p>
                             </div>
                             <Button asChild>
                                 <Link href="/create-community">
                                     <Plus className="h-4 w-4 mr-2" />
-                                    Create Community
+                                    {t('communities_feed.create_button')}
                                 </Link>
                             </Button>
                         </div>
@@ -176,7 +178,7 @@ export default function CommunityFeedPage() {
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                    placeholder="Search communities..."
+                                    placeholder={t('communities_feed.search_placeholder')}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="pl-9"
@@ -210,13 +212,13 @@ export default function CommunityFeedPage() {
                         ) : posts?.length === 0 ? (
                             <div className="text-center py-12 border rounded-lg bg-muted/10">
                                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                <h2 className="text-xl font-semibold mb-2">No posts yet</h2>
+                                <h2 className="text-xl font-semibold mb-2">{t('communities_feed.no_posts')}</h2>
                                 <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                                    Join communities to see their posts here, or create your own community!
+                                    {t('communities_feed.no_posts_desc')}
                                 </p>
                                 <div className="flex justify-center gap-4">
                                     <Button asChild variant="outline">
-                                        <Link href="/create-community">Create Community</Link>
+                                        <Link href="/create-community">{t('communities_feed.join_suggestion')}</Link>
                                     </Button>
                                 </div>
                             </div>

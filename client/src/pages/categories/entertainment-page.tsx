@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/layout/navbar";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Post, insertMediaPostSchema, insertCommentSchema } from "@shared/schema";
@@ -50,6 +51,7 @@ type PostWithAuthor = Post & {
 };
 
 export default function EntertainmentPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -99,14 +101,14 @@ export default function EntertainmentPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       form.reset();
       toast({
-        title: "Success",
-        description: "Your entertainment post has been shared.",
+        title: t('create_post.entertainment.success_title'),
+        description: t('create_post.entertainment.success_desc'),
       });
     },
     onError: (error: Error) => {
       console.error("Post creation error:", error);
       toast({
-        title: "Error",
+        title: t('common.error'),
         description: error.message,
         variant: "destructive",
       });
@@ -121,8 +123,8 @@ export default function EntertainmentPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
-        title: "Comment added",
-        description: "Your comment has been posted successfully.",
+        title: t('ai_generator.toast_posted'),
+        description: t('ai_generator.toast_posted_desc'),
       });
     },
   });
@@ -164,7 +166,7 @@ export default function EntertainmentPage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center space-x-4 mb-8">
-            <h1 className="text-4xl font-bold">Entertainment</h1>
+            <h1 className="text-4xl font-bold">{t('feed.entertainment')}</h1>
             <Coffee className="h-8 w-8 text-primary" />
           </div>
 
@@ -172,7 +174,7 @@ export default function EntertainmentPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <SmilePlus className="h-5 w-5" />
-                <span>Share Something Fun</span>
+                <span>{t('create_post.entertainment.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -187,7 +189,7 @@ export default function EntertainmentPage() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Title</FormLabel>
+                        <FormLabel>{t('create_post.entertainment.title_label')}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -200,11 +202,11 @@ export default function EntertainmentPage() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Content</FormLabel>
+                        <FormLabel>{t('create_post.entertainment.content_label')}</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={4}
-                            placeholder="Share a joke, a funny story, or something interesting!"
+                            placeholder={t('create_post.entertainment.placeholder')}
                             {...field}
                           />
                         </FormControl>
@@ -217,7 +219,7 @@ export default function EntertainmentPage() {
                     name="mediaFile"
                     render={({ field: { onChange, value, ...field } }) => (
                       <FormItem>
-                        <FormLabel>Media (Image or Video)</FormLabel>
+                        <FormLabel>{t('create_post.media_label')}</FormLabel>
                         <FormControl>
                           <Input
                             type="file"
@@ -244,7 +246,7 @@ export default function EntertainmentPage() {
                     {createPostMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      "Share"
+                      t('create_post.entertainment.submit')
                     )}
                   </Button>
                 </form>
@@ -259,7 +261,7 @@ export default function EntertainmentPage() {
           ) : posts?.length === 0 ? (
             <Alert>
               <AlertDescription>
-                No entertainment posts yet. Share something fun to get started!
+                {t('entertainment_page.no_posts_desc')}
               </AlertDescription>
             </Alert>
           ) : (
@@ -276,11 +278,11 @@ export default function EntertainmentPage() {
                         </div>
                       </div>
                       <Badge variant="outline" className="text-primary">
-                        Fun
+                        {t('entertainment_page.fun_badge')}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Shared on {format(new Date(post.createdAt), "PPP")}
+                      {t('entertainment_page.shared_on')} {format(new Date(post.createdAt), "PPP")}
                     </p>
                   </CardHeader>
                   <CardContent>
@@ -314,12 +316,12 @@ export default function EntertainmentPage() {
                     <div className="mt-6 space-y-4">
                       <h3 className="font-semibold flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        Comments
+                        {t('comments.title')}
                       </h3>
 
                       <div className="flex gap-2">
                         <Input
-                          placeholder="Write a comment..."
+                          placeholder={t('comments.placeholder')}
                           onKeyPress={(e) => {
                             if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
                               createCommentMutation.mutate({
@@ -344,7 +346,7 @@ export default function EntertainmentPage() {
                             }
                           }}
                         >
-                          Post
+                          {t('comments.post_button')}
                         </Button>
                       </div>
 

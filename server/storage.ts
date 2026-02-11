@@ -173,6 +173,12 @@ export class DatabaseStorage implements IStorage {
         } catch (e) {
           // Column likely exists
         }
+
+        try {
+          sqlite.exec("ALTER TABLE communities ADD COLUMN allowed_categories TEXT DEFAULT 'news,entertainment,discussion'");
+        } catch (e) {
+          // Column likely exists
+        }
       }
     } else {
       this.sessionStore = new PostgresSessionStore({
@@ -546,9 +552,7 @@ export class DatabaseStorage implements IStorage {
     return comment;
   }
 
-  async deleteComment(id: number): Promise<void> {
-    await db.delete(comments).where(eq(comments.id, id));
-  }
+
 
   async deleteUserPosts(userId: number): Promise<void> {
     const sqlite = getSqlite();
@@ -1197,8 +1201,8 @@ export class DatabaseStorage implements IStorage {
 
     // Combine both results into a Set to avoid duplicates
     const activeUserIds = new Set<number>();
-    postsActivity.forEach(record => activeUserIds.add(record.userId));
-    commentsActivity.forEach(record => activeUserIds.add(record.userId));
+    postsActivity.forEach((record: { userId: number }) => activeUserIds.add(record.userId));
+    commentsActivity.forEach((record: { userId: number }) => activeUserIds.add(record.userId));
 
     return activeUserIds.size;
   }
@@ -1338,22 +1342,29 @@ export class DatabaseStorage implements IStorage {
     if (process.env.USE_SQLITE === 'true' && sqlite) {
       const createdAt = Math.floor(Date.now() / 1000);
       const stmt = sqlite.prepare(`
-        INSERT INTO communities (name, description, slug, creator_id, image_url, created_at)
-        VALUES (@name, @description, @slug, @creatorId, @imageUrl, @createdAt)
+        INSERT INTO communities (name, description, slug, creator_id, image_url, allowed_categories, created_at)
+        VALUES (@name, @description, @slug, @creatorId, @imageUrl, @allowedCategories, @createdAt)
       `);
 
       const info = stmt.run({
         ...community,
+        allowedCategories: community.allowedCategories || "news,entertainment,discussion",
         createdAt
       });
 
-      const newCommunity = sqlite.prepare('SELECT * FROM communities WHERE id = ?').get(info.lastInsertRowid);
+      const newCommunity = sqlite.prepare('SELECT * FROM communities WHERE id = ?').get(info.lastInsertRowid) as any;
 
       // Auto-add creator as owner
       await this.addCommunityMember(newCommunity.id, community.creatorId, 'owner');
 
       return {
-        ...newCommunity,
+        id: newCommunity.id,
+        name: newCommunity.name,
+        slug: newCommunity.slug,
+        description: newCommunity.description,
+        creatorId: newCommunity.creator_id,
+        imageUrl: newCommunity.image_url,
+        allowedCategories: newCommunity.allowed_categories,
         createdAt: new Date(newCommunity.created_at * 1000)
       };
     }
@@ -1370,7 +1381,13 @@ export class DatabaseStorage implements IStorage {
       const community = sqlite.prepare('SELECT * FROM communities WHERE id = ?').get(id);
       if (!community) return undefined;
       return {
-        ...community,
+        id: community.id,
+        name: community.name,
+        slug: community.slug,
+        description: community.description,
+        creatorId: community.creator_id,
+        imageUrl: community.image_url,
+        allowedCategories: community.allowed_categories || "news,entertainment,discussion",
         createdAt: new Date(community.created_at * 1000)
       };
     }
@@ -1390,6 +1407,7 @@ export class DatabaseStorage implements IStorage {
         description: row.description,
         imageUrl: row.image_url,
         creatorId: row.creator_id,
+        allowedCategories: row.allowed_categories || "news,entertainment,discussion",
         createdAt: new Date(row.created_at * 1000)
       };
     }
@@ -1402,7 +1420,13 @@ export class DatabaseStorage implements IStorage {
     if (process.env.USE_SQLITE === 'true' && sqlite) {
       const rows = sqlite.prepare('SELECT * FROM communities ORDER BY created_at DESC').all();
       return rows.map((row: any) => ({
-        ...row,
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        description: row.description,
+        creatorId: row.creator_id,
+        imageUrl: row.image_url,
+        allowedCategories: row.allowed_categories || "news,entertainment,discussion",
         createdAt: new Date(row.created_at * 1000)
       }));
     }
@@ -1447,7 +1471,7 @@ export class DatabaseStorage implements IStorage {
       .from(communityMembers)
       .where(eq(communityMembers.userId, userId));
 
-    const communityIds = memberCommunities.map(c => c.id);
+    const communityIds = memberCommunities.map((c: { id: number }) => c.id);
 
     if (communityIds.length === 0) {
       return [];
@@ -1555,7 +1579,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(communityMembers.userId, users.id))
       .where(eq(communityMembers.communityId, communityId));
 
-    return members.map(({ community_members, users }) => ({
+    return members.map(({ community_members, users }: { community_members: CommunityMember; users: User }) => ({
       ...community_members,
       user: sanitizeUser(users),
     }));
@@ -1588,7 +1612,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(communities, eq(communityMembers.communityId, communities.id))
       .where(eq(communityMembers.userId, userId));
 
-    return result.map(({ community_members, communities }) => ({
+    return result.map(({ community_members, communities }: { community_members: CommunityMember; communities: Community }) => ({
       ...communities,
       role: community_members.role,
     }));
@@ -1623,7 +1647,7 @@ export class DatabaseStorage implements IStorage {
         or(eq(communityMembers.role, 'owner'), eq(communityMembers.role, 'moderator'))
       ));
 
-    return result.map(r => r.communities);
+    return result.map((r: { communities: Community }) => r.communities);
   }
 
   // Community Bans
@@ -1721,7 +1745,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(communityBans.userId, users.id))
       .where(eq(communityBans.communityId, communityId));
 
-    return bans.map(({ community_bans, users }) => ({
+    return bans.map(({ community_bans, users }: { community_bans: CommunityBan; users: User }) => ({
       ...community_bans,
       user: sanitizeUser(users),
     }));

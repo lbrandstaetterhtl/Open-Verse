@@ -7,7 +7,10 @@
         "profile": "Profil",
         "theme_builder": "Theme anpassen",
         "admin": "Administrator",
-        "logout": "Abmelden"
+        "logout": "Abmelden",
+        "communities": "Communities",
+        "ai_generator": "KI-Generator",
+        "mod_panel": "Mod-Panel"
     },
     "common": {
         "loading": "Laden...",
@@ -132,9 +135,10 @@
         "empty": "Noch keine Benachrichtigungen",
         "new_follower": "folgt dir jetzt",
         "new_message": "hat dir eine Nachricht gesendet",
-        "report_resolved": "hat deine Meldung gelöst",
-        "report_rejected": "hat deine Meldung geprüft (kein Verstoß gefunden)",
-        "interaction": "hat auf deinen Beitrag reagiert"
+        "report_resolved": "hat deinen Report angenommen",
+        "report_rejected": "hat deinen Report abgelehnt",
+        "community_kick": "hat dich aus {{name}} gekickt",
+        "interaction": "hat mit deinem Beitrag interagiert"
     },
     "ai_generator": {
         "title": "KI-Beitragsgenerator",
@@ -148,6 +152,7 @@
         "generate_button": "Beitrag generieren",
         "generating": "Magie wird gewirkt...",
         "generated_label": "Dein generierter Beitrag",
+        "edit_placeholder": "Du kannst den Text hier bearbeiten, bevor du ihn veröffentlichst...",
         "copy": "Kopieren",
         "post_button": "Im Feed posten",
         "posting": "Wird gepostet...",
@@ -196,5 +201,192 @@
             "success_desc": "Deine Diskussion wurde erfolgreich gepostet."
         },
         "media_label": "Medien (Bild oder Video)"
+    },
+    "community": {
+        "create": {
+            "title": "Community erstellen",
+            "subtitle": "Schaffe einen Raum, um gemeinsame Interessen zu teilen und zu diskutieren.",
+            "name_label": "Community-Name",
+            "name_placeholder": "z.B. Kaffeeliebhaber, Tech-News",
+            "desc_label": "Beschreibung",
+            "desc_placeholder": "Worum geht es in dieser Community?",
+            "image_label": "Bild-URL (Optional)",
+            "allowed_feeds_label": "Erlaubte Feeds",
+            "feed_hint": "Wähle mindestens einen Feed-Typ für deine Community.",
+            "submit": "Community erstellen",
+            "success_title": "Community erstellt",
+            "restriction_title": "Einschränkung",
+            "restriction_desc": "Du benötigst mindestens 200 Reputation, um eine Community zu erstellen.",
+            "current_rep": "Deine aktuelle Reputation:"
+        },
+        "page": {
+            "not_found_title": "Community nicht gefunden",
+            "not_found_desc": "Die gesuchte Community existiert nicht.",
+            "back_to_communities": "Zurück zu Communities",
+            "about": "Über",
+            "created": "Erstellt:",
+            "join_prompt": "Tritt dieser Community bei, um zu posten und zu interagieren!",
+            "join_button": "Community beitreten",
+            "leave_button": "Verlassen",
+            "owner_badge": "Inhaber",
+            "create_post": "Beitrag erstellen",
+            "joined_success": "Beigetreten!",
+            "left_success": "Verlassen",
+            "member_of": "Du bist nun Mitglied von {{name}}",
+            "left_community": "Du hast {{name}} verlassen",
+            "tabs": {
+                "all": "Alle",
+                "news": "Nachrichten",
+                "entertainment": "Unterhaltung",
+                "discussion": "Diskussion"
+            },
+            "sort": {
+                "hot": "Heiß",
+                "new": "Neu",
+                "top": "Top"
+            },
+            "empty_posts": "Noch keine Beiträge",
+            "empty_posts_desc": "Sei der Erste, der etwas teilt!"
+        }
+    },
+    "mod_panel": {
+        "title": "Moderator-Panel",
+        "no_communities": "Du moderierst keine Communities.",
+        "my_communities": "Meine Communities",
+        "tabs": {
+            "overview": "Übersicht",
+            "reports": "Meldungen",
+            "members": "Mitglieder",
+            "bans": "Verbannungen",
+            "staff": "Personal"
+        },
+        "overview": {
+            "title": "Community-Übersicht",
+            "desc": "Metriken und Schnellaktionen (Demnächst)",
+            "select_prompt": "Wähle einen Reiter, um deine Community zu verwalten."
+        },
+        "reports": {
+            "updated_title": "Meldung aktualisiert",
+            "updated_desc": "Der Status der Meldung wurde aktualisiert.",
+            "filter_placeholder": "Nach Status filtern",
+            "all": "Alle Meldungen",
+            "pending": "Offen",
+            "resolved": "Gelöst",
+            "rejected": "Abgelehnt",
+            "table": {
+                "type": "Typ",
+                "reason": "Grund",
+                "status": "Status",
+                "date": "Datum",
+                "actions": "Aktionen",
+                "empty": "Keine Meldungen gefunden."
+            },
+            "types": {
+                "post": "Beitrag",
+                "comment": "Kommentar",
+                "other": "Andere"
+            }
+        },
+        "members": {
+            "kicked_title": "Benutzer gekickt",
+            "kicked_desc": "Mitglied aus der Community entfernt.",
+            "search_placeholder": "Mitglieder suchen...",
+            "table": {
+                "user": "Benutzer",
+                "role": "Rolle",
+                "actions": "Aktionen",
+                "empty": "Keine Mitglieder gefunden."
+            },
+            "kick_dialog": {
+                "title": "Mitglied kicken?",
+                "desc": "Bist du sicher, dass du {{name}} aus der Community entfernen möchtest? Er kann später wieder beitreten.",
+                "confirm": "Benutzer kicken",
+                "cancel": "Abbrechen"
+            }
+        },
+        "bans": {
+            "banned_title": "Benutzer verbannt",
+            "banned_desc": "Der Benutzer wurde aus der Community verbannt.",
+            "unbanned_title": "Benutzer entbannt",
+            "unbanned_desc": "Zugriff wiederhergestellt.",
+            "search_placeholder": "Verbannungen suchen...",
+            "ban_button": "Benutzer bannen",
+            "table": {
+                "user": "Benutzer",
+                "reason": "Grund",
+                "date": "Datum",
+                "actions": "Aktionen",
+                "empty": "Keine Verbannungen gefunden.",
+                "id": "ID:",
+                "no_reason": "Kein Grund"
+            },
+            "ban_dialog": {
+                "title": "Benutzer aus Community verbannen",
+                "desc": "Verhindere, dass ein Benutzer in dieser Community postet oder kommentiert.",
+                "user_id_label": "Benutzer-ID",
+                "user_id_placeholder": "Ziel-Benutzer-ID",
+                "reason_label": "Grund",
+                "reason_placeholder": "Grund für den Bann",
+                "confirm": "Benutzer verbannen",
+                "cancel": "Abbrechen"
+            },
+            "unban_dialog": {
+                "title": "Benutzer entbannen?",
+                "desc": "Dies stellt den Zugriff für {{name}} auf die Community wieder her.",
+                "confirm": "Entbannen",
+                "cancel": "Abbrechen"
+            }
+        },
+        "staff": {
+            "added_title": "Moderator hinzugefügt",
+            "added_desc": "Benutzer zum Moderator befördert.",
+            "title": "Community-Personal",
+            "add_button": "Moderator hinzufügen",
+            "add_dialog": {
+                "title": "Moderator hinzufügen",
+                "desc": "Moderationsrechte gewähren. Nur der Inhaber kann dies tun.",
+                "user_id_label": "Benutzer-ID",
+                "user_id_placeholder": "Ziel-Benutzer-ID",
+                "confirm": "Moderator hinzufügen",
+                "cancel": "Abbrechen"
+            }
+        }
+    },
+    "communities_feed": {
+        "header_title": "Community-Feed",
+        "header_desc": "Beiträge aus Communities, denen du beigetreten bist",
+        "create_button": "Community erstellen",
+        "search_title": "Communities suchen",
+        "search_placeholder": "Suchen...",
+        "my_communities": "Meine Communities",
+        "no_joined": "Du bist noch keinen Communities beigetreten.",
+        "no_results": "Keine Communities gefunden.",
+        "no_posts": "Noch keine Beiträge",
+        "no_posts_desc": "Tritt Communities bei, um hier Beiträge zu sehen, oder erstelle deine eigene Community!",
+        "join_suggestion": "Community erstellen"
+    },
+    "media_feed": {
+        "load_error": "Medien konnten nicht geladen werden"
+    },
+    "ai_gen_errors": {
+        "generation_failed": "Generierung fehlgeschlagen",
+        "posting_failed": "Posten fehlgeschlagen",
+        "topic_required": "Thema erforderlich",
+        "topic_missing": "Bitte gib ein Thema für den Beitrag ein.",
+        "generic": "Etwas ist schiefgelaufen.",
+        "copied": "Kopiert!",
+        "copied_desc": "Inhalt in die Zwischenablage kopiert.",
+        "mascot_name": "Mecha Osiris",
+        "mascot_version": "v2.0 Modell"
+    },
+    "news_page": {
+        "fact_checked": "Faktengeprüft",
+        "published_on": "Veröffentlicht am",
+        "no_posts_desc": "Noch keine Nachrichten. Sei der Erste, der wichtige Neuigkeiten teilt!"
+    },
+    "entertainment_page": {
+        "fun_badge": "Spaß",
+        "shared_on": "Geteilt am",
+        "no_posts_desc": "Noch keine Unterhaltungsbeiträge. Teile etwas Lustiges, um anzufangen!"
     }
 }

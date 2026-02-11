@@ -6,6 +6,9 @@
         "messages": "Messages",
         "profile": "Profile",
         "theme_builder": "Theme Builder",
+        "communities": "Communities",
+        "ai_generator": "AI Generator",
+        "mod_panel": "Mod Panel",
         "admin": "Admin",
         "logout": "Logout"
     },
@@ -133,7 +136,8 @@
         "new_follower": "started following you",
         "new_message": "sent you a message",
         "report_resolved": "resolved your report",
-        "report_rejected": "reviewed your report (no violation found)",
+        "report_rejected": "rejected your report",
+        "community_kick": "kicked you from {{name}}",
         "interaction": "interacted with your post"
     },
     "ai_generator": {
@@ -148,6 +152,7 @@
         "generate_button": "Generate Post",
         "generating": "Generating Magic...",
         "generated_label": "Your Generated Post",
+        "edit_placeholder": "You can edit the text here before posting...",
         "copy": "Copy",
         "post_button": "Post to Feed",
         "posting": "Posting...",
@@ -196,5 +201,192 @@
             "success_desc": "Your discussion has been posted successfully."
         },
         "media_label": "Media (Image or Video)"
+    },
+    "community": {
+        "create": {
+            "title": "Create a Community",
+            "subtitle": "Build a space for people to share and discuss common interests.",
+            "name_label": "Community Name",
+            "name_placeholder": "e.g. Coffee Lovers, Tech News",
+            "desc_label": "Description",
+            "desc_placeholder": "What is this community about?",
+            "image_label": "Image URL (Optional)",
+            "allowed_feeds_label": "Allowed Feeds",
+            "feed_hint": "Select at least one feed type for your community.",
+            "submit": "Create Community",
+            "success_title": "Community Created",
+            "restriction_title": "Restriction",
+            "restriction_desc": "You need at least 200 reputation to create a community.",
+            "current_rep": "Your current reputation:"
+        },
+        "page": {
+            "not_found_title": "Community Not Found",
+            "not_found_desc": "The community you are looking for does not exist.",
+            "back_to_communities": "Back to Communities",
+            "about": "About",
+            "created": "Created:",
+            "join_prompt": "Join this community to start posting and interacting!",
+            "join_button": "Join Community",
+            "leave_button": "Leave",
+            "owner_badge": "Owner",
+            "create_post": "Create Post",
+            "joined_success": "Joined!",
+            "left_success": "Left",
+            "member_of": "You are now a member of {{name}}",
+            "left_community": "You have left {{name}}",
+            "tabs": {
+                "all": "All",
+                "news": "News",
+                "entertainment": "Entertainment",
+                "discussion": "Discussion"
+            },
+            "sort": {
+                "hot": "Hot",
+                "new": "New",
+                "top": "Top"
+            },
+            "empty_posts": "No posts yet",
+            "empty_posts_desc": "Be the first to share something!"
+        }
+    },
+    "mod_panel": {
+        "title": "Moderator Panel",
+        "no_communities": "You are not moderating any communities.",
+        "my_communities": "My Communities",
+        "tabs": {
+            "overview": "Overview",
+            "reports": "Reports",
+            "members": "Members",
+            "bans": "Bans",
+            "staff": "Staff"
+        },
+        "overview": {
+            "title": "Community Overview",
+            "desc": "Metrics and quick actions (Coming Soon)",
+            "select_prompt": "Select a tab to manage your community."
+        },
+        "reports": {
+            "updated_title": "Report Updated",
+            "updated_desc": "The report status has been updated.",
+            "filter_placeholder": "Filter by status",
+            "all": "All Reports",
+            "pending": "Pending",
+            "resolved": "Resolved",
+            "rejected": "Rejected",
+            "table": {
+                "type": "Type",
+                "reason": "Reason",
+                "status": "Status",
+                "date": "Date",
+                "actions": "Actions",
+                "empty": "No reports found."
+            },
+            "types": {
+                "post": "Post",
+                "comment": "Comment",
+                "other": "Other"
+            }
+        },
+        "members": {
+            "kicked_title": "User Kicked",
+            "kicked_desc": "Member removed from community.",
+            "search_placeholder": "Search members...",
+            "table": {
+                "user": "User",
+                "role": "Role",
+                "actions": "Actions",
+                "empty": "No members found."
+            },
+            "kick_dialog": {
+                "title": "Kick Member?",
+                "desc": "Are you sure you want to remove {{name}} from the community? They can join again later.",
+                "confirm": "Kick User",
+                "cancel": "Cancel"
+            }
+        },
+        "bans": {
+            "banned_title": "User Banned",
+            "banned_desc": "The user has been banned from the community.",
+            "unbanned_title": "User Unbanned",
+            "unbanned_desc": "Access restored.",
+            "search_placeholder": "Search bans...",
+            "ban_button": "Ban User",
+            "table": {
+                "user": "User",
+                "reason": "Reason",
+                "date": "Date",
+                "actions": "Actions",
+                "empty": "No bans found.",
+                "id": "ID:",
+                "no_reason": "No reason"
+            },
+            "ban_dialog": {
+                "title": "Ban User from Community",
+                "desc": "Prevent a user from posting or commenting in this community.",
+                "user_id_label": "User ID",
+                "user_id_placeholder": "Target User ID",
+                "reason_label": "Reason",
+                "reason_placeholder": "Reason for ban",
+                "confirm": "Ban User",
+                "cancel": "Cancel"
+            },
+            "unban_dialog": {
+                "title": "Unban User?",
+                "desc": "This will restore access for {{name}} to the community.",
+                "confirm": "Unban",
+                "cancel": "Cancel"
+            }
+        },
+        "staff": {
+            "added_title": "Moderator Added",
+            "added_desc": "User promoted to moderator.",
+            "title": "Community Staff",
+            "add_button": "Add Moderator",
+            "add_dialog": {
+                "title": "Add Moderator",
+                "desc": "Grant moderation privileges. Only the Owner can do this.",
+                "user_id_label": "User ID",
+                "user_id_placeholder": "Target User ID",
+                "confirm": "Add Moderator",
+                "cancel": "Cancel"
+            }
+        }
+    },
+    "communities_feed": {
+        "header_title": "Community Feed",
+        "header_desc": "Posts from communities you have joined",
+        "create_button": "Create Community",
+        "search_title": "Search Communities",
+        "search_placeholder": "Search...",
+        "my_communities": "My Communities",
+        "no_joined": "You haven't joined any communities yet.",
+        "no_results": "No communities found.",
+        "no_posts": "No posts yet",
+        "no_posts_desc": "Join communities to see their posts here, or create your own community!",
+        "join_suggestion": "Create Community"
+    },
+    "media_feed": {
+        "load_error": "Media failed to load"
+    },
+    "ai_gen_errors": {
+        "generation_failed": "Generation Failed",
+        "posting_failed": "Posting Failed",
+        "topic_required": "Topic Required",
+        "topic_missing": "Please enter a topic for the post.",
+        "generic": "Something went wrong.",
+        "copied": "Copied!",
+        "copied_desc": "Content copied to clipboard.",
+        "mascot_name": "Mecha Osiris",
+        "mascot_version": "v2.0 Model"
+    },
+    "news_page": {
+        "fact_checked": "Fact-checked",
+        "published_on": "Published on",
+        "no_posts_desc": "No news articles yet. Be the first to share important news!"
+    },
+    "entertainment_page": {
+        "fun_badge": "Fun",
+        "shared_on": "Shared on",
+        "no_posts_desc": "No entertainment posts yet. Share something fun to get started!"
     }
 }

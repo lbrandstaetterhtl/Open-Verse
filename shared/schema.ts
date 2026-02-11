@@ -106,6 +106,7 @@ export const communities = pgTable("communities", {
   slug: text("slug").notNull().unique(),
   creatorId: integer("creator_id").notNull(),
   imageUrl: text("image_url"),
+  allowedCategories: text("allowed_categories").notNull().default("news,entertainment,discussion"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -144,10 +145,12 @@ export const insertCommunitySchema = createInsertSchema(communities).pick({
   name: true,
   description: true,
   imageUrl: true,
+  allowedCategories: true,
 }).extend({
   name: z.string().min(3, "Name must be at least 3 characters").max(50, "Name must be less than 50 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   imageUrl: z.string().optional(),
+  allowedCategories: z.string().default("news,entertainment,discussion"),
 });
 
 export const insertDiscussionPostSchema = basePostSchema.extend({
