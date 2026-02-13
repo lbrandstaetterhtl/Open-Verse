@@ -21,6 +21,8 @@ import {
   Trash2,
   Check,
   Plus,
+  Image,
+  Layers,
 } from "lucide-react";
 import {
   exportTheme,
@@ -28,13 +30,16 @@ import {
   loadCustomTheme,
   defaultTheme,
   applyTheme,
+  hslToHex,
+  hexToHsl,
   getActiveThemeInfo,
   setActiveThemeInfo,
   clearActiveThemeInfo,
   ACTIVE_THEME_EVENT,
 } from "@/lib/theme-utils";
 import { useToast } from "@/hooks/use-toast";
-import type { ThemeColors, CustomTheme, SavedTheme } from "@/lib/theme-utils";
+import type { ThemeColors, CustomTheme, SavedTheme, BackgroundMode, BackgroundConfig } from "@/lib/theme-utils";
+import { galaxyGradients, defaultBackground } from "@/lib/theme-utils";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -56,6 +61,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { availableFonts } from "@/lib/theme-utils";
 
 export default function ThemeBuilderPage() {
@@ -71,6 +77,7 @@ export default function ThemeBuilderPage() {
     saveThemeAs,
     deleteTheme,
     loadTheme,
+    uploadBackground,
   } = useCustomTheme();
   const { toast } = useToast();
   const [activeMode, setActiveMode] = useState<"light" | "dark">("light");
@@ -80,6 +87,7 @@ export default function ThemeBuilderPage() {
   const [activeThemeId, setActiveThemeId] = useState<string | number | null>(null);
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [unifiedMode, setUnifiedMode] = useState(false);
+  const [bgUploading, setBgUploading] = useState(false);
 
   // Initialize working theme from stored theme
   useEffect(() => {
@@ -140,7 +148,7 @@ export default function ThemeBuilderPage() {
   // Live Preview: Apply changes immediately to the document
   useEffect(() => {
     const mode = isDark ? "dark" : "light";
-    applyTheme(workingTheme[mode], isDark, workingTheme.font);
+    applyTheme(workingTheme[mode], isDark, workingTheme.font, workingTheme.background);
   }, [workingTheme, isDark]);
 
   const handleColorChange = (key: keyof ThemeColors, value: string) => {
@@ -230,7 +238,10 @@ export default function ThemeBuilderPage() {
     setActiveThemeId(null);
     clearActiveThemeInfo(); // Clear active theme tracking
     setHasUnsavedChanges(true);
-    // Keep current colors or reset? Let's keep current as a base.
+    setIsManageOpen(false); // Close dialog so user sees the editor
+    // Start fresh from default theme
+    setWorkingTheme(defaultTheme);
+    setUnifiedMode(false);
     toast({
       title: "New theme started",
       description: "Enter a name and click Save to create.",
@@ -309,6 +320,82 @@ export default function ThemeBuilderPage() {
     toast({
       title: "Theme reset",
       description: "Theme reset to defaults. Click Save to apply changes.",
+    });
+  };
+
+  // --- Background handlers ---
+
+  const background = workingTheme.background || defaultBackground;
+
+  const updateLocalBackground = (partial: Partial<BackgroundConfig>) => {
+    setWorkingTheme((prev) => ({
+      ...prev,
+      background: {
+        ...(prev.background || defaultBackground),
+        ...partial,
+        overlay: {
+          ...(prev.background?.overlay || defaultBackground.overlay),
+          ...(partial.overlay || {}),
+        },
+      },
+    }));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleBgModeChange = (mode: BackgroundMode) => {
+    updateLocalBackground({ mode });
+  };
+
+  const handleGradientSelect = (gradient: string) => {
+    updateLocalBackground({ mode: "gradient", gradient });
+  };
+
+  const handleBgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type client-side
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please upload a JPEG, PNG, WebP, or GIF image.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Background image must be under 5MB.", variant: "destructive" });
+      return;
+    }
+
+    setBgUploading(true);
+    try {
+      const imageRef = await uploadBackground(file);
+      updateLocalBackground({ mode: "image", image: imageRef });
+      toast({ title: "Background uploaded", description: "Background image applied." });
+    } catch (err) {
+      // Error is handled/thrown by uploadBackground (with patched apiRequest)
+      console.error(err);
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Could not upload background image.",
+        variant: "destructive"
+      });
+    } finally {
+      setBgUploading(false);
+    }
+  };
+
+  const handleRemoveBg = () => {
+    updateLocalBackground({ mode: "solid", image: undefined, gradient: "" });
+  };
+
+  const handleOverlayChange = (field: "opacity" | "blur", value: number) => {
+    updateLocalBackground({
+      overlay: { ...background.overlay, [field]: value },
+    });
+  };
+
+  const handleTintChange = (value: string) => {
+    updateLocalBackground({
+      overlay: { ...background.overlay, tint: value },
     });
   };
 
@@ -489,6 +576,168 @@ export default function ThemeBuilderPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Background Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="h-5 w-5" />
+                Background
+              </CardTitle>
+              <CardDescription>Set a global background for your theme (applies to both light and dark modes).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Mode Selector */}
+              <div className="space-y-2">
+                <Label>Background Mode</Label>
+                <div className="flex gap-2">
+                  {(["solid", "gradient", "image"] as BackgroundMode[]).map((mode) => (
+                    <Button
+                      key={mode}
+                      variant={background.mode === mode ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleBgModeChange(mode)}
+                      className="capitalize"
+                    >
+                      {mode}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gradient Presets */}
+              {background.mode === "gradient" && (
+                <div className="space-y-3">
+                  <Label>Galaxy Gradient Presets</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {galaxyGradients.map((g) => (
+                      <button
+                        key={g.name}
+                        onClick={() => handleGradientSelect(g.value)}
+                        className={`h-16 rounded-lg border-2 transition-all hover:scale-105 ${background.gradient === g.value ? "border-primary ring-2 ring-primary/30" : "border-border"
+                          }`}
+                        style={{ background: g.value }}
+                        title={g.name}
+                      >
+                        <span className="text-[10px] text-white/70 font-medium drop-shadow-md">{g.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Custom CSS Gradient</Label>
+                    <Input
+                      placeholder="linear-gradient(135deg, #1a1a2e, #16213e)"
+                      value={background.gradient || ""}
+                      onChange={(e) => {
+                        updateBackground({ gradient: e.target.value });
+                        setHasUnsavedChanges(true);
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Image Upload */}
+              {background.mode === "image" && (
+                <div className="space-y-3">
+                  <Label>Background Image</Label>
+                  {background.image ? (
+                    <div className="space-y-2">
+                      <div
+                        className="h-32 rounded-lg border bg-cover bg-center bg-no-repeat"
+                        style={{
+                          backgroundImage: background.image.type === "fileRef"
+                            ? `url(/uploads/${background.image.value})`
+                            : background.image.type === "url"
+                              ? `url(${background.image.value})`
+                              : undefined,
+                        }}
+                      />
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => document.getElementById('bg-image-upload')?.click()} className="flex-1">
+                          <Image className="h-4 w-4 mr-1" />
+                          Replace
+                        </Button>
+                        <input
+                          id="bg-image-upload"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="hidden"
+                          onChange={handleBgImageUpload}
+                        />
+                        <Button variant="outline" size="sm" onClick={handleRemoveBg} className="text-destructive">
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-32 rounded-lg border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors">
+                      {bgUploading ? (
+                        <p className="text-sm text-muted-foreground">Uploading...</p>
+                      ) : (
+                        <>
+                          <Upload className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                          <p className="text-sm text-muted-foreground">Click to upload an image</p>
+                          <p className="text-xs text-muted-foreground/70">JPEG, PNG, WebP, GIF · Max 5MB</p>
+                        </>
+                      )}
+                      <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleBgImageUpload} />
+                    </label>
+                  )}
+                </div>
+              )}
+
+              {/* Overlay Controls */}
+              {background.mode !== "solid" && (
+                <div className="space-y-4 border-t pt-4">
+                  <Label className="text-sm font-medium">Overlay</Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground">Opacity</Label>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {Math.round(background.overlay.opacity * 100)}%
+                      </span>
+                    </div>
+                    <Slider
+                      value={[background.overlay.opacity]}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onValueChange={([v]) => handleOverlayChange("opacity", v)}
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground">Blur</Label>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {background.overlay.blur}px
+                      </span>
+                    </div>
+                    <Slider
+                      value={[background.overlay.blur]}
+                      min={0}
+                      max={24}
+                      step={1}
+                      onValueChange={([v]) => handleOverlayChange("blur", v)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Tint Color</Label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={hslToHex(background.overlay.tint)}
+                        onChange={(e) => handleTintChange(hexToHsl(e.target.value))}
+                        className="w-10 h-10 rounded border cursor-pointer"
+                      />
+                      <span className="text-xs text-muted-foreground font-mono">{background.overlay.tint}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

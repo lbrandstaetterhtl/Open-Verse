@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ThemeBackground } from "@/components/theme/theme-background";
 import { ProtectedRoute } from "./lib/protected-route";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { NewUserDialog } from "@/components/profile/new-user-dialog";
@@ -88,9 +89,9 @@ function Router() {
 // Helper component to ensure custom theme is applied globally
 import { useCustomTheme } from "@/hooks/use-custom-theme";
 
-function GlobalThemeManager() {
-  useCustomTheme();
-  return <></>;
+function GlobalThemeApplier() {
+  const { background } = useCustomTheme();
+  return <ThemeBackground background={background} />;
 }
 
 function App() {
@@ -98,7 +99,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <AuthProvider>
-          <GlobalThemeManager />
+          <GlobalThemeApplier />
           <Router />
           <NewUserDialog />
           <Toaster />

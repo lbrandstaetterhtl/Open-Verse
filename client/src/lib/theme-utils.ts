@@ -28,6 +28,82 @@ export interface CustomTheme {
   dark: ThemeColors;
   font?: string;
   unified?: boolean;
+  version?: number;
+  background?: BackgroundConfig;
+}
+
+// --- Background Types ---
+
+export type BackgroundMode = "solid" | "gradient" | "image";
+
+export interface BackgroundImage {
+  type: "url" | "fileRef" | "dataRef";
+  value: string;
+}
+
+export interface BackgroundOverlay {
+  opacity: number;  // 0..1
+  blur: number;     // 0..24
+  tint: string;     // HSL string e.g. "0 0% 0%"
+}
+
+export interface BackgroundConfig {
+  mode: BackgroundMode;
+  gradient?: string;
+  image?: BackgroundImage;
+  overlay: BackgroundOverlay;
+}
+
+export const defaultBackground: BackgroundConfig = {
+  mode: "solid",
+  gradient: "",
+  image: undefined,
+  overlay: { opacity: 0, blur: 0, tint: "0 0% 0%" },
+};
+
+// Galaxy gradient presets
+export const galaxyGradients = [
+  { name: "Nebula", value: "linear-gradient(135deg, hsl(260 80% 10%), hsl(280 60% 20%), hsl(220 70% 15%))" },
+  { name: "Deep Space", value: "linear-gradient(160deg, hsl(230 50% 8%), hsl(260 40% 12%), hsl(200 60% 10%))" },
+  { name: "Aurora", value: "linear-gradient(135deg, hsl(180 60% 12%), hsl(260 50% 18%), hsl(300 40% 15%))" },
+  { name: "Cosmic Dust", value: "linear-gradient(145deg, hsl(270 45% 10%), hsl(330 35% 15%), hsl(200 55% 12%))" },
+  { name: "Starfield", value: "linear-gradient(180deg, hsl(220 60% 6%), hsl(240 50% 14%), hsl(260 40% 8%))" },
+  { name: "Solar Flare", value: "linear-gradient(135deg, hsl(15 70% 12%), hsl(340 60% 18%), hsl(280 50% 14%))" },
+];
+
+// Sanitize a URL string — reject dangerous schemes
+function isSafeUrl(url: string): boolean {
+  if (!url) return false;
+  const trimmed = url.trim().toLowerCase();
+  if (trimmed.startsWith("javascript:")) return false;
+  if (trimmed.startsWith("data:") && !trimmed.startsWith("data:image/")) return false;
+  if (trimmed.startsWith("vbscript:")) return false;
+  return true;
+}
+
+// Clamp a number within a range
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+// Migrate legacy themes (no version field) to v2 with background defaults
+export function migrateTheme(theme: CustomTheme): CustomTheme {
+  if (theme.version === 2) return theme;
+  return {
+    ...theme,
+    version: 2,
+    font: theme.font || "Inter",
+    background: theme.background ? {
+      ...defaultBackground,
+      ...theme.background,
+      overlay: {
+        ...defaultBackground.overlay,
+        ...(theme.background.overlay || {}),
+        opacity: clamp(theme.background.overlay?.opacity ?? 0, 0, 1),
+        blur: clamp(theme.background.overlay?.blur ?? 0, 0, 24),
+      },
+    } : { ...defaultBackground },
+  };
 }
 
 // Available fonts with their Google Fonts family names
@@ -63,46 +139,46 @@ export const availableFonts = [
 export const defaultTheme: CustomTheme = {
   font: "Inter",
   light: {
-    background: "0 0% 100%",
-    foreground: "222 47% 11%",
+    background: "230 20% 98%",
+    foreground: "230 40% 10%",
     card: "0 0% 100%",
-    cardForeground: "222 47% 11%",
+    cardForeground: "230 40% 10%",
     popover: "0 0% 100%",
-    popoverForeground: "222 47% 11%",
-    primary: "215 70% 50%",
+    popoverForeground: "230 40% 10%",
+    primary: "260 80% 60%",
     primaryForeground: "0 0% 98%",
-    secondary: "210 40% 96%",
-    secondaryForeground: "222 47% 11%",
-    muted: "210 40% 96%",
-    mutedForeground: "215 16% 47%",
-    accent: "210 40% 96%",
-    accentForeground: "222 47% 11%",
+    secondary: "230 20% 96%",
+    secondaryForeground: "230 40% 10%",
+    muted: "230 20% 96%",
+    mutedForeground: "230 10% 40%",
+    accent: "230 20% 96%",
+    accentForeground: "260 80% 60%",
     destructive: "0 84% 60%",
     destructiveForeground: "0 0% 98%",
-    border: "214 32% 91%",
-    input: "214 32% 91%",
-    ring: "215 70% 50%",
+    border: "230 20% 90%",
+    input: "230 20% 90%",
+    ring: "260 80% 60%",
   },
   dark: {
-    background: "222 47% 11%",
-    foreground: "210 40% 98%",
-    card: "222 47% 11%",
-    cardForeground: "210 40% 98%",
-    popover: "222 47% 11%",
-    popoverForeground: "210 40% 98%",
-    primary: "217 91% 60%",
-    primaryForeground: "222 47% 11%",
-    secondary: "217 33% 17%",
-    secondaryForeground: "210 40% 98%",
-    muted: "217 33% 17%",
+    background: "230 35% 7%",
+    foreground: "210 20% 98%",
+    card: "230 25% 10%",
+    cardForeground: "210 20% 98%",
+    popover: "230 25% 10%",
+    popoverForeground: "210 20% 98%",
+    primary: "260 100% 70%",
+    primaryForeground: "230 35% 7%",
+    secondary: "230 20% 15%",
+    secondaryForeground: "210 20% 98%",
+    muted: "230 20% 15%",
     mutedForeground: "215 20% 65%",
-    accent: "217 33% 17%",
-    accentForeground: "210 40% 98%",
+    accent: "260 50% 20%",
+    accentForeground: "210 20% 98%",
     destructive: "0 62% 30%",
     destructiveForeground: "210 40% 98%",
-    border: "217 33% 17%",
-    input: "217 33% 17%",
-    ring: "217 91% 60%",
+    border: "230 20% 15%",
+    input: "230 20% 15%",
+    ring: "260 100% 70%",
   },
 };
 
@@ -191,13 +267,31 @@ export function applyFont(fontName: string) {
 }
 
 // Apply theme colors to CSS variables
-export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string): void {
+export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string, background?: BackgroundConfig): void {
   const root = document.documentElement;
 
   Object.entries(colors).forEach(([key, value]) => {
     const cssVarName = `--${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
     root.style.setProperty(cssVarName, value);
   });
+
+  // Apply background CSS variables
+  const bg = background || defaultBackground;
+  root.style.setProperty("--bg-mode", bg.mode);
+  root.style.setProperty("--bg-gradient", bg.gradient || "none");
+  root.style.setProperty("--bg-overlay-opacity", String(bg.overlay.opacity));
+  root.style.setProperty("--bg-overlay-blur", `${bg.overlay.blur}px`);
+  root.style.setProperty("--bg-overlay-tint", bg.overlay.tint || "0 0% 0%");
+
+  // Image URL is resolved separately by the ThemeBackground component
+  // We only pass the raw value here so the component can read it
+  if (bg.image?.value) {
+    root.style.setProperty("--bg-image-ref", bg.image.value);
+    root.style.setProperty("--bg-image-type", bg.image.type);
+  } else {
+    root.style.removeProperty("--bg-image-ref");
+    root.style.removeProperty("--bg-image-type");
+  }
 
   if (font) {
     applyFont(font);
@@ -224,9 +318,7 @@ export function loadCustomTheme(): CustomTheme | null {
   if (!stored) return null;
   try {
     const theme = JSON.parse(stored);
-    // Ensure font is present if missing from legacy themes
-    if (!theme.font) theme.font = "Inter";
-    return theme;
+    return migrateTheme(theme);
   } catch {
     return null;
   }
@@ -245,13 +337,13 @@ export function getSavedThemes(): SavedTheme[] {
   if (!stored) return [];
   try {
     const themes = JSON.parse(stored);
-    // Migration for older themes without font
+    // Migration for older themes
     return themes.map((t: SavedTheme) => ({
       ...t,
-      colors: {
+      colors: migrateTheme({
         ...t.colors,
         font: t.colors.font || "Inter",
-      },
+      }),
     }));
   } catch {
     return [];
@@ -361,12 +453,26 @@ export function exportTheme(theme: CustomTheme): string {
 export function importTheme(jsonString: string): CustomTheme | null {
   try {
     const theme = JSON.parse(jsonString);
-    // Validate structure
-    if (theme.light && theme.dark) {
-      if (!theme.font) theme.font = "Inter";
-      return theme as CustomTheme;
+    // Validate basic structure
+    if (!theme.light || !theme.dark) return null;
+
+    // Migrate to v2
+    const migrated = migrateTheme(theme);
+
+    // Sanitize background image URL if present
+    if (migrated.background?.image) {
+      if (migrated.background.image.type === "url" && !isSafeUrl(migrated.background.image.value)) {
+        migrated.background.image = undefined;
+      }
     }
-    return null;
+
+    // Clamp overlay values
+    if (migrated.background) {
+      migrated.background.overlay.opacity = clamp(migrated.background.overlay.opacity, 0, 1);
+      migrated.background.overlay.blur = clamp(migrated.background.overlay.blur, 0, 24);
+    }
+
+    return migrated;
   } catch {
     return null;
   }

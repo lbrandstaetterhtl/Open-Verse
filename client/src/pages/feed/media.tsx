@@ -6,11 +6,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Plus, ImageIcon } from "lucide-react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { PostCard } from "@/components/post/post-card";
 import type { PostWithAuthor } from "@shared/types";
 
 export default function MediaFeedPage() {
+  const [, setLocation] = useLocation();
   const { t } = useTranslation();
 
   const {
@@ -47,17 +48,13 @@ export default function MediaFeedPage() {
           <div className="lg:hidden mb-6">
             <h1 className="text-2xl font-bold mb-4">{t("feed.media_title")}</h1>
             <div className="flex gap-2 overflow-x-auto pb-2">
-              <Button asChild size="sm" className="whitespace-nowrap">
-                <Link href="/post/news">
-                  <Plus className="h-4 w-4 mr-1" />
-                  {t("feed.post_news")}
-                </Link>
+              <Button size="sm" className="whitespace-nowrap" onClick={() => setLocation("/post/news")}>
+                <Plus className="h-4 w-4 mr-1" />
+                {t("feed.post_news")}
               </Button>
-              <Button asChild size="sm" className="whitespace-nowrap">
-                <Link href="/post/entertainment">
-                  <Plus className="h-4 w-4 mr-1" />
-                  {t("feed.post_entertainment")}
-                </Link>
+              <Button size="sm" className="whitespace-nowrap" onClick={() => setLocation("/post/entertainment")}>
+                <Plus className="h-4 w-4 mr-1" />
+                {t("feed.post_entertainment")}
               </Button>
             </div>
           </div>
@@ -65,11 +62,11 @@ export default function MediaFeedPage() {
           <div className="hidden lg:flex items-center justify-between mb-8">
             <h1 className="text-4xl font-bold">{t("feed.media_title")}</h1>
             <div className="space-x-4">
-              <Button asChild>
-                <Link href="/post/news">{t("feed.post_news")}</Link>
+              <Button onClick={() => setLocation("/post/news")}>
+                {t("feed.post_news")}
               </Button>
-              <Button asChild>
-                <Link href="/post/entertainment">{t("feed.post_entertainment")}</Link>
+              <Button onClick={() => setLocation("/post/entertainment")}>
+                {t("feed.post_entertainment")}
               </Button>
             </div>
           </div>

@@ -2,8 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import {
   type CustomTheme,
   type ThemeColors,
+  type BackgroundConfig,
+  type BackgroundImage,
   defaultTheme,
+  defaultBackground,
   applyTheme,
+  migrateTheme,
   loadCustomTheme,
   saveCustomTheme,
   CUSTOM_THEME_EVENT,
@@ -15,13 +19,14 @@ import {
   SAVED_THEMES_EVENT,
   setActiveThemeInfo,
 } from "@/lib/theme-utils";
+import { saveBgBlob, deleteBgBlob, generateBgKey, cleanupUnreferencedBlobs } from "@/lib/theme-bg-store";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Theme } from "@shared/schema";
 
 export function useCustomTheme() {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [customTheme, setCustomTheme] = useState<CustomTheme>(defaultTheme);
   const [localSavedThemes, setLocalSavedThemes] = useState<SavedTheme[]>([]);
   const [isDark, setIsDark] = useState(false);
@@ -68,10 +73,32 @@ export function useCustomTheme() {
     };
   }, []);
 
+  // Track auth state to reset theme on login/logout
+  // const { user } is already available from top scope
+  const [prevUserId, setPrevUserId] = useState<number | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (isAuthLoading) return;
+
+    // Initial sync
+    if (prevUserId === undefined) {
+      setPrevUserId(user ? user.id : null);
+      return;
+    }
+
+    // Check for change
+    const currentId = user ? user.id : null;
+    if (prevUserId !== currentId) {
+      // User changed (Login or Logout) -> Reset theme to default/safe state
+      resetTheme();
+      setPrevUserId(currentId);
+    }
+  }, [user, isAuthLoading, prevUserId]);
+
   // Apply theme whenever it changes or dark mode toggles
   useEffect(() => {
     const colors = isDark ? customTheme.dark : customTheme.light;
-    applyTheme(colors, isDark);
+    applyTheme(colors, isDark, customTheme.font, customTheme.background);
   }, [customTheme, isDark]);
 
   // Fetch server themes if logged in
@@ -123,7 +150,7 @@ export function useCustomTheme() {
     return (serverThemes || []).map((t) => {
       let colors: CustomTheme;
       try {
-        colors = JSON.parse(t.colors);
+        colors = migrateTheme(JSON.parse(t.colors));
       } catch {
         colors = defaultTheme;
       }
@@ -208,7 +235,12 @@ export function useCustomTheme() {
         } catch (error: any) {
           // If update fails with 404 (theme not found), fall back to create/update by name
           console.warn("[use-custom-theme] PATCH failed, falling back to POST:", error);
-          if (error?.response?.status === 404 || error?.status === 404) {
+          const is404 =
+            error?.response?.status === 404 ||
+            error?.status === 404 ||
+            error?.message?.startsWith("404");
+
+          if (is404) {
             // Fall through to POST logic below
           } else {
             throw error; // Re-throw other errors
@@ -263,12 +295,74 @@ export function useCustomTheme() {
           setActiveThemeInfo(freshTheme.id, freshTheme.name);
           return;
         }
-      } catch (error) {}
+      } catch (error) { }
     }
 
     // Fallback to cached data
     applySavedTheme(theme);
   };
+
+  // --- Background helpers ---
+
+  const background = customTheme.background || defaultBackground;
+
+  const updateBackground = (partial: Partial<BackgroundConfig>) => {
+    setCustomTheme((prev) => {
+      const updated: CustomTheme = {
+        ...prev,
+        background: {
+          ...(prev.background || defaultBackground),
+          ...partial,
+          overlay: {
+            ...(prev.background?.overlay || defaultBackground.overlay),
+            ...(partial.overlay || {}),
+          },
+        },
+      };
+      saveCustomTheme(updated);
+      return updated;
+    });
+  };
+
+  /** Upload a background image. Returns the BackgroundImage ref to store in the theme. */
+  const uploadBackground = async (file: File): Promise<BackgroundImage> => {
+    if (user) {
+      // Logged-in: upload to server
+      const formData = new FormData();
+      formData.append("background", file);
+      const res = await apiRequest("POST", "/api/user/themes/background", formData);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to upload background image");
+      }
+      const data = await res.json();
+      return { type: "fileRef", value: data.fileRef };
+    } else {
+      // Guest: store in IndexedDB
+      const key = generateBgKey();
+      await saveBgBlob(key, file);
+      return { type: "dataRef", value: key };
+    }
+  };
+
+  const removeBackground = () => {
+    updateBackground({ mode: "solid", image: undefined, gradient: "" });
+  };
+
+  /** Collect all bg image refs currently used by local themes */
+  function collectUsedBgRefs(): string[] {
+    const refs: string[] = [];
+    const themes = getSavedThemes();
+    for (const t of themes) {
+      if (t.colors.background?.image) {
+        refs.push(t.colors.background.image.value);
+      }
+    }
+    if (customTheme.background?.image) {
+      refs.push(customTheme.background.image.value);
+    }
+    return refs;
+  }
 
   return {
     customTheme,
@@ -280,5 +374,9 @@ export function useCustomTheme() {
     saveThemeAs,
     deleteTheme,
     loadTheme,
+    background,
+    updateBackground,
+    uploadBackground,
+    removeBackground,
   };
 }

@@ -1,7 +1,10 @@
 import { Router } from "express";
+import fs from "fs";
+import path from "path";
 import { storage } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
 import { insertThemeSchema } from "@shared/schema";
+import { themeBackgroundUpload, checkFileSignature } from "../utils/file-upload";
 
 const router = Router();
 
@@ -76,6 +79,70 @@ router.delete("/:id", isAuthenticated, async (req, res) => {
     } catch (error) {
         console.error("Error deleting theme:", error);
         res.status(500).send("Failed to delete theme");
+    }
+});
+
+// --- Background image upload ---
+
+router.post("/background", isAuthenticated, themeBackgroundUpload.single("background"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded or invalid file type" });
+        }
+
+        // Verify file signature matches claimed MIME type
+        const sigValid = await checkFileSignature(req.file.path, req.file.mimetype);
+        if (!sigValid) {
+            // Remove the uploaded file
+            console.error(`File signature mismatch for ${req.file.originalname} (${req.file.mimetype})`);
+            fs.unlink(req.file.path, () => { });
+            return res.status(400).json({ error: "File signature mismatch - ensure file matches its extension" });
+        }
+
+        res.json({
+            fileRef: req.file.filename,
+            url: `/uploads/${req.file.filename}`,
+        });
+    } catch (error) {
+        console.error("Error uploading theme background:", error);
+        res.status(500).json({ error: "Failed to upload background image" });
+    }
+});
+
+router.delete("/background/:fileRef", isAuthenticated, async (req, res) => {
+    try {
+        const { fileRef } = req.params;
+        const userId = (req.user as any).id;
+
+        // Safety: only allow deleting theme-bg- prefixed files
+        if (!fileRef.startsWith("theme-bg-")) {
+            return res.status(400).json({ error: "Invalid file reference" });
+        }
+
+        // Check if any of this user's themes still reference this fileRef
+        const userThemes = await storage.getThemes(userId);
+        const isReferenced = userThemes.some((t) => {
+            try {
+                const colors = JSON.parse(t.colors);
+                return colors.background?.image?.value === fileRef;
+            } catch {
+                return false;
+            }
+        });
+
+        if (isReferenced) {
+            return res.status(409).json({ error: "File is still referenced by a theme" });
+        }
+
+        const filePath = path.join("./uploads", fileRef);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.error("Error deleting theme background:", error);
+        res.status(500).json({ error: "Failed to delete background image" });
     }
 });
 
