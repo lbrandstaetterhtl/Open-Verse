@@ -7,13 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -25,12 +19,22 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { ThumbsUp, ThumbsDown, Flag, Loader2, Coffee, SmilePlus, MessageCircle, UserCircle } from "lucide-react";
+import {
+  ThumbsUp,
+  ThumbsDown,
+  Flag,
+  Loader2,
+  Coffee,
+  SmilePlus,
+  MessageCircle,
+  UserCircle,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ReportDialog } from "@/components/dialogs/report-dialog";
-import * as z from 'zod';
+import * as z from "zod";
 import { Report } from "@shared/schema";
 
 type PostWithAuthor = Post & {
@@ -62,7 +66,7 @@ export default function EntertainmentPage() {
       if (!res.ok) throw new Error("Failed to fetch posts");
       return res.json();
     },
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -78,12 +82,6 @@ export default function EntertainmentPage() {
 
   const createPostMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      console.log("Submitting form data:", {
-        title: data.get('title'),
-        content: data.get('content'),
-        mediaFile: data.get('mediaFile')
-      });
-
       const res = await fetch("/api/posts", {
         method: "POST",
         body: data,
@@ -91,7 +89,6 @@ export default function EntertainmentPage() {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Failed to create post:", errorText);
         throw new Error(errorText || "Failed to create post");
       }
 
@@ -101,14 +98,13 @@ export default function EntertainmentPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       form.reset();
       toast({
-        title: t('create_post.entertainment.success_title'),
-        description: t('create_post.entertainment.success_desc'),
+        title: t("create_post.entertainment.success_title"),
+        description: t("create_post.entertainment.success_desc"),
       });
     },
     onError: (error: Error) => {
-      console.error("Post creation error:", error);
       toast({
-        title: t('common.error'),
+        title: t("common.error"),
         description: error.message,
         variant: "destructive",
       });
@@ -123,8 +119,8 @@ export default function EntertainmentPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
-        title: t('ai_generator.toast_posted'),
-        description: t('ai_generator.toast_posted_desc'),
+        title: t("ai_generator.toast_posted"),
+        description: t("ai_generator.toast_posted_desc"),
       });
     },
   });
@@ -139,8 +135,6 @@ export default function EntertainmentPage() {
     },
   });
 
-
-
   const onSubmit = async (data: z.infer<typeof insertMediaPostSchema>) => {
     try {
       const formData = new FormData();
@@ -150,13 +144,12 @@ export default function EntertainmentPage() {
 
       const mediaFile = form.getValues("mediaFile");
       if (mediaFile?.[0]) {
-        console.log("Appending media file:", mediaFile[0]);
         formData.append("mediaFile", mediaFile[0]);
       }
 
       await createPostMutation.mutateAsync(formData);
     } catch (error) {
-      console.error("Error in form submission:", error);
+      // Error is already handled by mutation's onError
     }
   };
 
@@ -166,7 +159,7 @@ export default function EntertainmentPage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center space-x-4 mb-8">
-            <h1 className="text-4xl font-bold">{t('feed.entertainment')}</h1>
+            <h1 className="text-4xl font-bold">{t("feed.entertainment")}</h1>
             <Coffee className="h-8 w-8 text-primary" />
           </div>
 
@@ -174,7 +167,7 @@ export default function EntertainmentPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <SmilePlus className="h-5 w-5" />
-                <span>{t('create_post.entertainment.title')}</span>
+                <span>{t("create_post.entertainment.title")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -189,7 +182,7 @@ export default function EntertainmentPage() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.entertainment.title_label')}</FormLabel>
+                        <FormLabel>{t("create_post.entertainment.title_label")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -202,11 +195,11 @@ export default function EntertainmentPage() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.entertainment.content_label')}</FormLabel>
+                        <FormLabel>{t("create_post.entertainment.content_label")}</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={4}
-                            placeholder={t('create_post.entertainment.placeholder')}
+                            placeholder={t("create_post.entertainment.placeholder")}
                             {...field}
                           />
                         </FormControl>
@@ -219,7 +212,7 @@ export default function EntertainmentPage() {
                     name="mediaFile"
                     render={({ field: { onChange, value, ...field } }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.media_label')}</FormLabel>
+                        <FormLabel>{t("create_post.media_label")}</FormLabel>
                         <FormControl>
                           <Input
                             type="file"
@@ -227,7 +220,6 @@ export default function EntertainmentPage() {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                console.log("Selected file:", file);
                                 onChange(e.target.files);
                               }
                             }}
@@ -238,15 +230,11 @@ export default function EntertainmentPage() {
                       </FormItem>
                     )}
                   />
-                  <Button
-                    type="submit"
-                    disabled={createPostMutation.isPending}
-                    className="w-full"
-                  >
+                  <Button type="submit" disabled={createPostMutation.isPending} className="w-full">
                     {createPostMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      t('create_post.entertainment.submit')
+                      t("create_post.entertainment.submit")
                     )}
                   </Button>
                 </form>
@@ -255,15 +243,12 @@ export default function EntertainmentPage() {
           </Card>
 
           {isLoading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <Spinner size="lg" className="p-8" />
           ) : posts?.length === 0 ? (
-            <Alert>
-              <AlertDescription>
-                {t('entertainment_page.no_posts_desc')}
-              </AlertDescription>
-            </Alert>
+            <EmptyState
+              icon={<SmilePlus className="h-10 w-10 text-muted-foreground" />}
+              title={t("entertainment_page.no_posts_desc")}
+            />
           ) : (
             <div className="space-y-6">
               {posts?.map((post) => (
@@ -278,35 +263,33 @@ export default function EntertainmentPage() {
                         </div>
                       </div>
                       <Badge variant="outline" className="text-primary">
-                        {t('entertainment_page.fun_badge')}
+                        {t("entertainment_page.fun_badge")}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {t('entertainment_page.shared_on')} {format(new Date(post.createdAt), "PPP")}
+                      {t("entertainment_page.shared_on")} {format(new Date(post.createdAt), "PPP")}
                     </p>
                   </CardHeader>
                   <CardContent>
                     <p className="whitespace-pre-wrap mb-4">{post.content}</p>
                     {post.mediaUrl && (
                       <div className="mt-4 rounded-lg overflow-hidden bg-gray-100">
-                        {post.mediaType === 'image' ? (
+                        {post.mediaType === "image" ? (
                           <img
                             src={`/uploads/${post.mediaUrl}`}
                             alt="Entertainment content"
                             className="w-full h-auto max-h-[500px] object-contain"
                             onError={(e) => {
-                              console.error("Failed to load image:", e);
-                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).style.display = "none";
                             }}
                           />
-                        ) : post.mediaType === 'video' ? (
+                        ) : post.mediaType === "video" ? (
                           <video
                             src={`/uploads/${post.mediaUrl}`}
                             controls
                             className="w-full max-h-[500px]"
                             onError={(e) => {
-                              console.error("Failed to load video:", e);
-                              (e.target as HTMLVideoElement).style.display = 'none';
+                              (e.target as HTMLVideoElement).style.display = "none";
                             }}
                           />
                         ) : null}
@@ -316,19 +299,19 @@ export default function EntertainmentPage() {
                     <div className="mt-6 space-y-4">
                       <h3 className="font-semibold flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        {t('comments.title')}
+                        {t("comments.title")}
                       </h3>
 
                       <div className="flex gap-2">
                         <Input
-                          placeholder={t('comments.placeholder')}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                          placeholder={t("comments.placeholder")}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
                               createCommentMutation.mutate({
                                 postId: post.id,
-                                content: (e.target as HTMLInputElement).value.trim()
+                                content: (e.target as HTMLInputElement).value.trim(),
                               });
-                              (e.target as HTMLInputElement).value = '';
+                              (e.target as HTMLInputElement).value = "";
                             }
                           }}
                         />
@@ -336,17 +319,17 @@ export default function EntertainmentPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            const input = (document.activeElement as HTMLInputElement);
+                            const input = document.activeElement as HTMLInputElement;
                             if (input?.value?.trim()) {
                               createCommentMutation.mutate({
                                 postId: post.id,
-                                content: input.value.trim()
+                                content: input.value.trim(),
                               });
-                              input.value = '';
+                              input.value = "";
                             }
                           }}
                         >
-                          {t('comments.post_button')}
+                          {t("comments.post_button")}
                         </Button>
                       </div>
 
@@ -374,7 +357,9 @@ export default function EntertainmentPage() {
                         onClick={() => reactionMutation.mutate({ postId: post.id, isLike: true })}
                         disabled={reactionMutation.isPending}
                       >
-                        <ThumbsUp className={`h-4 w-4 mr-1 ${post.userReaction?.isLike ? "fill-current" : ""}`} />
+                        <ThumbsUp
+                          className={`h-4 w-4 mr-1 ${post.userReaction?.isLike ? "fill-current" : ""}`}
+                        />
                         <span>{post.reactions.likes}</span>
                       </Button>
                       <Button
@@ -383,7 +368,9 @@ export default function EntertainmentPage() {
                         onClick={() => reactionMutation.mutate({ postId: post.id, isLike: false })}
                         disabled={reactionMutation.isPending}
                       >
-                        <ThumbsDown className={`h-4 w-4 mr-1 ${post.userReaction?.isLike === false ? "fill-current" : ""}`} />
+                        <ThumbsDown
+                          className={`h-4 w-4 mr-1 ${post.userReaction?.isLike === false ? "fill-current" : ""}`}
+                        />
                         <span>{post.reactions.dislikes}</span>
                       </Button>
                     </div>

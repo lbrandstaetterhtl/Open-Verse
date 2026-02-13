@@ -3,12 +3,12 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import fs from "fs";
 import path from "path";
-import { db } from "./db";
+
 
 const app = express();
 
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
 // Ensure uploads directory exists and set proper permissions
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -18,10 +18,14 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Log static file requests for debugging
-app.use("/uploads", (req, res, next) => {
-  console.log("Static file request:", req.url);
-  next();
-}, express.static(uploadsDir));
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    console.log("Static file request:", req.url);
+    next();
+  },
+  express.static(uploadsDir),
+);
 
 // Add request logging middleware
 app.use((req, res, next) => {
@@ -55,28 +59,28 @@ app.use((req, res, next) => {
 });
 
 // Validate required environment variables
-const useSqlite = process.env.USE_SQLITE === 'true';
+const useSqlite = process.env.USE_SQLITE === "true";
 const requiredEnvVars = useSqlite
-  ? ['SESSION_SECRET']  // SQLite doesn't need DATABASE_URL
-  : ['SESSION_SECRET', 'DATABASE_URL'];  // Neon needs DATABASE_URL
+  ? ["SESSION_SECRET"] // SQLite doesn't need DATABASE_URL
+  : ["SESSION_SECRET", "DATABASE_URL"]; // Neon needs DATABASE_URL
 
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const missingEnvVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
-  console.error('Missing required environment variables:', missingEnvVars.join(', '));
+  console.error("Missing required environment variables:", missingEnvVars.join(", "));
   process.exit(1);
 }
 
 // Check optional SendGrid configuration
 if (!process.env.SENDGRID_API_KEY) {
-  console.warn('SENDGRID_API_KEY not configured - email verification will be skipped');
-} else if (!process.env.SENDGRID_API_KEY.startsWith('SG.')) {
-  console.warn('SENDGRID_API_KEY is invalid - email verification will be skipped');
+  console.warn("SENDGRID_API_KEY not configured - email verification will be skipped");
+} else if (!process.env.SENDGRID_API_KEY.startsWith("SG.")) {
+  console.warn("SENDGRID_API_KEY is invalid - email verification will be skipped");
 }
 
 // Global error handler
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('Unhandled error:', err);
+  console.error("Unhandled error:", err);
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
   res.status(status).json({ message });
@@ -84,8 +88,8 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 
 (async () => {
   try {
-    console.log('Starting server...');
-    const server = await registerRoutes(app, db);
+    console.log("Starting server...");
+    const server = await registerRoutes(app);
 
     if (app.get("env") === "development") {
       await setupVite(app, server);
@@ -99,12 +103,12 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     });
 
     // Handle server errors
-    server.on('error', (error: any) => {
-      console.error('Server error:', error);
+    server.on("error", (error: any) => {
+      console.error("Server error:", error);
       process.exit(1);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error("Failed to start server:", error);
     process.exit(1);
   }
 })();

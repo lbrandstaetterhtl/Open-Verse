@@ -6,14 +6,15 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage, sanitizeUser } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-import { updateProfileSchema, updatePasswordSchema } from '@shared/schema';
+import { updateProfileSchema, updatePasswordSchema } from "@shared/schema";
 import { sendVerificationEmail } from "./utils/email";
 import rateLimit from "express-rate-limit";
 import { logSecurityEvent } from "./utils/logger";
+import { insertUserSchema } from "@shared/schema";
 
 declare global {
   namespace Express {
-    interface User extends SelectUser { }
+    interface User extends SelectUser {}
   }
 }
 
@@ -51,19 +52,19 @@ async function createVerificationToken(userId: number): Promise<string> {
 }
 
 export const validateCsrf = (req: any, res: any, next: any) => {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
 
-  const token = req.headers['x-csrf-token'];
+  const token = req.headers["x-csrf-token"];
   const sessionToken = (req.session as any)?.csrfToken;
 
   if (!token || !sessionToken || token !== sessionToken) {
     logSecurityEvent({
-      type: 'CSRF_FAILURE',
+      type: "CSRF_FAILURE",
       ip: req.ip || req.socket.remoteAddress,
       resource: req.path,
-      details: { method: req.method }
+      details: { method: req.method },
     });
-    return res.status(403).send('Invalid CSRF Token');
+    return res.status(403).send("Invalid CSRF Token");
   }
   next();
 };
@@ -77,7 +78,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
   // CSRF Token Initialization
   app.use((req, res, next) => {
     if (req.session && !(req.session as any).csrfToken) {
-      (req.session as any).csrfToken = randomBytes(32).toString('hex');
+      (req.session as any).csrfToken = randomBytes(32).toString("hex");
     }
     next();
   });
@@ -85,10 +86,8 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 20, // Limit each IP to 20 login attempts per window
-    message: "Too many login attempts, please try again later"
+    message: "Too many login attempts, please try again later",
   });
-
-
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -96,26 +95,35 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
         const user = await storage.getUserByUsername(username);
         if (!user) {
           console.log("Login failed: User not found:", username);
-          logSecurityEvent({ type: 'AUTH_FAILURE', details: { reason: 'User not found', username } });
+          logSecurityEvent({
+            type: "AUTH_FAILURE",
+            details: { reason: "User not found", username },
+          });
           return done(null, false, { message: "Invalid username or password" });
         }
 
         const isValid = await comparePasswords(password, user.password);
         if (!isValid) {
           console.log("Login failed: Invalid password for user:", username);
-          logSecurityEvent({ type: 'AUTH_FAILURE', userId: user.id, details: { reason: 'Invalid password' } });
+          logSecurityEvent({
+            type: "AUTH_FAILURE",
+            userId: user.id,
+            details: { reason: "Invalid password" },
+          });
           return done(null, false, { message: "Invalid username or password" });
         }
 
         // Check if user is banned (negative karma)
         if (user.karma < 0) {
           console.log("Login blocked: User is banned:", username);
-          logSecurityEvent({ type: 'AUTH_BANNED_ATTEMPT', userId: user.id, details: { username } });
-          return done(null, false, { message: "Your account has been banned. Please contact support." });
+          logSecurityEvent({ type: "AUTH_BANNED_ATTEMPT", userId: user.id, details: { username } });
+          return done(null, false, {
+            message: "Your account has been banned. Please contact support.",
+          });
         }
 
         console.log("Login successful for user:", username);
-        logSecurityEvent({ type: 'AUTH_SUCCESS', userId: user.id });
+        logSecurityEvent({ type: "AUTH_SUCCESS", userId: user.id });
         return done(null, user);
       } catch (err) {
         console.error("Login error:", err);
@@ -151,20 +159,23 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
 
   app.post("/api/register", authLimiter, async (req, res) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
+      // SEC-FIX: Validate input against schema (enforces password complexity)
+      const data = insertUserSchema.parse(req.body);
+
+      const existingUser = await storage.getUserByUsername(data.username);
       if (existingUser) {
         return res.status(400).send("Username already exists");
       }
 
-      const existingEmail = await storage.getUserByEmail(req.body.email);
+      const existingEmail = await storage.getUserByEmail(data.email);
       if (existingEmail) {
         return res.status(400).send("Email already registered");
       }
 
       // Create the user first
       const user = await storage.createUser({
-        ...req.body,
-        password: await hashPassword(req.body.password),
+        ...data,
+        password: await hashPassword(data.password),
         emailVerified: false,
       });
 
@@ -216,7 +227,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
         };
         await storage.createTheme(user.id, {
           name: "Default Blue",
-          colors: JSON.stringify(defaultThemeColors)
+          colors: JSON.stringify(defaultThemeColors),
         });
       } catch (themeError) {
         console.error("Failed to create default theme for new user:", themeError);
@@ -224,26 +235,30 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
       }
 
       // Only attempt email verification if SendGrid is properly configured
-      if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.startsWith('SG.')) {
+      if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.startsWith("SG.")) {
         try {
           const verificationToken = await createVerificationToken(user.id);
           await sendVerificationEmail(user.email, user.username, verificationToken);
         } catch (emailErr) {
-          console.error('Error sending verification email:', emailErr);
+          console.error("Error sending verification email:", emailErr);
           // Continue with registration even if email fails
         }
       } else {
-        console.log('SendGrid API key not properly configured - skipping verification email');
+        console.log("SendGrid API key not properly configured - skipping verification email");
       }
 
       // Log the user in
       req.login(user, (err) => {
         if (err) return res.status(500).send(err.message);
-        logSecurityEvent({ type: 'AUTH_SUCCESS', userId: user.id, details: { action: 'register' } });
+        logSecurityEvent({
+          type: "AUTH_SUCCESS",
+          userId: user.id,
+          details: { action: "register" },
+        });
         res.status(201).json(user);
       });
     } catch (err) {
-      console.error('Registration error:', err);
+      console.error("Registration error:", err);
       res.status(500).send("Registration failed");
     }
   });
@@ -320,7 +335,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
 
     const updatedUser = await storage.updateUserPassword(
       req.user!.id,
-      await hashPassword(result.data.newPassword)
+      await hashPassword(result.data.newPassword),
     );
     res.json(updatedUser);
   });

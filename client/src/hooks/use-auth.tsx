@@ -1,9 +1,5 @@
 import { createContext, ReactNode, useContext, useEffect } from "react";
-import {
-  useQuery,
-  useMutation,
-  UseMutationResult,
-} from "@tanstack/react-query";
+import { useQuery, useMutation, UseMutationResult } from "@tanstack/react-query";
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -98,17 +94,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (user) {
         // Use sendBeacon for reliable logout on page close
         // This works even when the page is being unloaded
-        navigator.sendBeacon('/api/logout');
+        navigator.sendBeacon("/api/logout");
 
         // Clear local cache immediately
         queryClient.clear();
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [user]);
 

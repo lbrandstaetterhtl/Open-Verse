@@ -34,7 +34,7 @@ export function NotificationsDialog() {
       if (!res.ok) throw new Error("Failed to fetch notifications");
       return res.json();
     },
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -51,26 +51,23 @@ export function NotificationsDialog() {
 
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: number) => {
-      console.log("Deleting notification client-side:", notificationId);
       const res = await apiRequest("DELETE", `/api/notifications/${notificationId}`);
       if (!res.ok) throw new Error("Failed to delete notification");
     },
     onSuccess: () => {
-      console.log("Notification deleted successfully, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
     },
-    onError: (e) => {
-      console.error("Failed to delete notification client-side:", e);
-    }
+    onError: () => {
+    },
   });
 
   // Calculate unread notifications count
-  const unreadCount = notifications?.filter(n => !n.read).length || 0;
+  const unreadCount = notifications?.filter((n) => !n.read).length || 0;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
@@ -81,7 +78,7 @@ export function NotificationsDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{t('notifications.title')}</DialogTitle>
+          <DialogTitle>{t("notifications.title")}</DialogTitle>
         </DialogHeader>
         {isLoading ? (
           <div className="flex justify-center py-8">
@@ -89,7 +86,7 @@ export function NotificationsDialog() {
           </div>
         ) : notifications?.length === 0 ? (
           <Alert>
-            <AlertDescription>{t('notifications.empty')}</AlertDescription>
+            <AlertDescription>{t("notifications.empty")}</AlertDescription>
           </Alert>
         ) : (
           <div className="space-y-4 mt-4">
@@ -109,16 +106,16 @@ export function NotificationsDialog() {
                   <p className="text-sm">
                     <span className="font-medium">{notification.fromUser.username}</span>{" "}
                     {notification.type.startsWith("community_kick|")
-                      ? t('notifications.community_kick', { name: notification.type.split('|')[1] })
+                      ? t("notifications.community_kick", { name: notification.type.split("|")[1] })
                       : notification.type === "new_follower"
-                        ? t('notifications.new_follower')
+                        ? t("notifications.new_follower")
                         : notification.type === "new_message"
-                          ? t('notifications.new_message')
+                          ? t("notifications.new_message")
                           : notification.type === "report_resolved"
-                            ? t('notifications.report_resolved')
+                            ? t("notifications.report_resolved")
                             : notification.type === "report_rejected"
-                              ? t('notifications.report_rejected')
-                              : t('notifications.interaction')}
+                              ? t("notifications.report_rejected")
+                              : t("notifications.interaction")}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(notification.createdAt), "PPp")}
@@ -128,6 +125,7 @@ export function NotificationsDialog() {
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                  aria-label="Delete notification"
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteNotificationMutation.mutate(notification.id);

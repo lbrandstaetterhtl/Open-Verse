@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -83,20 +83,32 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const postLikes = pgTable("post_likes", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  postId: integer("post_id").notNull(),
-  isLike: boolean("is_like").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const postLikes = pgTable(
+  "post_likes",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").notNull(),
+    postId: integer("post_id").notNull(),
+    isLike: boolean("is_like").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqueLike: unique().on(t.userId, t.postId),
+  }),
+);
 
-export const commentLikes = pgTable("comment_likes", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  commentId: integer("comment_id").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const commentLikes = pgTable(
+  "comment_likes",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").notNull(),
+    commentId: integer("comment_id").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqueLike: unique().on(t.userId, t.commentId),
+  }),
+);
 
 // Community Tables
 export const communities = pgTable("communities", {
@@ -141,17 +153,22 @@ const basePostSchema = createInsertSchema(posts).pick({
 });
 
 // Schemas for Communities
-export const insertCommunitySchema = createInsertSchema(communities).pick({
-  name: true,
-  description: true,
-  imageUrl: true,
-  allowedCategories: true,
-}).extend({
-  name: z.string().min(3, "Name must be at least 3 characters").max(50, "Name must be less than 50 characters"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
-  imageUrl: z.string().optional(),
-  allowedCategories: z.string().default("news,entertainment,discussion"),
-});
+export const insertCommunitySchema = createInsertSchema(communities)
+  .pick({
+    name: true,
+    description: true,
+    imageUrl: true,
+    allowedCategories: true,
+  })
+  .extend({
+    name: z
+      .string()
+      .min(3, "Name must be at least 3 characters")
+      .max(50, "Name must be less than 50 characters"),
+    description: z.string().min(10, "Description must be at least 10 characters"),
+    imageUrl: z.string().optional(),
+    allowedCategories: z.string().default("news,entertainment,discussion"),
+  });
 
 export const insertDiscussionPostSchema = basePostSchema.extend({
   category: z.literal("discussion"),
@@ -178,34 +195,52 @@ export const insertReportSchema = createInsertSchema(reports).pick({
   ipAddress: true,
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  email: true,
-  password: true,
-}).extend({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters long"),
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    email: true,
+    password: true,
+  })
+  .extend({
+    email: z.string().email("Please enter a valid email address"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters long")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+  });
 
 export const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
 });
 
-export const updateProfileSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  email: z.string().email("Please enter a valid email address"),
-  bio: z.string().optional(),
-}).partial();
+export const updateProfileSchema = z
+  .object({
+    username: z.string().min(1, "Username is required"),
+    email: z.string().email("Please enter a valid email address"),
+    bio: z.string().optional(),
+  })
+  .partial();
 
-export const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "New password must be at least 8 characters long"),
-  confirmPassword: z.string()
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+export const updatePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(8, "New password must be at least 8 characters long")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export const followUserSchema = z.object({
   userId: z.number(),
@@ -215,7 +250,6 @@ export const messageSchema = z.object({
   receiverId: z.number(),
   content: z.string().min(1, "Message cannot be empty"),
 });
-
 
 export const adminUpdateUserSchema = z.object({
   username: z.string().min(1, "Username is required").optional(),

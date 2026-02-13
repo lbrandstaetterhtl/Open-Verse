@@ -13,7 +13,7 @@ export default function HomePage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto">
           <h1 className="text-4xl font-bold mb-8">Welcome back, {user?.username}!</h1>
-          
+
           <div className="grid gap-6">
             <Link href="/discussions">
               <Card className="hover:bg-primary/5 transition-colors cursor-pointer">

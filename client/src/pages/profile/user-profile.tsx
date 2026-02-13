@@ -22,7 +22,11 @@ export default function UserProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<User>({
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useQuery<User>({
     queryKey: ["/api/users", username],
     queryFn: async () => {
       const res = await fetch(`/api/users/${username}`);
@@ -36,7 +40,7 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!username,
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -49,7 +53,7 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!username,
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -62,7 +66,7 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!username,
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -75,7 +79,7 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!username,
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -88,7 +92,7 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!username,
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -175,9 +179,7 @@ export default function UserProfilePage() {
                     Verified
                   </Badge>
                 )}
-                {profile.karma < 0 && (
-                  <Badge variant="destructive">Banned</Badge>
-                )}
+                {profile.karma < 0 && <Badge variant="destructive">Banned</Badge>}
               </div>
               <div className="flex gap-4 mt-2">
                 <span className="text-muted-foreground">{followers?.length || 0} followers</span>
@@ -309,7 +311,10 @@ export default function UserProfilePage() {
                     <Card key={post.id} className="hover:bg-muted/50 transition-colors">
                       <CardHeader>
                         <CardTitle className="text-lg">
-                          <Link href={`/posts/${post.id}?from=profile&username=${username}`} className="hover:underline">
+                          <Link
+                            href={`/posts/${post.id}?from=profile&username=${username}`}
+                            className="hover:underline"
+                          >
                             {post.title}
                           </Link>
                         </CardTitle>
@@ -322,9 +327,7 @@ export default function UserProfilePage() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="line-clamp-3 text-sm text-muted-foreground">
-                          {post.content}
-                        </p>
+                        <p className="line-clamp-3 text-sm text-muted-foreground">{post.content}</p>
                       </CardContent>
                     </Card>
                   ))
@@ -353,7 +356,10 @@ export default function UserProfilePage() {
                             {format(new Date(comment.createdAt), "PPp")}
                           </p>
                           {comment.post && (
-                            <Link href={`/posts/${comment.post.id}`} className="text-xs text-primary hover:underline">
+                            <Link
+                              href={`/posts/${comment.post.id}`}
+                              className="text-xs text-primary hover:underline"
+                            >
                               on: {comment.post.title}
                             </Link>
                           )}

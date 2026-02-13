@@ -1,31 +1,31 @@
-import { drizzle as drizzleNeon } from 'drizzle-orm/neon-serverless';
-import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import Database from 'better-sqlite3';
+import { drizzle as drizzleNeon } from "drizzle-orm/neon-serverless";
+import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import Database from "better-sqlite3";
 import ws from "ws";
 import * as schema from "@shared/schema";
-import path from 'path';
-import fs from 'fs';
+import path from "path";
+import fs from "fs";
 
-console.log('DEBUG: process.env.USE_SQLITE =', process.env.USE_SQLITE);
+console.log("DEBUG: process.env.USE_SQLITE =", process.env.USE_SQLITE);
 
-const useSqlite = process.env.USE_SQLITE === 'true';
-console.log('DEBUG: useSqlite =', useSqlite);
+const useSqlite = process.env.USE_SQLITE === "true";
+console.log("DEBUG: useSqlite =", useSqlite);
 
 let pool: Pool | null = null;
 let db: any;
 let sqlite: any = null;
 
 if (useSqlite) {
-  console.log('Using SQLite database for local development');
+  console.log("Using SQLite database for local development");
   // Use absolute path to ensure we hit the same file regardless of CWD
-  const dbPath = path.join(process.cwd(), 'local.db');
-  console.log('DEBUG: SQLite DB Path:', dbPath);
+  const dbPath = path.join(process.cwd(), "local.db");
+  console.log("DEBUG: SQLite DB Path:", dbPath);
 
   sqlite = new Database(dbPath);
 
   // Register 'now' function for compatibility with defaultNow()
-  sqlite.function('now', () => new Date().toISOString());
+  sqlite.function("now", () => new Date().toISOString());
 
   db = drizzleSqlite(sqlite, { schema });
 
@@ -139,12 +139,12 @@ if (useSqlite) {
       banned_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
   `);
-  console.log('DEBUG: SQLite tables initialized');
+  console.log("DEBUG: SQLite tables initialized");
 
   // Add community_id column to posts if it doesn't exist yet
   try {
     sqlite.exec(`ALTER TABLE posts ADD COLUMN community_id INTEGER`);
-    console.log('DEBUG: Added community_id column to posts');
+    console.log("DEBUG: Added community_id column to posts");
   } catch (e: any) {
     // Column already exists, ignore
   }
@@ -155,20 +155,19 @@ if (useSqlite) {
   } catch (e: any) {
     // Column already exists, ignore
   }
-
 } else {
-  console.log('Using Neon PostgreSQL database');
+  console.log("Using Neon PostgreSQL database");
   neonConfig.webSocketConstructor = ws;
 
   if (!process.env.DATABASE_URL) {
-    throw new Error(
-      "DATABASE_URL must be set. Did you forget to provision a database?",
-    );
+    throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
   }
 
   pool = new Pool({ connectionString: process.env.DATABASE_URL });
   db = drizzleNeon({ client: pool, schema });
 }
 
-export function getSqlite() { return sqlite; }
+export function getSqlite() {
+  return sqlite;
+}
 export { pool, db };

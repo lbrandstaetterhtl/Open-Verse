@@ -5,14 +5,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { UpdateProfile, UpdatePassword, updateProfileSchema, updatePasswordSchema, User } from "@shared/schema";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  UpdateProfile,
+  UpdatePassword,
+  updateProfileSchema,
+  updatePasswordSchema,
+  User,
+} from "@shared/schema";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -41,7 +42,7 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error("Failed to fetch followers");
       return res.json();
     },
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -53,7 +54,7 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error("Failed to fetch following");
       return res.json();
     },
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -152,7 +153,7 @@ export default function ProfilePage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
-            <UserAvatar user={{ username: user?.username || '' }} size="lg" />
+            <UserAvatar user={{ username: user?.username || "" }} size="lg" />
             <div>
               <h1 className="text-4xl font-bold">Profile Settings</h1>
               <div className="flex gap-4 mt-2">
@@ -182,7 +183,13 @@ export default function ProfilePage() {
                       ) : (
                         <UserAvatar user={follower} size="sm" />
                       )}
-                      <span>{follower.karma < 0 ? <span className="text-muted-foreground italic">Banned User</span> : follower.username}</span>
+                      <span>
+                        {follower.karma < 0 ? (
+                          <span className="text-muted-foreground italic">Banned User</span>
+                        ) : (
+                          follower.username
+                        )}
+                      </span>
                     </div>
                     {follower.karma >= 0 ? (
                       <Button
@@ -194,7 +201,9 @@ export default function ProfilePage() {
                         Follow Back
                       </Button>
                     ) : (
-                      <Button variant="ghost" size="sm" disabled>Banned</Button>
+                      <Button variant="ghost" size="sm" disabled>
+                        Banned
+                      </Button>
                     )}
                   </div>
                 ))}
@@ -221,7 +230,13 @@ export default function ProfilePage() {
                       ) : (
                         <UserAvatar user={followed} size="sm" />
                       )}
-                      <span>{followed.karma < 0 ? <span className="text-muted-foreground italic">Banned User</span> : followed.username}</span>
+                      <span>
+                        {followed.karma < 0 ? (
+                          <span className="text-muted-foreground italic">Banned User</span>
+                        ) : (
+                          followed.username
+                        )}
+                      </span>
                     </div>
                     {followed.karma >= 0 ? (
                       <Button
@@ -328,7 +343,9 @@ export default function ProfilePage() {
             <CardContent>
               <Form {...passwordForm}>
                 <form
-                  onSubmit={passwordForm.handleSubmit((data) => updatePasswordMutation.mutate(data))}
+                  onSubmit={passwordForm.handleSubmit((data) =>
+                    updatePasswordMutation.mutate(data),
+                  )}
                   className="space-y-4"
                 >
                   <FormField

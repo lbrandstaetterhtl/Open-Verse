@@ -7,7 +7,6 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-
 let csrfToken: string | null = null;
 
 export async function apiRequest(
@@ -16,9 +15,9 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   // Try to fetch CSRF token if we don't have one and this is a mutation
-  if (!csrfToken && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())) {
+  if (!csrfToken && ["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase())) {
     try {
-      const r = await fetch('/api/csrf-token');
+      const r = await fetch("/api/csrf-token");
       if (r.ok) {
         const d = await r.json();
         csrfToken = d.csrfToken;
@@ -31,7 +30,7 @@ export async function apiRequest(
   const doRequest = async () => {
     const isFormData = data instanceof FormData;
     const headers: Record<string, string> = {
-      ...(csrfToken ? { "x-csrf-token": csrfToken } : {})
+      ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
     };
 
     if (data && !isFormData) {
@@ -41,7 +40,7 @@ export async function apiRequest(
     return fetch(url, {
       method,
       headers,
-      body: isFormData ? (data as FormData) : (data ? JSON.stringify(data) : undefined),
+      body: isFormData ? (data as FormData) : data ? JSON.stringify(data) : undefined,
       credentials: "include",
     });
   };
@@ -57,7 +56,7 @@ export async function apiRequest(
 
       // Fetch new token
       try {
-        const r = await fetch('/api/csrf-token');
+        const r = await fetch("/api/csrf-token");
         if (r.ok) {
           const d = await r.json();
           csrfToken = d.csrfToken;
@@ -76,22 +75,20 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
+export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-    async ({ queryKey }) => {
-      const res = await fetch(queryKey[0] as string, {
-        credentials: "include",
-      });
+  async ({ queryKey }) => {
+    const res = await fetch(queryKey[0] as string, {
+      credentials: "include",
+    });
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
-      }
+    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      return null;
+    }
 
-      await throwIfResNotOk(res);
-      return await res.json();
-    };
+    await throwIfResNotOk(res);
+    return await res.json();
+  };
 
 export const queryClient = new QueryClient({
   defaultOptions: {

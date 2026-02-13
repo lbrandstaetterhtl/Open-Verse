@@ -2,7 +2,14 @@ import { Navbar } from "@/components/layout/navbar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertDiscussionPostSchema } from "@shared/schema";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +18,7 @@ import { Loader2, MessageSquarePlus } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import * as z from 'zod';
+import * as z from "zod";
 import { useLocation } from "wouter";
 
 type FormData = z.infer<typeof insertDiscussionPostSchema>;
@@ -47,15 +54,18 @@ export default function CreateDiscussionPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] });
       toast({
-        title: t('create_post.discussion.success_title'),
-        description: t('create_post.discussion.success_desc'),
+        title: t("create_post.discussion.success_title"),
+        description: t("create_post.discussion.success_desc"),
       });
 
       if (communityId) {
         // Fetch community to redirect back to it
-        fetch(`/api/communities/${communityId}`).then(res => res.json()).then(community => {
-          setLocation(`/c/${community.slug}`);
-        }).catch(() => setLocation("/feed/discussions"));
+        fetch(`/api/communities/${communityId}`)
+          .then((res) => res.json())
+          .then((community) => {
+            setLocation(`/c/${community.slug}`);
+          })
+          .catch(() => setLocation("/feed/discussions"));
       } else {
         setLocation("/feed/discussions");
       }
@@ -71,7 +81,7 @@ export default function CreateDiscussionPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <MessageSquarePlus className="h-5 w-5" />
-                <span>{t('create_post.discussion.title')}</span>
+                <span>{t("create_post.discussion.title")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -85,7 +95,7 @@ export default function CreateDiscussionPage() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.discussion.title_label')}</FormLabel>
+                        <FormLabel>{t("create_post.discussion.title_label")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -98,11 +108,11 @@ export default function CreateDiscussionPage() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.discussion.content_label')}</FormLabel>
+                        <FormLabel>{t("create_post.discussion.content_label")}</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={6}
-                            placeholder={t('create_post.discussion.placeholder')}
+                            placeholder={t("create_post.discussion.placeholder")}
                             {...field}
                           />
                         </FormControl>
@@ -110,15 +120,11 @@ export default function CreateDiscussionPage() {
                       </FormItem>
                     )}
                   />
-                  <Button
-                    type="submit"
-                    disabled={createPostMutation.isPending}
-                    className="w-full"
-                  >
+                  <Button type="submit" disabled={createPostMutation.isPending} className="w-full">
                     {createPostMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      t('create_post.discussion.submit')
+                      t("create_post.discussion.submit")
                     )}
                   </Button>
                 </form>

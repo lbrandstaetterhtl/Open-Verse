@@ -1,392 +1,392 @@
 {
-    "navbar": {
-        "brand": "Osiris",
-        "media_feed": "媒体动态",
-        "discussions_feed": "讨论动态",
-        "messages": "消息",
-        "profile": "个人资料",
-        "theme_builder": "主题生成器",
-        "communities": "社区",
-        "ai_generator": "AI 生成器",
-        "mod_panel": "版主面板",
-        "admin": "管理后台",
-        "logout": "退出登录"
+  "navbar": {
+    "brand": "Osiris",
+    "media_feed": "媒体动态",
+    "discussions_feed": "讨论动态",
+    "messages": "消息",
+    "profile": "个人资料",
+    "theme_builder": "主题生成器",
+    "communities": "社区",
+    "ai_generator": "AI 生成器",
+    "mod_panel": "版主面板",
+    "admin": "管理后台",
+    "logout": "退出登录"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "发生错误",
+    "submit": "提交",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "save": "保存",
+    "theme": {
+      "light": "浅色",
+      "dark": "深色",
+      "system": "系统"
+    }
+  },
+  "feed": {
+    "media_title": "媒体动态",
+    "discussions_title": "讨论动态",
+    "create_discussion": "发起讨论",
+    "post_news": "发布新闻",
+    "post_entertainment": "发布娱乐",
+    "following": "关注",
+    "follow": "关注",
+    "all": "全部",
+    "news": "新闻",
+    "entertainment": "娱乐",
+    "no_discussions": "暂无讨论。成为第一个发起讨论的人！",
+    "no_posts": "暂无帖子。成为第一个分享的人！"
+  },
+  "comments": {
+    "title": "评论",
+    "placeholder": "写下你的评论...",
+    "post_button": "发布"
+  },
+  "actions": {
+    "report": "举报",
+    "delete": "删除",
+    "cancel": "取消",
+    "delete_post_confirm": "确定要删除此帖子吗？此操作无法撤销。",
+    "delete_comment_confirm": "确定要删除此评论吗？此操作无法撤销。"
+  },
+  "admin": {
+    "title": "管理仪表板",
+    "reset_roles": "重置所有角色",
+    "stats": {
+      "total_users": "总用户",
+      "active_users": "活跃用户",
+      "verified_users": "已验证用户",
+      "banned_users": "被封禁用户",
+      "deleted_users": "已删除用户",
+      "total_posts": "总帖子",
+      "total_reports": "总举报",
+      "pending_reports": "待处理",
+      "resolved_reports": "已解决",
+      "rejected_reports": "已驳回"
     },
-    "common": {
-        "loading": "加载中...",
-        "error": "发生错误",
-        "submit": "提交",
-        "cancel": "取消",
-        "delete": "删除",
-        "edit": "编辑",
-        "save": "保存",
-        "theme": {
-            "light": "浅色",
-            "dark": "深色",
-            "system": "系统"
-        }
+    "tabs": {
+      "users": "用户",
+      "reports": "举报"
     },
-    "feed": {
-        "media_title": "媒体动态",
-        "discussions_title": "讨论动态",
-        "create_discussion": "发起讨论",
-        "post_news": "发布新闻",
-        "post_entertainment": "发布娱乐",
-        "following": "关注",
-        "follow": "关注",
+    "roles": {
+      "owner": "拥有者",
+      "admin": "管理员",
+      "user": "用户"
+    },
+    "users_table": {
+      "search_placeholder": "搜索用户...",
+      "username": "用户名",
+      "email": "邮箱",
+      "status": "状态",
+      "role": "角色",
+      "karma": "Karma",
+      "joined": "加入时间",
+      "actions": "操作",
+      "make_admin": "设为管理员",
+      "make_owner": "设为拥有者",
+      "remove_admin": "移除管理员",
+      "remove_owner": "移除拥有者",
+      "ban_user": "封禁用户",
+      "restore_user": "恢复账户",
+      "verify_user": "验证用户",
+      "unverify_user": "移除验证",
+      "verify_email": "验证邮箱",
+      "unverify_email": "取消邮箱验证",
+      "verify_user_confirm": "您确定要验证 {{username}} 吗？这将在其名字旁边显示已验证徽章。",
+      "unverify_user_confirm": "您确定要取消 {{username}} 的验证吗？这将移除其已验证徽章。",
+      "restore_user_confirm": "您确定要恢复 {{username}} 的账户吗？",
+      "ban_user_confirm": "您确定要封禁 {{username}} 吗？这将阻止其访问大多数功能。",
+      "delete_user_confirm": "您确定要永久删除 {{username}} 吗？此操作无法撤销，将删除该用户的所有帖子、评论和其他数据。",
+      "make_admin_confirm": "您确定要将 {{username}} 设为管理员吗？这将授予其管理权限。",
+      "make_owner_confirm": "您确定要将 {{username}} 提升为拥有者吗？这将授予其完全系统访问权限。",
+      "remove_owner_confirm": "您确定要移除 {{username}} 的拥有者身份吗？其将被降级为管理员。",
+      "remove_admin_confirm": "您确定要移除 {{username}} 的管理员权限吗？其将被降级为普通用户。"
+    },
+    "reports_table": {
+      "reporter": "举报人",
+      "ip_address": "IP 地址",
+      "poster": "发布者",
+      "type": "类型",
+      "content": "内容",
+      "reason": "原因",
+      "status": "状态",
+      "reported_on": "举报时间",
+      "actions": "操作",
+      "resolve": "解决",
+      "reject": "驳回",
+      "resolve_title": "解决举报",
+      "resolve_desc": "您确定要解决此举报吗？这将删除被举报的内容。",
+      "reject_title": "驳回举报",
+      "reject_desc": "您确定要驳回此举报吗？被举报的内容将保留。",
+      "status_all": "全部",
+      "status_pending": "待处理",
+      "status_resolved": "已解决",
+      "status_rejected": "已驳回",
+      "type_post": "帖子",
+      "type_discussion": "讨论",
+      "type_comment": "评论"
+    }
+  },
+  "notifications": {
+    "title": "通知",
+    "empty": "暂无通知",
+    "new_follower": "开始关注你",
+    "new_message": "给你发了一条消息",
+    "report_resolved": "已解决您的举报",
+    "report_rejected": "已驳回您的举报",
+    "community_kick": "将与其从 {{name}} 踢出",
+    "interaction": "与您的帖子进行了互动"
+  },
+  "ai_generator": {
+    "title": "AI 帖子生成器",
+    "description": "选择一个动态，上传一张图片（可选），让 AI 为你写作。",
+    "select_feed": "选择动态",
+    "select_language": "选择语言",
+    "upload_image": "1. 选择一张图片（可选）",
+    "enter_topic": "2. 输入主题",
+    "topic_placeholder": "例如：早晨咖啡，科技趋势，周末氛围...",
+    "remove_image": "移除",
+    "generate_button": "生成帖子",
+    "generating": "正在施展魔法...",
+    "generated_label": "你生成的帖子",
+    "edit_placeholder": "发布前你可以在这里编辑文字...",
+    "copy": "复制",
+    "post_button": "发布到动态",
+    "posting": "发布中...",
+    "toast_generated": "内容已生成！",
+    "toast_generated_desc": "你完美的帖子已准备就绪。你现在可以编辑或发布它。",
+    "toast_posted": "已发布！",
+    "toast_posted_desc": "你的帖子现已在动态中发布。",
+    "feeds": {
+      "news": "新闻动态",
+      "entertainment": "娱乐动态",
+      "discussion": "讨论动态"
+    },
+    "languages": {
+      "english": "英语",
+      "german": "德语",
+      "spanish": "西班牙语",
+      "french": "法语"
+    }
+  },
+  "create_post": {
+    "news": {
+      "title": "分享新闻",
+      "headline": "标题",
+      "content": "文章内容",
+      "placeholder": "在这里写下你的新闻文章。请确保内容真实并注明来源。",
+      "submit": "提交新闻",
+      "success_title": "新闻已发布",
+      "success_desc": "你的新闻文章已成功发布。"
+    },
+    "entertainment": {
+      "title": "分享趣事",
+      "title_label": "标题",
+      "content_label": "内容",
+      "placeholder": "分享一个笑话，一个有趣的故事，或一些有趣的事情！",
+      "submit": "分享",
+      "success_title": "帖子已创建",
+      "success_desc": "你的娱乐帖子已成功分享。"
+    },
+    "discussion": {
+      "title": "发起讨论",
+      "title_label": "标题",
+      "content_label": "内容",
+      "placeholder": "分享你的想法...",
+      "submit": "发布讨论",
+      "success_title": "讨论已创建",
+      "success_desc": "你的讨论已成功发布。"
+    },
+    "media_label": "媒体（图片或视频）"
+  },
+  "community": {
+    "create": {
+      "title": "创建社区",
+      "subtitle": "建立一个供人们分享和讨论共同兴趣的空间。",
+      "name_label": "社区名称",
+      "name_placeholder": "例如：咖啡爱好者，科技新闻",
+      "desc_label": "描述",
+      "desc_placeholder": "这个社区关于什么？",
+      "image_label": "图片 URL（可选）",
+      "allowed_feeds_label": "允许的动态",
+      "feed_hint": "为你的社区选择至少一种动态类型。",
+      "submit": "创建社区",
+      "success_title": "社区已创建",
+      "restriction_title": "限制",
+      "restriction_desc": "你需要至少 200 声望才能创建社区。",
+      "current_rep": "你当前的声望："
+    },
+    "page": {
+      "not_found_title": "未找到社区",
+      "not_found_desc": "你正在寻找的社区不存在。",
+      "back_to_communities": "返回社区",
+      "about": "关于",
+      "created": "创建于：",
+      "join_prompt": "加入此社区即可开始发布和互动！",
+      "join_button": "加入社区",
+      "leave_button": "退出",
+      "owner_badge": "拥有者",
+      "create_post": "创建帖子",
+      "joined_success": "已加入！",
+      "left_success": "已退出",
+      "member_of": "你现在是 {{name}} 的成员",
+      "left_community": "你已退出 {{name}}",
+      "tabs": {
         "all": "全部",
         "news": "新闻",
         "entertainment": "娱乐",
-        "no_discussions": "暂无讨论。成为第一个发起讨论的人！",
-        "no_posts": "暂无帖子。成为第一个分享的人！"
-    },
-    "comments": {
-        "title": "评论",
-        "placeholder": "写下你的评论...",
-        "post_button": "发布"
-    },
-    "actions": {
-        "report": "举报",
-        "delete": "删除",
-        "cancel": "取消",
-        "delete_post_confirm": "确定要删除此帖子吗？此操作无法撤销。",
-        "delete_comment_confirm": "确定要删除此评论吗？此操作无法撤销。"
-    },
-    "admin": {
-        "title": "管理仪表板",
-        "reset_roles": "重置所有角色",
-        "stats": {
-            "total_users": "总用户",
-            "active_users": "活跃用户",
-            "verified_users": "已验证用户",
-            "banned_users": "被封禁用户",
-            "deleted_users": "已删除用户",
-            "total_posts": "总帖子",
-            "total_reports": "总举报",
-            "pending_reports": "待处理",
-            "resolved_reports": "已解决",
-            "rejected_reports": "已驳回"
-        },
-        "tabs": {
-            "users": "用户",
-            "reports": "举报"
-        },
-        "roles": {
-            "owner": "拥有者",
-            "admin": "管理员",
-            "user": "用户"
-        },
-        "users_table": {
-            "search_placeholder": "搜索用户...",
-            "username": "用户名",
-            "email": "邮箱",
-            "status": "状态",
-            "role": "角色",
-            "karma": "Karma",
-            "joined": "加入时间",
-            "actions": "操作",
-            "make_admin": "设为管理员",
-            "make_owner": "设为拥有者",
-            "remove_admin": "移除管理员",
-            "remove_owner": "移除拥有者",
-            "ban_user": "封禁用户",
-            "restore_user": "恢复账户",
-            "verify_user": "验证用户",
-            "unverify_user": "移除验证",
-            "verify_email": "验证邮箱",
-            "unverify_email": "取消邮箱验证",
-            "verify_user_confirm": "您确定要验证 {{username}} 吗？这将在其名字旁边显示已验证徽章。",
-            "unverify_user_confirm": "您确定要取消 {{username}} 的验证吗？这将移除其已验证徽章。",
-            "restore_user_confirm": "您确定要恢复 {{username}} 的账户吗？",
-            "ban_user_confirm": "您确定要封禁 {{username}} 吗？这将阻止其访问大多数功能。",
-            "delete_user_confirm": "您确定要永久删除 {{username}} 吗？此操作无法撤销，将删除该用户的所有帖子、评论和其他数据。",
-            "make_admin_confirm": "您确定要将 {{username}} 设为管理员吗？这将授予其管理权限。",
-            "make_owner_confirm": "您确定要将 {{username}} 提升为拥有者吗？这将授予其完全系统访问权限。",
-            "remove_owner_confirm": "您确定要移除 {{username}} 的拥有者身份吗？其将被降级为管理员。",
-            "remove_admin_confirm": "您确定要移除 {{username}} 的管理员权限吗？其将被降级为普通用户。"
-        },
-        "reports_table": {
-            "reporter": "举报人",
-            "ip_address": "IP 地址",
-            "poster": "发布者",
-            "type": "类型",
-            "content": "内容",
-            "reason": "原因",
-            "status": "状态",
-            "reported_on": "举报时间",
-            "actions": "操作",
-            "resolve": "解决",
-            "reject": "驳回",
-            "resolve_title": "解决举报",
-            "resolve_desc": "您确定要解决此举报吗？这将删除被举报的内容。",
-            "reject_title": "驳回举报",
-            "reject_desc": "您确定要驳回此举报吗？被举报的内容将保留。",
-            "status_all": "全部",
-            "status_pending": "待处理",
-            "status_resolved": "已解决",
-            "status_rejected": "已驳回",
-            "type_post": "帖子",
-            "type_discussion": "讨论",
-            "type_comment": "评论"
-        }
-    },
-    "notifications": {
-        "title": "通知",
-        "empty": "暂无通知",
-        "new_follower": "开始关注你",
-        "new_message": "给你发了一条消息",
-        "report_resolved": "已解决您的举报",
-        "report_rejected": "已驳回您的举报",
-        "community_kick": "将与其从 {{name}} 踢出",
-        "interaction": "与您的帖子进行了互动"
-    },
-    "ai_generator": {
-        "title": "AI 帖子生成器",
-        "description": "选择一个动态，上传一张图片（可选），让 AI 为你写作。",
-        "select_feed": "选择动态",
-        "select_language": "选择语言",
-        "upload_image": "1. 选择一张图片（可选）",
-        "enter_topic": "2. 输入主题",
-        "topic_placeholder": "例如：早晨咖啡，科技趋势，周末氛围...",
-        "remove_image": "移除",
-        "generate_button": "生成帖子",
-        "generating": "正在施展魔法...",
-        "generated_label": "你生成的帖子",
-        "edit_placeholder": "发布前你可以在这里编辑文字...",
-        "copy": "复制",
-        "post_button": "发布到动态",
-        "posting": "发布中...",
-        "toast_generated": "内容已生成！",
-        "toast_generated_desc": "你完美的帖子已准备就绪。你现在可以编辑或发布它。",
-        "toast_posted": "已发布！",
-        "toast_posted_desc": "你的帖子现已在动态中发布。",
-        "feeds": {
-            "news": "新闻动态",
-            "entertainment": "娱乐动态",
-            "discussion": "讨论动态"
-        },
-        "languages": {
-            "english": "英语",
-            "german": "德语",
-            "spanish": "西班牙语",
-            "french": "法语"
-        }
-    },
-    "create_post": {
-        "news": {
-            "title": "分享新闻",
-            "headline": "标题",
-            "content": "文章内容",
-            "placeholder": "在这里写下你的新闻文章。请确保内容真实并注明来源。",
-            "submit": "提交新闻",
-            "success_title": "新闻已发布",
-            "success_desc": "你的新闻文章已成功发布。"
-        },
-        "entertainment": {
-            "title": "分享趣事",
-            "title_label": "标题",
-            "content_label": "内容",
-            "placeholder": "分享一个笑话，一个有趣的故事，或一些有趣的事情！",
-            "submit": "分享",
-            "success_title": "帖子已创建",
-            "success_desc": "你的娱乐帖子已成功分享。"
-        },
-        "discussion": {
-            "title": "发起讨论",
-            "title_label": "标题",
-            "content_label": "内容",
-            "placeholder": "分享你的想法...",
-            "submit": "发布讨论",
-            "success_title": "讨论已创建",
-            "success_desc": "你的讨论已成功发布。"
-        },
-        "media_label": "媒体（图片或视频）"
-    },
-    "community": {
-        "create": {
-            "title": "创建社区",
-            "subtitle": "建立一个供人们分享和讨论共同兴趣的空间。",
-            "name_label": "社区名称",
-            "name_placeholder": "例如：咖啡爱好者，科技新闻",
-            "desc_label": "描述",
-            "desc_placeholder": "这个社区关于什么？",
-            "image_label": "图片 URL（可选）",
-            "allowed_feeds_label": "允许的动态",
-            "feed_hint": "为你的社区选择至少一种动态类型。",
-            "submit": "创建社区",
-            "success_title": "社区已创建",
-            "restriction_title": "限制",
-            "restriction_desc": "你需要至少 200 声望才能创建社区。",
-            "current_rep": "你当前的声望："
-        },
-        "page": {
-            "not_found_title": "未找到社区",
-            "not_found_desc": "你正在寻找的社区不存在。",
-            "back_to_communities": "返回社区",
-            "about": "关于",
-            "created": "创建于：",
-            "join_prompt": "加入此社区即可开始发布和互动！",
-            "join_button": "加入社区",
-            "leave_button": "退出",
-            "owner_badge": "拥有者",
-            "create_post": "创建帖子",
-            "joined_success": "已加入！",
-            "left_success": "已退出",
-            "member_of": "你现在是 {{name}} 的成员",
-            "left_community": "你已退出 {{name}}",
-            "tabs": {
-                "all": "全部",
-                "news": "新闻",
-                "entertainment": "娱乐",
-                "discussion": "讨论"
-            },
-            "sort": {
-                "hot": "热门",
-                "new": "最新",
-                "top": "置顶"
-            },
-            "empty_posts": "暂无帖子",
-            "empty_posts_desc": "成为第一个分享的人！"
-        }
-    },
-    "mod_panel": {
-        "title": "版主面板",
-        "no_communities": "你没有管理任何社区。",
-        "my_communities": "我的社区",
-        "tabs": {
-            "overview": "概览",
-            "reports": "举报",
-            "members": "成员",
-            "bans": "封禁",
-            "staff": "管理人员"
-        },
-        "overview": {
-            "title": "社区概览",
-            "desc": "指标和快速操作（即将来临）",
-            "select_prompt": "选择一个标签以管理你的社区。"
-        },
-        "reports": {
-            "updated_title": "举报已更新",
-            "updated_desc": "举报状态已更新。",
-            "filter_placeholder": "按状态筛选",
-            "all": "所有举报",
-            "pending": "待处理",
-            "resolved": "已解决",
-            "rejected": "已驳回",
-            "table": {
-                "type": "类型",
-                "reason": "原因",
-                "status": "状态",
-                "date": "日期",
-                "actions": "操作",
-                "empty": "未找到举报。"
-            },
-            "types": {
-                "post": "帖子",
-                "comment": "评论",
-                "other": "其他"
-            }
-        },
-        "members": {
-            "kicked_title": "用户已踢出",
-            "kicked_desc": "成员已从社区移除。",
-            "search_placeholder": "搜索成员...",
-            "table": {
-                "user": "用户",
-                "role": "角色",
-                "actions": "操作",
-                "empty": "未找到成员。"
-            },
-            "kick_dialog": {
-                "title": "踢出成员？",
-                "desc": "你确定要将 {{name}} 从社区移除吗？他们以后可以再次加入。",
-                "confirm": "踢出用户",
-                "cancel": "取消"
-            }
-        },
-        "bans": {
-            "banned_title": "用户已封禁",
-            "banned_desc": "用户已被封禁出社区。",
-            "unbanned_title": "用户已解封",
-            "unbanned_desc": "访问已恢复。",
-            "search_placeholder": "搜索封禁...",
-            "ban_button": "封禁用户",
-            "table": {
-                "user": "用户",
-                "reason": "原因",
-                "date": "日期",
-                "actions": "操作",
-                "empty": "未找到封禁。",
-                "id": "ID：",
-                "no_reason": "无原因"
-            },
-            "ban_dialog": {
-                "title": "从社区封禁用户",
-                "desc": "阻止用户在此社区发布或评论。",
-                "user_id_label": "用户 ID",
-                "user_id_placeholder": "目标用户 ID",
-                "reason_label": "原因",
-                "reason_placeholder": "封禁原因",
-                "confirm": "封禁用户",
-                "cancel": "取消"
-            },
-            "unban_dialog": {
-                "title": "解封用户？",
-                "desc": "这将恢复 {{name}} 对社区的访问权限。",
-                "confirm": "解封",
-                "cancel": "取消"
-            }
-        },
-        "staff": {
-            "added_title": "版主已添加",
-            "added_desc": "用户已晋升为版主。",
-            "title": "社区管理人员",
-            "add_button": "添加版主",
-            "add_dialog": {
-                "title": "添加版主",
-                "desc": "授予版主权限。只有拥有者可以执行此操作。",
-                "user_id_label": "用户 ID",
-                "user_id_placeholder": "目标用户 ID",
-                "confirm": "添加版主",
-                "cancel": "取消"
-            }
-        }
-    },
-    "communities_feed": {
-        "header_title": "社区动态",
-        "header_desc": "来自你已加入社区的帖子",
-        "create_button": "创建社区",
-        "search_title": "搜索社区",
-        "search_placeholder": "搜索...",
-        "my_communities": "我的社区",
-        "no_joined": "你尚未加入任何社区。",
-        "no_results": "未找到社区。",
-        "no_posts": "暂无帖子",
-        "no_posts_desc": "加入社区以在此处查看其帖子，或创建你自己的社区！",
-        "join_suggestion": "创建社区"
-    },
-    "media_feed": {
-        "load_error": "媒体加载失败"
-    },
-    "ai_gen_errors": {
-        "generation_failed": "生成失败",
-        "posting_failed": "发布失败",
-        "topic_required": "需要主题",
-        "topic_missing": "请输入帖子主题。",
-        "generic": "出错了。",
-        "copied": "已复制！",
-        "copied_desc": "内容已复制到剪贴板。",
-        "mascot_name": "机甲奥西里斯",
-        "mascot_version": "v2.0 模型"
-    },
-    "news_page": {
-        "fact_checked": "已查证",
-        "published_on": "发布于",
-        "no_posts_desc": "暂无新闻文章。成为第一个分享重要新闻的人！"
-    },
-    "entertainment_page": {
-        "fun_badge": "有趣",
-        "shared_on": "分享于",
-        "no_posts_desc": "暂无娱乐帖子。分享一些有趣的事情开始吧！"
+        "discussion": "讨论"
+      },
+      "sort": {
+        "hot": "热门",
+        "new": "最新",
+        "top": "置顶"
+      },
+      "empty_posts": "暂无帖子",
+      "empty_posts_desc": "成为第一个分享的人！"
     }
+  },
+  "mod_panel": {
+    "title": "版主面板",
+    "no_communities": "你没有管理任何社区。",
+    "my_communities": "我的社区",
+    "tabs": {
+      "overview": "概览",
+      "reports": "举报",
+      "members": "成员",
+      "bans": "封禁",
+      "staff": "管理人员"
+    },
+    "overview": {
+      "title": "社区概览",
+      "desc": "指标和快速操作（即将来临）",
+      "select_prompt": "选择一个标签以管理你的社区。"
+    },
+    "reports": {
+      "updated_title": "举报已更新",
+      "updated_desc": "举报状态已更新。",
+      "filter_placeholder": "按状态筛选",
+      "all": "所有举报",
+      "pending": "待处理",
+      "resolved": "已解决",
+      "rejected": "已驳回",
+      "table": {
+        "type": "类型",
+        "reason": "原因",
+        "status": "状态",
+        "date": "日期",
+        "actions": "操作",
+        "empty": "未找到举报。"
+      },
+      "types": {
+        "post": "帖子",
+        "comment": "评论",
+        "other": "其他"
+      }
+    },
+    "members": {
+      "kicked_title": "用户已踢出",
+      "kicked_desc": "成员已从社区移除。",
+      "search_placeholder": "搜索成员...",
+      "table": {
+        "user": "用户",
+        "role": "角色",
+        "actions": "操作",
+        "empty": "未找到成员。"
+      },
+      "kick_dialog": {
+        "title": "踢出成员？",
+        "desc": "你确定要将 {{name}} 从社区移除吗？他们以后可以再次加入。",
+        "confirm": "踢出用户",
+        "cancel": "取消"
+      }
+    },
+    "bans": {
+      "banned_title": "用户已封禁",
+      "banned_desc": "用户已被封禁出社区。",
+      "unbanned_title": "用户已解封",
+      "unbanned_desc": "访问已恢复。",
+      "search_placeholder": "搜索封禁...",
+      "ban_button": "封禁用户",
+      "table": {
+        "user": "用户",
+        "reason": "原因",
+        "date": "日期",
+        "actions": "操作",
+        "empty": "未找到封禁。",
+        "id": "ID：",
+        "no_reason": "无原因"
+      },
+      "ban_dialog": {
+        "title": "从社区封禁用户",
+        "desc": "阻止用户在此社区发布或评论。",
+        "user_id_label": "用户 ID",
+        "user_id_placeholder": "目标用户 ID",
+        "reason_label": "原因",
+        "reason_placeholder": "封禁原因",
+        "confirm": "封禁用户",
+        "cancel": "取消"
+      },
+      "unban_dialog": {
+        "title": "解封用户？",
+        "desc": "这将恢复 {{name}} 对社区的访问权限。",
+        "confirm": "解封",
+        "cancel": "取消"
+      }
+    },
+    "staff": {
+      "added_title": "版主已添加",
+      "added_desc": "用户已晋升为版主。",
+      "title": "社区管理人员",
+      "add_button": "添加版主",
+      "add_dialog": {
+        "title": "添加版主",
+        "desc": "授予版主权限。只有拥有者可以执行此操作。",
+        "user_id_label": "用户 ID",
+        "user_id_placeholder": "目标用户 ID",
+        "confirm": "添加版主",
+        "cancel": "取消"
+      }
+    }
+  },
+  "communities_feed": {
+    "header_title": "社区动态",
+    "header_desc": "来自你已加入社区的帖子",
+    "create_button": "创建社区",
+    "search_title": "搜索社区",
+    "search_placeholder": "搜索...",
+    "my_communities": "我的社区",
+    "no_joined": "你尚未加入任何社区。",
+    "no_results": "未找到社区。",
+    "no_posts": "暂无帖子",
+    "no_posts_desc": "加入社区以在此处查看其帖子，或创建你自己的社区！",
+    "join_suggestion": "创建社区"
+  },
+  "media_feed": {
+    "load_error": "媒体加载失败"
+  },
+  "ai_gen_errors": {
+    "generation_failed": "生成失败",
+    "posting_failed": "发布失败",
+    "topic_required": "需要主题",
+    "topic_missing": "请输入帖子主题。",
+    "generic": "出错了。",
+    "copied": "已复制！",
+    "copied_desc": "内容已复制到剪贴板。",
+    "mascot_name": "机甲奥西里斯",
+    "mascot_version": "v2.0 模型"
+  },
+  "news_page": {
+    "fact_checked": "已查证",
+    "published_on": "发布于",
+    "no_posts_desc": "暂无新闻文章。成为第一个分享重要新闻的人！"
+  },
+  "entertainment_page": {
+    "fun_badge": "有趣",
+    "shared_on": "分享于",
+    "no_posts_desc": "暂无娱乐帖子。分享一些有趣的事情开始吧！"
+  }
 }

@@ -7,13 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -25,11 +19,24 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { ThumbsUp, ThumbsDown, Flag, AlertTriangle, Loader2, Newspaper, Image, Video, MessageCircle, UserCircle, BadgeCheck } from "lucide-react";
+import {
+  ThumbsUp,
+  ThumbsDown,
+  Flag,
+  AlertTriangle,
+  Loader2,
+  Newspaper,
+  Image,
+  Video,
+  MessageCircle,
+  UserCircle,
+  BadgeCheck,
+} from "lucide-react";
 import { format } from "date-fns";
-import * as z from 'zod';
+import * as z from "zod";
 import { Report } from "@shared/schema";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ReportDialog } from "@/components/dialogs/report-dialog";
@@ -59,15 +66,18 @@ export default function NewsPage() {
   const { data: posts, isLoading } = useQuery<PostWithAuthor[]>({
     queryKey: ["/api/posts", "news"],
     queryFn: async () => {
-      const res = await fetch("/api/posts?category=news&include=author,comments,reactions,userReaction", {
-        headers: {
-          "x-auto-refresh": "true"
-        }
-      });
+      const res = await fetch(
+        "/api/posts?category=news&include=author,comments,reactions,userReaction",
+        {
+          headers: {
+            "x-auto-refresh": "true",
+          },
+        },
+      );
       if (!res.ok) throw new Error("Failed to fetch posts");
       return res.json();
     },
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -106,8 +116,8 @@ export default function NewsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       form.reset();
       toast({
-        title: t('create_post.news.success_title'),
-        description: t('create_post.news.success_desc'),
+        title: t("create_post.news.success_title"),
+        description: t("create_post.news.success_desc"),
       });
     },
   });
@@ -120,8 +130,8 @@ export default function NewsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
-        title: t('ai_generator.toast_posted'),
-        description: t('ai_generator.toast_posted_desc'),
+        title: t("ai_generator.toast_posted"),
+        description: t("ai_generator.toast_posted_desc"),
       });
     },
   });
@@ -135,8 +145,6 @@ export default function NewsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
     },
   });
-
-
 
   const reactionMutation = useMutation<Post, Error, { postId: number; isLike: boolean }>({
     mutationFn: async ({ postId, isLike }) => {
@@ -154,10 +162,10 @@ export default function NewsPage() {
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center space-x-4 mb-8">
-            <h1 className="text-4xl font-bold">{t('feed.news')}</h1>
+            <h1 className="text-4xl font-bold">{t("feed.news")}</h1>
             <Badge variant="secondary" className="text-primary">
               <AlertTriangle className="h-4 w-4 mr-1" />
-              {t('news_page.fact_checked')}
+              {t("news_page.fact_checked")}
             </Badge>
           </div>
 
@@ -165,7 +173,7 @@ export default function NewsPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Newspaper className="h-5 w-5" />
-                <span>{t('create_post.news.title')}</span>
+                <span>{t("create_post.news.title")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -179,7 +187,7 @@ export default function NewsPage() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.news.headline')}</FormLabel>
+                        <FormLabel>{t("create_post.news.headline")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -192,11 +200,11 @@ export default function NewsPage() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.news.content')}</FormLabel>
+                        <FormLabel>{t("create_post.news.content")}</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={6}
-                            placeholder={t('create_post.news.placeholder')}
+                            placeholder={t("create_post.news.placeholder")}
                             {...field}
                           />
                         </FormControl>
@@ -209,7 +217,7 @@ export default function NewsPage() {
                     name="mediaFile"
                     render={({ field: { onChange, value, ...field } }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.media_label')}</FormLabel>
+                        <FormLabel>{t("create_post.media_label")}</FormLabel>
                         <FormControl>
                           <Input
                             type="file"
@@ -218,7 +226,10 @@ export default function NewsPage() {
                               const file = e.target.files?.[0];
                               if (file) {
                                 onChange(e.target.files);
-                                form.setValue("mediaType", file.type.startsWith("image/") ? "image" : "video");
+                                form.setValue(
+                                  "mediaType",
+                                  file.type.startsWith("image/") ? "image" : "video",
+                                );
                               }
                             }}
                             {...field}
@@ -228,15 +239,11 @@ export default function NewsPage() {
                       </FormItem>
                     )}
                   />
-                  <Button
-                    type="submit"
-                    disabled={createPostMutation.isPending}
-                    className="w-full"
-                  >
+                  <Button type="submit" disabled={createPostMutation.isPending} className="w-full">
                     {createPostMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      t('create_post.news.submit')
+                      t("create_post.news.submit")
                     )}
                   </Button>
                 </form>
@@ -245,15 +252,12 @@ export default function NewsPage() {
           </Card>
 
           {isLoading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <Spinner size="lg" className="p-8" />
           ) : posts?.length === 0 ? (
-            <Alert>
-              <AlertDescription>
-                {t('news_page.no_posts_desc')}
-              </AlertDescription>
-            </Alert>
+            <EmptyState
+              icon={<Newspaper className="h-10 w-10 text-muted-foreground" />}
+              title={t("news_page.no_posts_desc")}
+            />
           ) : (
             <div className="space-y-6">
               {posts?.map((post) => (
@@ -264,7 +268,13 @@ export default function NewsPage() {
                         <CardTitle>{post.title}</CardTitle>
                         <div className="flex items-center space-x-2 mt-2 text-sm text-muted-foreground">
                           <div className="flex items-center space-x-2">
-                            <UserAvatar user={{ username: post.author.username, verified: post.author.verified }} size="sm" />
+                            <UserAvatar
+                              user={{
+                                username: post.author.username,
+                                verified: post.author.verified,
+                              }}
+                              size="sm"
+                            />
                             <div className="flex items-center gap-1">
                               <span>{post.author.username}</span>
                               {post.author.verified && (
@@ -275,29 +285,25 @@ export default function NewsPage() {
                         </div>
                       </div>
                       <Badge variant="outline" className="text-primary">
-                        {t('feed.news')}
+                        {t("feed.news")}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {t('news_page.published_on')} {format(new Date(post.createdAt), "PPP")}
+                      {t("news_page.published_on")} {format(new Date(post.createdAt), "PPP")}
                     </p>
                   </CardHeader>
                   <CardContent>
                     <p className="whitespace-pre-wrap mb-4">{post.content}</p>
                     {post.mediaUrl && (
                       <div className="mt-4 rounded-lg overflow-hidden bg-gray-100">
-                        {post.mediaType === 'image' ? (
+                        {post.mediaType === "image" ? (
                           <img
                             src={post.mediaUrl}
                             alt="News content"
                             className="w-full h-auto max-h-[500px] object-contain"
                           />
-                        ) : post.mediaType === 'video' ? (
-                          <video
-                            src={post.mediaUrl}
-                            controls
-                            className="w-full max-h-[500px]"
-                          />
+                        ) : post.mediaType === "video" ? (
+                          <video src={post.mediaUrl} controls className="w-full max-h-[500px]" />
                         ) : null}
                       </div>
                     )}
@@ -306,20 +312,20 @@ export default function NewsPage() {
                     <div className="mt-6 space-y-4">
                       <h3 className="font-semibold flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        {t('comments.title')}
+                        {t("comments.title")}
                       </h3>
 
                       {/* Comment Form */}
                       <div className="flex gap-2">
                         <Input
-                          placeholder={t('comments.placeholder')}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                          placeholder={t("comments.placeholder")}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
                               createCommentMutation.mutate({
                                 postId: post.id,
-                                content: (e.target as HTMLInputElement).value.trim()
+                                content: (e.target as HTMLInputElement).value.trim(),
                               });
-                              (e.target as HTMLInputElement).value = '';
+                              (e.target as HTMLInputElement).value = "";
                             }
                           }}
                         />
@@ -327,17 +333,17 @@ export default function NewsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            const input = (document.activeElement as HTMLInputElement);
+                            const input = document.activeElement as HTMLInputElement;
                             if (input?.value?.trim()) {
                               createCommentMutation.mutate({
                                 postId: post.id,
-                                content: input.value.trim()
+                                content: input.value.trim(),
                               });
-                              input.value = '';
+                              input.value = "";
                             }
                           }}
                         >
-                          {t('comments.post_button')}
+                          {t("comments.post_button")}
                         </Button>
                       </div>
 
@@ -349,7 +355,9 @@ export default function NewsPage() {
                               <div className="flex items-center space-x-2 mb-1">
                                 <UserCircle className="h-4 w-4" />
                                 <div className="flex items-center gap-1">
-                                  <span className="text-sm font-medium">{comment.author.username}</span>
+                                  <span className="text-sm font-medium">
+                                    {comment.author.username}
+                                  </span>
                                   {comment.author.verified && (
                                     <BadgeCheck className="h-4 w-4 text-blue-500" />
                                   )}
@@ -373,7 +381,9 @@ export default function NewsPage() {
                         onClick={() => reactionMutation.mutate({ postId: post.id, isLike: true })}
                         disabled={reactionMutation.isPending}
                       >
-                        <ThumbsUp className={`h-4 w-4 mr-1 ${post.userReaction?.isLike ? "fill-current" : ""}`} />
+                        <ThumbsUp
+                          className={`h-4 w-4 mr-1 ${post.userReaction?.isLike ? "fill-current" : ""}`}
+                        />
                         <span>{post.reactions.likes}</span>
                       </Button>
                       <Button
@@ -382,7 +392,9 @@ export default function NewsPage() {
                         onClick={() => reactionMutation.mutate({ postId: post.id, isLike: false })}
                         disabled={reactionMutation.isPending}
                       >
-                        <ThumbsDown className={`h-4 w-4 mr-1 ${post.userReaction?.isLike === false ? "fill-current" : ""}`} />
+                        <ThumbsDown
+                          className={`h-4 w-4 mr-1 ${post.userReaction?.isLike === false ? "fill-current" : ""}`}
+                        />
                         <span>{post.reactions.dislikes}</span>
                       </Button>
                     </div>

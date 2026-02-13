@@ -2,6 +2,13 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 const dbPath = path.join(__dirname, '../../local.db');
+
+// SEC-C2: Restrict to development only
+if (process.env.NODE_ENV === 'production') {
+  console.error('FATAL: This script is restricted to development environments only.');
+  process.exit(1);
+}
+
 const db = new Database(dbPath);
 
 console.log('Updating user AdminU to admin...');

@@ -7,8 +7,26 @@ import { Redirect } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Network, Newspaper, MessageSquare, Users, Sparkles, Globe, TrendingUp, Info, Eye, EyeOff } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Network,
+  Newspaper,
+  MessageSquare,
+  Users,
+  Sparkles,
+  Globe,
+  TrendingUp,
+  Info,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
 import { insertUserSchema, InsertUser, loginSchema, LoginCredentials } from "@shared/schema";
 import { useLocation } from "wouter";
@@ -107,7 +125,8 @@ export default function AuthPage() {
           </div>
 
           <p className="text-xl text-muted-foreground mb-8">
-            Join our vibrant community where informed citizens connect, share, and discuss current events, politics, and entertainment.
+            Join our vibrant community where informed citizens connect, share, and discuss current
+            events, politics, and entertainment.
           </p>
 
           <div className="space-y-6">
@@ -115,7 +134,10 @@ export default function AuthPage() {
               <Newspaper className="h-6 w-6 text-primary mt-1" />
               <div>
                 <h3 className="font-semibold">Quality News Coverage</h3>
-                <p className="text-muted-foreground">Access fact-checked news and in-depth analysis from reliable sources on politics and current events.</p>
+                <p className="text-muted-foreground">
+                  Access fact-checked news and in-depth analysis from reliable sources on politics
+                  and current events.
+                </p>
               </div>
             </div>
 
@@ -123,7 +145,9 @@ export default function AuthPage() {
               <MessageSquare className="h-6 w-6 text-primary mt-1" />
               <div>
                 <h3 className="font-semibold">Meaningful Discussions</h3>
-                <p className="text-muted-foreground">Engage in civil discourse about important political and social issues that matter.</p>
+                <p className="text-muted-foreground">
+                  Engage in civil discourse about important political and social issues that matter.
+                </p>
               </div>
             </div>
 
@@ -131,7 +155,9 @@ export default function AuthPage() {
               <TrendingUp className="h-6 w-6 text-primary mt-1" />
               <div>
                 <h3 className="font-semibold">Entertainment & Trends</h3>
-                <p className="text-muted-foreground">Stay updated with the latest in entertainment, culture, and trending topics.</p>
+                <p className="text-muted-foreground">
+                  Stay updated with the latest in entertainment, culture, and trending topics.
+                </p>
               </div>
             </div>
 
@@ -139,7 +165,9 @@ export default function AuthPage() {
               <Users className="h-6 w-6 text-primary mt-1" />
               <div>
                 <h3 className="font-semibold">Community Impact</h3>
-                <p className="text-muted-foreground">Connect with others who share your interests in politics, news, and entertainment.</p>
+                <p className="text-muted-foreground">
+                  Connect with others who share your interests in politics, news, and entertainment.
+                </p>
               </div>
             </div>
 
@@ -185,7 +213,10 @@ function LoginForm() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit((data) => loginMutation.mutate(data))}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="username"
@@ -256,7 +287,10 @@ function RegisterForm() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => registerMutation.mutate(data))} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit((data) => registerMutation.mutate(data))}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="username"

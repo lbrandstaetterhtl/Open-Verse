@@ -39,8 +39,6 @@ export default function ChatPage() {
   const [showUserList, setShowUserList] = useState(true); // For mobile toggle
   const scrollRef = useRef<HTMLDivElement>(null);
 
-
-
   // Fetch both followers and following
   const { data: following } = useQuery<User[]>({
     queryKey: ["/api/following"],
@@ -49,7 +47,7 @@ export default function ChatPage() {
       if (!res.ok) throw new Error("Failed to fetch following");
       return res.json();
     },
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -61,14 +59,14 @@ export default function ChatPage() {
       if (!res.ok) throw new Error("Failed to fetch followers");
       return res.json();
     },
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
 
   // Calculate mutual followers (users who follow each other)
-  const mutualFollowers = following?.filter(
-    (followedUser) => followers?.some((follower) => follower.id === followedUser.id)
+  const mutualFollowers = following?.filter((followedUser) =>
+    followers?.some((follower) => follower.id === followedUser.id),
   );
 
   const { data: messages, isLoading: messagesLoading } = useQuery<Message[]>({
@@ -80,7 +78,7 @@ export default function ChatPage() {
       return res.json();
     },
     enabled: !!selectedUserId,
-    refetchInterval: 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -138,6 +136,7 @@ export default function ChatPage() {
               size="icon"
               className="lg:hidden"
               onClick={() => setShowUserList(!showUserList)}
+              aria-label="Toggle user list"
             >
               <Menu className="h-5 w-5" />
             </Button>
@@ -145,7 +144,7 @@ export default function ChatPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
             {/* Users List - Collapsible on mobile */}
-            <Card className={`lg:block ${showUserList ? 'block' : 'hidden'}`}>
+            <Card className={`lg:block ${showUserList ? "block" : "hidden"}`}>
               <CardHeader>
                 <CardTitle className="text-lg">Mutual Followers</CardTitle>
               </CardHeader>
@@ -178,7 +177,7 @@ export default function ChatPage() {
             </Card>
 
             {/* Chat Area */}
-            <Card className={`lg:col-span-3 ${showUserList ? 'hidden' : 'block'} lg:block`}>
+            <Card className={`lg:col-span-3 ${showUserList ? "hidden" : "block"} lg:block`}>
               <CardHeader className="border-b">
                 <CardTitle className="text-lg">
                   {selectedUserId
@@ -204,9 +203,7 @@ export default function ChatPage() {
                           }`}
                       >
                         <UserAvatar
-                          user={
-                            message.senderId === user?.id ? message.sender : message.receiver
-                          }
+                          user={message.senderId === user?.id ? message.sender : message.receiver}
                           size="sm"
                         />
                         <div
@@ -239,7 +236,7 @@ export default function ChatPage() {
                         placeholder="Type a message..."
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
-                        onKeyPress={(e) => {
+                        onKeyDown={(e) => {
                           if (e.key === "Enter" && messageInput.trim()) {
                             handleSendMessage();
                           }

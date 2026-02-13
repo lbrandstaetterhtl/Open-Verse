@@ -2,7 +2,14 @@ import { Navbar } from "@/components/layout/navbar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertMediaPostSchema } from "@shared/schema";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +18,7 @@ import { Loader2, SmilePlus } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import * as z from 'zod';
+import * as z from "zod";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -49,7 +56,10 @@ export default function CreateEntertainmentPage() {
       const mediaFile = form.getValues("mediaFile");
       if (mediaFile?.[0]) {
         formData.append("media", mediaFile[0]);
-        formData.append("mediaType", data.mediaType || (mediaFile[0].type.startsWith("image/") ? "image" : "video"));
+        formData.append(
+          "mediaType",
+          data.mediaType || (mediaFile[0].type.startsWith("image/") ? "image" : "video"),
+        );
       }
 
       const res = await apiRequest("POST", "/api/posts", formData);
@@ -61,15 +71,18 @@ export default function CreateEntertainmentPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] });
       form.reset();
       toast({
-        title: t('create_post.entertainment.success_title'),
-        description: t('create_post.entertainment.success_desc'),
+        title: t("create_post.entertainment.success_title"),
+        description: t("create_post.entertainment.success_desc"),
       });
 
       if (communityId) {
         // Fetch community to redirect back to it
-        fetch(`/api/communities/${communityId}`).then(res => res.json()).then(community => {
-          setLocation(`/c/${community.slug}`);
-        }).catch(() => setLocation("/feed/media"));
+        fetch(`/api/communities/${communityId}`)
+          .then((res) => res.json())
+          .then((community) => {
+            setLocation(`/c/${community.slug}`);
+          })
+          .catch(() => setLocation("/feed/media"));
       } else {
         setLocation("/feed/media");
       }
@@ -92,7 +105,7 @@ export default function CreateEntertainmentPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <SmilePlus className="h-5 w-5" />
-                <span>{t('create_post.entertainment.title')}</span>
+                <span>{t("create_post.entertainment.title")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -106,7 +119,7 @@ export default function CreateEntertainmentPage() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.entertainment.title_label')}</FormLabel>
+                        <FormLabel>{t("create_post.entertainment.title_label")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -119,11 +132,11 @@ export default function CreateEntertainmentPage() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.entertainment.content_label')}</FormLabel>
+                        <FormLabel>{t("create_post.entertainment.content_label")}</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={6}
-                            placeholder={t('create_post.entertainment.placeholder')}
+                            placeholder={t("create_post.entertainment.placeholder")}
                             {...field}
                           />
                         </FormControl>
@@ -136,7 +149,7 @@ export default function CreateEntertainmentPage() {
                     name="mediaFile"
                     render={({ field: { onChange, value, ...field } }) => (
                       <FormItem>
-                        <FormLabel>{t('create_post.media_label')}</FormLabel>
+                        <FormLabel>{t("create_post.media_label")}</FormLabel>
                         <FormControl>
                           <Input
                             type="file"
@@ -145,7 +158,10 @@ export default function CreateEntertainmentPage() {
                               const file = e.target.files?.[0];
                               if (file) {
                                 onChange(e.target.files);
-                                form.setValue("mediaType", file.type.startsWith("image/") ? "image" : "video");
+                                form.setValue(
+                                  "mediaType",
+                                  file.type.startsWith("image/") ? "image" : "video",
+                                );
                               }
                             }}
                             {...field}
@@ -163,7 +179,7 @@ export default function CreateEntertainmentPage() {
                     {createPostMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      t('create_post.entertainment.submit')
+                      t("create_post.entertainment.submit")
                     )}
                   </Button>
                 </form>

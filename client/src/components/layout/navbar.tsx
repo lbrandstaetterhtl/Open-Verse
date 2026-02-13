@@ -2,7 +2,17 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Newspaper, UserCircle, MessageCircle, Shield, Palette, Bot, ShieldAlert, Users } from "lucide-react";
+import {
+  MessageSquare,
+  Newspaper,
+  UserCircle,
+  MessageCircle,
+  Shield,
+  Palette,
+  Bot,
+  ShieldAlert,
+  Users,
+} from "lucide-react";
 import { NotificationsDialog } from "@/components/notifications/notifications-dialog";
 import { ModeToggle } from "@/components/theme/mode-toggle";
 import { LanguageToggle } from "@/components/theme/language-toggle";
@@ -23,20 +33,20 @@ export function Navbar() {
   const isModerator = moderatedCommunities && moderatedCommunities.length > 0;
 
   const links = [
-    { href: "/feed/media", icon: Newspaper, label: t('navbar.media_feed') },
-    { href: "/feed/discussions", icon: MessageSquare, label: t('navbar.discussions_feed') },
-    { href: "/feed/communities", icon: Users, label: t('navbar.communities') }, // New feed
-    { href: "/ai-generator", icon: Bot, label: t('navbar.ai_generator') },
-    { href: "/chat", icon: MessageCircle, label: t('navbar.messages') },
-    { href: "/profile", icon: UserCircle, label: t('navbar.profile') },
-    { href: "/theme-builder", icon: Palette, label: t('navbar.theme_builder') },
-    ...(isModerator ? [
-      { href: "/mod-panel", icon: ShieldAlert, label: t('navbar.mod_panel') }
-    ] : []),
+    { href: "/feed/media", icon: Newspaper, label: t("navbar.media_feed") },
+    { href: "/feed/discussions", icon: MessageSquare, label: t("navbar.discussions_feed") },
+    { href: "/feed/communities", icon: Users, label: t("navbar.communities") }, // New feed
+    { href: "/ai-generator", icon: Bot, label: t("navbar.ai_generator") },
+    { href: "/chat", icon: MessageCircle, label: t("navbar.messages") },
+    { href: "/profile", icon: UserCircle, label: t("navbar.profile") },
+    { href: "/theme-builder", icon: Palette, label: t("navbar.theme_builder") },
+    ...(isModerator
+      ? [{ href: "/mod-panel", icon: ShieldAlert, label: t("navbar.mod_panel") }]
+      : []),
     // Show admin link for users with admin privileges
-    ...(user?.isAdmin || user?.role === 'admin' || user?.role === 'owner' ? [
-      { href: "/admin", icon: Shield, label: t('navbar.admin') }
-    ] : []),
+    ...(user?.isAdmin || user?.role === "admin" || user?.role === "owner"
+      ? [{ href: "/admin", icon: Shield, label: t("navbar.admin") }]
+      : []),
   ];
 
   return (
@@ -45,7 +55,7 @@ export function Navbar() {
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="flex items-center space-x-2">
             <OpenVerseIcon className="h-20 w-auto object-contain text-primary" />
-            <span className="font-bold">{t('navbar.brand')}</span>
+            <span className="font-bold">{t("navbar.brand")}</span>
           </Link>
         </div>
 
@@ -73,7 +83,7 @@ export function Navbar() {
               onClick={() => logoutMutation.mutate()}
               disabled={logoutMutation.isPending}
             >
-              {t('navbar.logout')}
+              {t("navbar.logout")}
             </Button>
           </div>
         </div>
