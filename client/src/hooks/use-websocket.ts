@@ -8,6 +8,18 @@ export function useWebSocket() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
 
+  // Store unstable references in refs so the effect doesn't re-run on every render
+  const logoutRef = useRef(logoutMutation);
+  const toastRef = useRef(toast);
+
+  useEffect(() => {
+    logoutRef.current = logoutMutation;
+  }, [logoutMutation]);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+
   useEffect(() => {
     if (!user) return;
 
@@ -44,12 +56,12 @@ export function useWebSocket() {
             queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
             break;
           case "banned":
-            toast({
+            toastRef.current({
               title: "Account Banned",
               description: message.message,
               variant: "destructive",
             });
-            logoutMutation.mutate();
+            logoutRef.current.mutate();
             break;
         }
       } catch (error) {
@@ -67,5 +79,5 @@ export function useWebSocket() {
         socketRef.current = null;
       }
     };
-  }, [user, logoutMutation, toast]);
+  }, [user]); // Only reconnect when user changes
 }
