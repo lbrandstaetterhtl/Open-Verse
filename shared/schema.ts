@@ -185,6 +185,8 @@ export const insertMediaPostSchema = basePostSchema.extend({
 export const insertCommentSchema = createInsertSchema(comments).pick({
   content: true,
   postId: true,
+}).extend({
+  content: z.string().min(1, "Comment cannot be empty").max(10000, "Comment too long"),
 });
 
 export const insertReportSchema = createInsertSchema(reports).pick({
@@ -192,7 +194,6 @@ export const insertReportSchema = createInsertSchema(reports).pick({
   postId: true,
   commentId: true,
   discussionId: true,
-  ipAddress: true,
 });
 
 export const insertUserSchema = createInsertSchema(users)
@@ -200,6 +201,7 @@ export const insertUserSchema = createInsertSchema(users)
     username: true,
     email: true,
     password: true,
+    emailVerified: true,
   })
   .extend({
     email: z.string().email("Please enter a valid email address"),
@@ -248,7 +250,7 @@ export const followUserSchema = z.object({
 
 export const messageSchema = z.object({
   receiverId: z.number(),
-  content: z.string().min(1, "Message cannot be empty"),
+  content: z.string().min(1, "Message cannot be empty").max(5000, "Message too long"),
 });
 
 export const adminUpdateUserSchema = z.object({

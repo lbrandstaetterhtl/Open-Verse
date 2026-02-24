@@ -48,8 +48,8 @@ const tutorialSteps = [
 export function TutorialDialog() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isOpen, setIsOpen] = useState(!user?.tutorialCompleted);
-  const [currentStep, setCurrentStep] = useState(user?.tutorialStep || 0);
+  const [isOpen, setIsOpen] = useState(!(user as any)?.tutorialCompleted);
+  const [currentStep, setCurrentStep] = useState((user as any)?.tutorialStep || 0);
 
   const updateTutorialProgress = useMutation({
     mutationFn: async (data: { step: number; completed?: boolean }) => {
@@ -70,14 +70,14 @@ export function TutorialDialog() {
   });
 
   useEffect(() => {
-    if (user && !user.tutorialCompleted && currentStep !== user.tutorialStep) {
+    if (user && !(user as any).tutorialCompleted && currentStep !== (user as any).tutorialStep) {
       updateTutorialProgress.mutate({ step: currentStep });
     }
   }, [currentStep]);
 
   const handleNext = () => {
     if (currentStep < tutorialSteps.length - 1) {
-      setCurrentStep((prev) => prev + 1);
+      setCurrentStep((prev: number) => prev + 1);
     } else {
       updateTutorialProgress.mutate({ step: currentStep, completed: true });
       setIsOpen(false);
@@ -86,7 +86,7 @@ export function TutorialDialog() {
 
   const handlePrevious = () => {
     if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1);
+      setCurrentStep((prev: number) => prev - 1);
     }
   };
 
@@ -101,7 +101,7 @@ export function TutorialDialog() {
     }
   };
 
-  if (!user || user.tutorialCompleted) return null;
+  if (!user || (user as any).tutorialCompleted) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

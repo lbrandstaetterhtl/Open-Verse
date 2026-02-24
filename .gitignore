@@ -123,5 +123,12 @@ Thumbs.db
 
 # Project specific
 sqlite.db
+local.db
+*.db
 uploads/
 server/public/
+
+# Environment files (all variants)
+.env
+.env.*
+!.env.example

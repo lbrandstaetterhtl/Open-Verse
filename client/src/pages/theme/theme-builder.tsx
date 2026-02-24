@@ -149,7 +149,24 @@ export default function ThemeBuilderPage() {
   useEffect(() => {
     const mode = isDark ? "dark" : "light";
     applyTheme(workingTheme[mode], isDark, workingTheme.font, workingTheme.background);
+
+    // Broadcast preview background down to App.tsx
+    window.dispatchEvent(
+      new CustomEvent("open-verse-preview-bg", { detail: workingTheme.background })
+    );
   }, [workingTheme, isDark]);
+
+  // Cleanup: Restore global theme on unmount if user navigates away
+  useEffect(() => {
+    return () => {
+      const stored = loadCustomTheme() || defaultTheme;
+      const isCurrentlyDark = document.documentElement.classList.contains("dark");
+      const mode = isCurrentlyDark ? "dark" : "light";
+      applyTheme(stored[mode], isCurrentlyDark, stored.font, stored.background);
+
+      window.dispatchEvent(new CustomEvent("open-verse-preview-bg", { detail: null }));
+    };
+  }, []);
 
   const handleColorChange = (key: keyof ThemeColors, value: string) => {
     setWorkingTheme((prev) => {
@@ -631,7 +648,7 @@ export default function ThemeBuilderPage() {
                       placeholder="linear-gradient(135deg, #1a1a2e, #16213e)"
                       value={background.gradient || ""}
                       onChange={(e) => {
-                        updateBackground({ gradient: e.target.value });
+                        updateLocalBackground({ gradient: e.target.value });
                         setHasUnsavedChanges(true);
                       }}
                     />

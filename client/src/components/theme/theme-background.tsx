@@ -69,8 +69,7 @@ export function ThemeBackground({ background }: ThemeBackgroundProps) {
 
     return (
         <div
-            className="fixed inset-0 pointer-events-none"
-            style={{ zIndex: -1 }}
+            className="fixed inset-0 pointer-events-none -z-10"
             aria-hidden="true"
         >
             {/* Gradient layer */}

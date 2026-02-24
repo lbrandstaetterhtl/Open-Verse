@@ -12,6 +12,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { MessageSquare, Calendar } from "lucide-react";
@@ -130,8 +132,8 @@ export default function UserProfilePage() {
       <>
         <Navbar />
         <main className="container mx-auto px-4 pt-24">
-          <div className="flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex justify-center p-8">
+            <Spinner size="lg" />
           </div>
         </main>
       </>
@@ -174,7 +176,7 @@ export default function UserProfilePage() {
                   {profile.karma < 0 ? "Banned User" : profile.username}
                 </h1>
                 {profile.verified && profile.karma >= 0 && (
-                  <Badge variant="default" className="bg-blue-500">
+                  <Badge variant="default">
                     <BadgeCheck className="h-4 w-4 mr-1" />
                     Verified
                   </Badge>
@@ -242,7 +244,7 @@ export default function UserProfilePage() {
                       </div>
                     ))}
                     {!followers?.length && (
-                      <p className="text-muted-foreground text-center">No followers yet</p>
+                      <EmptyState title="No followers" description="This user doesn't have any followers yet." />
                     )}
                   </div>
                 </CardContent>
@@ -287,7 +289,7 @@ export default function UserProfilePage() {
                       </div>
                     ))}
                     {!following?.length && (
-                      <p className="text-muted-foreground text-center">Not following anyone yet</p>
+                      <EmptyState title="Not following anyone" description="This user isn't following anyone yet." />
                     )}
                   </div>
                 </CardContent>
@@ -298,14 +300,10 @@ export default function UserProfilePage() {
               <div className="space-y-4">
                 {postsLoading ? (
                   <div className="flex justify-center p-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <Spinner size="lg" />
                   </div>
                 ) : posts?.length === 0 ? (
-                  <Card>
-                    <CardContent className="p-8 text-center text-muted-foreground">
-                      No posts yet
-                    </CardContent>
-                  </Card>
+                  <EmptyState title="No posts" description="This user hasn't created any posts yet." />
                 ) : (
                   posts?.map((post) => (
                     <Card key={post.id} className="hover:bg-muted/50 transition-colors">
@@ -339,14 +337,10 @@ export default function UserProfilePage() {
               <div className="space-y-4">
                 {commentsLoading ? (
                   <div className="flex justify-center p-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <Spinner size="lg" />
                   </div>
                 ) : comments?.length === 0 ? (
-                  <Card>
-                    <CardContent className="p-8 text-center text-muted-foreground">
-                      No comments yet
-                    </CardContent>
-                  </Card>
+                  <EmptyState title="No comments" description="This user hasn't commented on any posts." />
                 ) : (
                   comments?.map((comment: any) => (
                     <Card key={comment.id} className="hover:bg-muted/50 transition-colors">

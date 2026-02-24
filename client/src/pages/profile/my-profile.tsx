@@ -14,6 +14,7 @@ import {
 } from "@shared/schema";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -208,7 +209,7 @@ export default function ProfilePage() {
                   </div>
                 ))}
                 {!followers?.length && (
-                  <p className="text-muted-foreground text-center">No followers yet</p>
+                  <EmptyState title="No followers" description="You don't have any followers yet." />
                 )}
               </div>
             </CardContent>
@@ -260,7 +261,7 @@ export default function ProfilePage() {
                   </div>
                 ))}
                 {!following?.length && (
-                  <p className="text-muted-foreground text-center">Not following anyone yet</p>
+                  <EmptyState title="Not following anyone" description="You aren't following anyone yet." />
                 )}
               </div>
             </CardContent>

@@ -23,30 +23,29 @@ export async function checkFileSignature(filepath: string, mimetype: string): Pr
         const hex = buffer.toString('hex', 0, 32); // Check first 32 bytes
 
         // Basic check for video/mp4 as atom location varies, often starts at offset 4
-        if (mimetype === 'video/mp4') {
-            // Check for ftyp atom "66747970"
-            return hex.includes("66747970");
+        if (hex.includes("66747970")) {
+            return true;
         }
 
         // Check for WebP: RIFF (bytes 0-3) and WEBP (bytes 8-11)
-        if (mimetype === 'image/webp') {
-            const riff = hex.substring(0, 8); // 4 bytes * 2 hex chars
-            const webp = hex.substring(16, 24); // bytes 8-11
-            return riff === '52494646' && webp === '57454250';
+        const riff = hex.substring(0, 8); // 4 bytes * 2 hex chars
+        const webp = hex.substring(16, 24); // bytes 8-11
+        if (riff === '52494646' && webp === '57454250') {
+            return true;
         }
 
-        const validSignatures = signatures[mimetype];
-        if (!validSignatures) return false; // Unknown type
+        // Flatten all safe signatures
+        const allSafeSignatures = Object.values(signatures).flat();
+        const matches = allSafeSignatures.some(sig => hex.startsWith(sig));
 
-        const matches = validSignatures.some(sig => hex.startsWith(sig));
         if (!matches) {
-            console.warn(`[checkFileSignature] Signature verification failed for ${mimetype}. Header: ${hex}. Allowing upload for compatibility reasons (user reported valid file).`);
-            return true; // fail open to allow potentially valid files with unknown signatures
+            console.warn(`[checkFileSignature] Signature verification failed for ${mimetype}. Header: ${hex}.`);
+            return false;
         }
-        return matches;
+        return true;
     } catch (error) {
         console.error("Error in checkFileSignature:", error);
-        return true; // fail open for now to debug crash
+        return false;
     }
 }
 
@@ -82,7 +81,7 @@ export const postUpload = multer({
             cb(null, false);
         }
     },
-    limits: { fileSize: 1 * 1024 * 1024 * 1024 } // Limit to 1GB (for videos)
+    limits: { fileSize: 50 * 1024 * 1024 } // Limit to 50MB
 });
 
 // Dedicated multer config for theme background images

@@ -6,6 +6,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PostCard } from "@/components/post/post-card";
 import type { PostWithAuthor } from "@shared/types";
 import { useAuth } from "@/hooks/use-auth";
@@ -153,13 +154,17 @@ export default function CommunityPage() {
     return (
       <>
         <Navbar />
-        <main className="container mx-auto px-4 pt-24 text-center">
-          <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h1 className="text-2xl font-bold mb-2">{t("community.page.not_found_title")}</h1>
-          <p className="text-muted-foreground mb-6">{t("community.page.not_found_desc")}</p>
-          <Button asChild variant="outline">
-            <Link href="/feed/communities">{t("community.page.back_to_communities")}</Link>
-          </Button>
+        <main className="container mx-auto px-4 pt-24 pb-12">
+          <EmptyState
+            icon={<Users className="h-10 w-10 text-muted-foreground" />}
+            title={t("community.page.not_found_title")}
+            description={t("community.page.not_found_desc")}
+            className="mt-12"
+          >
+            <Link href="/feed/communities" className="mt-6">
+              <Button variant="outline">{t("community.page.back_to_communities")}</Button>
+            </Link>
+          </EmptyState>
         </main>
       </>
     );
@@ -214,12 +219,12 @@ export default function CommunityPage() {
               </div>
               <div className="flex items-center gap-2">
                 {isMember && (
-                  <Button variant="outline" asChild>
-                    <Link href={`/post/${postLinkCategory}?communityId=${community.id}`}>
+                  <Link href={`/post/${postLinkCategory}?communityId=${community.id}`}>
+                    <Button variant="outline">
                       <PlusCircle className="mr-2 h-4 w-4" />
                       {t("community.page.create_post")}
-                    </Link>
-                  </Button>
+                    </Button>
+                  </Link>
                 )}
                 {isMember ? (
                   <Button
@@ -314,18 +319,22 @@ export default function CommunityPage() {
             ) : sortedPosts.length > 0 ? (
               sortedPosts.map((post) => <PostCard key={post.id} post={post} />)
             ) : (
-              <div className="text-center py-16 border-2 border-dashed rounded-lg">
-                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">{t("community.page.empty_posts")}</h3>
-                <p className="text-muted-foreground mb-4">{t("community.page.empty_posts_desc")}</p>
-                {isMember && (
-                  <Button asChild>
-                    <Link href={`/post/${postLinkCategory}?communityId=${community.id}`}>
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      {t("community.page.create_post")}
+              <div className="border-2 border-dashed rounded-lg">
+                <EmptyState
+                  icon={<Users className="h-10 w-10 text-muted-foreground" />}
+                  title={t("community.page.empty_posts")}
+                  description={t("community.page.empty_posts_desc")}
+                  className="py-16"
+                >
+                  {isMember && (
+                    <Link href={`/post/${postLinkCategory}?communityId=${community.id}`} className="mt-6">
+                      <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        {t("community.page.create_post")}
+                      </Button>
                     </Link>
-                  </Button>
-                )}
+                  )}
+                </EmptyState>
               </div>
             )}
           </div>

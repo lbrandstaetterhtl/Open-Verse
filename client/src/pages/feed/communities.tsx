@@ -121,11 +121,11 @@ export default function CommunityFeedPage() {
                       <Users className="h-4 w-4" />
                       {t("communities_feed.my_communities")}
                     </CardTitle>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" asChild aria-label="Create community">
-                      <Link href="/create-community">
+                    <Link href="/create-community">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Create community">
                         <Plus className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
+                      </Button>
+                    </Link>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -172,12 +172,12 @@ export default function CommunityFeedPage() {
                 </h1>
                 <p className="text-muted-foreground mt-1">{t("communities_feed.header_desc")}</p>
               </div>
-              <Button asChild>
-                <Link href="/create-community">
+              <Link href="/create-community">
+                <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   {t("communities_feed.create_button")}
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             </div>
 
             {/* Mobile search (visible on small screens) */}
@@ -218,9 +218,9 @@ export default function CommunityFeedPage() {
                   {t("communities_feed.no_posts_desc")}
                 </p>
                 <div className="flex justify-center gap-4">
-                  <Button asChild variant="outline">
-                    <Link href="/create-community">{t("communities_feed.join_suggestion")}</Link>
-                  </Button>
+                  <Link href="/create-community">
+                    <Button variant="outline">{t("communities_feed.join_suggestion")}</Button>
+                  </Link>
                 </div>
               </div>
             ) : (

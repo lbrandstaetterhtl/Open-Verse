@@ -189,12 +189,12 @@ export default function PostViewPage() {
       <Navbar />
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-3xl mx-auto">
-          <Button variant="ghost" size="sm" asChild className="mb-4">
-            <Link href={backLink}>
+          <Link href={backLink}>
+            <Button variant="ghost" size="sm" className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               {t("actions.back", backText)}
-            </Link>
-          </Button>
+            </Button>
+          </Link>
 
           {isLoading ? (
             <Spinner size="lg" className="p-8" />
@@ -219,7 +219,7 @@ export default function PostViewPage() {
                         >
                           {post.author.username}
                         </Link>
-                        {post.author.verified && <BadgeCheck className="h-4 w-4 text-blue-500" />}
+                        {post.author.verified && <BadgeCheck className="h-4 w-4 text-primary" />}
                         <span className="text-xs lg:text-sm text-muted-foreground">
                           {" • "}
                           {format(new Date(post.createdAt), "PPP")}
@@ -341,7 +341,7 @@ export default function PostViewPage() {
                                   {comment.author.username}
                                 </Link>
                                 {comment.author.verified && (
-                                  <BadgeCheck className="h-4 w-4 text-blue-500" />
+                                  <BadgeCheck className="h-4 w-4 text-primary" />
                                 )}
                               </div>
                               <span className="text-xs text-muted-foreground block">

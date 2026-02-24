@@ -623,7 +623,7 @@ export default function AdminDashboard() {
                                         {u.username}
                                       </Link>
                                       {u.verified && (
-                                        <BadgeCheck className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                        <BadgeCheck className="h-4 w-4 text-primary flex-shrink-0" />
                                       )}
                                     </div>
                                   </div>
@@ -634,7 +634,7 @@ export default function AdminDashboard() {
                                     {u.verified ? (
                                       <Badge
                                         variant="default"
-                                        className="bg-blue-500 whitespace-nowrap text-xs px-2 py-1"
+                                        className="whitespace-nowrap text-xs px-2 py-1"
                                       >
                                         <BadgeCheck className="h-3 w-3 mr-1 flex-shrink-0" />
                                         Verified User
@@ -642,7 +642,7 @@ export default function AdminDashboard() {
                                     ) : u.emailVerified ? (
                                       <Badge
                                         variant="default"
-                                        className="bg-green-600 whitespace-nowrap text-xs px-2 py-1"
+                                        className="whitespace-nowrap text-xs px-2 py-1"
                                       >
                                         Verified E-Mail
                                       </Badge>
@@ -687,7 +687,7 @@ export default function AdminDashboard() {
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap">
-                                  {format(new Date(u.createdAt), "PPp")}
+                                  {u.createdAt ? format(new Date(u.createdAt), "PPp") : "—"}
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex items-center space-x-2">
@@ -907,7 +907,6 @@ export default function AdminDashboard() {
                                                 <Button
                                                   size="sm"
                                                   variant="default"
-                                                  className="bg-purple-600 hover:bg-purple-700"
                                                   disabled={updateUserMutation.isPending}
                                                 >
                                                   <Trophy className="h-4 w-4 mr-1" />
@@ -952,7 +951,6 @@ export default function AdminDashboard() {
                                                   <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className="border-purple-600 text-purple-600 hover:bg-purple-50"
                                                     disabled={updateUserMutation.isPending}
                                                   >
                                                     <ShieldOff className="h-4 w-4 mr-1" />
@@ -1048,7 +1046,7 @@ export default function AdminDashboard() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="reports" style={{ position: "relative", zIndex: 1 }}>
+            <TabsContent value="reports" className="relative z-10">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle>Content Reports</CardTitle>

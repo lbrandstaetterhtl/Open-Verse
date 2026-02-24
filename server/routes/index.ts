@@ -20,6 +20,7 @@ import themeRoutes from "./themes";
 import messageRoutes from "./messages";
 import notificationRoutes from "./notifications";
 import userRoutes from "./users";
+import adminRoutes from "./admin";
 import path from "path";
 
 
@@ -78,11 +79,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Too many requests from this IP, please try again later",
         skip: (req) => {
             if (req.path.startsWith('/api/ai/')) return true;
-            if (req.headers['x-auto-refresh'] === 'true') return true;
             return false;
         }
     });
     app.use("/api", apiLimiter);
+
+    // Feed routes
+    app.get("/api/feed/communities", async (req, res) => {
+        if (!req.isAuthenticated()) {
+            return res.status(401).send("Unauthorized");
+        }
+        try {
+            const posts = await storage.getCommunityFeedPosts((req.user as any).id);
+            res.json(posts);
+        } catch (error) {
+            console.error("Error fetching community feed:", error);
+            res.status(500).send("Failed to fetch community feed");
+        }
+    });
+
 
     // Mount Feature Routes
     app.use("/api/ai", aiRoutes);
@@ -90,6 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use("/api/comments", commentsRoutes); // Handles main comment operations
     app.use("/api/communities", communityRoutes);
     app.use("/api/reports", reportRoutes); // Admin reports
+    app.use("/api/admin", adminRoutes);
 
     // User related routes (a bit scattered)
     // We have messages, notifications, themes.
@@ -104,25 +120,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // We need to be careful.
     app.use("/api", userRoutes);
 
-    // Setup WebSocket server
-    const wss = new WebSocketServer({
-        server: httpServer,
-        path: '/ws',
-        verifyClient: (info, done) => {
-            sessionParser(info.req as any, {} as any, () => {
-                const session = (info.req as any).session;
+    const wss = new WebSocketServer({ noServer: true });
+
+    httpServer.on('upgrade', (req, socket, head) => {
+        const url = new URL(req.url || '', `http://${req.headers.host}`);
+        if (url.pathname === '/ws') {
+            sessionParser(req as any, {} as any, () => {
+                const session = (req as any).session;
                 const userId = session?.passport?.user;
-                if (userId) {
-                    done(true);
-                } else {
-                    done(false, 401, "Unauthorized");
+                if (!userId) {
+                    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+                    socket.destroy();
+                    return;
                 }
+                wss.handleUpgrade(req, socket, head, (ws) => {
+                    wss.emit('connection', ws, req);
+                });
             });
         }
+        // Let other handlers (Vite) process non-/ws requests
     });
 
     wss.on('connection', (ws, req: any) => {
-        const userId = req.session.passport.user;
+        const session = req.session;
+        const userId = session?.passport?.user;
+
+        if (!userId) {
+            console.warn("[WS] Connection attempted without valid session/user");
+            ws.close(1008, "Unauthorized");
+            return;
+        }
+
         connections.set(userId, ws);
 
         ws.on('close', () => {

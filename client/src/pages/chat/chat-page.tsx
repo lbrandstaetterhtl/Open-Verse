@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useRef, useEffect } from "react";
 import { Loader2, Info, Menu } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Message = {
   id: number;
@@ -193,7 +195,7 @@ export default function ChatPage() {
                 >
                   {messagesLoading ? (
                     <div className="flex justify-center py-4">
-                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <Spinner size="lg" />
                     </div>
                   ) : messages?.length ? (
                     messages.map((message) => (
@@ -219,12 +221,10 @@ export default function ChatPage() {
                         </div>
                       </div>
                     ))
+                  ) : selectedUserId ? (
+                    <EmptyState title="No messages yet" description="Start the conversation!" className="p-4" />
                   ) : (
-                    <p className="text-center text-sm text-muted-foreground">
-                      {selectedUserId
-                        ? "No messages yet. Start the conversation!"
-                        : "Select a user to view messages"}
-                    </p>
+                    <EmptyState title="No user selected" description="Select a user to view messages" className="p-4" />
                   )}
                 </div>
 

@@ -278,7 +278,7 @@ export default function NewsPage() {
                             <div className="flex items-center gap-1">
                               <span>{post.author.username}</span>
                               {post.author.verified && (
-                                <BadgeCheck className="h-4 w-4 text-blue-500" />
+                                <BadgeCheck className="h-4 w-4 text-primary" />
                               )}
                             </div>
                           </div>
@@ -359,7 +359,7 @@ export default function NewsPage() {
                                     {comment.author.username}
                                   </span>
                                   {comment.author.verified && (
-                                    <BadgeCheck className="h-4 w-4 text-blue-500" />
+                                    <BadgeCheck className="h-4 w-4 text-primary" />
                                   )}
                                 </div>
                                 <span className="text-xs text-muted-foreground">

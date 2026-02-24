@@ -83,7 +83,7 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
                 >
                   {author.username}
                 </Link>
-                {author.verified && <BadgeCheck className="h-4 w-4 text-blue-500" />}
+                {author.verified && <BadgeCheck className="h-4 w-4 text-primary" />}
                 <span className="text-xs lg:text-sm text-muted-foreground">
                   {" • "}
                   {post.createdAt ? format(new Date(post.createdAt), "PPP") : ""}
@@ -210,7 +210,7 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
                           {comment.author.username}
                         </Link>
                         {comment.author.verified && (
-                          <BadgeCheck className="h-4 w-4 text-blue-500" />
+                          <BadgeCheck className="h-4 w-4 text-primary" />
                         )}
                       </div>
                       <span className="text-xs text-muted-foreground block">

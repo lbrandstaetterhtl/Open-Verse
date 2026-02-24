@@ -48,7 +48,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 (async () => {
   try {
     console.log("Starting TEST server...");
-    const server = await registerRoutes(app, db);
+    const server = await registerRoutes(app);
 
     // Skip Vite setup and Static files
     // Just listen

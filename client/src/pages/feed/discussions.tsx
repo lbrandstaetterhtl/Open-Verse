@@ -38,16 +38,20 @@ export default function DiscussionsFeedPage() {
         <div className="max-w-3xl mx-auto">
           <div className="lg:hidden mb-6">
             <h1 className="text-2xl font-bold mb-4">{t("feed.discussions_title")}</h1>
-            <Button asChild size="sm" className="whitespace-nowrap">
-              <Link href="/post/discussions">{t("feed.create_discussion")}</Link>
-            </Button>
+            <Link href="/post/discussions">
+              <Button size="sm" className="whitespace-nowrap">
+                {t("feed.create_discussion")}
+              </Button>
+            </Link>
           </div>
 
           <div className="hidden lg:flex items-center justify-between mb-8">
             <h1 className="text-4xl font-bold">{t("feed.discussions_title")}</h1>
-            <Button asChild>
-              <Link href="/post/discussions">{t("feed.create_discussion")}</Link>
-            </Button>
+            <Link href="/post/discussions">
+              <Button>
+                {t("feed.create_discussion")}
+              </Button>
+            </Link>
           </div>
 
           {isLoading ? (

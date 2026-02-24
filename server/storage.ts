@@ -81,10 +81,10 @@ export interface IStorage {
 
   getVerificationToken(token: string): Promise<
     | {
-        token: string;
-        userId: number;
-        expiresAt: Date;
-      }
+      token: string;
+      userId: number;
+      expiresAt: Date;
+    }
     | undefined
   >;
 
@@ -773,6 +773,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async verifyUserEmail(userId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite.prepare("UPDATE users SET email_verified = 1 WHERE id = ?").run(userId);
+      return;
+    }
     await db.update(users).set({ emailVerified: true }).where(eq(users.id, userId));
   }
 

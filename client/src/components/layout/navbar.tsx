@@ -12,11 +12,13 @@ import {
   Bot,
   ShieldAlert,
   Users,
+  Menu,
 } from "lucide-react";
 import { NotificationsDialog } from "@/components/notifications/notifications-dialog";
 import { ModeToggle } from "@/components/theme/mode-toggle";
 import { LanguageToggle } from "@/components/theme/language-toggle";
 import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import { useQuery } from "@tanstack/react-query";
 import { Community } from "@shared/schema";
 
@@ -51,16 +53,44 @@ export function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 border-b bg-background shadow-md z-[100]">
-      <div className="w-full flex h-16 items-center px-2 relative z-[100]">
-        <div className="mr-4 hidden md:flex">
+      <div className="w-full flex h-16 items-center px-4 relative z-[100]">
+        <div className="md:hidden mr-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Open Menu">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[280px]">
+              <SheetHeader>
+                <SheetTitle className="text-left font-bold">{t("navbar.brand")}</SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col space-y-2 mt-6">
+                {links.map((link) => (
+                  <Link key={link.href} href={link.href}>
+                    <Button
+                      variant={location === link.href ? "default" : "ghost"}
+                      className="w-full justify-start space-x-2"
+                    >
+                      <link.icon className="h-5 w-5" />
+                      <span>{link.label}</span>
+                    </Button>
+                  </Link>
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        <div className="mr-4 flex flex-shrink-0">
           <Link href="/" className="flex items-center space-x-2">
-            <OpenVerseIcon className="h-20 w-auto object-contain text-primary" />
-            <span className="font-bold">{t("navbar.brand")}</span>
+            <OpenVerseIcon className="h-10 w-auto object-contain text-primary" />
+            <span className="font-bold hidden sm:inline">{t("navbar.brand")}</span>
           </Link>
         </div>
 
         <div className="flex items-center space-x-4 flex-1 justify-end">
-          <div className="flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
             {links.map((link) => (
               <Link key={link.href} href={link.href}>
                 <Button

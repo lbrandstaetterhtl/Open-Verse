@@ -7,7 +7,7 @@ import { WebSocket } from 'ws';
 
 const router = Router();
 
-router.get("/", isAuthenticated, async (req, res) => {
+router.get("/", isAdmin, async (req, res) => {
     const reports = await storage.getReports();
     res.json(reports);
 });

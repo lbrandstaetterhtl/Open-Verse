@@ -10,6 +10,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ShieldAlert, Gavel, UserX } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useState } from "react";
 import {
   Select,
@@ -241,13 +243,13 @@ function ReportsManager({ communityId }: { communityId: number }) {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                  <Spinner className="mx-auto" />
                 </TableCell>
               </TableRow>
             ) : filteredReports.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  {t("mod_panel.reports.table.empty")}
+                <TableCell colSpan={5} className="h-24 text-center p-0">
+                  <EmptyState title={t("mod_panel.reports.table.empty")} description="No reports match your filters." />
                 </TableCell>
               </TableRow>
             ) : (
@@ -375,13 +377,13 @@ function MembersManager({ communityId }: { communityId: number }) {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={3} className="h-24 text-center">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                  <Spinner className="mx-auto" />
                 </TableCell>
               </TableRow>
             ) : filteredMembers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                  {t("mod_panel.members.table.empty")}
+                <TableCell colSpan={3} className="h-24 text-center p-0">
+                  <EmptyState title={t("mod_panel.members.table.empty")} description="No members found matching your search." />
                 </TableCell>
               </TableRow>
             ) : (
@@ -569,13 +571,13 @@ function BansManager({ communityId }: { communityId: number }) {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={4} className="h-24 text-center">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                  <Spinner className="mx-auto" />
                 </TableCell>
               </TableRow>
             ) : filteredBans.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                  {t("mod_panel.bans.table.empty")}
+                <TableCell colSpan={4} className="h-24 text-center p-0">
+                  <EmptyState title={t("mod_panel.bans.table.empty")} description="No bans found in this community." />
                 </TableCell>
               </TableRow>
             ) : (
@@ -716,7 +718,7 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={3} className="h-24 text-center">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                  <Spinner className="mx-auto" />
                 </TableCell>
               </TableRow>
             ) : (

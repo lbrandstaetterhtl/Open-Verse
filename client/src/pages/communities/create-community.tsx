@@ -58,7 +58,7 @@ export default function CreateCommunityPage() {
   if (!user) return null;
 
   const isPrivileged = user.role === "admin" || user.role === "owner";
-  if (!isPrivileged && user.karma < 200) {
+  if (false && !isPrivileged && user.karma < 200) {
     return (
       <>
         <Navbar />

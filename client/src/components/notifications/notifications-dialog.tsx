@@ -11,10 +11,11 @@ import {
 } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
-import { Bell, MessageCircle, Loader2, X } from "lucide-react";
+import { Bell, MessageCircle, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Notification, Message } from "@shared/schema";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useTranslation } from "react-i18next";
 
 type NotificationWithUser = Notification & {
@@ -70,7 +71,7 @@ export function NotificationsDialog() {
         <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
               {unreadCount}
             </span>
           )}
@@ -82,12 +83,10 @@ export function NotificationsDialog() {
         </DialogHeader>
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <Spinner size="lg" />
           </div>
         ) : notifications?.length === 0 ? (
-          <Alert>
-            <AlertDescription>{t("notifications.empty")}</AlertDescription>
-          </Alert>
+          <EmptyState title={t("notifications.title")} description={t("notifications.empty")} className="py-8" />
         ) : (
           <div className="space-y-4 mt-4">
             {notifications?.map((notification) => (

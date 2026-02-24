@@ -44,7 +44,7 @@ export function checkContent(text: string): { allowed: boolean; reason?: string 
   for (const word of BANNED_WORDS) {
     // Check for whole words or words within text (simplified for now)
     if (lowerText.includes(word)) {
-      return { allowed: false, reason: `Content contains forbidden word: ${word}` };
+      return { allowed: false, reason: "Content violates community guidelines." };
     }
   }
 

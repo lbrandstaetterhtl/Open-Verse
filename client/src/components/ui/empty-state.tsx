@@ -10,6 +10,7 @@ export interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
         label: string;
         onClick: () => void;
     };
+    children?: React.ReactNode;
 }
 
 export function EmptyState({
@@ -18,6 +19,7 @@ export function EmptyState({
     icon,
     action,
     className,
+    children,
     ...props
 }: EmptyStateProps) {
     return (
@@ -40,6 +42,7 @@ export function EmptyState({
                     {action.label}
                 </Button>
             )}
+            {children}
         </div>
     );
 }

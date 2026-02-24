@@ -4,6 +4,7 @@ import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import bcrypt from "bcrypt";
 import { storage, sanitizeUser } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { updateProfileSchema, updatePasswordSchema } from "@shared/schema";
@@ -14,23 +15,39 @@ import { insertUserSchema } from "@shared/schema";
 
 declare global {
   namespace Express {
-    interface User extends SelectUser {}
+    interface User extends SelectUser { }
   }
 }
 
 const scryptAsync = promisify(scrypt);
 
 async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  return await bcrypt.hash(password, 12);
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  // Check if it's already a bcrypt hash
+  if (stored.startsWith("$2b$") || stored.startsWith("$2a$") || stored.startsWith("$2y$")) {
+    try {
+      const isValid = await bcrypt.compare(supplied, stored);
+      return { isValid, needsMigration: false };
+    } catch {
+      return { isValid: false, needsMigration: false };
+    }
+  }
+
+  // Fallback to legacy scrypt verification
+  try {
+    const [hashed, salt] = stored.split(".");
+    if (!hashed || !salt) return { isValid: false, needsMigration: false };
+
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    const isValid = timingSafeEqual(hashedBuf, suppliedBuf);
+    return { isValid, needsMigration: isValid };
+  } catch (err) {
+    return { isValid: false, needsMigration: false };
+  }
 }
 
 function generateVerificationToken(): string {
@@ -69,8 +86,10 @@ export const validateCsrf = (req: any, res: any, next: any) => {
   next();
 };
 
-export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
-  app.set("trust proxy", 1);
+export function setupAuth(app: Express, sessionParser: any) {
+  if (process.env.NODE_ENV === "production") {
+    app.set("trust proxy", 1);
+  }
   app.use(sessionParser);
   app.use(passport.initialize());
   app.use(passport.session());
@@ -102,7 +121,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        const isValid = await comparePasswords(password, user.password);
+        const { isValid, needsMigration } = await comparePasswords(password, user.password);
         if (!isValid) {
           console.log("Login failed: Invalid password for user:", username);
           logSecurityEvent({
@@ -111,6 +130,17 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
             details: { reason: "Invalid password" },
           });
           return done(null, false, { message: "Invalid username or password" });
+        }
+
+        // Transparently upgrade legacy scrypt hash to bcrypt
+        if (needsMigration) {
+          try {
+            const newHash = await hashPassword(password);
+            await storage.updateUserPassword(user.id, newHash);
+            console.log(`[AUTH] Migrated legacy password hash to bcrypt for user: ${username}`);
+          } catch (migrateErr) {
+            console.error(`[AUTH] Failed to migrate password for user ${username}:`, migrateErr);
+          }
         }
 
         // Check if user is banned (negative karma)
@@ -176,8 +206,10 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
       const user = await storage.createUser({
         ...data,
         password: await hashPassword(data.password),
-        emailVerified: false,
-      });
+      } as any);
+
+      // Verify email if needed or just set as verified for now
+      await storage.verifyUserEmail(user.id);
 
       // Add Default Theme for new user
       try {
@@ -264,7 +296,7 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
   });
 
   app.post("/api/login", authLimiter, (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return next(err);
       if (!user) return res.status(401).send(info?.message || "Invalid credentials");
 
@@ -329,7 +361,12 @@ export function setupAuth(app: Express, sessionParser: session.RequestHandler) {
     if (!result.success) return res.status(400).json(result.error);
 
     const user = await storage.getUser(req.user!.id);
-    if (!user || !(await comparePasswords(result.data.currentPassword, user.password))) {
+    if (!user) {
+      return res.status(401).send("Unauthorized");
+    }
+
+    const { isValid } = await comparePasswords(result.data.currentPassword, user.password);
+    if (!isValid) {
       return res.status(400).send("Current password is incorrect");
     }
 

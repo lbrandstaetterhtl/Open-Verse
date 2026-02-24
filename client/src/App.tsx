@@ -86,12 +86,21 @@ function Router() {
   );
 }
 
-// Helper component to ensure custom theme is applied globally
+import { useEffect, useState } from "react";
 import { useCustomTheme } from "@/hooks/use-custom-theme";
+import type { BackgroundConfig } from "@/lib/theme-utils";
 
 function GlobalThemeApplier() {
   const { background } = useCustomTheme();
-  return <ThemeBackground background={background} />;
+  const [previewBg, setPreviewBg] = useState<BackgroundConfig | null>(null);
+
+  useEffect(() => {
+    const handlePreview = (e: any) => setPreviewBg(e.detail);
+    window.addEventListener("open-verse-preview-bg", handlePreview);
+    return () => window.removeEventListener("open-verse-preview-bg", handlePreview);
+  }, []);
+
+  return <ThemeBackground background={previewBg || background} />;
 }
 
 function App() {
