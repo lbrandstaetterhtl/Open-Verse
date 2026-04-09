@@ -38,7 +38,12 @@ export const BANNED_WORDS = [
   "selbstmord",
 ];
 
-export function checkContent(text: string): { allowed: boolean; reason?: string } {
+import { SettingsService } from "./settings";
+
+export async function checkContent(text: string): Promise<{ allowed: boolean; reason?: string }> {
+  const isEnabled = await SettingsService.get("content", "profanity_filter_enabled", true);
+  if (!isEnabled) return { allowed: true };
+
   const lowerText = text.toLowerCase();
 
   for (const word of BANNED_WORDS) {

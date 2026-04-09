@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { Redirect } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,6 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { cn } from "@/lib/utils";
 import {
   Network,
   Newspaper,
@@ -33,9 +35,12 @@ import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2 } from "lucide-react";
 
+import { useSiteSettings } from "@/hooks/use-site-settings";
+
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [location, params] = useLocation();
+  const { settings } = useSiteSettings();
   const isVerified = location.includes("verified=true");
 
   if (user) {
@@ -49,8 +54,8 @@ export default function AuthPage() {
         <div className="flex items-center space-x-2">
           <OpenVerseIcon className="h-24 w-auto object-contain text-primary" />
           <div>
-            <h1 className="text-2xl font-bold">Osiris</h1>
-            <p className="text-xs text-muted-foreground">Version 0.2.0</p>
+            <h1 className="text-2xl font-bold">{settings.site_name}</h1>
+            <p className="text-xs text-muted-foreground">{settings.site_description || "Version 0.2.0"}</p>
           </div>
         </div>
       </div>
@@ -66,12 +71,32 @@ export default function AuthPage() {
               </AlertDescription>
             </Alert>
           )}
-          <LoginForm />
+
+          {/* REDESIGN [UX-002]: Tab toggle replaces stacked dual forms */}
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className={cn("grid w-full", settings.registration_enabled ? "grid-cols-2" : "grid-cols-1")}>
+              <TabsTrigger value="login">Login</TabsTrigger>
+              {settings.registration_enabled && <TabsTrigger value="register">Register</TabsTrigger>}
+            </TabsList>
+            <TabsContent value="login" className="mt-4">
+              <LoginForm />
+              {!settings.registration_enabled && (
+                <p className="text-center text-xs text-muted-foreground mt-4">
+                  Registration is currently disabled by the administrator.
+                </p>
+              )}
+            </TabsContent>
+            {settings.registration_enabled && (
+              <TabsContent value="register" className="mt-4">
+                <RegisterForm />
+              </TabsContent>
+            )}
+          </Tabs>
 
           {/* Feature Highlights - Mobile Only */}
-          <div className="lg:hidden space-y-4 py-6">
+          <div className="lg:hidden space-y-4 py-4">
             <h2 className="text-lg font-semibold text-center">Why Join Osiris?</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-primary/5 rounded-lg">
                 <Newspaper className="h-5 w-5 text-primary mb-2" />
                 <h3 className="text-sm font-medium">Quality News</h3>
@@ -90,26 +115,6 @@ export default function AuthPage() {
               </div>
             </div>
           </div>
-
-          <RegisterForm />
-
-          {/* Latest Updates - Mobile Only */}
-          <div className="lg:hidden mt-6 p-4 bg-primary/5 rounded-lg">
-            <div className="flex items-center space-x-2 mb-3">
-              <Info className="h-4 w-4 text-primary" />
-              <h3 className="font-medium">Latest Updates</h3>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <p>✨ New in Version 0.2.0:</p>
-              <ul className="list-disc list-inside space-y-1 mt-2">
-                <li>AI Content Generator v2.0</li>
-                <li>User Communities & Feeds</li>
-                <li>Advanced Moderation Tools</li>
-                <li>Kick Notifications</li>
-                <li>Global Language Support (6 Languages)</li>
-              </ul>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -119,14 +124,13 @@ export default function AuthPage() {
           <div className="flex items-center space-x-2 mb-8">
             <OpenVerseIcon className="h-48 w-auto object-contain text-primary" />
             <div>
-              <h1 className="text-4xl font-bold">Osiris</h1>
-              <p className="text-sm text-muted-foreground">Version 0.2.0</p>
+              <h1 className="text-4xl font-bold">{settings.site_name}</h1>
+              <p className="text-sm text-muted-foreground">{settings.site_description || "Version 0.2.0"}</p>
             </div>
           </div>
 
           <p className="text-xl text-muted-foreground mb-8">
-            Join our vibrant community where informed citizens connect, share, and discuss current
-            events, politics, and entertainment.
+            {settings.site_description || "Join our vibrant community where informed citizens connect, share, and discuss current events, politics, and entertainment."}
           </p>
 
           <div className="space-y-6">

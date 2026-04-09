@@ -16,7 +16,18 @@ router.get("/", isAuthenticated, async (req, res) => {
 
 router.post("/:id/read", isAuthenticated, async (req, res) => {
     try {
-        await storage.markNotificationAsRead(parseInt(req.params.id));
+        const notificationId = parseInt(req.params.id);
+        const userId = (req.user as any).id;
+
+        // SECURITY FIX [VULN-004]: Verify notification belongs to the requesting user
+        const userNotifications = await storage.getNotifications(userId);
+        const targetNotification = userNotifications.find((n) => n.id === notificationId);
+
+        if (!targetNotification) {
+            return res.status(404).send("Notification not found");
+        }
+
+        await storage.markNotificationAsRead(notificationId);
         res.sendStatus(200);
     } catch (error) {
         console.error("Error marking notification as read:", error);

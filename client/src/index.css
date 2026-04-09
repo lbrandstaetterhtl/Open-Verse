@@ -30,6 +30,11 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    
+    /* REDESIGN [UX-008]: Standardize transition timings */
+    --duration-fast: 150ms;
+    --duration-normal: 300ms;
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
@@ -52,21 +57,53 @@
     --border: 217 33% 17%;
     --input: 217 33% 17%;
     --ring: 217 91% 60%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    /* REDESIGN [UX-008]: Optimize font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-family);
+    /* REDESIGN [UX-008]: Prevent layout shift on scrollbar appearance */
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+  }
+
+  /* REDESIGN [UX-008]: Smooth theme transitions */
+  body, 
+  .card, 
+  .popover, 
+  button, 
+  input {
+    transition: background-color var(--duration-fast) var(--ease-standard), 
+                border-color var(--duration-fast) var(--ease-standard), 
+                color var(--duration-fast) var(--ease-standard);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* REDESIGN [UX-008]: Global enter animation for pages */
+main {
+  animation: pageEnter var(--duration-normal) var(--ease-standard);
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

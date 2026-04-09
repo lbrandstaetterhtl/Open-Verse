@@ -21,11 +21,18 @@ import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import { useQuery } from "@tanstack/react-query";
 import { Community } from "@shared/schema";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { useSiteSettings } from "@/hooks/use-site-settings";
+
+/* REDESIGN [UX-001]: Restructured navbar into grouped sections with visual separators.
+   Primary links (feeds) are prominent, secondary tools are compact, utility actions are right-aligned. */
 
 export function Navbar() {
   const { t } = useTranslation();
   const [location] = useLocation();
   const { logoutMutation, user } = useAuth();
+  const { settings } = useSiteSettings();
 
   const { data: moderatedCommunities } = useQuery<Community[]>({
     queryKey: ["/api/user/moderated-communities"],
@@ -34,10 +41,14 @@ export function Navbar() {
 
   const isModerator = moderatedCommunities && moderatedCommunities.length > 0;
 
-  const links = [
+  /* REDESIGN [UX-001]: Split links into primary (content feeds) and secondary (tools/admin) */
+  const primaryLinks = [
     { href: "/feed/media", icon: Newspaper, label: t("navbar.media_feed") },
     { href: "/feed/discussions", icon: MessageSquare, label: t("navbar.discussions_feed") },
-    { href: "/feed/communities", icon: Users, label: t("navbar.communities") }, // New feed
+    { href: "/feed/communities", icon: Users, label: t("navbar.communities") },
+  ];
+
+  const secondaryLinks = [
     { href: "/ai-generator", icon: Bot, label: t("navbar.ai_generator") },
     { href: "/chat", icon: MessageCircle, label: t("navbar.messages") },
     { href: "/profile", icon: UserCircle, label: t("navbar.profile") },
@@ -45,77 +56,142 @@ export function Navbar() {
     ...(isModerator
       ? [{ href: "/mod-panel", icon: ShieldAlert, label: t("navbar.mod_panel") }]
       : []),
-    // Show admin link for users with admin privileges
     ...(user?.isAdmin || user?.role === "admin" || user?.role === "owner"
       ? [{ href: "/admin", icon: Shield, label: t("navbar.admin") }]
       : []),
   ];
 
-  return (
-    <nav className="fixed top-0 left-0 right-0 border-b bg-background shadow-md z-[100]">
-      <div className="w-full flex h-16 items-center px-4 relative z-[100]">
-        <div className="md:hidden mr-2">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Open Menu">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[280px]">
-              <SheetHeader>
-                <SheetTitle className="text-left font-bold">{t("navbar.brand")}</SheetTitle>
-              </SheetHeader>
-              <div className="flex flex-col space-y-2 mt-6">
-                {links.map((link) => (
-                  <Link key={link.href} href={link.href}>
-                    <Button
-                      variant={location === link.href ? "default" : "ghost"}
-                      className="w-full justify-start space-x-2"
-                    >
-                      <link.icon className="h-5 w-5" />
-                      <span>{link.label}</span>
-                    </Button>
-                  </Link>
-                ))}
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+  const allLinks = [...primaryLinks, ...secondaryLinks];
 
-        <div className="mr-4 flex flex-shrink-0">
+  return (
+    /* REDESIGN [UX-001]: Reduced nav height from h-16 to h-14 for less visual weight */
+    <nav className="fixed top-0 left-0 right-0 border-b bg-background/95 backdrop-blur-sm shadow-sm z-[100]">
+      <div className="w-full flex h-14 items-center px-4 relative z-[100]">
+        {/* Brand Section (Left) */}
+        <div className="flex items-center flex-shrink-0">
+          <div className="md:hidden mr-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Open Menu">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[280px]">
+                <SheetHeader>
+                  <SheetTitle className="text-left font-bold">{settings.site_name}</SheetTitle>
+                </SheetHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <span className="text-xs font-semibold text-muted-foreground px-3 mb-2 uppercase tracking-tight block opacity-70">
+                        {t("navbar.content_feeds")}
+                      </span>
+                      <div className="space-y-1">
+                        {primaryLinks.map((link) => (
+                          <Link key={link.href} href={link.href}>
+                            <Button
+                              variant={location === link.href ? "secondary" : "ghost"}
+                              className={cn(
+                                "w-full justify-start space-x-3 h-11 px-3 rounded-lg",
+                                location === link.href && "bg-primary/10 text-primary"
+                              )}
+                            >
+                              <link.icon className="h-5 w-5 opacity-80" />
+                              <span className="font-medium">{link.label}</span>
+                            </Button>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Separator className="opacity-50" />
+
+                    <div>
+                      <span className="text-xs font-semibold text-muted-foreground px-3 mb-2 uppercase tracking-tight block opacity-70">
+                        {t("navbar.personal_tools")}
+                      </span>
+                      <div className="space-y-1">
+                        {secondaryLinks.map((link) => (
+                          <Link key={link.href} href={link.href}>
+                            <Button
+                              variant={location === link.href ? "secondary" : "ghost"}
+                              className={cn(
+                                "w-full justify-start space-x-3 h-11 px-3 rounded-lg",
+                                location === link.href && "bg-primary/10 text-primary"
+                              )}
+                            >
+                              <link.icon className="h-5 w-5 opacity-80" />
+                              <span className="font-medium">{link.label}</span>
+                            </Button>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
           <Link href="/" className="flex items-center space-x-2">
-            <OpenVerseIcon className="h-10 w-auto object-contain text-primary" />
-            <span className="font-bold hidden sm:inline">{t("navbar.brand")}</span>
+            <OpenVerseIcon className="h-8 w-auto object-contain text-primary" />
+            <span className="font-bold hidden sm:inline">{settings.site_name}</span>
           </Link>
         </div>
 
-        <div className="flex items-center space-x-4 flex-1 justify-end">
-          <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
-            {links.map((link) => (
+        {/* REDESIGN [UX-001]: Centered Desktop Links */}
+        <div className="hidden md:flex flex-1 items-center justify-center px-4">
+          <div className="flex items-center space-x-1">
+            {primaryLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 <Button
-                  variant={location === link.href ? "default" : "ghost"}
-                  className="flex items-center space-x-2"
+                  variant={location === link.href ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "flex items-center space-x-1.5 transition-all duration-200",
+                    location === link.href && "bg-primary/10 text-primary hover:bg-primary/20"
+                  )}
                 >
                   <link.icon className="h-4 w-4" />
-                  <span className="hidden md:inline">{link.label}</span>
+                  <span className="hidden lg:inline text-sm font-medium">{link.label}</span>
                 </Button>
               </Link>
             ))}
           </div>
 
-          <div className="flex items-center space-x-2">
-            <NotificationsDialog />
-            <LanguageToggle />
-            <ModeToggle />
-            <Button
-              variant="ghost"
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-            >
-              {t("navbar.logout")}
-            </Button>
+          <Separator orientation="vertical" className="h-6 mx-2" />
+
+          <div className="flex items-center space-x-1">
+            {secondaryLinks.map((link) => (
+              <Link key={link.href} href={link.href}>
+                <Button
+                  variant={location === link.href ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "flex items-center space-x-1.5 transition-all duration-200",
+                    location === link.href && "bg-primary/10 text-primary hover:bg-primary/20"
+                  )}
+                >
+                  <link.icon className="h-4 w-4" />
+                  <span className="hidden xl:inline text-sm font-medium">{link.label}</span>
+                </Button>
+              </Link>
+            ))}
           </div>
+        </div>
+
+        {/* Utility actions (Right) */}
+        <div className="flex items-center space-x-1 justify-end">
+          <NotificationsDialog />
+          <LanguageToggle />
+          <ModeToggle />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
+            className="hidden sm:inline-flex"
+          >
+            {t("navbar.logout")}
+          </Button>
         </div>
       </div>
     </nav>

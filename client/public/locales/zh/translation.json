@@ -10,7 +10,9 @@
     "ai_generator": "AI 生成器",
     "mod_panel": "版主面板",
     "admin": "管理后台",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "content_feeds": "内容馈送",
+    "personal_tools": "个人工具"
   },
   "common": {
     "loading": "加载中...",
@@ -388,5 +390,13 @@
     "fun_badge": "有趣",
     "shared_on": "分享于",
     "no_posts_desc": "暂无娱乐帖子。分享一些有趣的事情开始吧！"
+  },
+  "theme_builder": {
+    "theme_name_label": "主题名称",
+    "unsaved_changes": "未保存的更改",
+    "all_saved": "已全部保存",
+    "reset_confirm": "您确定要将所有颜色重置为默认值吗？此操作无法撤销。",
+    "import_success": "主题导入成功",
+    "export_success": "主题配置已复制到剪贴板"
   }
 }

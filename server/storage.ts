@@ -351,7 +351,7 @@ export class DatabaseStorage implements IStorage {
       updateData.emailVerified = profile.emailVerified;
     if (typeof profile.verified !== "undefined") updateData.verified = profile.verified;
 
-    console.log("Updating user profile with data:", updateData); // Debug log
+
 
     if (Object.keys(updateData).length === 0) {
       return this.getUser(id) as Promise<User>;
@@ -415,8 +415,7 @@ export class DatabaseStorage implements IStorage {
 
     const [user] = await db.update(users).set(updateData).where(eq(users.id, id)).returning();
 
-    console.log("Updated user:", user); // Debug log
-    console.log("Updated user:", user); // Debug log
+
     return sanitizeUser(user);
   }
 
@@ -455,10 +454,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPosts(category?: string): Promise<Post[]> {
-    console.log("Getting posts with category:", category);
-    console.log("DEBUG: env.USE_SQLITE:", process.env.USE_SQLITE);
+
     const sqlite = getSqlite();
-    console.log("DEBUG: sqlite instance:", sqlite ? "Present" : "Missing");
+
 
     if (process.env.USE_SQLITE === "true" && sqlite) {
       let query = "SELECT * FROM posts";

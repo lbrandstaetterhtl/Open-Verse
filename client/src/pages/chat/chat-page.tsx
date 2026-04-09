@@ -128,11 +128,11 @@ export default function ChatPage() {
   return (
     <>
       <Navbar />
-      <main className="container mx-auto px-4 pt-24">
+      <main className="container mx-auto px-4 pt-20 pb-8">
         <div className="max-w-4xl mx-auto">
           {/* Mobile Header */}
           <div className="flex items-center justify-between mb-4 lg:mb-8">
-            <h1 className="text-2xl lg:text-4xl font-bold">Messages</h1>
+            <h1 className="text-xl lg:text-3xl font-bold">Messages</h1>
             <Button
               variant="ghost"
               size="icon"
@@ -144,9 +144,10 @@ export default function ChatPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+          {/* REDESIGN [UX-007]: Changed from 4-col to 5-col grid for better sidebar proportions */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
             {/* Users List - Collapsible on mobile */}
-            <Card className={`lg:block ${showUserList ? "block" : "hidden"}`}>
+            <Card className={`lg:col-span-2 lg:block ${showUserList ? "block" : "hidden"}`}>
               <CardHeader>
                 <CardTitle className="text-lg">Mutual Followers</CardTitle>
               </CardHeader>

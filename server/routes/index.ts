@@ -21,35 +21,37 @@ import messageRoutes from "./messages";
 import notificationRoutes from "./notifications";
 import userRoutes from "./users";
 import adminRoutes from "./admin";
+import { SettingsService } from "../services/settings";
 import path from "path";
 
 
+
 export async function registerRoutes(app: Express): Promise<Server> {
-    // Security Headers
+    // 1. Security Headers
+    const scriptSrcDirective = process.env.NODE_ENV === 'production'
+        ? ["'self'"]
+        : ["'self'", "'unsafe-inline'"];
     app.use(helmet({
         contentSecurityPolicy: {
             directives: {
                 defaultSrc: ["'self'"],
                 imgSrc: ["'self'", "data:", "blob:"],
                 mediaSrc: ["'self'", "data:", "blob:"],
-                scriptSrc: ["'self'", "'unsafe-inline'"],
+                scriptSrc: scriptSrcDirective,
                 connectSrc: ["'self'", "ws:", "wss:"],
             },
         },
     }));
     app.disable('x-powered-by');
 
-    // Session Secret Check
-    if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
-        throw new Error("FATAL: SESSION_SECRET environment variable is required in production.");
+    if (!process.env.SESSION_SECRET) {
+        throw new Error("FATAL: SESSION_SECRET environment variable is required.");
     }
 
-    // Create HTTP server
+    // 2. HTTP Server & Session Parser
     const httpServer = createServer(app);
-
-    // Setup session parser
     const sessionParser = session({
-        secret: process.env.SESSION_SECRET || 'your-secret-key',
+        secret: process.env.SESSION_SECRET,
         resave: false,
         saveUninitialized: false,
         store: storage.sessionStore,
@@ -61,30 +63,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
     });
 
-    // Setup auth with session parser
+    // 3. Setup Auth (Registers passport and populates req.user)
     setupAuth(app, sessionParser);
 
-    // CSRF Endpoint
+    // 4. Maintenance Mode Middleware
+    // MUST be after setupAuth so req.user is available for staff bypass
+    app.use(async (req, res, next) => {
+        // Skip maintenance check for assets, auth, and public settings
+        const isAuthRoute = req.path === "/api/login" || 
+                           req.path === "/api/register" || 
+                           req.path === "/api/logout" || 
+                           req.path === "/api/user" || 
+                           req.path === "/api/csrf-token";
+
+        if (isAuthRoute || 
+            req.path.startsWith("/api/public/settings") ||
+            !req.path.startsWith("/api")) {
+            return next();
+        }
+
+        const maintenanceMode = await SettingsService.get("general", "maintenance_mode", false);
+        if (maintenanceMode) {
+            const user = req.user as any;
+            const isAdmin = user && (user.isAdmin || user.role === "admin" || user.role === "owner");
+            
+            if (!isAdmin) {
+                return res.status(503).json({ 
+                    message: "Site is currently under maintenance. Please check back later.",
+                    maintenance: true 
+                });
+            }
+        }
+        next();
+    });
+
+    // 5. CSRF Endpoint
     app.get("/api/csrf-token", (req, res) => {
         res.json({ csrfToken: (req.session as any)?.csrfToken });
     });
 
-    // Apply CSRF Protection to API
+    // 6. Public Settings Endpoint
+    app.get("/api/public/settings", async (req, res) => {
+        try {
+            const keys = ["site_name", "maintenance_mode", "registration_enabled", "site_description"];
+            const settings: Record<string, any> = {};
+            
+            for (const key of keys) {
+                const category = key.includes("registration") ? "users" : "general";
+                settings[key] = await SettingsService.get(category, key);
+            }
+            
+            res.json(settings);
+        } catch (error) {
+            console.error("Failed to fetch public settings:", error);
+            res.status(500).json({ error: "Failed to fetch settings" });
+        }
+    });
+
+    // 7. Protected Routes & Features
     app.use("/api", validateCsrf);
 
-    // Global API Rate Limiter
     const apiLimiter = rateLimit({
         windowMs: 15 * 60 * 1000,
         max: 1000,
         message: "Too many requests from this IP, please try again later",
-        skip: (req) => {
-            if (req.path.startsWith('/api/ai/')) return true;
-            return false;
-        }
     });
     app.use("/api", apiLimiter);
 
-    // Feed routes
     app.get("/api/feed/communities", async (req, res) => {
         if (!req.isAuthenticated()) {
             return res.status(401).send("Unauthorized");
@@ -98,28 +143,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
     });
 
-
-    // Mount Feature Routes
     app.use("/api/ai", aiRoutes);
-    app.use("/api/posts", postsRoutes); // Handles /api/posts and /api/posts/:id
-    app.use("/api/comments", commentsRoutes); // Handles main comment operations
+    app.use("/api/posts", postsRoutes);
+    app.use("/api/comments", commentsRoutes);
     app.use("/api/communities", communityRoutes);
-    app.use("/api/reports", reportRoutes); // Admin reports
+    app.use("/api/reports", reportRoutes);
     app.use("/api/admin", adminRoutes);
-
-    // User related routes (a bit scattered)
-    // We have messages, notifications, themes.
     app.use("/api/messages", messageRoutes);
     app.use("/api/notifications", notificationRoutes);
-    app.use("/api/user/themes", themeRoutes); // Matches /api/user/themes
-
-    // Users routes is a mix of /api/follow, /api/followers, /api/users/:username...
-    // We can mount it at /api and let it handle the subpaths, or mount at /api/users?
-    // users.ts handles: /follow/:userId, /followers, /following, /:username/posts...
-    // If we mount at /api/users, then /follow becomes /api/users/follow... which breaks API contract.
-    // We need to be careful.
+    app.use("/api/user/themes", themeRoutes);
     app.use("/api", userRoutes);
 
+    // 8. WebSocket Setup
     const wss = new WebSocketServer({ noServer: true });
 
     httpServer.on('upgrade', (req, socket, head) => {
@@ -138,7 +173,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 });
             });
         }
-        // Let other handlers (Vite) process non-/ws requests
     });
 
     wss.on('connection', (ws, req: any) => {

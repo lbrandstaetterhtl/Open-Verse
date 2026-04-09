@@ -18,8 +18,20 @@ let sqlite: any = null;
 
 if (useSqlite) {
   console.log("Using SQLite database for local development");
-  // Use absolute path to ensure we hit the same file regardless of CWD
-  const dbPath = path.join(process.cwd(), "local.db");
+  // VPS-HOSTING-OPTIMIZATION [PERSISTENCE]: Use absolute path or configurable path from environment
+  // Priority: SQLITE_PATH > DATABASE_URL (if starts with sqlite:) > Default local.db
+  let dbPath = process.env.SQLITE_PATH;
+  
+  if (!dbPath && process.env.DATABASE_URL?.startsWith("sqlite:")) {
+    dbPath = process.env.DATABASE_URL.replace("sqlite:", "");
+  }
+  
+  if (!dbPath) {
+    dbPath = path.join(process.cwd(), "local.db");
+  } else if (!path.isAbsolute(dbPath)) {
+    dbPath = path.resolve(process.cwd(), dbPath);
+  }
+
   console.log("DEBUG: SQLite DB Path:", dbPath);
 
   sqlite = new Database(dbPath);
@@ -137,6 +149,41 @@ if (useSqlite) {
       user_id INTEGER NOT NULL,
       reason TEXT,
       banned_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+    CREATE TABLE IF NOT EXISTS activity_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id INTEGER NOT NULL,
+      admin_email TEXT NOT NULL,
+      admin_role TEXT NOT NULL,
+      action TEXT NOT NULL,
+      category TEXT NOT NULL,
+      target_type TEXT,
+      target_id TEXT,
+      target_label TEXT,
+      description TEXT NOT NULL,
+      old_value TEXT,
+      new_value TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      status TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      metadata TEXT,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+    CREATE TABLE IF NOT EXISTS admin_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT,
+      value_type TEXT NOT NULL DEFAULT 'string',
+      label TEXT NOT NULL,
+      description TEXT,
+      default_value TEXT,
+      is_sensitive INTEGER NOT NULL DEFAULT 0,
+      is_readonly INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      updated_by INTEGER,
+      UNIQUE(category, key)
     );
   `);
   console.log("DEBUG: SQLite tables initialized");

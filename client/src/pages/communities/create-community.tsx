@@ -14,12 +14,14 @@ import { useLocation } from "wouter";
 import { Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function CreateCommunityPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const form = useForm<InsertCommunity>({
     resolver: zodResolver(insertCommunitySchema),
@@ -58,7 +60,7 @@ export default function CreateCommunityPage() {
   if (!user) return null;
 
   const isPrivileged = user.role === "admin" || user.role === "owner";
-  if (false && !isPrivileged && user.karma < 200) {
+  if (!isPrivileged && user.karma < 200) {
     return (
       <>
         <Navbar />

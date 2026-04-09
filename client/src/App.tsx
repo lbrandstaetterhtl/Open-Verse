@@ -16,6 +16,8 @@ import ProfilePage from "@/pages/profile/my-profile";
 import UserProfilePage from "@/pages/profile/user-profile";
 import ChatPage from "@/pages/chat/chat-page";
 import AdminDashboard from "@/pages/admin/dashboard";
+import ActivityLogsPage from "@/pages/admin/activity-logs";
+import AdminSettingsPage from "@/pages/admin/settings";
 
 // Feed Pages
 import MediaFeedPage from "@/pages/feed/media";
@@ -68,8 +70,12 @@ function Router() {
       {/* AI Generator Route */}
       <ProtectedRoute path="/ai-generator" component={AIGeneratorPage} />
 
-      {/* Admin Route */}
+      {/* Admin Routes */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />
+      <ProtectedRoute path="/admin/users" component={AdminDashboard} />
+      <ProtectedRoute path="/admin/reports" component={AdminDashboard} />
+      <ProtectedRoute path="/admin/logs" component={ActivityLogsPage} />
+      <ProtectedRoute path="/admin/settings" component={AdminSettingsPage} />
 
       {/* Community Routes */}
       <ProtectedRoute path="/create-community" component={CreateCommunityPage} />
@@ -89,6 +95,7 @@ function Router() {
 import { useEffect, useState } from "react";
 import { useCustomTheme } from "@/hooks/use-custom-theme";
 import type { BackgroundConfig } from "@/lib/theme-utils";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 
 function GlobalThemeApplier() {
   const { background } = useCustomTheme();
@@ -103,13 +110,38 @@ function GlobalThemeApplier() {
   return <ThemeBackground background={previewBg || background} />;
 }
 
+function HeadManager() {
+  const { settings } = useSiteSettings();
+  
+  useEffect(() => {
+    document.title = settings.site_name;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc && settings.site_description) {
+      metaDesc.setAttribute("content", settings.site_description);
+    }
+  }, [settings.site_name, settings.site_description]);
+
+  return null;
+}
+
+import { MaintenanceGuard } from "@/components/layout/maintenance-guard";
+import { Footer } from "@/components/layout/footer";
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <AuthProvider>
           <GlobalThemeApplier />
-          <Router />
+          <HeadManager />
+          <MaintenanceGuard>
+            <div className="flex flex-col min-h-screen">
+              <div className="flex-grow pt-14">
+                <Router />
+              </div>
+              <Footer />
+            </div>
+          </MaintenanceGuard>
           <NewUserDialog />
           <Toaster />
         </AuthProvider>

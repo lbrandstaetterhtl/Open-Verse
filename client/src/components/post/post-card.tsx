@@ -163,6 +163,7 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
               data-post-id={post.id}
               placeholder={t("comments.placeholder")}
               className="text-sm"
+              aria-label={t("comments.placeholder")}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
                   createCommentMutation.mutate({

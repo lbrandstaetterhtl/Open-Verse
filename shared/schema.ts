@@ -146,6 +146,46 @@ export const themes = pgTable("themes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// FEATURE [AL-001]: Activity Logs Table
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  adminId: integer("admin_id").notNull(),
+  adminEmail: text("admin_email").notNull(),
+  adminRole: text("admin_role").notNull(),
+  action: text("action").notNull(), // e.g., "user.ban"
+  category: text("category").notNull(), // e.g., "users"
+  targetType: text("target_type"), // e.g., "User"
+  targetId: text("target_id"),
+  targetLabel: text("target_label"),
+  description: text("description").notNull(),
+  oldValue: text("old_value"), // Stores as JSON string
+  newValue: text("new_value"), // Stores as JSON string
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  status: text("status", { enum: ["success", "failure", "warning"] }).notNull(),
+  severity: text("severity", { enum: ["low", "medium", "high", "critical"] }).notNull(),
+  metadata: text("metadata"), // Stores as JSON string
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// FEATURE [AS-001]: Admin Settings Table
+export const adminSettings = pgTable("admin_settings", {
+  id: serial("id").primaryKey(),
+  category: text("category").notNull(),
+  key: text("key").notNull(),
+  value: text("value"),
+  valueType: text("value_type", { enum: ["string", "integer", "boolean", "json", "text"] }).notNull().default("string"),
+  label: text("label").notNull(),
+  description: text("description"),
+  defaultValue: text("default_value"),
+  isSensitive: boolean("is_sensitive").notNull().default(false),
+  isReadonly: boolean("is_readonly").notNull().default(false),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: integer("updated_by"),
+}, (t) => ({
+  uniqueSetting: unique().on(t.category, t.key),
+}));
+
 const basePostSchema = createInsertSchema(posts).pick({
   title: true,
   content: true,
@@ -259,6 +299,8 @@ export const adminUpdateUserSchema = z.object({
   isAdmin: z.boolean().optional(),
   emailVerified: z.boolean().optional(),
   verified: z.boolean().optional(),
+  role: z.string().optional(),
+  karma: z.number().optional(),
 });
 
 export const adminUpdateReportSchema = z.object({
@@ -296,3 +338,10 @@ export type Community = typeof communities.$inferSelect;
 export type CommunityMember = typeof communityMembers.$inferSelect;
 export type CommunityBan = typeof communityBans.$inferSelect;
 export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
+
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type AdminSetting = typeof adminSettings.$inferSelect;
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs);
+export const insertAdminSettingSchema = createInsertSchema(adminSettings);
+export const updateAdminSettingSchema = insertAdminSettingSchema.pick({ value: true });

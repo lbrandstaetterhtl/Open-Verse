@@ -15,9 +15,15 @@ const aiLimiter = rateLimit({
 // Apply limiter to all AI routes
 router.use(aiLimiter);
 
+import { SettingsService } from "../services/settings";
+
 // AI Post Generation
 router.post("/generate", isAuthenticated, async (req, res) => {
     try {
+        const isAiEnabled = await SettingsService.get("content", "ai_generation_enabled", true);
+        if (!isAiEnabled) {
+            return res.status(403).send("AI Generation is currently disabled by simple site policy.");
+        }
         const { topic, imageContext, language } = req.body;
 
         if (!topic) {

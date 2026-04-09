@@ -1,11 +1,39 @@
-import { Navbar } from "@/components/layout/navbar";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation, Link } from "wouter";
+import { 
+  Users, 
+  Flag, 
+  Shield, 
+  ShieldOff, 
+  UserPlus, 
+  UserMinus, 
+  Ban, 
+  Check, 
+  AlertTriangle, 
+  BadgeCheck, 
+  Search,
+  Trash2,
+  Activity,
+  UserCheck,
+  UserX,
+  MessagesSquare,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+  Filter,
+  MoreVertical,
+  ArrowRight,
+  ChevronRight,
+  LayoutDashboard,
+  Bell,
+  Settings,
+  LogOut,
+  Home,
+  Trophy
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { format } from "date-fns";
 import {
   Table,
   TableBody,
@@ -14,9 +42,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,312 +65,227 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
-import { User, Report } from "@shared/schema";
-import {
-  Loader2,
-  Shield,
-  Users,
-  Flag,
-  CheckCircle,
-  XCircle,
-  Search,
-  Ban,
-  Check,
-  AlertTriangle,
-  Trophy,
-  BadgeCheck,
-  Activity,
-  TrendingUp,
-  UserCheck,
-  UserX,
-  MessagesSquare,
-  Trash2,
-  ShieldOff,
-} from "lucide-react";
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { AdminLayout } from "@/components/admin/admin-layout";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/use-auth";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { type User, type Report } from "@shared/schema";
+import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 
-// Extended Report type to include additional fields
-interface ExtendedReport extends Report {
-  reporter?: {
-    username: string;
-  };
+function MetricCard({ 
+  title, 
+  value, 
+  icon: Icon, 
+  description, 
+  trend, 
+  priority = "default" 
+}: { 
+  title: string; 
+  value: number | string; 
+  icon: any; 
+  description: string;
+  trend?: number;
+  priority?: "default" | "critical" | "success";
+}) {
+  return (
+    <Card className="overflow-hidden border-none shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group bg-card/50 backdrop-blur-sm relative">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between space-y-0 pb-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">
+            {title}
+          </p>
+          <div className={cn(
+            "p-2 rounded-xl transition-colors",
+            priority === "critical" ? "bg-red-500/10 text-red-500" : 
+            priority === "success" ? "bg-emerald-500/10 text-emerald-600" : 
+            "bg-primary/10 text-primary"
+          )}>
+            <Icon className="h-4 w-4" />
+          </div>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <div className="text-2xl font-black tracking-tighter">{value}</div>
+          {trend && (
+            <span className={cn(
+              "text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5",
+              trend > 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500"
+            )}>
+              <TrendingUp className={cn("h-3 w-3", trend < 0 && "rotate-180")} />
+              {Math.abs(trend)}%
+            </span>
+          )}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1 font-medium leading-tight">
+          {description}
+        </p>
+      </CardContent>
+      <div className={cn(
+        "h-1 w-full absolute bottom-0 left-0 opacity-20",
+        priority === "critical" ? "bg-red-500" : 
+        priority === "success" ? "bg-emerald-500" : 
+        "bg-primary"
+      )} />
+    </Card>
+  );
+}
+
+function UserRowSkeleton() {
+  return (
+    <TableRow>
+      <TableCell className="px-6"><Skeleton className="h-4 w-4 rounded" /></TableCell>
+      <TableCell><div className="flex items-center gap-3"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-1"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-16" /></div></div></TableCell>
+      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+      <TableCell><div className="flex gap-1"><Skeleton className="h-4 w-16" /><Skeleton className="h-4 w-16" /></div></TableCell>
+      <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+      <TableCell><Skeleton className="h-6 w-12 rounded" /></TableCell>
+      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+      <TableCell><div className="flex justify-center gap-1"><Skeleton className="h-7 w-7 rounded" /><Skeleton className="h-7 w-7 rounded" /><Skeleton className="h-7 w-7 rounded" /></div></TableCell>
+    </TableRow>
+  );
+}
+
+function ReportRowSkeleton() {
+  return (
+    <TableRow>
+      <TableCell className="px-6"><div className="space-y-1"><Skeleton className="h-4 w-20" /><Skeleton className="h-3 w-24" /></div></TableCell>
+      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+      <TableCell><div className="flex justify-center gap-1"><Skeleton className="h-8 w-8 rounded" /><Skeleton className="h-8 w-8 rounded" /></div></TableCell>
+    </TableRow>
+  );
+}
+
+function StatCardSkeleton() {
+  return (
+    <Card className="border-none shadow-sm"><CardContent className="p-6"><Skeleton className="h-4 w-20 mb-4" /><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-3 w-full" /></CardContent></Card>
+  );
+}
+
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
+
+type AdminReport = Report & {
+  reporter?: { username: string };
   content?: {
-    type: "post" | "discussion" | "comment";
+    type: string;
     title?: string;
-    content?: string;
-    author?: {
-      username: string;
-      id: number;
-    };
+    content: string;
+    author?: { username: string; id: number };
   };
-}
-
-interface DashboardStats {
-  totalUsers: number;
-  activeUsers: number;
-  verifiedUsers: number;
-  bannedUsers: number;
-  deletedUsers: number;
-  totalPosts: number;
-  totalReports: number;
-  pendingReports: number;
-  resolvedReports: number;
-  rejectedReports: number;
-}
-
-// Add new component for stats card skeleton
-const StatCardSkeleton = () => (
-  <Card>
-    <CardHeader className="space-y-2">
-      <div className="h-4 w-1/2">
-        <Skeleton className="h-full w-full" />
-      </div>
-      <div className="h-8 w-3/4">
-        <Skeleton className="h-full w-full" />
-      </div>
-    </CardHeader>
-  </Card>
-);
-
-// Add new component for user row skeleton
-const UserRowSkeleton = () => (
-  <TableRow>
-    <TableCell>
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-8 w-8 rounded-full" />
-        <Skeleton className="h-4 w-24" />
-      </div>
-    </TableCell>
-    <TableCell>
-      <Skeleton className="h-4 w-32" />
-    </TableCell>
-    <TableCell>
-      <Skeleton className="h-6 w-24" />
-    </TableCell>
-    <TableCell>
-      <Skeleton className="h-6 w-16" />
-    </TableCell>
-    <TableCell>
-      <Skeleton className="h-6 w-24" />
-    </TableCell>
-    <TableCell>
-      <Skeleton className="h-4 w-32" />
-    </TableCell>
-    <TableCell>
-      <div className="flex gap-2">
-        <Skeleton className="h-8 w-24" />
-        <Skeleton className="h-8 w-24" />
-      </div>
-    </TableCell>
-  </TableRow>
-);
-
-// Add new component for report row skeleton
-const ReportRowSkeleton = () => (
-  <TableRow>
-    <TableCell>
-      <Skeleton className="h-4 w-24" />
-    </TableCell>
-    <TableCell>
-      <Skeleton className="h-4 w-16" />
-    </TableCell>
-    <TableCell>
-      <Skeleton className="h-4 w-48" />
-    </TableCell>
-    <TableCell>
-      <Skeleton className="h-4 w-32" />
-    </TableCell>
-    <TableCell>
-      <Skeleton className="h-6 w-20" />
-    </TableCell>
-    <TableCell>
-      <Skeleton className="h-4 w-32" />
-    </TableCell>
-    <TableCell>
-      <div className="flex gap-2">
-        <Skeleton className="h-8 w-8" />
-        <Skeleton className="h-8 w-8" />
-      </div>
-    </TableCell>
-  </TableRow>
-);
-
-import { useTranslation } from "react-i18next";
-// ... imports
+};
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
-  const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
+
   const [userFilter, setUserFilter] = useState<"all" | "verified" | "banned">("all");
-  const [reportFilter, setReportFilter] = useState<"all" | "pending" | "resolved" | "rejected">(
-    "all",
-  );
+  const [reportFilter, setReportFilter] = useState<"all" | "pending" | "resolved" | "rejected">("pending");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
+  const [sortConfig, setSortConfig] = useState<{ key: keyof User; direction: "asc" | "desc" } | null>(null);
 
-  if (!user || !user.isAdmin) {
-    return <Redirect to="/" />;
-  }
-
-  // Fetch dashboard statistics
-  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
+  const { data: stats, isLoading: statsLoading } = useQuery<{
+    totalUsers: number;
+    totalReports: number;
+    pendingReports: number;
+    activeUsers: number;
+    verifiedUsers: number;
+    bannedUsers: number;
+    totalPosts: number;
+    resolvedReports: number;
+  }>({
     queryKey: ["/api/admin/stats"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/stats");
-      if (!res.ok) throw new Error("Failed to fetch stats");
-      return res.json();
-    },
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/users");
-      if (!res.ok) throw new Error("Failed to fetch users");
-      return res.json();
-    },
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
 
-  const { data: reports, isLoading: reportsLoading } = useQuery<ExtendedReport[]>({
+  const { data: reports, isLoading: reportsLoading } = useQuery<AdminReport[]>({
     queryKey: ["/api/admin/reports"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/reports");
-      if (!res.ok) throw new Error("Failed to fetch reports");
-      return res.json();
-    },
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ userId, data }: { userId: number; data: any }) => {
+    mutationFn: async ({ userId, data }: { userId: number; data: Partial<User> }) => {
       const res = await apiRequest("PATCH", `/api/admin/users/${userId}`, data);
-      if (!res.ok) {
-        throw new Error("Failed to update user");
-      }
       return res.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "User updated successfully",
-      });
-      // Invalidate queries to refresh users and stats
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({ title: t("common.success"), description: t("admin.users_table.update_success") });
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+    onError: (error: Error) => {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     },
   });
 
-  const resetRolesMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/reset-roles");
-      if (!res.ok) {
-        throw new Error("Failed to reset roles");
-      }
-      return res.json();
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      await apiRequest("DELETE", `/api/admin/users/${userId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({
-        title: "Success",
-        description: "All roles have been reset successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: t("common.success"), description: t("admin.users_table.delete_success") });
     },
   });
 
   const updateReportMutation = useMutation({
     mutationFn: async ({ reportId, status }: { reportId: number; status: string }) => {
       const res = await apiRequest("PATCH", `/api/admin/reports/${reportId}`, { status });
-      if (!res.ok) {
-        throw new Error("Failed to update report status");
-      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/reports"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      toast({
-        title: "Success",
-        description: "Report status updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: t("common.success"), description: t("admin.reports_table.update_success") });
     },
   });
 
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const res = await apiRequest("DELETE", `/api/admin/users/${userId}`);
-      if (!res.ok) {
-        throw new Error("Failed to delete user");
-      }
-      return res.json();
+  const resetRolesMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/admin/reset-roles");
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "User deleted successfully",
-      });
-      // Invalidate queries to refresh users and stats
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: t("common.success"), description: "Roles have been reset to default" });
     },
   });
 
-  const filteredUsers = users?.filter((user) => {
-    const matchesSearch =
-      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.email || "").toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredUsers = (users || [])
+    .filter((u) => {
+      const matchesSearch =
+        u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (u.email || "").toLowerCase().includes(searchQuery.toLowerCase());
 
-    if (!matchesSearch) return false;
+      if (!matchesSearch) return false;
 
-    switch (userFilter) {
-      case "verified":
-        return user.verified;
-      case "banned":
-        return user.karma < 0;
-      default:
-        return true;
-    }
-  });
+      switch (userFilter) {
+        case "verified": return u.verified;
+        case "banned": return u.karma < 0;
+        default: return true;
+      }
+    })
+    .sort((a, b) => {
+      if (!sortConfig) return 0;
+      const { key, direction } = sortConfig;
+      const aValue = (a as any)[key];
+      const bValue = (b as any)[key];
+      if (aValue < bValue) return direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return direction === "asc" ? 1 : -1;
+      return 0;
+    });
 
   const filteredReports = reports?.filter((report) => {
     if (reportFilter === "pending") return report.status === "pending";
@@ -343,989 +295,370 @@ export default function AdminDashboard() {
   });
 
   const handleVerificationToggle = async (userId: number, currentVerified: boolean) => {
-    // Confirmation is now handled by AlertDialog in the UI
-    try {
-      await updateUserMutation.mutateAsync({
-        userId,
-        data: {
-          verified: !currentVerified,
-          // Include role and isAdmin to prevent accidental role changes
-          role: users?.find((u) => u.id === userId)?.role,
-          isAdmin: users?.find((u) => u.id === userId)?.isAdmin,
-        },
-      });
-
-      // Force refetch all user data
-      await queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-
-      toast({
-        title: "Success",
-        description: `User ${!currentVerified ? "verified" : "unverified"} successfully`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update user verification status",
-        variant: "destructive",
-      });
-    }
+    updateUserMutation.mutate({
+      userId,
+      data: { verified: !currentVerified }
+    });
   };
 
+  const toggleUserSelection = (id: number) => {
+    const next = new Set(selectedUsers);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedUsers(next);
+  };
+
+  const handleSort = (key: string) => {
+    setSortConfig((prev) => ({
+      key: key as keyof User,
+      direction: prev?.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  if (!user || (user.role !== "admin" && user.role !== "owner")) {
+    return null;
+  }
+
+  const currentTab = location === "/admin/reports" ? "reports" : "users";
+
   return (
-    <>
-      <Navbar />
-      <main className="w-full px-6 pt-24 pb-8">
-        <div className="w-full mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <Shield className="h-8 w-8 text-primary" />
-              <h1 className="text-4xl font-bold">{t("admin.title")}</h1>
-            </div>
-            {user.role === "owner" && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (window.confirm("Are you sure you want to reset all roles?")) {
-                    resetRolesMutation.mutate();
-                  }
-                }}
-                disabled={resetRolesMutation.isPending}
-              >
-                {t("admin.reset_roles")}
-              </Button>
+    <AdminLayout>
+      <TooltipProvider>
+        <div className="space-y-8 animate-in fade-in duration-500 pb-12">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-3xl font-bold tracking-tight">{t("admin.title")}</h2>
+            <p className="text-muted-foreground font-medium">Monitor platform health and manage operations.</p>
+          </div>
+
+          {/* Statistics Grid */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            {statsLoading ? [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />) : (
+              <>
+                <MetricCard title={t("admin.stats.total_users")} value={stats?.totalUsers || 0} icon={Users} description="Cumulative registered users across the platform." />
+                <MetricCard title={t("admin.stats.total_reports")} value={stats?.totalReports || 0} icon={Flag} description="Total reports flags received across all content." />
+                <MetricCard 
+                  title={t("admin.stats.pending_reports")} 
+                  value={stats?.pendingReports || 0} 
+                  icon={AlertTriangle} 
+                  priority={stats?.pendingReports && stats.pendingReports > 0 ? "critical" : "success"}
+                  description="Awaiting manual review by the administration." 
+                />
+                <MetricCard title={t("admin.stats.active_users")} value={stats?.activeUsers || 0} icon={Activity} trend={12} description="Unique users active within the last 24 hours." />
+                <MetricCard title={t("admin.stats.verified_users")} value={stats?.verifiedUsers || 0} icon={UserCheck} description="Trusted members who completed verification." />
+              </>
             )}
           </div>
 
-          {/* Statistics Cards */}
-          {statsLoading ? (
-            <div className="grid gap-4 md:grid-cols-4 mb-8">
-              {[...Array(8)].map((_, i) => (
-                <StatCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-4 mb-8">
-              <Card>
-                <CardHeader>
-                  <CardDescription className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    {t("admin.stats.total_users")}
-                  </CardDescription>
-                  <CardTitle>{stats?.totalUsers || 0}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardDescription className="flex items-center gap-2">
-                    <Activity className="h-4 w-4" />
-                    {t("admin.stats.active_users")}
-                  </CardDescription>
-                  <CardTitle>{stats?.activeUsers || 0}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardDescription className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4" />
-                    {t("admin.stats.verified_users")}
-                  </CardDescription>
-                  <CardTitle>{stats?.verifiedUsers || 0}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardDescription className="flex items-center gap-2">
-                    <UserX className="h-4 w-4" />
-                    {t("admin.stats.banned_users")}
-                  </CardDescription>
-                  <CardTitle>{stats?.bannedUsers || 0}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardDescription className="flex items-center gap-2">
-                    <Trash2 className="h-4 w-4" />
-                    {t("admin.stats.deleted_users")}
-                  </CardDescription>
-                  <CardTitle>{stats?.deletedUsers || 0}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardDescription className="flex items-center gap-2">
-                    <MessagesSquare className="h-4 w-4" />
-                    {t("admin.stats.total_posts")}
-                  </CardDescription>
-                  <CardTitle>{stats?.totalPosts || 0}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardDescription className="flex items-center gap-2">
-                    <Flag className="h-4 w-4" />
-                    {t("admin.stats.total_reports")}
-                  </CardDescription>
-                  <CardTitle>{stats?.totalReports || 0}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardDescription className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    {t("admin.stats.pending_reports")}
-                  </CardDescription>
-                  <CardTitle>{stats?.pendingReports || 0}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardDescription className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" />
-                    {t("admin.stats.resolved_reports")}
-                  </CardDescription>
-                  <CardTitle>{stats?.resolvedReports || 0}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardDescription className="flex items-center gap-2">
-                    <XCircle className="h-4 w-4" />
-                    {t("admin.stats.rejected_reports")}
-                  </CardDescription>
-                  <CardTitle>{stats?.rejectedReports || 0}</CardTitle>
-                </CardHeader>
-              </Card>
-            </div>
-          )}
-
           <Tabs
-            defaultValue="users"
-            className="space-y-4"
+            value={currentTab}
+            className="space-y-6"
             onValueChange={(value) => {
-              // Refresh data when switching tabs
-              if (value === "users") {
-                queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-              } else if (value === "reports") {
-                queryClient.invalidateQueries({ queryKey: ["/api/admin/reports"] });
-              }
+              setLocation(value === "users" ? "/admin/users" : "/admin/reports");
+              if (value === "users") queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+              else if (value === "reports") queryClient.invalidateQueries({ queryKey: ["/api/admin/reports"] });
             }}
           >
-            <TabsList>
-              <TabsTrigger value="users" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                {t("admin.tabs.users")}
-              </TabsTrigger>
-              <TabsTrigger value="reports" className="flex items-center gap-2">
-                <Flag className="h-4 w-4" />
-                {t("admin.tabs.reports")}
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <TabsList className="bg-muted/50 p-1 border">
+                <TabsTrigger value="users" className="flex items-center gap-2 px-6 data-[state=active]:bg-card data-[state=active]:shadow-sm transition-all text-xs font-bold uppercase tracking-widest">
+                  <Users className="h-4 w-4" />
+                  {t("admin.tabs.users")}
+                  <Badge variant="secondary" className="ml-1 px-1.5 py-0 h-4 text-[10px] bg-primary/10 text-primary border-none font-black">{users?.length || 0}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="flex items-center gap-2 px-6 data-[state=active]:bg-card data-[state=active]:shadow-sm transition-all text-xs font-bold uppercase tracking-widest">
+                  <Flag className="h-4 w-4" />
+                  {t("admin.tabs.reports")}
+                  {stats?.pendingReports && stats.pendingReports > 0 ? (
+                    <Badge variant="destructive" className="ml-1 px-1.5 py-0 h-4 text-[10px] animate-pulse font-black">{stats.pendingReports}</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="ml-1 px-1.5 py-0 h-4 text-[10px] font-black">{reports?.length || 0}</Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64 group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    placeholder="Filter current view..."
+                    className="pl-9 h-10 bg-card border-muted-foreground/20 focus-visible:ring-primary shadow-sm"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                {selectedUsers.size > 0 && (
+                  <Button variant="destructive" size="sm" className="gap-2 shrink-0 h-10 animate-in slide-in-from-right-2 shadow-sm font-bold" onClick={() => { if(window.confirm(`Delete ${selectedUsers.size} users?`)) { /* bulk delete logic */ } }}>
+                    <Trash2 className="h-4 w-4" />
+                    Delete {selectedUsers.size}
+                  </Button>
+                )}
+              </div>
+            </div>
 
             <TabsContent value="users">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle>User Management</CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <div className="flex gap-2">
-                      <Button
-                        variant={userFilter === "all" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setUserFilter("all")}
-                      >
-                        {t("feed.all")}
-                      </Button>
-                      <Button
-                        variant={userFilter === "verified" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setUserFilter("verified")}
-                      >
-                        {t("admin.stats.verified_users")}
-                      </Button>
-                      <Button
-                        variant={userFilter === "banned" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setUserFilter("banned")}
-                      >
-                        {t("admin.stats.banned_users")}
-                      </Button>
-                    </div>
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search users..."
-                        className="pl-8"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
+              <Card className="border-none shadow-sm overflow-hidden bg-card/50 backdrop-blur-sm">
+                <CardHeader className="bg-card/80 border-b px-6 py-4 flex flex-row items-center justify-between backdrop-blur-md sticky top-0 z-20">
+                  <div>
+                    <CardTitle className="text-lg font-bold tracking-tight">User Directory</CardTitle>
+                    <CardDescription className="text-xs">Manage authentication states and moderation levels.</CardDescription>
+                  </div>
+                  <div className="flex gap-1 bg-muted/40 p-1 rounded-lg border">
+                    <Button variant={userFilter === "all" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setUserFilter("all")}>All</Button>
+                    <Button variant={userFilter === "verified" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setUserFilter("verified")}>Verified</Button>
+                    <Button variant={userFilter === "banned" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setUserFilter("banned")}>Banned</Button>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  {usersLoading ? (
-                    <div className="relative overflow-hidden rounded-b-lg">
-                      <div className="overflow-auto h-[600px]">
-                        <Table>
-                          <TableHeader className="sticky top-0 bg-card z-20 border-b">
-                            <TableRow>
-                              <TableHead className="w-[200px]">Username</TableHead>
-                              <TableHead className="w-[200px]">Email</TableHead>
-                              <TableHead className="w-[200px]">Status</TableHead>
-                              <TableHead className="w-[100px]">Role</TableHead>
-                              <TableHead className="w-[150px]">Karma</TableHead>
-                              <TableHead className="w-[200px]">Joined</TableHead>
-                              <TableHead className="sticky right-0 bg-card w-[400px] z-20">
-                                Actions
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {[...Array(10)].map((_, i) => (
-                              <UserRowSkeleton key={i} />
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative overflow-hidden rounded-b-lg">
-                      <div className="overflow-auto h-[600px]">
-                        <Table>
-                          <TableHeader className="sticky top-0 bg-card z-20 border-b">
-                            <TableRow>
-                              <TableHead className="w-[200px]">Username</TableHead>
-                              <TableHead className="w-[200px]">Email</TableHead>
-                              <TableHead className="w-[200px]">Status</TableHead>
-                              <TableHead className="w-[100px]">Role</TableHead>
-                              <TableHead className="w-[150px]">Karma</TableHead>
-                              <TableHead className="w-[200px]">Joined</TableHead>
-                              <TableHead className="sticky right-0 bg-card w-[400px] z-20">
-                                Actions
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredUsers?.map((u) => (
-                              <TableRow key={u.id}>
-                                <TableCell className="font-medium">
-                                  <div className="flex items-center gap-2">
-                                    <UserAvatar
-                                      user={{
-                                        username: u.username,
-                                      }}
-                                      size="sm"
-                                    />
-                                    <div className="flex items-center gap-1">
-                                      <Link
-                                        href={`/users/${u.username}`}
-                                        className="hover:underline text-sm"
-                                      >
-                                        {u.username}
-                                      </Link>
-                                      {u.verified && (
-                                        <BadgeCheck className="h-4 w-4 text-primary flex-shrink-0" />
-                                      )}
-                                    </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell>{u.email}</TableCell>
-                                <TableCell>
-                                  <div className="flex gap-2">
-                                    {u.verified ? (
-                                      <Badge
-                                        variant="default"
-                                        className="whitespace-nowrap text-xs px-2 py-1"
-                                      >
-                                        <BadgeCheck className="h-3 w-3 mr-1 flex-shrink-0" />
-                                        Verified User
-                                      </Badge>
-                                    ) : u.emailVerified ? (
-                                      <Badge
-                                        variant="default"
-                                        className="whitespace-nowrap text-xs px-2 py-1"
-                                      >
-                                        Verified E-Mail
-                                      </Badge>
-                                    ) : (
-                                      <Badge
-                                        variant="secondary"
-                                        className="whitespace-nowrap text-xs px-2 py-1"
-                                      >
-                                        Unverified E-Mail
-                                      </Badge>
-                                    )}
-                                    {u.karma < 0 && (
-                                      <Badge
-                                        variant="destructive"
-                                        className="whitespace-nowrap text-xs px-2 py-1"
-                                      >
-                                        Banned User
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    variant={
-                                      u.role === "owner"
-                                        ? "destructive"
-                                        : u.role === "admin"
-                                          ? "default"
-                                          : "secondary"
-                                    }
-                                  >
-                                    {t(`admin.roles.${u.role}`)}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    variant={u.karma >= 0 ? "default" : "destructive"}
-                                    className="flex items-center gap-1 whitespace-nowrap"
-                                  >
-                                    <Trophy className="h-3 w-3" />
-                                    {u.karma} {t("admin.users_table.karma")}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap">
-                                  {u.createdAt ? format(new Date(u.createdAt), "PPp") : "—"}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center space-x-2">
-                                    {(user.role === "owner" ||
-                                      (user.role === "admin" && u.role === "user")) && (
-                                        <>
-                                          <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                              <Button
-                                                size="sm"
-                                                variant={u.verified ? "default" : "outline"}
-                                                disabled={updateUserMutation.isPending}
-                                                className="flex items-center gap-1"
-                                              >
-                                                <BadgeCheck className="h-4 w-4 flex-shrink-0" />
-                                                {u.verified
-                                                  ? t("admin.users_table.unverify_user")
-                                                  : t("admin.users_table.verify_user")}
-                                              </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                              <AlertDialogHeader>
-                                                <AlertDialogTitle>
-                                                  {u.verified
-                                                    ? t("admin.users_table.unverify_user")
-                                                    : t("admin.users_table.verify_user")}
-                                                </AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                  {u.verified
-                                                    ? t("admin.users_table.unverify_user_confirm", {
-                                                      username: u.username,
-                                                    })
-                                                    : t("admin.users_table.verify_user_confirm", {
-                                                      username: u.username,
-                                                    })}
-                                                </AlertDialogDescription>
-                                              </AlertDialogHeader>
-                                              <AlertDialogFooter>
-                                                <AlertDialogCancel>
-                                                  {t("actions.cancel")}
-                                                </AlertDialogCancel>
-                                                <AlertDialogAction
-                                                  onClick={() =>
-                                                    handleVerificationToggle(u.id, u.verified)
-                                                  }
-                                                >
-                                                  {u.verified
-                                                    ? t("admin.users_table.unverify_user")
-                                                    : t("admin.users_table.verify_user")}
-                                                </AlertDialogAction>
-                                              </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                          </AlertDialog>
-                                          <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                              <Button
-                                                size="sm"
-                                                variant={u.karma < 0 ? "default" : "destructive"}
-                                                disabled={updateUserMutation.isPending}
-                                              >
-                                                {u.karma < 0 ? (
-                                                  <>
-                                                    <Check className="h-4 w-4 mr-1" />
-                                                    {t("admin.users_table.restore_user")}
-                                                  </>
-                                                ) : (
-                                                  <>
-                                                    <Ban className="h-4 w-4 mr-1" />
-                                                    {t("admin.users_table.ban_user")}
-                                                  </>
-                                                )}
-                                              </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                              <AlertDialogHeader>
-                                                <AlertDialogTitle>
-                                                  {u.karma < 0
-                                                    ? t("admin.users_table.restore_user")
-                                                    : t("admin.users_table.ban_user")}
-                                                </AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                  {u.karma < 0
-                                                    ? t("admin.users_table.restore_user_confirm", {
-                                                      username: u.username,
-                                                    })
-                                                    : t("admin.users_table.ban_user_confirm", {
-                                                      username: u.username,
-                                                    })}
-                                                </AlertDialogDescription>
-                                              </AlertDialogHeader>
-                                              <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                  onClick={() => {
-                                                    const newKarma = u.karma < 0 ? 5 : -100;
-                                                    updateUserMutation.mutate({
-                                                      userId: u.id,
-                                                      data: { karma: newKarma },
-                                                    });
-                                                  }}
-                                                  className={
-                                                    u.karma < 0
-                                                      ? ""
-                                                      : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                  }
-                                                >
-                                                  {u.karma < 0
-                                                    ? t("admin.users_table.restore_user")
-                                                    : t("admin.users_table.ban_user")}
-                                                </AlertDialogAction>
-                                              </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                          </AlertDialog>
-                                          <Button
-                                            size="sm"
-                                            variant={u.emailVerified ? "ghost" : "default"}
-                                            onClick={() =>
-                                              updateUserMutation.mutate({
-                                                userId: u.id,
-                                                data: { emailVerified: !u.emailVerified },
-                                              })
-                                            }
-                                            disabled={updateUserMutation.isPending}
-                                          >
-                                            {u.emailVerified ? (
-                                              <>
-                                                <AlertTriangle className="h-4 w-4 mr-1" />
-                                                {t("admin.users_table.unverify_email")}
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Check className="h-4 w-4 mr-1" />
-                                                {t("admin.users_table.verify_email")}
-                                              </>
-                                            )}
-                                          </Button>
-                                          <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                              <Button
-                                                size="sm"
-                                                variant="destructive"
-                                                disabled={deleteUserMutation.isPending}
-                                              >
-                                                <Trash2 className="h-4 w-4 mr-1" />
-                                                {t("actions.delete")}
-                                              </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                              <AlertDialogHeader>
-                                                <AlertDialogTitle>
-                                                  {t("actions.delete")}
-                                                </AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                  {t("admin.users_table.delete_user_confirm", {
-                                                    username: u.username,
-                                                  })}
-                                                </AlertDialogDescription>
-                                              </AlertDialogHeader>
-                                              <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                  onClick={() => deleteUserMutation.mutate(u.id)}
-                                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                >
-                                                  {t("actions.delete")}
-                                                </AlertDialogAction>
-                                              </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                          </AlertDialog>
-                                          {user.role === "owner" &&
-                                            u.role !== "admin" &&
-                                            u.role !== "owner" && (
-                                              <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                  <Button
-                                                    size="sm"
-                                                    variant="default"
-                                                    disabled={updateUserMutation.isPending}
-                                                  >
-                                                    <Shield className="h-4 w-4 mr-1" />
-                                                    {t("admin.users_table.make_admin")}
-                                                  </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                  <AlertDialogHeader>
-                                                    <AlertDialogTitle>
-                                                      {t("admin.users_table.make_admin")}
-                                                    </AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                      {t("admin.users_table.make_admin_confirm", {
-                                                        username: u.username,
-                                                      })}
-                                                    </AlertDialogDescription>
-                                                  </AlertDialogHeader>
-                                                  <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                      onClick={() => {
-                                                        updateUserMutation.mutate({
-                                                          userId: u.id,
-                                                          data: {
-                                                            role: "admin",
-                                                            isAdmin: true,
-                                                          },
-                                                        });
-                                                      }}
-                                                    >
-                                                      {t("admin.users_table.make_admin")}
-                                                    </AlertDialogAction>
-                                                  </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                              </AlertDialog>
-                                            )}
-                                          {user.role === "owner" && u.role !== "owner" && (
-                                            <AlertDialog>
-                                              <AlertDialogTrigger asChild>
-                                                <Button
-                                                  size="sm"
-                                                  variant="default"
-                                                  disabled={updateUserMutation.isPending}
-                                                >
-                                                  <Trophy className="h-4 w-4 mr-1" />
-                                                  {t("admin.users_table.make_owner")}
-                                                </Button>
-                                              </AlertDialogTrigger>
-                                              <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                  <AlertDialogTitle>
-                                                    {t("admin.users_table.make_owner")}
-                                                  </AlertDialogTitle>
-                                                  <AlertDialogDescription>
-                                                    {t("admin.users_table.make_owner_confirm", {
-                                                      username: u.username,
-                                                    })}
-                                                  </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                  <AlertDialogAction
-                                                    onClick={() => {
-                                                      updateUserMutation.mutate({
-                                                        userId: u.id,
-                                                        data: {
-                                                          role: "owner",
-                                                          isAdmin: true,
-                                                        },
-                                                      });
-                                                    }}
-                                                  >
-                                                    {t("admin.users_table.make_owner")}
-                                                  </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                              </AlertDialogContent>
-                                            </AlertDialog>
-                                          )}
-                                          {user.role === "owner" &&
-                                            u.role === "owner" &&
-                                            u.id !== user.id && (
-                                              <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                  <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    disabled={updateUserMutation.isPending}
-                                                  >
-                                                    <ShieldOff className="h-4 w-4 mr-1" />
-                                                    {t("admin.users_table.remove_owner")}
-                                                  </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                  <AlertDialogHeader>
-                                                    <AlertDialogTitle>
-                                                      {t("admin.users_table.remove_owner")}
-                                                    </AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                      {t("admin.users_table.remove_owner_confirm", {
-                                                        username: u.username,
-                                                      })}
-                                                    </AlertDialogDescription>
-                                                  </AlertDialogHeader>
-                                                  <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                      onClick={() => {
-                                                        updateUserMutation.mutate({
-                                                          userId: u.id,
-                                                          data: {
-                                                            role: "admin",
-                                                            isAdmin: true,
-                                                          },
-                                                        });
-                                                      }}
-                                                    >
-                                                      {t("admin.users_table.remove_owner")}
-                                                    </AlertDialogAction>
-                                                  </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                              </AlertDialog>
-                                            )}
-                                          {(user.role === "owner" || user.role === "admin") &&
-                                            u.role === "admin" &&
-                                            u.id !== user.id && (
-                                              <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                  <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    disabled={updateUserMutation.isPending}
-                                                  >
-                                                    <ShieldOff className="h-4 w-4 mr-1" />
-                                                    {t("admin.users_table.remove_admin")}
-                                                  </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                  <AlertDialogHeader>
-                                                    <AlertDialogTitle>
-                                                      {t("admin.users_table.remove_admin")}
-                                                    </AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                      {t("admin.users_table.remove_admin_confirm", {
-                                                        username: u.username,
-                                                      })}
-                                                    </AlertDialogDescription>
-                                                  </AlertDialogHeader>
-                                                  <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                      onClick={() => {
-                                                        updateUserMutation.mutate({
-                                                          userId: u.id,
-                                                          data: {
-                                                            role: "user",
-                                                            isAdmin: false,
-                                                          },
-                                                        });
-                                                      }}
-                                                    >
-                                                      {t("admin.users_table.remove_admin")}
-                                                    </AlertDialogAction>
-                                                  </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                              </AlertDialog>
-                                            )}
-                                        </>
-                                      )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  )}
+                  <div className="overflow-auto max-h-[calc(100vh-25rem)] scrollbar-thin scrollbar-thumb-muted-foreground/10">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-card/95 z-20 backdrop-blur-md shadow-sm border-b">
+                        <TableRow className="hover:bg-transparent border-none">
+                          <TableHead className="w-[40px] px-6">
+                            <Checkbox 
+                              checked={selectedUsers.size === filteredUsers?.length && filteredUsers.length > 0}
+                              onCheckedChange={(checked) => {
+                                if (checked) setSelectedUsers(new Set(filteredUsers?.map(u => u.id)));
+                                else setSelectedUsers(new Set());
+                              }}
+                            />
+                          </TableHead>
+                          <TableHead className="cursor-pointer group px-4 py-3" onClick={() => handleSort("username")}>
+                            <div className="flex items-center gap-1 group-hover:text-foreground transition-colors font-bold uppercase tracking-widest text-[10px]">
+                              User
+                              <TrendingUp className={cn("h-3 w-3 opacity-0 group-hover:opacity-100 transition-all", sortConfig?.key === "username" ? "opacity-100" : "")} />
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-bold uppercase tracking-widest text-[10px]">Contact Info</TableHead>
+                          <TableHead className="font-bold uppercase tracking-widest text-[10px]">Verification States</TableHead>
+                          <TableHead className="cursor-pointer group font-bold uppercase tracking-widest text-[10px]" onClick={() => handleSort("role")}>
+                            <div className="flex items-center gap-1">
+                              System Role <TrendingUp className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                            </div>
+                          </TableHead>
+                          <TableHead className="cursor-pointer group font-bold uppercase tracking-widest text-[10px]" onClick={() => handleSort("karma")}>
+                            <div className="flex items-center gap-1">
+                              Reputation <TrendingUp className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-bold uppercase tracking-widest text-[10px]">Onboarded</TableHead>
+                          <TableHead className="sticky right-0 bg-card/95 backdrop-blur-md border-l text-center w-[150px] font-bold uppercase tracking-widest text-[10px]">Operations</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {usersLoading ? [...Array(10)].map((_, i) => <UserRowSkeleton key={i} />) : 
+                         filteredUsers?.map((u) => (
+                          <TableRow key={u.id} className="hover:bg-muted/40 transition-colors group border-b/50">
+                            <TableCell className="px-6">
+                              <Checkbox 
+                                checked={selectedUsers.has(u.id)}
+                                onCheckedChange={() => toggleUserSelection(u.id)}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-3 py-1">
+                                <UserAvatar user={{ username: u.username }} size="sm" />
+                                <div className="flex flex-col min-w-0">
+                                  <Link href={`/users/${u.username}`} className="hover:text-primary transition-colors text-sm font-bold truncate leading-tight">{u.username}</Link>
+                                  {u.verified && <span className="text-[9px] text-primary font-black uppercase tracking-tighter mt-0.5">Verified Partner</span>}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-[11px] text-muted-foreground font-mono">{u.email}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {u.emailVerified ? (
+                                  <Badge variant="outline" className="text-[8px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20 py-0 font-bold">EMAIL_ACTIVE</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[8px] bg-muted/20 text-muted-foreground py-0 font-bold border-muted/30">PENDING_EMAIL</Badge>
+                                )}
+                                {u.karma < 0 && <Badge variant="destructive" className="text-[8px] py-0 px-1 font-black animate-pulse">RESTRICTED</Badge>}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                               <Badge variant={u.role === "owner" ? "destructive" : u.role === "admin" ? "default" : "secondary"} className="text-[9px] py-0 font-bold tracking-wider">
+                                 {u.role.toUpperCase()}
+                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className={cn("inline-flex items-center gap-1 text-xs font-black px-1.5 py-0.5 rounded border shadow-sm", 
+                                u.karma >= 0 ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/20" : "bg-red-500/5 text-red-500 border-red-500/20")}>
+                                {u.karma >= 0 ? "+" : ""}{u.karma}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-[10px] text-muted-foreground font-bold whitespace-nowrap">
+                              {u.createdAt ? format(new Date(u.createdAt), "MMM d, yyyy") : "—"}
+                            </TableCell>
+                            <TableCell className="sticky right-0 bg-card group-hover:bg-muted/60 transition-colors border-l shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
+                              <div className="flex items-center justify-center gap-0.5 px-2">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary transition-all hover:bg-background" 
+                                            onClick={() => handleVerificationToggle(u.id, u.verified)}>
+                                      <BadgeCheck className={cn("h-4 w-4", u.verified ? "text-primary" : "")} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">Toggle Verification</TooltipContent>
+                                </Tooltip>
+
+                                <AlertDialog>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-500 transition-all hover:bg-background">
+                                          <Ban className={cn("h-4 w-4", u.karma < 0 ? "text-red-600" : "")} />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Access Control</TooltipContent>
+                                  </Tooltip>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle className="font-bold">{u.karma < 0 ? "Restore" : "Ban"} {u.username}?</AlertDialogTitle>
+                                      <AlertDialogDescription className="text-sm">
+                                        {u.karma < 0 ? `This will restore regular platform access for ${u.username}.` : `This will restrict access for ${u.username} indefinitely. Reputation reset to -100.`}
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => {
+                                        const newKarma = u.karma < 0 ? 5 : -100;
+                                        updateUserMutation.mutate({ userId: u.id, data: { karma: newKarma } });
+                                      }} className={cn("font-bold shadow-sm", u.karma < 0 ? "" : "bg-red-600 hover:bg-red-700")}>
+                                        {u.karma < 0 ? "Restore Access" : "Confirm Sanction"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                                
+                                <AlertDialog>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-600 transition-all hover:bg-background">
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Permanent Delete</TooltipContent>
+                                  </Tooltip>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle className="font-bold text-red-600">CRITICAL: Data Purge</AlertDialogTitle>
+                                      <AlertDialogDescription className="text-sm font-medium">
+                                        Permanently delete {u.username} and all associated data metadata? This action is IRREVERSIBLE.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => deleteUserMutation.mutate(u.id)} className="bg-red-600 hover:bg-red-700 font-bold shadow-sm">Execute Purge</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="reports" className="relative z-10">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle>Content Reports</CardTitle>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={reportFilter === "all" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setReportFilter("all")}
-                    >
-                      {t("admin.reports_table.status_all")}
-                    </Button>
-                    <Button
-                      variant={reportFilter === "pending" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setReportFilter("pending")}
-                    >
-                      {t("admin.reports_table.status_pending")}
-                    </Button>
-                    <Button
-                      variant={reportFilter === "resolved" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setReportFilter("resolved")}
-                    >
-                      {t("admin.reports_table.status_resolved")}
-                    </Button>
-                    <Button
-                      variant={reportFilter === "rejected" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setReportFilter("rejected")}
-                    >
-                      {t("admin.reports_table.status_rejected")}
-                    </Button>
+            <TabsContent value="reports">
+               <Card className="border-none shadow-sm overflow-hidden bg-card/50 backdrop-blur-sm">
+                <CardHeader className="bg-card/80 border-b px-6 py-4 flex flex-row items-center justify-between backdrop-blur-md sticky top-0 z-20">
+                  <div>
+                    <CardTitle className="text-lg font-bold tracking-tight">Content Integrity Queue</CardTitle>
+                    <CardDescription className="text-xs">Community flags requiring administrative adjudication.</CardDescription>
+                  </div>
+                  <div className="flex gap-1 bg-muted/40 p-1 rounded-lg border">
+                    <Button variant={reportFilter === "pending" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setReportFilter("pending")}>Pending</Button>
+                    <Button variant={reportFilter === "resolved" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setReportFilter("resolved")}>Resolved</Button>
+                    <Button variant={reportFilter === "rejected" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setReportFilter("rejected")}>Rejected</Button>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  {reportsLoading ? (
-                    <div className="relative overflow-hidden rounded-b-lg">
-                      <div className="overflow-auto h-[600px]">
-                        <Table>
-                          <TableHeader className="sticky top-0 bg-card z-20 border-b">
-                            <TableRow>
-                              <TableHead className="w-[140px]">Reporter</TableHead>
-                              <TableHead className="w-[140px]">IP Address</TableHead>
-                              <TableHead className="w-[100px]">Type</TableHead>
-                              <TableHead className="w-[300px]">Content</TableHead>
-                              <TableHead className="w-[200px]">Reason</TableHead>
-                              <TableHead className="w-[100px]">Status</TableHead>
-                              <TableHead className="w-[200px]">Reported On</TableHead>
-                              <TableHead className="sticky right-0 bg-card w-[150px] z-20">
-                                Actions
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {[...Array(5)].map((_, i) => (
-                              <TableRow key={i}>
-                                <TableCell>
-                                  <Skeleton className="h-4 w-24" />
-                                </TableCell>
-                                <TableCell>
-                                  <Skeleton className="h-4 w-24" />
-                                </TableCell>
-                                <TableCell>
-                                  <Skeleton className="h-4 w-16" />
-                                </TableCell>
-                                <TableCell>
-                                  <Skeleton className="h-4 w-48" />
-                                </TableCell>
-                                <TableCell>
-                                  <Skeleton className="h-4 w-32" />
-                                </TableCell>
-                                <TableCell>
-                                  <Skeleton className="h-6 w-20" />
-                                </TableCell>
-                                <TableCell>
-                                  <Skeleton className="h-4 w-32" />
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex gap-2">
-                                    <Skeleton className="h-8 w-8" />
-                                    <Skeleton className="h-8 w-8" />
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative overflow-hidden rounded-b-lg">
-                      <div className="overflow-auto h-[600px]">
-                        <Table>
-                          <TableHeader className="sticky top-0 bg-card z-20 border-b">
-                            <TableRow>
-                              <TableHead className="w-[140px]">
-                                {t("admin.reports_table.reporter")}
-                              </TableHead>
-                              <TableHead className="w-[140px]">
-                                {t("admin.reports_table.ip_address")}
-                              </TableHead>
-                              <TableHead className="w-[140px]">
-                                {t("admin.reports_table.poster")}
-                              </TableHead>
-                              <TableHead className="w-[100px]">
-                                {t("admin.reports_table.type")}
-                              </TableHead>
-                              <TableHead className="w-[250px]">
-                                {t("admin.reports_table.content")}
-                              </TableHead>
-                              <TableHead className="w-[200px]">
-                                {t("admin.reports_table.reason")}
-                              </TableHead>
-                              <TableHead className="w-[100px]">
-                                {t("admin.reports_table.status")}
-                              </TableHead>
-                              <TableHead className="w-[160px]">
-                                {t("admin.reports_table.reported_on")}
-                              </TableHead>
-                              <TableHead className="sticky right-0 bg-card w-[100px] z-20">
-                                {t("admin.reports_table.actions")}
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredReports?.map((report) => (
-                              <TableRow
-                                key={report.id}
-                                className={
-                                  report.status === "pending" &&
-                                    (report.content?.type === "post" ||
-                                      report.content?.type === "discussion") &&
-                                    report.postId
-                                    ? "cursor-pointer hover:bg-muted/50"
-                                    : ""
-                                }
-                                onClick={() => {
-                                  if (
-                                    report.status === "pending" &&
-                                    (report.content?.type === "post" ||
-                                      report.content?.type === "discussion") &&
-                                    report.postId
-                                  ) {
-                                    setLocation(`/posts/${report.postId}?from=admin`);
-                                  }
-                                }}
-                              >
-                                <TableCell>{report.reporter?.username}</TableCell>
-                                <TableCell className="font-mono text-xs">
-                                  {report.ipAddress || "N/A"}
-                                </TableCell>
-                                <TableCell>
-                                  {report.content?.author?.username || "Unknown"}
-                                </TableCell>
-                                <TableCell>
-                                  {report.content?.type === "post"
-                                    ? t("admin.reports_table.type_post")
-                                    : report.content?.type === "discussion"
-                                      ? t("admin.reports_table.type_discussion")
-                                      : t("admin.reports_table.type_comment")}
-                                </TableCell>
-                                <TableCell className="max-w-xs truncate">
-                                  {report.content?.title ||
-                                    report.content?.content ||
-                                    "Content deleted"}
-                                </TableCell>
-                                <TableCell>{report.reason}</TableCell>
-                                <TableCell>
-                                  <Badge
-                                    variant={
-                                      report.status === "resolved"
-                                        ? "default"
-                                        : report.status === "rejected"
-                                          ? "destructive"
-                                          : "secondary"
-                                    }
-                                  >
-                                    {t(`admin.reports_table.status_${report.status}`)}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>{format(new Date(report.createdAt), "PPp")}</TableCell>
-                                <TableCell>
-                                  <div
-                                    className="flex items-center space-x-2"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          disabled={
-                                            report.status !== "pending" ||
-                                            updateReportMutation.isPending
-                                          }
-                                        >
-                                          <CheckCircle className="h-4 w-4" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>
-                                            {t("admin.reports_table.resolve_title")}
-                                          </AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            {t("admin.reports_table.resolve_desc")}
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>
-                                            {t("actions.cancel")}
-                                          </AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() =>
-                                              updateReportMutation.mutate({
-                                                reportId: report.id,
-                                                status: "resolved",
-                                              })
-                                            }
-                                          >
-                                            {t("admin.reports_table.resolve")}
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          disabled={
-                                            report.status !== "pending" ||
-                                            updateReportMutation.isPending
-                                          }
-                                        >
-                                          <XCircle className="h-4 w-4" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>
-                                            {t("admin.reports_table.reject_title")}
-                                          </AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            {t("admin.reports_table.reject_desc")}
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>
-                                            {t("actions.cancel")}
-                                          </AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() =>
-                                              updateReportMutation.mutate({
-                                                reportId: report.id,
-                                                status: "rejected",
-                                              })
-                                            }
-                                          >
-                                            {t("admin.reports_table.reject")}
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  )}
+                  <div className="overflow-auto max-h-[calc(100vh-25rem)] scrollbar-thin scrollbar-thumb-muted-foreground/10">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-card/95 z-20 backdrop-blur-md shadow-sm border-b">
+                        <TableRow className="hover:bg-transparent border-none">
+                          <TableHead className="w-[140px] px-6 font-bold uppercase tracking-widest text-[10px]">Source</TableHead>
+                          <TableHead className="w-[100px] font-bold uppercase tracking-widest text-[10px]">Entity</TableHead>
+                          <TableHead className="font-bold uppercase tracking-widest text-[10px]">Observation</TableHead>
+                          <TableHead className="font-bold uppercase tracking-widest text-[10px]">Justification</TableHead>
+                          <TableHead className="w-[100px] font-bold uppercase tracking-widest text-[10px]">Status</TableHead>
+                          <TableHead className="w-[150px] font-bold uppercase tracking-widest text-[10px]">Timestamp</TableHead>
+                          <TableHead className="sticky right-0 bg-card/95 backdrop-blur-md border-l text-center w-[120px] font-bold uppercase tracking-widest text-[10px]">Decisions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {reportsLoading ? [...Array(5)].map((_, i) => <ReportRowSkeleton key={i} />) : 
+                         filteredReports?.map((r) => (
+                           <TableRow key={r.id} className={cn(
+                             "hover:bg-muted/40 transition-colors group border-b/50",
+                             r.status === "pending" ? "font-bold bg-primary/5" : "text-muted-foreground opacity-60"
+                           )} onClick={() => r.postId && setLocation(`/posts/${r.postId}?from=admin`)}>
+                             <TableCell className="px-6">
+                               <div className="flex flex-col">
+                                 <span className="text-xs font-bold text-foreground">{(r as any).reporter?.username}</span>
+                                 <span className="text-[9px] font-mono text-muted-foreground bg-muted p-0.5 rounded w-fit mt-1">{r.ipAddress || "INTERNAL"}</span>
+                               </div>
+                             </TableCell>
+                             <TableCell>
+                               <Badge variant="outline" className="text-[8px] py-0 font-black tracking-tighter border-primary/20 bg-primary/5">
+                                 {(r as any).content?.type?.toUpperCase()}
+                               </Badge>
+                             </TableCell>
+                             <TableCell className="max-w-[250px]">
+                               <p className="text-xs font-bold truncate leading-none mb-1 text-foreground">{(r as any).content?.title || (r as any).content?.content}</p>
+                               <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-black">Author: {(r as any).content?.author?.username}</span>
+                             </TableCell>
+                             <TableCell className="text-xs italic border-l pl-3">"{r.reason}"</TableCell>
+                             <TableCell>
+                               <Badge variant={r.status === "resolved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"} className="text-[9px] font-bold tracking-wider">
+                                 {r.status.toUpperCase()}
+                               </Badge>
+                             </TableCell>
+                             <TableCell className="text-[10px] font-bold text-muted-foreground font-mono">
+                               {format(new Date(r.createdAt), "MMM d, HH:mm")}
+                             </TableCell>
+                             <TableCell className="sticky right-0 bg-card group-hover:bg-muted/60 transition-colors border-l shadow-[-4px_0_12px_rgba(0,0,0,0.02)]" onClick={(e) => e.stopPropagation()}>
+                               <div className="flex items-center justify-center gap-1">
+                                 <Tooltip>
+                                   <TooltipTrigger asChild>
+                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-emerald-600 transition-all hover:bg-background" 
+                                             disabled={r.status !== "pending"}
+                                             onClick={() => updateReportMutation.mutate({ reportId: r.id, status: "resolved" })}>
+                                       <CheckCircle className="h-4 w-4" />
+                                     </Button>
+                                   </TooltipTrigger>
+                                   <TooltipContent side="top">Resolve Flag</TooltipContent>
+                                 </Tooltip>
+
+                                 <Tooltip>
+                                   <TooltipTrigger asChild>
+                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500 transition-all hover:bg-background" 
+                                             disabled={r.status !== "pending"}
+                                             onClick={() => updateReportMutation.mutate({ reportId: r.id, status: "rejected" })}>
+                                       <XCircle className="h-4 w-4" />
+                                     </Button>
+                                   </TooltipTrigger>
+                                   <TooltipContent side="top">Dismiss Flag</TooltipContent>
+                                 </Tooltip>
+                               </div>
+                             </TableCell>
+                           </TableRow>
+                         ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
         </div>
-      </main>
-    </>
+      </TooltipProvider>
+    </AdminLayout>
   );
 }

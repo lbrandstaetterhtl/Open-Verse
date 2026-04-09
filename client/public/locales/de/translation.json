@@ -10,7 +10,9 @@
     "logout": "Abmelden",
     "communities": "Communities",
     "ai_generator": "KI-Generator",
-    "mod_panel": "Mod-Panel"
+    "mod_panel": "Mod-Panel",
+    "content_feeds": "Feeds",
+    "personal_tools": "Tools"
   },
   "common": {
     "loading": "Laden...",
@@ -388,5 +390,13 @@
     "fun_badge": "Spaß",
     "shared_on": "Geteilt am",
     "no_posts_desc": "Noch keine Unterhaltungsbeiträge. Teile etwas Lustiges, um anzufangen!"
+  },
+  "theme_builder": {
+    "theme_name_label": "Theme-Name",
+    "unsaved_changes": "Ungespeicherte Änderungen",
+    "all_saved": "Alles gespeichert",
+    "reset_confirm": "Möchten Sie wirklich alle Farben auf die Standardwerte zurücksetzen? Dies kann nicht rückgängig gemacht werden.",
+    "import_success": "Theme erfolgreich importiert",
+    "export_success": "Theme-Konfiguration in die Zwischenablage kopiert"
   }
 }

@@ -7,12 +7,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { MessageCircle } from "lucide-react";
 import { Link } from "wouter";
 import { PostCard } from "@/components/post/post-card";
+import { ErrorState } from "@/components/ui/error-state";
+import { queryClient } from "@/lib/queryClient";
 import type { PostWithAuthor } from "@shared/types";
 
 export default function DiscussionsFeedPage() {
   const { t } = useTranslation();
 
-  const { data: discussions, isLoading } = useQuery<PostWithAuthor[]>({
+  const { data: discussions, isLoading, error } = useQuery<PostWithAuthor[]>({
     queryKey: ["/api/posts", "discussion"],
     queryFn: async () => {
       const res = await fetch("/api/posts?category=discussion", {
@@ -34,10 +36,11 @@ export default function DiscussionsFeedPage() {
   return (
     <>
       <Navbar />
-      <main className="container mx-auto px-4 pt-24">
-        <div className="max-w-3xl mx-auto">
+      <main className="container mx-auto px-4 pt-20 pb-8">
+        {/* REDESIGN [UX-004]: Widened from max-w-3xl to max-w-4xl */}
+        <div className="max-w-4xl mx-auto">
           <div className="lg:hidden mb-6">
-            <h1 className="text-2xl font-bold mb-4">{t("feed.discussions_title")}</h1>
+            <h1 className="text-xl font-bold mb-4">{t("feed.discussions_title")}</h1>
             <Link href="/post/discussions">
               <Button size="sm" className="whitespace-nowrap">
                 {t("feed.create_discussion")}
@@ -46,7 +49,7 @@ export default function DiscussionsFeedPage() {
           </div>
 
           <div className="hidden lg:flex items-center justify-between mb-8">
-            <h1 className="text-4xl font-bold">{t("feed.discussions_title")}</h1>
+            <h1 className="text-3xl font-bold">{t("feed.discussions_title")}</h1>
             <Link href="/post/discussions">
               <Button>
                 {t("feed.create_discussion")}
@@ -56,6 +59,11 @@ export default function DiscussionsFeedPage() {
 
           {isLoading ? (
             <Spinner size="lg" className="p-8" />
+          ) : error ? (
+            <ErrorState 
+              message={error instanceof Error ? error.message : "Failed to load discussions"} 
+              retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] })}
+            />
           ) : discussions?.length === 0 ? (
             <EmptyState
               icon={<MessageCircle className="h-10 w-10 text-muted-foreground" />}

@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { SettingsService } from "./services/settings";
 import fs from "fs";
 import path from "path";
 
@@ -9,6 +10,12 @@ const app = express();
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+
+// PRODUCTION SECURITY [SEC-001]: Enable trust proxy if the application is behind a reverse proxy (Nginx, etc.)
+// This ensures that req.ip and secure cookies work correctly.
+if (process.env.TRUST_PROXY) {
+  app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : process.env.TRUST_PROXY);
+}
 
 // Ensure uploads directory exists and set proper permissions
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -89,6 +96,10 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 (async () => {
   try {
     console.log("Starting server...");
+    
+    // FEATURE [AS-009]: Initialize system settings
+    await SettingsService.seed();
+    
     const server = await registerRoutes(app);
 
     if (app.get("env") === "development") {
@@ -98,8 +109,10 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     }
 
     const port = parseInt(process.env.PORT || "5000");
-    server.listen(port, "127.0.0.1", () => {
-      console.log(`Server started successfully on port ${port}`);
+    const host = process.env.HOST || "0.0.0.0";
+    
+    server.listen(port, host, () => {
+      console.log(`Server started successfully on ${host}:${port} (${app.get("env")} mode)`);
     });
 
     // Handle server errors

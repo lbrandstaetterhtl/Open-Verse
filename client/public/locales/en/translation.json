@@ -10,7 +10,9 @@
     "ai_generator": "AI Generator",
     "mod_panel": "Mod Panel",
     "admin": "Admin",
-    "logout": "Logout"
+    "logout": "Logout",
+    "content_feeds": "Feeds",
+    "personal_tools": "Tools"
   },
   "common": {
     "loading": "Loading...",
@@ -388,5 +390,13 @@
     "fun_badge": "Fun",
     "shared_on": "Shared on",
     "no_posts_desc": "No entertainment posts yet. Share something fun to get started!"
+  },
+  "theme_builder": {
+    "theme_name_label": "Theme Name",
+    "unsaved_changes": "Unsaved Changes",
+    "all_saved": "All Saved",
+    "reset_confirm": "Are you sure you want to reset all colors to their defaults? This cannot be undone.",
+    "import_success": "Theme imported successfully",
+    "export_success": "Theme configuration copied to clipboard"
   }
 }

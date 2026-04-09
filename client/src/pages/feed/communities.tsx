@@ -11,6 +11,7 @@ import { Plus, Users, Search, Hash } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { useTranslation } from "react-i18next";
+import { queryClient } from "@/lib/queryClient";
 
 interface Community {
   id: number;
@@ -209,7 +210,10 @@ export default function CommunityFeedPage() {
             {postsLoading ? (
               <Spinner size="lg" className="p-8" />
             ) : postsError ? (
-              <ErrorState message={(postsError as Error).message} />
+              <ErrorState 
+                message={(postsError as Error).message} 
+                retry={() => queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] })}
+              />
             ) : posts?.length === 0 ? (
               <div className="text-center py-12 border rounded-lg bg-muted/10">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

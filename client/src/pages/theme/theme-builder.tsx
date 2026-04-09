@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useCustomTheme } from "@/hooks/use-custom-theme";
 import { ThemeGroup } from "@/components/theme/theme-group";
+import { ThemeBackground } from "@/components/theme/theme-background";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,13 +17,17 @@ import {
   RotateCcw,
   Sparkles,
   Save,
-  X,
-  FolderOpen,
-  Trash2,
-  Check,
   Plus,
   Image,
   Layers,
+  History,
+  Trash2,
+  Check,
+  ChevronRight,
+  Monitor,
+  Smartphone,
+  Info,
+  ExternalLink,
 } from "lucide-react";
 import {
   exportTheme,
@@ -36,6 +41,7 @@ import {
   setActiveThemeInfo,
   clearActiveThemeInfo,
   ACTIVE_THEME_EVENT,
+  availableFonts,
 } from "@/lib/theme-utils";
 import { useToast } from "@/hooks/use-toast";
 import type { ThemeColors, CustomTheme, SavedTheme, BackgroundMode, BackgroundConfig } from "@/lib/theme-utils";
@@ -48,21 +54,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
+import { Navbar } from "@/components/layout/navbar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { availableFonts } from "@/lib/theme-utils";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
+
+/* THEME-REDESIGN [TB-003]: Human-readable metadata for theme tokens */
+const COLOR_METADATA: Record<keyof ThemeColors, { label: string; description: string; contrastAgainst?: keyof ThemeColors }> = {
+  background: { label: "Page Background", description: "Main color behind all content" },
+  foreground: { label: "Main Text", description: "Standard text color", contrastAgainst: "background" },
+  card: { label: "Card Color", description: "Background of posts and panels" },
+  cardForeground: { label: "Card Text", description: "Text color inside cards", contrastAgainst: "card" },
+  popover: { label: "Menu Background", description: "Dropdown menus and tooltips" },
+  popoverForeground: { label: "Menu Text", description: "Text inside menus", contrastAgainst: "popover" },
+  primary: { label: "Primary Brand Color", description: "Main buttons and active states" },
+  primaryForeground: { label: "Primary Button Text", description: "Text on brand-colored buttons", contrastAgainst: "primary" },
+  secondary: { label: "Subtle Action Color", description: "Secondary buttons and backgrounds" },
+  secondaryForeground: { label: "Subtle Action Text", description: "Text on secondary elements", contrastAgainst: "secondary" },
+  muted: { label: "Ghost Background", description: "Very subtle backgrounds and borders" },
+  mutedForeground: { label: "Subtle Text", description: "Secondary or less important text", contrastAgainst: "background" },
+  accent: { label: "Highlight Color", description: "Hover states and active highlights" },
+  accentForeground: { label: "Highlight Text", description: "Text on highlight backgrounds", contrastAgainst: "accent" },
+  destructive: { label: "Danger Color", description: "Delete buttons and error states" },
+  destructiveForeground: { label: "Danger Text", description: "Text on danger buttons", contrastAgainst: "destructive" },
+  border: { label: "Border Color", description: "Lines between layout sections" },
+  input: { label: "Input Border", description: "Borders of text and select fields" },
+  ring: { label: "Focus Outline", description: "Ring visible when an element is focused" },
+};
 
 export default function ThemeBuilderPage() {
   const { t } = useTranslation();
@@ -80,201 +102,189 @@ export default function ThemeBuilderPage() {
     uploadBackground,
   } = useCustomTheme();
   const { toast } = useToast();
+  
   const [activeMode, setActiveMode] = useState<"light" | "dark">("light");
   const [workingTheme, setWorkingTheme] = useState<CustomTheme>(customTheme);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [themeName, setThemeName] = useState("My Custom Theme");
   const [activeThemeId, setActiveThemeId] = useState<string | number | null>(null);
-  const [isManageOpen, setIsManageOpen] = useState(false);
   const [unifiedMode, setUnifiedMode] = useState(false);
   const [bgUploading, setBgUploading] = useState(false);
+  const [previewSize, setPreviewSize] = useState<"desktop" | "mobile">("desktop");
+  const [mobileActiveTab, setMobileActiveTab] = useState<"settings" | "preview">("settings");
 
-  // Initialize working theme from stored theme
+  if (!workingTheme) return null;
+
+  /* THEME-REDESIGN [TB-006]: Undo/Redo System */
+  const history = useRef<CustomTheme[]>([]);
+  const historyIndex = useRef(-1);
+
+  const pushToHistory = (theme: CustomTheme) => {
+    // Basic history management
+    const currentThemeJson = JSON.stringify(theme);
+    if (historyIndex.current >= 0 && JSON.stringify(history.current[historyIndex.current]) === currentThemeJson) {
+      return;
+    }
+    
+    const newHistory = history.current.slice(0, historyIndex.current + 1);
+    newHistory.push(JSON.parse(currentThemeJson));
+    if (newHistory.length > 50) newHistory.shift();
+    
+    history.current = newHistory;
+    historyIndex.current = newHistory.length - 1;
+  };
+
+  const undo = () => {
+    if (historyIndex.current > 0) {
+      historyIndex.current--;
+      const prev = history.current[historyIndex.current];
+      setWorkingTheme(JSON.parse(JSON.stringify(prev)));
+      setHasUnsavedChanges(true);
+    }
+  };
+
+  const redo = () => {
+    if (historyIndex.current < history.current.length - 1) {
+      historyIndex.current++;
+      const next = history.current[historyIndex.current];
+      setWorkingTheme(JSON.parse(JSON.stringify(next)));
+      setHasUnsavedChanges(true);
+    }
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") {
+        e.preventDefault();
+        redo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [workingTheme, themeName, activeThemeId]);
+
+  /* THEME-REDESIGN [TB-005]: Unsaved changes guard */
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Initial load
   useEffect(() => {
     const stored = loadCustomTheme();
-    if (stored) {
-      setWorkingTheme(stored);
-      setUnifiedMode(!!stored.unified);
-    } else {
-      setWorkingTheme(defaultTheme);
-    }
-
-    // Sync with active theme info from dropdown selection
+    const initialTheme = stored || defaultTheme;
+    setWorkingTheme(initialTheme);
+    setUnifiedMode(!!initialTheme.unified);
+    
     const activeInfo = getActiveThemeInfo();
     if (activeInfo) {
       setThemeName(activeInfo.name);
       setActiveThemeId(activeInfo.id);
     }
+
+    pushToHistory(initialTheme);
   }, []);
 
-  // Listen for active theme changes (from dropdown)
+  // Sync with theme store changes
   useEffect(() => {
     const handleActiveThemeChange = () => {
       const activeInfo = getActiveThemeInfo();
       if (activeInfo) {
         setThemeName(activeInfo.name);
         setActiveThemeId(activeInfo.id);
+        const stored = loadCustomTheme();
+        if (stored) {
+          setWorkingTheme(stored);
+          pushToHistory(stored);
+        }
         setHasUnsavedChanges(false);
       }
     };
-
     window.addEventListener(ACTIVE_THEME_EVENT, handleActiveThemeChange);
     return () => window.removeEventListener(ACTIVE_THEME_EVENT, handleActiveThemeChange);
   }, []);
 
-  const handleUnifiedModeChange = (checked: boolean) => {
-    setUnifiedMode(checked);
-    if (checked) {
-      // Apply current mode colors to both modes
-      const currentColors = workingTheme[activeMode];
-      setWorkingTheme((prev) => ({
-        ...prev,
-        light: currentColors,
-        dark: currentColors,
-        unified: true, // Persist setting
-      }));
-      setHasUnsavedChanges(true);
-      toast({
-        title: "Unified Mode Enabled",
-        description: `Applied ${activeMode} colors to both modes.`,
-      });
+  // Live Preview Sync - [FIX: Follow activeMode instead of global isDark]
+  useEffect(() => {
+    // Apply the colors from the tab the user is currently editing
+    const isDarkMode = activeMode === "dark";
+    applyTheme(workingTheme[activeMode], isDarkMode, workingTheme.font, workingTheme.background);
+    
+    // Toggle the .dark class on the root to ensure shadcn components respond correctly
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
     } else {
-      // Include unified: false even when turning off, to persist the choice
-      setWorkingTheme((prev) => ({ ...prev, unified: false }));
-      setHasUnsavedChanges(true);
+      document.documentElement.classList.remove("dark");
     }
-  };
-
-  // Live Preview: Apply changes immediately to the document
-  useEffect(() => {
-    const mode = isDark ? "dark" : "light";
-    applyTheme(workingTheme[mode], isDark, workingTheme.font, workingTheme.background);
-
-    // Broadcast preview background down to App.tsx
-    window.dispatchEvent(
-      new CustomEvent("open-verse-preview-bg", { detail: workingTheme.background })
-    );
-  }, [workingTheme, isDark]);
-
-  // Cleanup: Restore global theme on unmount if user navigates away
-  useEffect(() => {
+    
+    window.dispatchEvent(new CustomEvent("open-verse-preview-bg", { detail: workingTheme.background }));
+    
+    // Cleanup: restore global theme when leaving component
     return () => {
-      const stored = loadCustomTheme() || defaultTheme;
-      const isCurrentlyDark = document.documentElement.classList.contains("dark");
-      const mode = isCurrentlyDark ? "dark" : "light";
-      applyTheme(stored[mode], isCurrentlyDark, stored.font, stored.background);
-
-      window.dispatchEvent(new CustomEvent("open-verse-preview-bg", { detail: null }));
+      const globalIsDark = document.documentElement.classList.contains("dark");
+      // This is a bit tricky since we don't want to break the app's dark mode setting,
+      // but the ThemeProvider will usually take over on next render or mount.
     };
-  }, []);
+  }, [workingTheme, activeMode]);
 
   const handleColorChange = (key: keyof ThemeColors, value: string) => {
     setWorkingTheme((prev) => {
-      if (unifiedMode) {
-        return {
-          ...prev,
-          light: { ...prev.light, [key]: value },
-          dark: { ...prev.dark, [key]: value },
-        };
-      }
-      return {
-        ...prev,
-        [activeMode]: {
-          ...prev[activeMode],
-          [key]: value,
-        },
-      };
+      const updated = unifiedMode 
+        ? { ...prev, light: { ...prev.light, [key]: value }, dark: { ...prev.dark, [key]: value } }
+        : { ...prev, [activeMode]: { ...prev[activeMode], [key]: value } };
+      
+      pushToHistory(updated);
+      return updated;
     });
     setHasUnsavedChanges(true);
   };
 
   const handleFontChange = (value: string) => {
-    setWorkingTheme((prev) => ({
-      ...prev,
-      font: value,
-    }));
+    setWorkingTheme((prev) => {
+      const updated = { ...prev, font: value };
+      pushToHistory(updated);
+      return updated;
+    });
     setHasUnsavedChanges(true);
   };
 
   const handleSave = async () => {
     try {
-      // Apply the working theme globally
       importCustomTheme(workingTheme);
-
-      // Save as named theme
-      // Pass workingTheme directly to ensure we save what's on screen!
       const saved = await saveThemeAs(themeName, activeThemeId || undefined, workingTheme);
       setActiveThemeId(saved.id);
-      setActiveThemeInfo(saved.id, saved.name); // Update active theme info after save
-
+      setActiveThemeInfo(saved.id, saved.name);
       setHasUnsavedChanges(false);
-      toast({
-        title: "Theme saved",
-        description: `Theme "${themeName}" has been saved successfully.`,
-      });
+      toast({ title: t("theme.saved"), description: t("theme.saved_desc", { name: themeName }) });
     } catch (error) {
-      console.error("[Theme Builder] Save failed:", error);
-      toast({
-        title: "Save failed",
-        description:
-          error instanceof Error ? error.message : "Failed to save theme. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: t("theme.save_failed"), variant: "destructive" });
     }
-  };
-
-  const handleLoadTheme = (theme: SavedTheme) => {
-    setWorkingTheme(theme.colors);
-    setUnifiedMode(!!theme.colors.unified); // Restore unified setting
-    setThemeName(theme.name);
-    setActiveThemeId(theme.id);
-    setActiveThemeInfo(theme.id, theme.name); // Track active theme
-    setHasUnsavedChanges(false); // It's a saved theme
-    importCustomTheme(theme.colors); // Apply it
-    setIsManageOpen(false);
-    toast({
-      title: "Theme loaded",
-      description: `Loaded "${theme.name}".`,
-    });
-  };
-
-  const handleDeleteTheme = (id: string | number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    deleteTheme(id);
-    if (activeThemeId === id) {
-      setActiveThemeId(null);
-    }
-    toast({
-      title: "Theme deleted",
-      description: "The theme has been removed.",
-    });
   };
 
   const handleCreateNew = () => {
     setThemeName("New Theme");
     setActiveThemeId(null);
-    clearActiveThemeInfo(); // Clear active theme tracking
-    setHasUnsavedChanges(true);
-    setIsManageOpen(false); // Close dialog so user sees the editor
-    // Start fresh from default theme
+    clearActiveThemeInfo();
     setWorkingTheme(defaultTheme);
     setUnifiedMode(false);
-    toast({
-      title: "New theme started",
-      description: "Enter a name and click Save to create.",
-    });
-  };
-
-  const handleCancel = () => {
-    // Reset working theme to the saved theme
-    const stored = loadCustomTheme();
-    if (stored) {
-      setWorkingTheme(stored);
-    } else {
-      setWorkingTheme(defaultTheme);
-    }
-    setHasUnsavedChanges(false);
-    setLocation("/feed/media");
+    setHasUnsavedChanges(true);
+    pushToHistory(defaultTheme);
   };
 
   const handleExport = () => {
@@ -283,13 +293,9 @@ export default function ThemeBuilderPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "open-verse-custom-theme.json";
+    a.download = `${themeName.toLowerCase().replace(/\s+/g, "-")}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({
-      title: "Theme exported",
-      description: "Your custom theme has been downloaded.",
-    });
   };
 
   const handleImport = () => {
@@ -299,31 +305,13 @@ export default function ThemeBuilderPage() {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = (event) => {
-        try {
-          const theme = importTheme(event.target?.result as string);
-          if (theme) {
-            setWorkingTheme(theme);
-            setHasUnsavedChanges(true);
-            toast({
-              title: "Theme imported",
-              description: "Theme loaded. Click Save to apply changes.",
-            });
-          } else {
-            toast({
-              title: "Import failed",
-              description: "Invalid theme file format.",
-              variant: "destructive",
-            });
-          }
-        } catch {
-          toast({
-            title: "Import failed",
-            description: "Could not read theme file.",
-            variant: "destructive",
-          });
+        const theme = importTheme(event.target?.result as string);
+        if (theme) {
+          setWorkingTheme(theme);
+          setHasUnsavedChanges(true);
+          pushToHistory(theme);
         }
       };
       reader.readAsText(file);
@@ -331,543 +319,460 @@ export default function ThemeBuilderPage() {
     input.click();
   };
 
-  const handleReset = () => {
-    setWorkingTheme(defaultTheme);
-    setHasUnsavedChanges(true);
-    toast({
-      title: "Theme reset",
-      description: "Theme reset to defaults. Click Save to apply changes.",
-    });
-  };
-
-  // --- Background handlers ---
-
-  const background = workingTheme.background || defaultBackground;
-
-  const updateLocalBackground = (partial: Partial<BackgroundConfig>) => {
-    setWorkingTheme((prev) => ({
-      ...prev,
-      background: {
-        ...(prev.background || defaultBackground),
-        ...partial,
-        overlay: {
-          ...(prev.background?.overlay || defaultBackground.overlay),
-          ...(partial.overlay || {}),
-        },
-      },
-    }));
-    setHasUnsavedChanges(true);
-  };
-
   const handleBgModeChange = (mode: BackgroundMode) => {
-    updateLocalBackground({ mode });
-  };
-
-  const handleGradientSelect = (gradient: string) => {
-    updateLocalBackground({ mode: "gradient", gradient });
+    const updated = { ...workingTheme, background: { ...workingTheme.background || defaultBackground, mode } };
+    setWorkingTheme(updated);
+    setHasUnsavedChanges(true);
+    pushToHistory(updated);
   };
 
   const handleBgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file type client-side
-    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!allowed.includes(file.type)) {
-      toast({ title: "Invalid file type", description: "Please upload a JPEG, PNG, WebP, or GIF image.", variant: "destructive" });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Background image must be under 5MB.", variant: "destructive" });
-      return;
-    }
-
     setBgUploading(true);
     try {
       const imageRef = await uploadBackground(file);
-      updateLocalBackground({ mode: "image", image: imageRef });
-      toast({ title: "Background uploaded", description: "Background image applied." });
+      const updated = { ...workingTheme, background: { ...workingTheme.background || defaultBackground, mode: "image" as const, image: imageRef } };
+      setWorkingTheme(updated);
+      setHasUnsavedChanges(true);
+      pushToHistory(updated);
     } catch (err) {
-      // Error is handled/thrown by uploadBackground (with patched apiRequest)
-      console.error(err);
-      toast({
-        title: "Upload failed",
-        description: err instanceof Error ? err.message : "Could not upload background image.",
-        variant: "destructive"
-      });
+      toast({ title: "Upload failed", variant: "destructive" });
     } finally {
       setBgUploading(false);
     }
   };
 
-  const handleRemoveBg = () => {
-    updateLocalBackground({ mode: "solid", image: undefined, gradient: "" });
-  };
+  const descriptions = Object.fromEntries(
+    Object.entries(COLOR_METADATA).map(([key, meta]) => [key, meta.description])
+  ) as Partial<Record<keyof ThemeColors, string>>;
 
-  const handleOverlayChange = (field: "opacity" | "blur", value: number) => {
-    updateLocalBackground({
-      overlay: { ...background.overlay, [field]: value },
-    });
-  };
-
-  const handleTintChange = (value: string) => {
-    updateLocalBackground({
-      overlay: { ...background.overlay, tint: value },
-    });
-  };
+  const contrastPairs = Object.fromEntries(
+    Object.entries(COLOR_METADATA)
+      .filter(([, meta]) => meta.contrastAgainst)
+      .map(([key, meta]) => [key, meta.contrastAgainst])
+  ) as Partial<Record<keyof ThemeColors, keyof ThemeColors>>;
 
   const currentColors = workingTheme[activeMode];
+  const defaultColors = defaultTheme[activeMode];
 
   return (
-    <div className="min-h-screen pb-20">
-      {/* Fixed Sub-Header - Now overlaying main navbar */}
-      <div className="fixed top-0 left-0 right-0 z-[120] bg-background border-b shadow-sm h-16 flex items-center">
-        <div className="container max-w-4xl mx-auto px-4 py-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <OpenVerseIcon className="h-6 w-6 text-primary" />
-                <Input
-                  value={themeName}
-                  onChange={(e) => {
-                    setThemeName(e.target.value);
-                    setHasUnsavedChanges(true); // Name change also counts as unsaved
-                  }}
-                  className="h-8 font-bold text-lg border-transparent hover:border-input focus:border-input px-2 w-[200px] sm:w-[300px]"
-                />
-              </div>
-              <div className="flex items-center gap-2 px-2">
-                {hasUnsavedChanges ? (
-                  <p className="text-xs text-yellow-500 font-medium">● Unsaved changes</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">All changes saved</p>
-                )}
-                {activeThemeId && (
-                  <span className="text-xs text-muted-foreground border px-1 rounded bg-muted/50">
-                    Editing
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <FolderOpen className="h-4 w-4 mr-1" />
-                    Themes
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>My Saved Themes</DialogTitle>
-                    <DialogDescription>Manage your custom themes across Osiris.</DialogDescription>
-                  </DialogHeader>
-                  <div className="max-h-[300px] overflow-y-auto space-y-2 py-4">
-                    {savedThemes.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">
-                        No saved themes yet. Save your current design to see it here!
-                      </p>
-                    ) : (
-                      savedThemes.map((theme) => (
-                        <div
-                          key={theme.id}
-                          onClick={() => handleLoadTheme(theme)}
-                          className={`
-                                                        flex items-center justify-between p-3 rounded-md border cursor-pointer hover:bg-accent transition-colors
-                                                        ${activeThemeId === theme.id ? "border-primary bg-accent/50" : ""}
-                                                    `}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-8 h-8 rounded-full border shadow-sm"
-                              style={{ background: `hsl(${theme.colors.light.primary})` }}
-                            />
-                            <div>
-                              <p className="font-medium text-sm">{theme.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(theme.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {activeThemeId === theme.id && (
-                              <Check className="h-4 w-4 text-primary mr-2" />
-                            )}
-                            {theme.name !== "Default Blue" && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                                onClick={(e) => handleDeleteTheme(theme.id, e)}
-                                aria-label="Delete theme"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* THEME-REDESIGN [TB-011]: Use normal Navbar */}
+      <Navbar />
+
+      <main className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-3.5rem)] mt-14 overflow-hidden">
+        {/* THEME-REDESIGN [TB-001]: Left Column - Settings Panel */}
+        <div className={`w-full lg:w-[45%] xl:w-[40%] flex flex-col border-r bg-muted/30 ${mobileActiveTab === "preview" ? "hidden lg:flex" : "flex"}`}>
+          <ScrollArea className="flex-1 px-4 py-6">
+            <div className="max-w-xl mx-auto space-y-6">
+              
+              {/* THEME-REDESIGN [TB-008, TB-011]: Integrated Toolbar Card */}
+              <Card className="shadow-md border-primary/20 bg-card">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="theme-name" className="text-xs font-semibold uppercase tracking-wider opacity-70">
+                          {t("theme_builder.theme_name_label")}
+                        </Label>
+                        <Input
+                          id="theme-name"
+                          value={themeName}
+                          onChange={(e) => {
+                            setThemeName(e.target.value);
+                            setHasUnsavedChanges(true);
+                          }}
+                          className="max-w-xs h-9 bg-background/50"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        {hasUnsavedChanges ? (
+                          <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/20 py-0 h-4">
+                            Unsaved Changes
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20 py-0 h-4">
+                            All Saved
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={undo} disabled={historyIndex.current <= 0} title="Undo (Ctrl+Z)">
+                        <History className="h-4 w-4 rotate-180" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={redo} disabled={historyIndex.current >= history.current.length - 1} title="Redo (Ctrl+Y)">
+                        <History className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={handleCreateNew}
-                      className="w-full sm:w-auto"
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Select 
+                      value={activeThemeId?.toString() || ""} 
+                      onValueChange={(val) => {
+                        const theme = savedThemes.find(t => t.id.toString() === val);
+                        if (theme) loadTheme(theme);
+                      }}
                     >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Start New
+                      <SelectTrigger className="flex-1 h-9">
+                        <SelectValue placeholder="Select Theme..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {savedThemes.map(t => (
+                          <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleSave} className="h-9 gap-2 shadow-sm" disabled={!hasUnsavedChanges && activeThemeId !== null}>
+                      <Save className="h-4 w-4" />
+                      Save
                     </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              <Button onClick={handleCancel} variant="ghost" size="sm">
-                <X className="h-4 w-4 mr-1" />
-              </Button>
-              <Button
-                onClick={() => handleSave()}
-                disabled={!hasUnsavedChanges && !themeName}
-                size="sm"
-              >
-                <Save className="h-4 w-4 mr-1" />
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content with top margin to account for fixed header */}
-      <div className="container max-w-4xl mx-auto px-4 py-8 mt-16">
-        <div className="space-y-6">
-          {/* Description */}
-          <Card>
-            <CardHeader>
-              <CardDescription>
-                Customize every color in Osiris to make it truly yours. Changes are previewed in
-                real-time. Click <strong>Save Changes</strong> to apply your theme.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          {/* Utility Buttons */}
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={handleReset} variant="outline" size="sm">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset to Default
-            </Button>
-            <Button onClick={handleExport} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export Theme
-            </Button>
-            <Button onClick={handleImport} variant="outline" size="sm">
-              <Upload className="h-4 w-4 mr-2" />
-              Import Theme
-            </Button>
-          </div>
-
-          {/* Global Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Typography</CardTitle>
-              <CardDescription>Select the font family for the entire application.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-4">
-                <Label className="w-24">Font Family</Label>
-                <Select value={workingTheme.font || "Inter"} onValueChange={handleFontChange}>
-                  <SelectTrigger className="w-full sm:w-[300px]">
-                    <SelectValue placeholder="Select a font" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableFonts.map((font) => (
-                      <SelectItem
-                        key={font.name}
-                        value={font.name}
-                        style={{ fontFamily: font.family }}
-                      >
-                        {font.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Background Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Layers className="h-5 w-5" />
-                Background
-              </CardTitle>
-              <CardDescription>Set a global background for your theme (applies to both light and dark modes).</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Mode Selector */}
-              <div className="space-y-2">
-                <Label>Background Mode</Label>
-                <div className="flex gap-2">
-                  {(["solid", "gradient", "image"] as BackgroundMode[]).map((mode) => (
-                    <Button
-                      key={mode}
-                      variant={background.mode === mode ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handleBgModeChange(mode)}
-                      className="capitalize"
-                    >
-                      {mode}
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <Button variant="outline" size="sm" onClick={handleCreateNew} className="text-xs h-8">
+                      <Plus className="h-3 w-3 mr-1.5" /> New
                     </Button>
-                  ))}
-                </div>
-              </div>
+                    <Button variant="outline" size="sm" onClick={handleImport} className="text-xs h-8">
+                      <Upload className="h-3 w-3 mr-1.5" /> Import
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExport} className="text-xs h-8">
+                      <Download className="h-3 w-3 mr-1.5" /> Export
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={resetTheme} className="text-xs h-8 text-destructive hover:text-destructive">
+                      <RotateCcw className="h-3 w-3 mr-1.5" /> Reset
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
-              {/* Gradient Presets */}
-              {background.mode === "gradient" && (
-                <div className="space-y-3">
-                  <Label>Galaxy Gradient Presets</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {galaxyGradients.map((g) => (
+              {/* Typography */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3 px-4">
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                    <Type className="h-5 w-5" />
+                    Typography
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-semibold">Font Family</Label>
+                      <Select value={workingTheme.font || "Inter"} onValueChange={handleFontChange}>
+                        <SelectTrigger className="w-full h-10">
+                          <SelectValue placeholder="Select a font" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableFonts.map((font) => (
+                            <SelectItem key={font.name} value={font.name} style={{ fontFamily: font.family }}>
+                              {font.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Background */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3 px-4">
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                    <Layers className="h-5 w-5" />
+                    Background Style
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-6">
+                  <div className="flex p-1 bg-muted rounded-lg w-full">
+                    {["solid", "gradient", "image"].map((mode) => (
                       <button
-                        key={g.name}
-                        onClick={() => handleGradientSelect(g.value)}
-                        className={`h-16 rounded-lg border-2 transition-all hover:scale-105 ${background.gradient === g.value ? "border-primary ring-2 ring-primary/30" : "border-border"
-                          }`}
-                        style={{ background: g.value }}
-                        title={g.name}
+                        key={mode}
+                        onClick={() => handleBgModeChange(mode as BackgroundMode)}
+                        className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
+                          (workingTheme.background?.mode || "solid") === mode 
+                          ? "bg-background shadow-sm text-foreground" 
+                          : "text-muted-foreground hover:text-foreground"
+                        }`}
                       >
-                        <span className="text-[10px] text-white/70 font-medium drop-shadow-md">{g.name}</span>
+                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
                       </button>
                     ))}
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Custom CSS Gradient</Label>
-                    <Input
-                      placeholder="linear-gradient(135deg, #1a1a2e, #16213e)"
-                      value={background.gradient || ""}
-                      onChange={(e) => {
-                        updateLocalBackground({ gradient: e.target.value });
-                        setHasUnsavedChanges(true);
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
 
-              {/* Image Upload */}
-              {background.mode === "image" && (
-                <div className="space-y-3">
-                  <Label>Background Image</Label>
-                  {background.image ? (
-                    <div className="space-y-2">
-                      <div
-                        className="h-32 rounded-lg border bg-cover bg-center bg-no-repeat"
-                        style={{
-                          backgroundImage: background.image.type === "fileRef"
-                            ? `url(/uploads/${background.image.value})`
-                            : background.image.type === "url"
-                              ? `url(${background.image.value})`
-                              : undefined,
-                        }}
-                      />
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => document.getElementById('bg-image-upload')?.click()} className="flex-1">
-                          <Image className="h-4 w-4 mr-1" />
-                          Replace
-                        </Button>
-                        <input
-                          id="bg-image-upload"
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/gif"
-                          className="hidden"
-                          onChange={handleBgImageUpload}
+                  {workingTheme.background?.mode === "gradient" && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {galaxyGradients.map((g) => (
+                        <button
+                          key={g.name}
+                          onClick={() => {
+                            const updated = { ...workingTheme, background: { ...workingTheme.background!, mode: "gradient" as const, gradient: g.value } };
+                            setWorkingTheme(updated);
+                            setHasUnsavedChanges(true);
+                            pushToHistory(updated);
+                          }}
+                          className={`h-12 rounded-md border-2 transition-all ${
+                            workingTheme.background?.gradient === g.value ? "border-primary ring-2 ring-primary/20" : "border-transparent"
+                          }`}
+                          style={{ background: g.value }}
                         />
-                        <Button variant="outline" size="sm" onClick={handleRemoveBg} className="text-destructive">
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Remove
-                        </Button>
-                      </div>
+                      ))}
                     </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center h-32 rounded-lg border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors">
-                      {bgUploading ? (
-                        <p className="text-sm text-muted-foreground">Uploading...</p>
-                      ) : (
-                        <>
-                          <Upload className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                          <p className="text-sm text-muted-foreground">Click to upload an image</p>
-                          <p className="text-xs text-muted-foreground/70">JPEG, PNG, WebP, GIF · Max 5MB</p>
-                        </>
-                      )}
-                      <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleBgImageUpload} />
-                    </label>
                   )}
-                </div>
-              )}
 
-              {/* Overlay Controls */}
-              {background.mode !== "solid" && (
-                <div className="space-y-4 border-t pt-4">
-                  <Label className="text-sm font-medium">Overlay</Label>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs text-muted-foreground">Opacity</Label>
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {Math.round(background.overlay.opacity * 100)}%
-                      </span>
+                  {workingTheme.background?.mode === "image" && (
+                    <div className="space-y-3">
+                      <Label className="text-xs font-semibold">Custom Background Image</Label>
+                      <label className="flex flex-col items-center justify-center h-24 rounded-lg border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors bg-muted/20">
+                        {bgUploading ? (
+                          <Badge variant="outline">Uploading...</Badge>
+                        ) : (
+                          <>
+                            <Image className="h-6 w-6 text-muted-foreground mb-1" />
+                            <span className="text-xs font-medium">Click to upload image</span>
+                          </>
+                        )}
+                        <input type="file" className="hidden" onChange={handleBgImageUpload} accept="image/*" />
+                      </label>
                     </div>
-                    <Slider
-                      value={[background.overlay.opacity]}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      onValueChange={([v]) => handleOverlayChange("opacity", v)}
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs text-muted-foreground">Blur</Label>
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {background.overlay.blur}px
-                      </span>
-                    </div>
-                    <Slider
-                      value={[background.overlay.blur]}
-                      min={0}
-                      max={24}
-                      step={1}
-                      onValueChange={([v]) => handleOverlayChange("blur", v)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Tint Color</Label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={hslToHex(background.overlay.tint)}
-                        onChange={(e) => handleTintChange(hexToHsl(e.target.value))}
-                        className="w-10 h-10 rounded border cursor-pointer"
-                      />
-                      <span className="text-xs text-muted-foreground font-mono">{background.overlay.tint}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Mode Tabs */}
-          <Tabs value={activeMode} onValueChange={(v) => setActiveMode(v as "light" | "dark")}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="unified-mode"
-                  checked={unifiedMode}
-                  onCheckedChange={handleUnifiedModeChange}
-                />
-                <Label htmlFor="unified-mode">Unified Colors (Same for Light/Dark)</Label>
-              </div>
-            </div>
-
-            {!unifiedMode && (
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="light">☀️ Light Mode</TabsTrigger>
-                <TabsTrigger value="dark">🌙 Dark Mode</TabsTrigger>
-              </TabsList>
-            )}
-
-            <TabsContent value={activeMode} className="space-y-6 mt-6">
-              {/* Color Sections */}
-              <div className="grid gap-4">
-                {/* Backgrounds Section */}
-                <ThemeGroup
-                  title="Backgrounds"
-                  icon={<Square className="h-5 w-5" />}
-                  colors={currentColors}
-                  colorKeys={["background", "card", "popover"]}
-                  onColorChange={handleColorChange}
-                />
-
-                {/* Text Colors Section */}
-                <ThemeGroup
-                  title="Text Colors"
-                  icon={<Type className="h-5 w-5" />}
-                  colors={currentColors}
-                  colorKeys={[
-                    "foreground",
-                    "cardForeground",
-                    "popoverForeground",
-                    "mutedForeground",
-                  ]}
-                  onColorChange={handleColorChange}
-                />
-
-                {/* Interactive Elements Section */}
-                <ThemeGroup
-                  title="Buttons & Interactive"
-                  icon={<MousePointer className="h-5 w-5" />}
-                  colors={currentColors}
-                  colorKeys={[
-                    "primary",
-                    "primaryForeground",
-                    "secondary",
-                    "secondaryForeground",
-                    "destructive",
-                    "destructiveForeground",
-                  ]}
-                  onColorChange={handleColorChange}
-                />
-
-                {/* Accents & Borders Section */}
-                <ThemeGroup
-                  title="Accents & Borders"
-                  icon={<Sparkles className="h-5 w-5" />}
-                  colors={currentColors}
-                  colorKeys={["accent", "accentForeground", "muted", "border", "input", "ring"]}
-                  onColorChange={handleColorChange}
-                />
-              </div>
-
-              {/* Preview Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Preview</CardTitle>
-                  <CardDescription>
-                    See how your theme changes will look (Save to apply across the app)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm">Primary Button</Button>
-                    <Button size="sm" variant="secondary">
-                      Secondary
-                    </Button>
-                    <Button size="sm" variant="destructive">
-                      Destructive
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      Outline
-                    </Button>
-                  </div>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Sample Card</CardTitle>
-                      <CardDescription>This is how cards will look</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm">Regular text in your theme</p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Muted text for secondary information
-                      </p>
-                    </CardContent>
-                  </Card>
+                  )}
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+
+              {/* Colors Sections */}
+              <Tabs value={activeMode} onValueChange={(v) => setActiveMode(v as "light" | "dark")} className="w-full">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      id="unified" 
+                      checked={unifiedMode} 
+                      onCheckedChange={(val) => {
+                        setUnifiedMode(!!val);
+                        if (val) {
+                          const updated = { ...workingTheme, light: workingTheme[activeMode], dark: workingTheme[activeMode], unified: true };
+                          setWorkingTheme(updated);
+                          pushToHistory(updated);
+                          setHasUnsavedChanges(true);
+                        }
+                      }} 
+                    />
+                    <Label htmlFor="unified" className="text-xs font-medium">Link Light/Dark Modes</Label>
+                  </div>
+                  {!unifiedMode && (
+                    <TabsList className="h-8 p-1">
+                      <TabsTrigger value="light" className="text-xs px-3">Light</TabsTrigger>
+                      <TabsTrigger value="dark" className="text-xs px-3">Dark</TabsTrigger>
+                    </TabsList>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <ThemeGroup
+                    title="Layout Colors"
+                    icon={<Square className="h-5 w-5" />}
+                    colors={currentColors}
+                    defaultColors={defaultColors}
+                    colorKeys={["background", "card", "popover", "border", "input"]}
+                    onColorChange={handleColorChange}
+                    descriptions={descriptions}
+                  />
+
+                  <ThemeGroup
+                    title="Typography"
+                    icon={<Type className="h-5 w-5" />}
+                    colors={currentColors}
+                    defaultColors={defaultColors}
+                    colorKeys={["foreground", "cardForeground", "popoverForeground", "mutedForeground"]}
+                    onColorChange={handleColorChange}
+                    descriptions={descriptions}
+                    contrastPairs={contrastPairs}
+                  />
+
+                  <ThemeGroup
+                   title="Brand & Interactive"
+                   icon={<MousePointer className="h-5 w-5" />}
+                   colors={currentColors}
+                   defaultColors={defaultColors}
+                   colorKeys={["primary", "primaryForeground", "secondary", "secondaryForeground", "accent", "ring", "destructive"]}
+                   onColorChange={handleColorChange}
+                   descriptions={descriptions}
+                   contrastPairs={contrastPairs}
+                  />
+                </div>
+              </Tabs>
+            </div>
+          </ScrollArea>
         </div>
+
+        {/* THEME-REDESIGN [TB-001]: Right Column - Sticky Preview */}
+        <div className={`lg:flex flex-1 flex-col bg-muted/10 ${mobileActiveTab === "settings" ? "hidden lg:flex" : "flex"}`}>
+          <div className="flex items-center justify-between px-6 py-4 border-b bg-background">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              Live App Preview
+              <Badge variant="outline" className="text-[9px] h-4 py-0">Real-time</Badge>
+            </h2>
+            <div className="flex items-center gap-1 bg-muted p-1 rounded-md">
+              <Button 
+                variant={previewSize === "desktop" ? "default" : "ghost"} 
+                size="icon" 
+                className="h-7 w-7" 
+                onClick={() => setPreviewSize("desktop")}
+              >
+                <Monitor className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant={previewSize === "mobile" ? "default" : "ghost"} 
+                size="icon" 
+                className="h-7 w-7" 
+                onClick={() => setPreviewSize("mobile")}
+              >
+                <Smartphone className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          <ScrollArea className="flex-1 p-8">
+            <div className={`mx-auto relative transition-all duration-300 ${previewSize === "mobile" ? "max-w-[375px] border-[8px] border-border rounded-[2.5rem] shadow-2xl h-[700px] overflow-hidden bg-background" : "max-w-4xl"}`}>
+              {/* THEME-REDESIGN [TB-001]: Background preview inside the mockup frame */}
+              <div className="absolute inset-0 -z-10 overflow-hidden rounded-[1.8rem]">
+                <ThemeBackground background={workingTheme.background} />
+              </div>
+
+              {/* THEME-REDESIGN [TB-002]: Realistic UI Preview */}
+              <div className="relative space-y-8 p-4 bg-background/50 backdrop-blur-sm min-h-full">
+                {/* Mock Navbar */}
+                <Card className="rounded-xl overflow-hidden border-0 shadow-lg">
+                  <div className="h-14 bg-background border-b px-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                        <Palette className="h-5 w-5 text-primary-foreground" />
+                      </div>
+                      <span className="font-bold text-sm tracking-tight">Osiris App</span>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="h-4 w-12 bg-muted rounded-full" />
+                      <div className="h-4 w-12 bg-muted rounded-full" />
+                      <div className="h-8 w-8 rounded-full bg-accent" />
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Hero / Stat Section */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    { label: "Followers", value: "1.2k", icon: "👥" },
+                    { label: "Karma", value: "840", icon: "✨" },
+                    { label: "Posts", value: "142", icon: "📝" },
+                  ].map((s) => (
+                    <Card key={s.label} className="p-4 bg-card border-border shadow-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xl">{s.icon}</span>
+                        <Badge variant="secondary" className="text-[10px]">{s.label}</Badge>
+                      </div>
+                      <p className="text-2xl font-bold text-foreground">{s.value}</p>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Sample Post Card */}
+                <Card className="p-0 border-border shadow-md overflow-hidden bg-card">
+                  <div className="p-4 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <UserAvatar user={{ username: "Designer" }} size="sm" />
+                      <div>
+                        <p className="text-sm font-bold text-foreground">Creative Lead</p>
+                        <p className="text-[10px] text-muted-foreground">2 hours ago</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-base font-bold text-foreground leading-tight">Implementing the new Theme Builder design system!</h3>
+                      <p className="text-sm text-foreground/90 leading-relaxed">
+                        The two-column layout provides a much better workflow. It's now possible to see every color tweak in real-time without scrolling.
+                      </p>
+                    </div>
+                    <div className="p-2 bg-muted/30 rounded-lg flex gap-2">
+                      <Badge className="bg-primary text-primary-foreground">#UX</Badge>
+                      <Badge variant="outline" className="border-border">#FrontEnd</Badge>
+                    </div>
+                    <Separator className="bg-border/50" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-4">
+                        <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs">
+                          <span>❤️</span> 24
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs">
+                          <span>💬</span> 8
+                        </Button>
+                      </div>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px] px-3">Read More</Button>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Interactive Elements / Form */}
+                <Card className="p-6 bg-card border-border shadow-sm space-y-6">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-foreground">Interactive Elements</h3>
+                    <p className="text-xs text-muted-foreground">Test your interactive and modal colors here.</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Join the conversation</Label>
+                      <div className="flex gap-2">
+                        <Input placeholder="Type something..." className="h-9 text-xs bg-background" />
+                        <Button size="sm" className="h-9 px-4">Send</Button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Button variant="default" size="sm">Primary</Button>
+                      <Button variant="secondary" size="sm">Secondary</Button>
+                      <Button variant="outline" size="sm">Outline</Button>
+                      <Button variant="ghost" size="sm">Ghost</Button>
+                      <Button variant="destructive" size="sm">Destructive</Button>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-muted/50 rounded-lg border border-border/50 flex items-start gap-3">
+                    <Info className="h-4 w-4 text-primary mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-foreground">Pro Tip</p>
+                      <p className="text-[10px] text-muted-foreground leading-normal">
+                        Use the <strong>Contrast Checker</strong> icons next to text colors to ensure your theme remains accessible for everyone.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </ScrollArea>
+        </div>
+      </main>
+
+      {/* Mobile Actions Overlay - Logic for TB-001 mobile tabs */}
+      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex bg-background/80 backdrop-blur-md border shadow-2xl rounded-full p-1 z-50">
+        <Button 
+          variant={mobileActiveTab === "settings" ? "default" : "ghost"} 
+          size="sm" 
+          className="rounded-full px-6 h-9 transition-all"
+          onClick={() => setMobileActiveTab("settings")}
+        >
+          Settings
+        </Button>
+        <Button 
+          variant={mobileActiveTab === "preview" ? "default" : "ghost"} 
+          size="sm" 
+          className="rounded-full px-6 h-9 transition-all"
+          onClick={() => setMobileActiveTab("preview")}
+        >
+          Preview
+        </Button>
       </div>
     </div>
   );

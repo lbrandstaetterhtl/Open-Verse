@@ -9,6 +9,7 @@ import { logSecurityEvent } from "../utils/logger";
 import { broadcastMessage } from "../services/websocket";
 import { sanitizeUser } from "../storage";
 import { canDeleteContent } from "../utils/permissions";
+import { SettingsService } from "../services/settings";
 
 const router = Router();
 
@@ -23,6 +24,28 @@ router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
 
         if (!content && !req.files) {
             return res.status(400).send("Content or media is required");
+        }
+
+        // FEATURE [SEC-010]: Post Cooldown Check
+        try {
+            const cooldownSeconds = await SettingsService.get("content", "post_cooldown_seconds", 30);
+            const userPosts = await storage.getPostsByUser(user.id);
+            if (userPosts.length > 0) {
+                const lastPost = userPosts[0]; // Already sorted by desc in storage
+                const now = new Date();
+                const diffSeconds = (now.getTime() - lastPost.createdAt.getTime()) / 1000;
+                
+                if (diffSeconds < cooldownSeconds) {
+                    const remaining = Math.ceil(cooldownSeconds - diffSeconds);
+                    return res.status(429).json({ 
+                        message: `Please wait ${remaining} seconds before posting again.`,
+                        remainingSeconds: remaining
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Error checking post cooldown:", error);
+            // Non-blocking: continue if check fails
         }
 
         // Build post object
@@ -46,7 +69,7 @@ router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
         }
 
         // Moderation Check
-        const moderationResult = checkContent(postData.content + " " + (title || ""));
+        const moderationResult = await checkContent(postData.content + " " + (title || ""));
         if (!moderationResult.allowed) {
             return res.status(400).send(moderationResult.reason);
         }

@@ -113,17 +113,17 @@ export function setupAuth(app: Express, sessionParser: any) {
       try {
         const user = await storage.getUserByUsername(username);
         if (!user) {
-          console.log("Login failed: User not found:", username);
+          // SECURITY FIX [VULN-010]: Removed verbose username logging
           logSecurityEvent({
             type: "AUTH_FAILURE",
-            details: { reason: "User not found", username },
+            details: { reason: "User not found" },
           });
           return done(null, false, { message: "Invalid username or password" });
         }
 
         const { isValid, needsMigration } = await comparePasswords(password, user.password);
         if (!isValid) {
-          console.log("Login failed: Invalid password for user:", username);
+          // SECURITY FIX [VULN-010]: Removed verbose username logging
           logSecurityEvent({
             type: "AUTH_FAILURE",
             userId: user.id,
@@ -145,14 +145,12 @@ export function setupAuth(app: Express, sessionParser: any) {
 
         // Check if user is banned (negative karma)
         if (user.karma < 0) {
-          console.log("Login blocked: User is banned:", username);
-          logSecurityEvent({ type: "AUTH_BANNED_ATTEMPT", userId: user.id, details: { username } });
+          logSecurityEvent({ type: "AUTH_BANNED_ATTEMPT", userId: user.id });
           return done(null, false, {
             message: "Your account has been banned. Please contact support.",
           });
         }
 
-        console.log("Login successful for user:", username);
         logSecurityEvent({ type: "AUTH_SUCCESS", userId: user.id });
         return done(null, user);
       } catch (err) {
@@ -329,8 +327,9 @@ export function setupAuth(app: Express, sessionParser: any) {
     res.json(req.user);
   });
 
+  // SECURITY FIX [VULN-012]: Apply CSRF explicitly since these routes are registered before global CSRF middleware
   // Add profile update endpoints
-  app.patch("/api/profile", async (req, res) => {
+  app.patch("/api/profile", validateCsrf, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const result = updateProfileSchema.safeParse(req.body);
@@ -354,7 +353,7 @@ export function setupAuth(app: Express, sessionParser: any) {
     res.json(updatedUser);
   });
 
-  app.patch("/api/profile/password", async (req, res) => {
+  app.patch("/api/profile/password", validateCsrf, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const result = updatePasswordSchema.safeParse(req.body);

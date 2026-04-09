@@ -10,7 +10,9 @@
     "ai_generator": "Generatore IA",
     "mod_panel": "Pannello Moderatore",
     "admin": "Amministrazione",
-    "logout": "Disconnetti"
+    "logout": "Disconnetti",
+    "content_feeds": "Feed di Contenuti",
+    "personal_tools": "Strumenti Personali"
   },
   "common": {
     "loading": "Caricamento...",
@@ -388,5 +390,13 @@
     "fun_badge": "Divertente",
     "shared_on": "Condiviso il",
     "no_posts_desc": "Nessun post di intrattenimento ancora. Condividi qualcosa di divertente per iniziare!"
+  },
+  "theme_builder": {
+    "theme_name_label": "Nome del Tema",
+    "unsaved_changes": "Modifiche non salvate",
+    "all_saved": "Tutto salvato",
+    "reset_confirm": "Sei sicuro di voler ripristinare tutti i colori ai valori predefiniti? Questa azione non può essere annullata.",
+    "import_success": "Tema importato con successo",
+    "export_success": "Configurazione del tema copiata negli appunti"
   }
 }

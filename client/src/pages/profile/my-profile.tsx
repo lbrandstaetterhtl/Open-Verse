@@ -151,20 +151,32 @@ export default function ProfilePage() {
   return (
     <>
       <Navbar />
-      <main className="container mx-auto px-4 pt-24">
+      <main className="container mx-auto px-4 pt-20 pb-8">
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
             <UserAvatar user={{ username: user?.username || "" }} size="lg" />
             <div>
-              <h1 className="text-4xl font-bold">Profile Settings</h1>
-              <div className="flex gap-4 mt-2">
-                <span className="text-muted-foreground">{followers?.length || 0} followers</span>
-                <span className="text-muted-foreground">{following?.length || 0} following</span>
-                <div className="flex items-center text-emerald-500">
-                  <Trophy className="h-4 w-4 mr-1" />
-                  <span>{user?.karma || 0} reputation</span>
-                </div>
+              <h1 className="text-3xl font-bold">Profile Settings</h1>
+              <p className="text-sm text-muted-foreground mt-1">Manage your account and preferences</p>
+            </div>
+          </div>
+
+          {/* REDESIGN [UX-003]: Prominent stat bar with bold numbers */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-muted/50 rounded-lg p-4 text-center">
+              <p className="text-2xl font-bold">{followers?.length || 0}</p>
+              <p className="text-sm text-muted-foreground">Followers</p>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-4 text-center">
+              <p className="text-2xl font-bold">{following?.length || 0}</p>
+              <p className="text-sm text-muted-foreground">Following</p>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5">
+                <Trophy className="h-5 w-5 text-emerald-500" />
+                <p className="text-2xl font-bold">{user?.karma || 0}</p>
               </div>
+              <p className="text-sm text-muted-foreground">Reputation</p>
             </div>
           </div>
 

@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { db } from "../db";
-import { users, posts, reports, comments } from "@shared/schema";
-import { eq, desc, count, sql } from "drizzle-orm";
+import { users, posts, reports, comments, activityLogs, adminSettings } from "@shared/schema";
+import { adminUpdateUserSchema, adminUpdateReportSchema } from "@shared/schema";
+import { eq, desc, count, sql, and } from "drizzle-orm";
+import { ActivityLogger } from "../services/activity-log";
+import { SettingsService } from "../services/settings";
 
 const router = Router();
 
@@ -42,7 +45,8 @@ router.get("/stats", async (req, res) => {
         });
     } catch (error) {
         console.error("Failed to fetch admin stats:", error);
-        res.status(500).json({ error: String(error) });
+        // SECURITY FIX [VULN-006]: Return generic error, don't leak internals
+        res.status(500).json({ error: "Failed to fetch admin stats" });
     }
 });
 
@@ -62,7 +66,8 @@ router.get("/users", async (req, res) => {
         res.json(normalized);
     } catch (error) {
         console.error("Failed to fetch users:", error);
-        res.status(500).json({ error: String(error) });
+        // SECURITY FIX [VULN-006]: Return generic error, don't leak internals
+        res.status(500).json({ error: "Failed to fetch users" });
     }
 });
 
@@ -110,10 +115,43 @@ router.get("/reports", async (req, res) => {
 
 router.patch("/users/:id", async (req, res) => {
     try {
+        const userId = parseInt(req.params.id);
+        if (isNaN(userId)) {
+            return res.status(400).send("Invalid user ID");
+        }
+
+        const result = adminUpdateUserSchema.safeParse(req.body);
+        if (!result.success) {
+            return res.status(400).json(result.error);
+        }
+
+        // Prevent crash on empty update object
+        if (Object.keys(result.data).length === 0) {
+            return res.status(400).send("No valid fields provided for update");
+        }
+
         const [updatedUser] = await db.update(users)
-            .set(req.body)
-            .where(eq(users.id, parseInt(req.params.id)))
+            .set(result.data)
+            .where(eq(users.id, userId))
             .returning();
+
+        if (!updatedUser) {
+            return res.status(404).send("User not found");
+        }
+
+        // FEATURE [AL-004]: Log the user update
+        ActivityLogger.log(req, {
+            action: "user.edit",
+            category: "users",
+            targetType: "User",
+            targetId: updatedUser.id,
+            targetLabel: updatedUser.username,
+            description: `Admin updated user profile for ${updatedUser.username}`,
+            newValue: result.data,
+            severity: "medium",
+            status: "success",
+        });
+
         res.json(updatedUser);
     } catch (error) {
         console.error("Failed to update user:", error);
@@ -123,7 +161,23 @@ router.patch("/users/:id", async (req, res) => {
 
 router.delete("/users/:id", async (req, res) => {
     try {
-        await db.delete(users).where(eq(users.id, parseInt(req.params.id)));
+        const userId = parseInt(req.params.id);
+        const [targetUser] = await db.select().from(users).where(eq(users.id, userId));
+        
+        await db.delete(users).where(eq(users.id, userId));
+
+        if (targetUser) {
+            ActivityLogger.log(req, {
+                action: "user.delete",
+                category: "users",
+                targetType: "User",
+                targetId: userId,
+                targetLabel: targetUser.username,
+                description: `Admin deleted user ${targetUser.username}`,
+                severity: "high",
+                status: "success",
+            });
+        }
         res.json({ success: true });
     } catch (error) {
         console.error("Failed to delete user:", error);
@@ -143,13 +197,121 @@ router.post("/reset-roles", async (req, res) => {
 
 router.patch("/reports/:id", async (req, res) => {
     try {
+        // SECURITY FIX [VULN-005]: Validate report status against schema
+        const result = adminUpdateReportSchema.safeParse(req.body);
+        if (!result.success) return res.status(400).json(result.error);
+
         const [updatedReport] = await db.update(reports)
-            .set({ status: req.body.status })
+            .set({ status: result.data.status })
             .where(eq(reports.id, parseInt(req.params.id)))
             .returning();
+
+        ActivityLogger.log(req, {
+            action: "report.moderate",
+            category: "content",
+            targetType: "Report",
+            targetId: updatedReport.id,
+            description: `Admin updated report status to ${result.data.status}`,
+            severity: result.data.status === "rejected" ? "low" : "medium",
+            status: "success",
+        });
+
         res.json(updatedReport);
     } catch (error) {
         console.error("Failed to update report:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+// FEATURE [AL-005]: Activity Log Endpoints
+router.get("/logs", async (req, res) => {
+    try {
+        const { category, severity, status, search, adminId } = req.query;
+        let query = db.select().from(activityLogs);
+        const conditions = [];
+
+        if (category) conditions.push(eq(activityLogs.category, category as string));
+        if (severity) conditions.push(eq(activityLogs.severity, severity as any));
+        if (status) conditions.push(eq(activityLogs.status, status as any));
+        if (adminId) conditions.push(eq(activityLogs.adminId, parseInt(adminId as string)));
+        if (search) {
+            conditions.push(sql`description LIKE ${`%${search}%`} OR target_label LIKE ${`%${search}%`} OR admin_email LIKE ${`%${search}%`}`);
+        }
+
+        const logs = await db.select()
+            .from(activityLogs)
+            .where(conditions.length > 0 ? and(...conditions) : undefined)
+            .orderBy(desc(activityLogs.createdAt))
+            .limit(100);
+
+        res.json(logs);
+    } catch (error) {
+        console.error("Failed to fetch activity logs:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+router.get("/logs/export", async (req, res) => {
+    try {
+        const allLogs = await db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt));
+        const format = req.query.format === "csv" ? "csv" : "json";
+
+        if (format === "csv") {
+            const header = "ID,Timestamp,Admin,Action,Category,Description,Severity,Status\n";
+            const rows = allLogs.map((l: any) => 
+                `${l.id},${l.createdAt},${l.adminEmail},${l.action},${l.category},"${l.description.replace(/"/g, '""')}",${l.severity},${l.status}`
+            ).join("\n");
+            res.setHeader("Content-Type", "text/csv");
+            res.setHeader("Content-Disposition", "attachment; filename=activity_logs.csv");
+            return res.send(header + rows);
+        }
+
+        res.json(allLogs);
+    } catch (error) {
+        console.error("Failed to export logs:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+// FEATURE [AS-005]: Admin Settings Endpoints
+router.get("/settings", async (req, res) => {
+    try {
+        const settings = await db.select().from(adminSettings);
+        // Mask sensitive data
+        const safeSettings = settings.map((s: any) => ({
+            ...s,
+            value: s.isSensitive ? "********" : s.value,
+        }));
+        res.json(safeSettings);
+    } catch (error) {
+        console.error("Failed to fetch settings:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+router.patch("/settings/:id", async (req, res) => {
+    try {
+        const settingId = parseInt(req.params.id);
+        const { value } = req.body;
+
+        const [existing] = await db.select().from(adminSettings).where(eq(adminSettings.id, settingId));
+        if (!existing) return res.status(404).send("Setting not found");
+        if (existing.isReadonly) return res.status(403).send("Setting is readonly");
+
+        await SettingsService.set(req, existing.category, existing.key, value);
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Failed to update setting:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+router.post("/settings/seed", async (req, res) => {
+    try {
+        await SettingsService.seed();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Failed to seed settings:", error);
         res.status(500).send("Internal Server Error");
     }
 });
