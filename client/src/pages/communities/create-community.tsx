@@ -215,6 +215,21 @@ export default function CreateCommunityPage() {
                   <p className="text-xs text-muted-foreground">{t("community.create.feed_hint")}</p>
                 </div>
 
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isPrivate"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      {...form.register("isPrivate")}
+                    />
+                    <Label htmlFor="isPrivate" className="font-medium">
+                      {t("community.create.privacy_label")}
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t("community.create.privacy_desc")}</p>
+                </div>
+
                 <Button
                   type="submit"
                   disabled={createCommunityMutation.isPending}

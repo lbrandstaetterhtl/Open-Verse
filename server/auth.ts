@@ -280,12 +280,21 @@ export function setupAuth(app: Express, sessionParser: any) {
       // Log the user in
       req.login(user, (err) => {
         if (err) return res.status(500).send(err.message);
-        logSecurityEvent({
-          type: "AUTH_SUCCESS",
-          userId: user.id,
-          details: { action: "register" },
+        // SEC-FIX [SEC-005]: Session Fixation Protection
+        const passportData = (req.session as any).passport;
+        req.session.regenerate((err) => {
+          if (err) return res.status(500).send(err.message);
+          (req.session as any).passport = passportData;
+          req.session.save((err) => {
+            if (err) return res.status(500).send(err.message);
+            logSecurityEvent({
+              type: "AUTH_SUCCESS",
+              userId: user.id,
+              details: { action: "register" },
+            });
+            res.status(201).json(user);
+          });
         });
-        res.status(201).json(user);
       });
     } catch (err) {
       console.error("Registration error:", err);
@@ -300,8 +309,18 @@ export function setupAuth(app: Express, sessionParser: any) {
 
       req.login(user, (err) => {
         if (err) return next(err);
-        console.log("User logged in successfully:", user.username);
-        res.json(sanitizeUser(user));
+        
+        // SEC-FIX [SEC-005]: Session Fixation Protection
+        const passportData = (req.session as any).passport;
+        req.session.regenerate((err) => {
+          if (err) return next(err);
+          (req.session as any).passport = passportData;
+          req.session.save((err) => {
+            if (err) return next(err);
+            console.log("User logged in successfully:", user.username);
+            res.json(sanitizeUser(user));
+          });
+        });
       });
     })(req, res, next);
   });

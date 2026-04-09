@@ -4,6 +4,7 @@ import session from 'express-session';
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { WebSocketServer } from 'ws';
+import compression from "compression";
 
 import { setupAuth, validateCsrf } from "../auth";
 import { storage } from "../storage";
@@ -23,14 +24,18 @@ import userRoutes from "./users";
 import adminRoutes from "./admin";
 import { SettingsService } from "../services/settings";
 import path from "path";
+import xss from "xss";
 
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
-    // 1. Security Headers
+    // 0. Performance: Compression
+    app.use(compression());
+
+    // 1. Security Headers (Helmet)
     const scriptSrcDirective = process.env.NODE_ENV === 'production'
         ? ["'self'"]
-        : ["'self'", "'unsafe-inline'"];
+        : ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
     app.use(helmet({
         contentSecurityPolicy: {
             directives: {
@@ -39,8 +44,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 mediaSrc: ["'self'", "data:", "blob:"],
                 scriptSrc: scriptSrcDirective,
                 connectSrc: ["'self'", "ws:", "wss:"],
+                frameOptions: ["'DENY'"], // SEC-FIX: Prevent clickjacking
             },
         },
+        hsts: {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true
+        }
     }));
     app.disable('x-powered-by');
 
@@ -57,8 +68,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         store: storage.sessionStore,
         cookie: {
             secure: process.env.NODE_ENV === 'production',
-            httpOnly: true,
-            sameSite: 'lax',
+            httpOnly: true, // SEC-FIX: Prevent XSS access to cookies
+            sameSite: 'strict', // SEC-FIX: Strict CSRF protection
             maxAge: 1000 * 60 * 60 * 24 // 24 hours
         }
     });

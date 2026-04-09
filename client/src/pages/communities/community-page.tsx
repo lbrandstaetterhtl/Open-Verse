@@ -21,6 +21,7 @@ import {
   Clock,
   TrendingUp,
   Loader2,
+  ShieldAlert,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -226,6 +227,14 @@ export default function CommunityPage() {
                     </Button>
                   </Link>
                 )}
+                {(community?.memberInfo?.role === "owner" || community?.memberInfo?.role === "moderator") && (
+                  <Link href="/mod-panel">
+                    <Button variant="outline" className="text-primary border-primary/20 hover:bg-primary/5">
+                      <ShieldAlert className="mr-2 h-4 w-4" />
+                      {t("community.page.manage_button")}
+                    </Button>
+                  </Link>
+                )}
                 {isMember ? (
                   <Button
                     variant={isOwner ? "secondary" : "destructive"}
@@ -240,14 +249,25 @@ export default function CommunityPage() {
                     )}
                     {isOwner ? t("community.page.owner_badge") : t("community.page.leave_button")}
                   </Button>
+                ) : community.isPrivate && community.requestStatus === "pending" ? (
+                  <Button variant="secondary" disabled>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t("community.page.pending_request")}
+                  </Button>
                 ) : (
-                  <Button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending}>
+                  <Button 
+                    onClick={() => joinMutation.mutate()} 
+                    disabled={joinMutation.isPending || community.requestStatus === "declined"}
+                    variant={community.requestStatus === "declined" ? "outline" : "default"}
+                  >
                     {joinMutation.isPending ? (
                       <Loader2 className="animate-spin h-4 w-4" />
                     ) : (
                       <UserPlus className="mr-2 h-4 w-4" />
                     )}
-                    {t("community.page.join_button")}
+                    {community.isPrivate 
+                      ? community.requestStatus === "declined" ? t("community.page.declined_request") : t("community.page.request_join") 
+                      : t("community.page.join_button")}
                   </Button>
                 )}
               </div>

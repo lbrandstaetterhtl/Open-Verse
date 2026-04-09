@@ -35,8 +35,10 @@ import {
 } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import sqliteStoreFactory from "better-sqlite3-session-store";
 
 const PostgresSessionStore = connectPg(session);
+const SqliteSessionStore = sqliteStoreFactory(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -189,7 +191,14 @@ export class DatabaseStorage implements IStorage {
 
   constructor() {
     if (process.env.USE_SQLITE === "true") {
-      this.sessionStore = new session.MemoryStore();
+      /* PERF-FIX [OPT-005] & SEC-FIX [SEC-004]: Migrated from MemoryStore to persistent SQLite store */
+      this.sessionStore = new SqliteSessionStore({
+        client: getSqlite(),
+        expired: {
+          clear: true,
+          intervalMs: 900000 
+        }
+      });
 
       // Initialize stats table
       const sqlite = getSqlite();
@@ -459,21 +468,24 @@ export class DatabaseStorage implements IStorage {
 
 
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      let query = "SELECT * FROM posts";
+      let query = "SELECT p.* FROM posts p LEFT JOIN communities c ON p.community_id = c.id";
       const params: any[] = [];
+      
+      let whereClauses = ["(c.is_private IS NULL OR c.is_private = 0)"];
 
       if (category) {
         if (category.includes(",")) {
           const categories = category.split(",").map((c) => c.trim());
-          query += ` WHERE category IN (${categories.map(() => "?").join(",")})`;
+          whereClauses.push(`p.category IN (${categories.map(() => "?").join(",")})`);
           params.push(...categories);
         } else {
-          query += " WHERE category = ?";
+          whereClauses.push("p.category = ?");
           params.push(category);
         }
       }
-
-      query += " ORDER BY created_at DESC";
+      
+      query += " WHERE " + whereClauses.join(" AND ");
+      query += " ORDER BY p.created_at DESC LIMIT 100";
 
       const rows = sqlite.prepare(query).all(...params);
       if (rows.length > 0)
@@ -508,7 +520,8 @@ export class DatabaseStorage implements IStorage {
           .select()
           .from(posts)
           .where(or(...categories.map((cat) => eq(posts.category, cat.trim()))))
-          .orderBy(desc(posts.createdAt));
+          .orderBy(desc(posts.createdAt))
+          .limit(100);
 
         console.log("Found posts for categories:", result);
         return result;
@@ -520,14 +533,15 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(posts)
         .where(eq(posts.category, category))
-        .orderBy(desc(posts.createdAt));
+        .orderBy(desc(posts.createdAt))
+        .limit(100);
 
       console.log("Found posts for category:", result);
       return result;
     }
 
     // No category filter
-    const result = await db.select().from(posts).orderBy(desc(posts.createdAt));
+    const result = await db.select().from(posts).orderBy(desc(posts.createdAt)).limit(100);
 
     console.log("Found all posts:", result);
     return result;
@@ -615,7 +629,7 @@ export class DatabaseStorage implements IStorage {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const rows = sqlite
-        .prepare("SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC")
+        .prepare("SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC LIMIT 100")
         .all(postId);
       return rows.map((comment: any) => ({
         id: comment.id,
@@ -626,7 +640,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date(Number(comment.created_at) * 1000),
       }));
     }
-    return db.select().from(comments).where(eq(comments.postId, postId));
+    return db.select().from(comments).where(eq(comments.postId, postId)).limit(100);
   }
 
   async updateCommentKarma(id: number, karma: number): Promise<Comment> {
@@ -1486,13 +1500,14 @@ export class DatabaseStorage implements IStorage {
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const createdAt = Math.floor(Date.now() / 1000);
       const stmt = sqlite.prepare(`
-        INSERT INTO communities (name, description, slug, creator_id, image_url, allowed_categories, created_at)
-        VALUES (@name, @description, @slug, @creatorId, @imageUrl, @allowedCategories, @createdAt)
+        INSERT INTO communities (name, description, slug, creator_id, image_url, allowed_categories, is_private, created_at)
+        VALUES (@name, @description, @slug, @creatorId, @imageUrl, @allowedCategories, @isPrivate, @createdAt)
       `);
 
       const info = stmt.run({
         ...community,
         allowedCategories: community.allowedCategories || "news,entertainment,discussion",
+        isPrivate: community.isPrivate ? 1 : 0,
         createdAt,
       });
 
@@ -1511,6 +1526,7 @@ export class DatabaseStorage implements IStorage {
         creatorId: newCommunity.creator_id,
         imageUrl: newCommunity.image_url,
         allowedCategories: newCommunity.allowed_categories,
+        isPrivate: Boolean(newCommunity.is_private),
         createdAt: new Date(newCommunity.created_at * 1000),
       };
     }
@@ -1534,7 +1550,8 @@ export class DatabaseStorage implements IStorage {
         creatorId: community.creator_id,
         imageUrl: community.image_url,
         allowedCategories: community.allowed_categories || "news,entertainment,discussion",
-        createdAt: new Date(community.created_at * 1000),
+        isPrivate: Boolean(community.is_private),
+        createdAt: isNaN(Number(community.created_at)) ? new Date(community.created_at) : new Date(Number(community.created_at) * 1000),
       };
     }
     const [community] = await db.select().from(communities).where(eq(communities.id, id));
@@ -1554,7 +1571,8 @@ export class DatabaseStorage implements IStorage {
         imageUrl: row.image_url,
         creatorId: row.creator_id,
         allowedCategories: row.allowed_categories || "news,entertainment,discussion",
-        createdAt: new Date(row.created_at * 1000),
+        isPrivate: Boolean(row.is_private),
+        createdAt: isNaN(Number(row.created_at)) ? new Date(row.created_at) : new Date(Number(row.created_at) * 1000),
       };
     }
     const [community] = await db.select().from(communities).where(eq(communities.slug, slug));
@@ -1573,7 +1591,8 @@ export class DatabaseStorage implements IStorage {
         creatorId: row.creator_id,
         imageUrl: row.image_url,
         allowedCategories: row.allowed_categories || "news,entertainment,discussion",
-        createdAt: new Date(row.created_at * 1000),
+        isPrivate: Boolean(row.is_private),
+        createdAt: isNaN(Number(row.created_at)) ? new Date(row.created_at) : new Date(Number(row.created_at) * 1000),
       }));
     }
     return await db.select().from(communities).orderBy(desc(communities.createdAt));
@@ -1637,6 +1656,99 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(posts.createdAt));
   }
 
+  // Community Join Requests
+  async addJoinRequest(communityId: number, userId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const createdAt = Math.floor(Date.now() / 1000);
+      sqlite.prepare(`
+        INSERT INTO community_join_requests (community_id, user_id, status, created_at)
+        VALUES (?, ?, 'pending', ?)
+      `).run(communityId, userId, createdAt);
+      return;
+    }
+  }
+
+  async updateJoinRequestStatus(communityId: number, userId: number, status: string): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite.prepare(`
+        UPDATE community_join_requests 
+        SET status = ? 
+        WHERE community_id = ? AND user_id = ? AND status = 'pending'
+      `).run(status, communityId, userId);
+      return;
+    }
+  }
+
+  async getJoinRequest(communityId: number, userId: number): Promise<any | undefined> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const row = sqlite.prepare(`
+        SELECT * FROM community_join_requests 
+        WHERE community_id = ? AND user_id = ? 
+        ORDER BY created_at DESC LIMIT 1
+      `).get(communityId, userId);
+      if (!row) return undefined;
+      return {
+        id: (row as any).id,
+        communityId: (row as any).community_id,
+        userId: (row as any).user_id,
+        status: (row as any).status,
+        createdAt: isNaN(Number((row as any).created_at)) ? new Date((row as any).created_at) : new Date(Number((row as any).created_at) * 1000),
+      };
+    }
+    return undefined;
+  }
+
+  async getCommunityJoinRequests(communityId: number): Promise<any[]> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite.prepare(`
+        SELECT r.*, u.username 
+        FROM community_join_requests r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.community_id = ? AND r.status = 'pending'
+        ORDER BY r.created_at DESC
+      `).all(communityId);
+      
+      return rows.map((row: any) => ({
+        id: row.id,
+        communityId: row.community_id,
+        userId: row.user_id,
+        status: row.status,
+        createdAt: isNaN(Number(row.created_at)) ? new Date(row.created_at) : new Date(Number(row.created_at) * 1000),
+        user: {
+          id: row.user_id,
+          username: row.username
+        }
+      }));
+    }
+    const result = await db
+      .select({
+        request: communityJoinRequests,
+        user: users
+      })
+      .from(communityJoinRequests)
+      .innerJoin(users, eq(communityJoinRequests.userId, users.id))
+      .where(
+        and(
+          eq(communityJoinRequests.communityId, communityId),
+          eq(communityJoinRequests.status, "pending")
+        )
+      )
+      .orderBy(desc(communityJoinRequests.createdAt));
+
+    return result.map(({ request, user }) => ({
+      ...request,
+      userId: request.userId,
+      user: {
+        id: user.id,
+        username: user.username
+      }
+    }));
+  }
+
   // Community Members
   async addCommunityMember(
     communityId: number,
@@ -1688,6 +1800,28 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
+  async updateCommunityMemberRole(
+    communityId: number,
+    userId: number,
+    role: string,
+  ): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite
+        .prepare(
+          "UPDATE community_members SET role = ? WHERE community_id = ? AND user_id = ?",
+        )
+        .run(role, communityId, userId);
+      return;
+    }
+    await db
+      .update(communityMembers)
+      .set({ role })
+      .where(
+        and(eq(communityMembers.communityId, communityId), eq(communityMembers.userId, userId)),
+      );
+  }
+
   async getCommunityMember(
     communityId: number,
     userId: number,
@@ -1700,7 +1834,7 @@ export class DatabaseStorage implements IStorage {
       if (!member) return undefined;
       return {
         ...member,
-        joinedAt: new Date(member.joined_at * 1000),
+        joinedAt: isNaN(Number(member.joined_at)) ? new Date(member.joined_at) : new Date(Number(member.joined_at) * 1000),
       };
     }
 
@@ -1784,7 +1918,8 @@ export class DatabaseStorage implements IStorage {
         slug: row.slug,
         creatorId: row.creator_id,
         imageUrl: row.image_url,
-        createdAt: new Date(row.created_at * 1000),
+        isPrivate: Boolean(row.is_private),
+        createdAt: isNaN(Number(row.created_at)) ? new Date(row.created_at) : new Date(Number(row.created_at) * 1000),
         role: row.role,
       }));
     }
@@ -1809,13 +1944,13 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async getModeratedCommunities(userId: number): Promise<Community[]> {
+  async getModeratedCommunities(userId: number): Promise<(Community & { role: string })[]> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const rows = sqlite
         .prepare(
           `
-        SELECT c.*
+        SELECT c.*, cm.role
         FROM community_members cm
         JOIN communities c ON cm.community_id = c.id
         WHERE cm.user_id = ? AND (cm.role = 'owner' OR cm.role = 'moderator')
@@ -1830,7 +1965,9 @@ export class DatabaseStorage implements IStorage {
         slug: row.slug,
         creatorId: row.creator_id,
         imageUrl: row.image_url,
-        createdAt: new Date(row.created_at * 1000),
+        isPrivate: Boolean(row.is_private),
+        createdAt: isNaN(Number(row.created_at)) ? new Date(row.created_at) : new Date(Number(row.created_at) * 1000),
+        role: row.role,
       }));
     }
 
@@ -1845,7 +1982,18 @@ export class DatabaseStorage implements IStorage {
         ),
       );
 
-    return result.map((r: { communities: Community }) => r.communities);
+    return result.map(
+      ({
+        community_members,
+        communities,
+      }: {
+        community_members: CommunityMember;
+        communities: Community;
+      }) => ({
+        ...communities,
+        role: community_members.role,
+      }),
+    );
   }
 
   // Community Bans

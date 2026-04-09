@@ -36,6 +36,13 @@ if (useSqlite) {
 
   sqlite = new Database(dbPath);
 
+  /* PERF-FIX [OPT-001]: SQLite PRAGMA Optimizations (WAL-mode, Cache, Optimize) */
+  sqlite.pragma('journal_mode = WAL');
+  sqlite.pragma('synchronous = NORMAL');
+  sqlite.pragma('temp_store = MEMORY');
+  sqlite.pragma('cache_size = -64000');
+  sqlite.pragma('optimize');
+
   // Register 'now' function for compatibility with defaultNow()
   sqlite.function("now", () => new Date().toISOString());
 
@@ -134,6 +141,8 @@ if (useSqlite) {
       description TEXT,
       image_url TEXT,
       creator_id INTEGER NOT NULL,
+      allowed_categories TEXT NOT NULL DEFAULT 'news,entertainment,discussion',
+      is_private INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
     CREATE TABLE IF NOT EXISTS community_members (
@@ -149,6 +158,13 @@ if (useSqlite) {
       user_id INTEGER NOT NULL,
       reason TEXT,
       banned_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+    CREATE TABLE IF NOT EXISTS community_join_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      community_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
     CREATE TABLE IF NOT EXISTS activity_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -185,6 +201,16 @@ if (useSqlite) {
       updated_by INTEGER,
       UNIQUE(category, key)
     );
+    /* PERF-FIX [OPT-002]: Missing indices on FKs and created_at */
+    CREATE INDEX IF NOT EXISTS idx_posts_author ON posts(author_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at);
+    CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
+    CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at);
+    CREATE INDEX IF NOT EXISTS idx_followers_follower ON followers(follower_id);
+    CREATE INDEX IF NOT EXISTS idx_followers_following ON followers(following_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+    CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
+    CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
   `);
   console.log("DEBUG: SQLite tables initialized");
 
@@ -199,6 +225,13 @@ if (useSqlite) {
   // Add ip_address column to reports if it doesn't exist yet
   try {
     sqlite.exec(`ALTER TABLE reports ADD COLUMN ip_address TEXT`);
+  } catch (e: any) {
+    // Column already exists, ignore
+  }
+  // Add is_private column to communities if it doesn't exist
+  try {
+    sqlite.exec(`ALTER TABLE communities ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0`);
+    console.log("DEBUG: Added is_private column to communities");
   } catch (e: any) {
     // Column already exists, ignore
   }

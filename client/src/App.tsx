@@ -9,86 +9,90 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { NewUserDialog } from "@/components/profile/new-user-dialog";
 
-// Pages
-import AuthPage from "@/pages/auth/auth-page";
-import NotFound from "@/pages/misc/not-found";
-import ProfilePage from "@/pages/profile/my-profile";
-import UserProfilePage from "@/pages/profile/user-profile";
-import ChatPage from "@/pages/chat/chat-page";
-import AdminDashboard from "@/pages/admin/dashboard";
-import ActivityLogsPage from "@/pages/admin/activity-logs";
-import AdminSettingsPage from "@/pages/admin/settings";
+import { lazy, Suspense } from "react";
+
+// Lazy-loaded Pages (PERF-FIX [OPT-008]: Code Splitting)
+const AuthPage = lazy(() => import("@/pages/auth/auth-page"));
+const NotFound = lazy(() => import("@/pages/misc/not-found"));
+const ProfilePage = lazy(() => import("@/pages/profile/my-profile"));
+const UserProfilePage = lazy(() => import("@/pages/profile/user-profile"));
+const ChatPage = lazy(() => import("@/pages/chat/chat-page"));
+const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
+const ActivityLogsPage = lazy(() => import("@/pages/admin/activity-logs"));
+const AdminSettingsPage = lazy(() => import("@/pages/admin/settings"));
 
 // Feed Pages
-import MediaFeedPage from "@/pages/feed/media";
-import DiscussionsFeedPage from "@/pages/feed/discussions";
-import CommunityFeedPage from "@/pages/feed/communities";
-import PostViewPage from "@/pages/feed/post-view";
+const MediaFeedPage = lazy(() => import("@/pages/feed/media"));
+const DiscussionsFeedPage = lazy(() => import("@/pages/feed/discussions"));
+const CommunityFeedPage = lazy(() => import("@/pages/feed/communities"));
+const PostViewPage = lazy(() => import("@/pages/feed/post-view"));
 
 // Post Pages
-import PostDiscussionsPage from "@/pages/post/discussions";
-import PostNewsPage from "@/pages/post/news";
-import PostEntertainmentPage from "@/pages/post/entertainment";
+const PostDiscussionsPage = lazy(() => import("@/pages/post/discussions"));
+const PostNewsPage = lazy(() => import("@/pages/post/news"));
+const PostEntertainmentPage = lazy(() => import("@/pages/post/entertainment"));
 
 // Theme Page
-import ThemeBuilderPage from "@/pages/theme/theme-builder";
+const ThemeBuilderPage = lazy(() => import("@/pages/theme/theme-builder"));
 
 // AI Generator Page
-import AIGeneratorPage from "@/pages/ai-bot/ai-generator";
+const AIGeneratorPage = lazy(() => import("@/pages/ai-bot/ai-generator"));
 
 // Community Pages
-import CreateCommunityPage from "@/pages/communities/create-community";
-import CommunityPage from "@/pages/communities/community-page";
-import ModPanel from "@/pages/communities/mod-panel";
+const CreateCommunityPage = lazy(() => import("@/pages/communities/create-community"));
+const CommunityPage = lazy(() => import("@/pages/communities/community-page"));
+const ModPanel = lazy(() => import("@/pages/communities/mod-panel"));
 
 function Router() {
   // Initialize WebSocket connection
   useWebSocket();
 
   return (
-    <Switch>
-      <Route path="/auth" component={AuthPage} />
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <Switch>
+        <Route path="/auth" component={AuthPage} />
 
-      {/* Feed Routes */}
-      <ProtectedRoute path="/feed/media" component={MediaFeedPage} />
-      <ProtectedRoute path="/feed/discussions" component={DiscussionsFeedPage} />
-      <ProtectedRoute path="/feed/communities" component={CommunityFeedPage} />
-      <ProtectedRoute path="/posts/:id" component={PostViewPage} />
+        {/* Feed Routes */}
+        <ProtectedRoute path="/feed/media" component={MediaFeedPage} />
+        <ProtectedRoute path="/feed/discussions" component={DiscussionsFeedPage} />
+        <ProtectedRoute path="/feed/communities" component={CommunityFeedPage} />
+        <ProtectedRoute path="/posts/:id" component={PostViewPage} />
 
-      {/* Post Routes */}
-      <ProtectedRoute path="/post/discussions" component={PostDiscussionsPage} />
-      <ProtectedRoute path="/post/news" component={PostNewsPage} />
-      <ProtectedRoute path="/post/entertainment" component={PostEntertainmentPage} />
+        {/* Post Routes */}
+        <ProtectedRoute path="/post/discussions" component={PostDiscussionsPage} />
+        <ProtectedRoute path="/post/news" component={PostNewsPage} />
+        <ProtectedRoute path="/post/entertainment" component={PostEntertainmentPage} />
 
-      {/* User Routes */}
-      <ProtectedRoute path="/profile" component={ProfilePage} />
-      <Route path="/users/:username" component={UserProfilePage} />
+        {/* User Routes */}
+        <ProtectedRoute path="/profile" component={ProfilePage} />
+        <Route path="/users/:username" component={UserProfilePage} />
 
-      {/* Chat Route */}
-      <ProtectedRoute path="/chat" component={ChatPage} />
+        {/* Chat Route */}
+        <ProtectedRoute path="/chat" component={ChatPage} />
 
-      {/* AI Generator Route */}
-      <ProtectedRoute path="/ai-generator" component={AIGeneratorPage} />
+        {/* AI Generator Route */}
+        <ProtectedRoute path="/ai-generator" component={AIGeneratorPage} />
 
-      {/* Admin Routes */}
-      <ProtectedRoute path="/admin" component={AdminDashboard} />
-      <ProtectedRoute path="/admin/users" component={AdminDashboard} />
-      <ProtectedRoute path="/admin/reports" component={AdminDashboard} />
-      <ProtectedRoute path="/admin/logs" component={ActivityLogsPage} />
-      <ProtectedRoute path="/admin/settings" component={AdminSettingsPage} />
+        {/* Admin Routes */}
+        <ProtectedRoute path="/admin" component={AdminDashboard} />
+        <ProtectedRoute path="/admin/users" component={AdminDashboard} />
+        <ProtectedRoute path="/admin/reports" component={AdminDashboard} />
+        <ProtectedRoute path="/admin/logs" component={ActivityLogsPage} />
+        <ProtectedRoute path="/admin/settings" component={AdminSettingsPage} />
 
-      {/* Community Routes */}
-      <ProtectedRoute path="/create-community" component={CreateCommunityPage} />
-      <ProtectedRoute path="/c/:slug" component={CommunityPage} />
-      <ProtectedRoute path="/mod-panel" component={ModPanel} />
+        {/* Community Routes */}
+        <ProtectedRoute path="/create-community" component={CreateCommunityPage} />
+        <ProtectedRoute path="/c/:slug" component={CommunityPage} />
+        <ProtectedRoute path="/mod-panel" component={ModPanel} />
 
-      {/* Theme Builder Route */}
-      <ProtectedRoute path="/theme-builder" component={ThemeBuilderPage} />
+        {/* Theme Builder Route */}
+        <ProtectedRoute path="/theme-builder" component={ThemeBuilderPage} />
 
-      {/* Other Routes */}
-      <ProtectedRoute path="/" component={MediaFeedPage} />
-      <Route component={NotFound} />
-    </Switch>
+        {/* Other Routes */}
+        <ProtectedRoute path="/" component={MediaFeedPage} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

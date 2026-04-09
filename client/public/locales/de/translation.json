@@ -214,7 +214,9 @@
       "desc_placeholder": "Worum geht es in dieser Community?",
       "image_label": "Bild-URL (Optional)",
       "allowed_feeds_label": "Erlaubte Feeds",
-      "feed_hint": "Wähle mindestens einen Feed-Typ für deine Community.",
+      "feed_hint": "Wähle aus, in welchen Haupt-Feeds die Beiträge diser Community erscheinen sollen.",
+      "privacy_label": "Private Community",
+      "privacy_desc": "Nur Mitglieder können die Beiträge auf globalen Startseiten sehen.",
       "submit": "Community erstellen",
       "success_title": "Community erstellt",
       "restriction_title": "Einschränkung",
@@ -229,15 +231,21 @@
       "created": "Erstellt:",
       "join_prompt": "Tritt dieser Community bei, um zu posten und zu interagieren!",
       "join_button": "Community beitreten",
+      "request_join": "Beitritt anfragen",
+      "pending_request": "Anfrage ausstehend...",
+      "declined_request": "Abgelehnt",
       "leave_button": "Verlassen",
       "owner_badge": "Inhaber",
       "create_post": "Beitrag erstellen",
+      "manage_button": "Community verwalten",
       "joined_success": "Beigetreten!",
       "left_success": "Verlassen",
       "member_of": "Du bist nun Mitglied von {{name}}",
       "left_community": "Du hast {{name}} verlassen",
       "tabs": {
         "all": "Alle",
+        "general": "Allgemein",
+        "lifestyle": "Lifestyle",
         "news": "Nachrichten",
         "entertainment": "Unterhaltung",
         "discussion": "Diskussion"
@@ -258,6 +266,7 @@
     "tabs": {
       "overview": "Übersicht",
       "reports": "Meldungen",
+      "requests": "Anfragen",
       "members": "Mitglieder",
       "bans": "Verbannungen",
       "staff": "Personal"
@@ -289,10 +298,31 @@
         "other": "Andere"
       }
     },
+    "requests": {
+      "approved_title": "Anfrage genehmigt",
+      "approved_desc": "Der Benutzer wurde der Community hinzugefügt.",
+      "declined_title": "Anfrage abgelehnt",
+      "declined_desc": "Die Beitrittsanfrage wurde abgelehnt.",
+      "table": {
+        "user": "Benutzer",
+        "date": "Datum",
+        "actions": "Aktionen",
+        "empty": "Keine ausstehenden Beitrittsanfragen."
+      }
+    },
     "members": {
-      "kicked_title": "Benutzer gekickt",
-      "kicked_desc": "Mitglied aus der Community entfernt.",
+      "title": "Community-Mitglieder",
       "search_placeholder": "Mitglieder suchen...",
+      "kicked_title": "Mitglied entfernt",
+      "kicked_desc": "Nutzer wurde aus der Community entfernt.",
+      "role_updated_title": "Rolle aktualisiert",
+      "role_updated_desc": "Die Rolle des Nutzers wurde erfolgreich geändert.",
+      "promote_mod": "Zum Moderator befördern",
+      "promote_owner": "Zum Inhaber befördern",
+      "demote_member": "Zum Mitglied degradieren",
+      "change_role": "Rolle ändern",
+      "confirm_owner_title": "Zum Inhaber befördern?",
+      "confirm_owner_desc": "Dieser Nutzer erhält volle Kontrolle über die Community. Bist du sicher?",
       "table": {
         "user": "Benutzer",
         "role": "Rolle",

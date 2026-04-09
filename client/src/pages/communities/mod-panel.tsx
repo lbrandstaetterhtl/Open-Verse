@@ -52,6 +52,7 @@ import {
   Flag,
   Eye,
   UserMinus,
+  Crown,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -98,7 +99,7 @@ export default function ModPanel() {
         </h1>
 
         {isLoadingCommunities ? (
-          <SkeletonLoader />
+          <div className="flex justify-center p-12"><Spinner /></div>
         ) : !communities || communities.length === 0 ? (
           <Card>
             <CardContent className="pt-6 text-center text-muted-foreground">
@@ -137,11 +138,30 @@ export default function ModPanel() {
 
 function ModContext({ communityId }: { communityId: number }) {
   const { t } = useTranslation();
+  
+  const { data: requests } = useQuery<any[]>({
+    queryKey: ["/api/communities", communityId, "requests"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/communities/${communityId}/requests`);
+      return res.json();
+    },
+  });
+
+  const pendingCount = requests?.length || 0;
+
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-5">
+      <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
         <TabsTrigger value="overview">{t("mod_panel.tabs.overview")}</TabsTrigger>
         <TabsTrigger value="files">{t("mod_panel.tabs.reports")}</TabsTrigger>
+        <TabsTrigger value="requests" className="relative">
+          {t("mod_panel.tabs.requests")}
+          {pendingCount > 0 && (
+            <Badge variant="destructive" className="ml-2 px-1.5 py-0.5 text-[10px] min-w-[18px] justify-center">
+              {pendingCount}
+            </Badge>
+          )}
+        </TabsTrigger>
         <TabsTrigger value="members">{t("mod_panel.tabs.members")}</TabsTrigger>
         <TabsTrigger value="bans">{t("mod_panel.tabs.bans")}</TabsTrigger>
         <TabsTrigger value="moderators">{t("mod_panel.tabs.staff")}</TabsTrigger>
@@ -161,6 +181,10 @@ function ModContext({ communityId }: { communityId: number }) {
 
       <TabsContent value="files">
         <ReportsManager communityId={communityId} />
+      </TabsContent>
+
+      <TabsContent value="requests">
+        <RequestsManager communityId={communityId} />
       </TabsContent>
 
       <TabsContent value="members">
@@ -347,6 +371,25 @@ function MembersManager({ communityId }: { communityId: number }) {
     },
   });
 
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: number; role: string }) => {
+      await apiRequest("PATCH", `/api/communities/${communityId}/members/${userId}/role`, { role });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
+      toast({
+        title: t("mod_panel.members.role_updated_title"),
+        description: t("mod_panel.members.role_updated_desc"),
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    },
+  });
+
+  const currentUserMember = members?.find((m) => m.user.id === currentUser?.id);
+  const isOwner = currentUserMember?.role === "owner";
+
   const filteredMembers =
     members?.filter((m) => m.user.username.toLowerCase().includes(searchTerm.toLowerCase())) || [];
 
@@ -389,9 +432,15 @@ function MembersManager({ communityId }: { communityId: number }) {
             ) : (
               filteredMembers.map((member) => (
                 <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.user.username}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {member.user.username}
+                      {member.role === "owner" && <Crown className="h-3 w-3 text-amber-500 fill-amber-500" />}
+                    </div>
+                  </TableCell>
                   <TableCell>
-                    <Badge variant={member.role === "member" ? "secondary" : "default"}>
+                    <Badge variant={member.role === "member" ? "secondary" : "default"} className="flex items-center gap-1 w-fit">
+                      {member.role === "owner" && <Crown className="h-2.5 w-2.5" />}
                       {member.role.toUpperCase()}
                     </Badge>
                   </TableCell>
@@ -428,6 +477,48 @@ function MembersManager({ communityId }: { communityId: number }) {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+                      )}
+                      {isOwner && currentUser?.id !== member.user.id && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => updateRoleMutation.mutate({ userId: member.user.id, role: "member" })}
+                              disabled={member.role === "member"}
+                            >
+                              {t("mod_panel.members.demote_member")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => updateRoleMutation.mutate({ userId: member.user.id, role: "moderator" })}
+                              disabled={member.role === "moderator"}
+                            >
+                              {t("mod_panel.members.promote_mod")}
+                            </DropdownMenuItem>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  {t("mod_panel.members.promote_owner")}
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>{t("mod_panel.members.confirm_owner_title")}</AlertDialogTitle>
+                                  <AlertDialogDescription>{t("mod_panel.members.confirm_owner_desc")}</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => updateRoleMutation.mutate({ userId: member.user.id, role: "owner" })}>
+                                    {t("common.confirm")}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </TableCell>
@@ -729,6 +820,118 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
                     <Badge variant="secondary">{mod.role.toUpperCase()}</Badge>
                   </TableCell>
                   <TableCell className="text-right">{/* Future: Remove Mod action */}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+function RequestsManager({ communityId }: { communityId: number }) {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+
+  const { data: requests, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/communities", communityId, "requests"],
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      await apiRequest("POST", `/api/communities/${communityId}/requests/${userId}/approve`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
+      toast({
+        title: t("mod_panel.requests.approved_title"),
+        description: t("mod_panel.requests.approved_desc"),
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    },
+  });
+
+  const declineMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      await apiRequest("POST", `/api/communities/${communityId}/requests/${userId}/decline`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "requests"] });
+      toast({
+        title: t("mod_panel.requests.declined_title"),
+        description: t("mod_panel.requests.declined_desc"),
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("mod_panel.requests.table.user")}</TableHead>
+              <TableHead>{t("mod_panel.requests.table.date")}</TableHead>
+              <TableHead className="text-right">{t("mod_panel.requests.table.actions")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={3} className="h-24 text-center">
+                  <Spinner className="mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : requests?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="h-24 text-center p-0">
+                  <EmptyState 
+                    title={t("mod_panel.requests.table.empty")} 
+                    description="When users request to join this private community, they will appear here." 
+                  />
+                </TableCell>
+              </TableRow>
+            ) : (
+              requests?.map((request) => (
+                <TableRow key={request.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                       <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-[10px] font-bold">
+                          {request.user?.username?.charAt(0).toUpperCase() || "?"}
+                        </span>
+                      </div>
+                      {request.user?.username || "Unknown User"}
+                    </div>
+                  </TableCell>
+                  <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => approveMutation.mutate(request.userId)}
+                        disabled={approveMutation.isPending}
+                      >
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => declineMutation.mutate(request.userId)}
+                        disabled={declineMutation.isPending}
+                      >
+                        <XCircle className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}

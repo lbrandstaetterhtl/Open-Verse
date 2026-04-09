@@ -130,8 +130,56 @@ router.patch("/users/:id", async (req, res) => {
             return res.status(400).send("No valid fields provided for update");
         }
 
+        const currentAdmin = req.user as any;
+        const targetId = userId;
+        const updateData = { ...result.data };
+
+        // Role/isAdmin synchronization and security checks
+        if (updateData.role !== undefined || updateData.isAdmin !== undefined) {
+            // SYNC [ADMIN-ROLE]: Ensure isAdmin and role are consistent
+            if (updateData.role === "admin" || updateData.role === "owner") {
+                updateData.isAdmin = true;
+            } else if (updateData.role === "user") {
+                updateData.isAdmin = false;
+            } else if (updateData.isAdmin === true && updateData.role === undefined) {
+                // If only isAdmin set to true, default role to admin if it was user
+                const [target] = await db.select().from(users).where(eq(users.id, targetId));
+                if (target && target.role === "user") updateData.role = "admin";
+            } else if (updateData.isAdmin === false && updateData.role === undefined) {
+                updateData.role = "user";
+            }
+
+            // SECURITY [OWNER-PROMOTION]: Only owners can promote to owner
+            if (updateData.role === "owner" && currentAdmin.role !== "owner") {
+                return res.status(403).send("Only system owners can promote others to owner status");
+            }
+
+            // SECURITY [LAST-OWNER]: Prevent demoting the last system owner
+            const [target] = await db.select().from(users).where(eq(users.id, targetId));
+            if (target && target.role === "owner" && updateData.role !== "owner") {
+                const ownersResults = await db.select({ count: count() }).from(users).where(eq(users.role, "owner"));
+                if (ownersResults[0].count <= 1) {
+                    return res.status(400).send("The platform must have at least one owner");
+                }
+            }
+        }
+
+        // Remove undefined fields and handle SQLite boolean mapping
+        const isSqlite = process.env.USE_SQLITE === "true";
+        const cleanUpdateData = Object.fromEntries(
+            Object.entries(updateData)
+                .filter(([_, v]) => v !== undefined)
+                .map(([k, v]) => {
+                    // SQLite3 cannot bind booleans directly, must be 0/1
+                    if (isSqlite && typeof v === "boolean") {
+                        return [k, v ? 1 : 0];
+                    }
+                    return [k, v];
+                })
+        );
+
         const [updatedUser] = await db.update(users)
-            .set(result.data)
+            .set(cleanUpdateData)
             .where(eq(users.id, userId))
             .returning();
 

@@ -214,7 +214,9 @@
       "desc_placeholder": "What is this community about?",
       "image_label": "Image URL (Optional)",
       "allowed_feeds_label": "Allowed Feeds",
-      "feed_hint": "Select at least one feed type for your community.",
+      "feed_hint": "Select which main feeds posts from this community should appear in.",
+      "privacy_label": "Private Community",
+      "privacy_desc": "Only members can view posts in this community on global feeds.",
       "submit": "Create Community",
       "success_title": "Community Created",
       "restriction_title": "Restriction",
@@ -229,15 +231,21 @@
       "created": "Created:",
       "join_prompt": "Join this community to start posting and interacting!",
       "join_button": "Join Community",
+      "request_join": "Request to Join",
+      "pending_request": "Pending Request...",
+      "declined_request": "Declined",
       "leave_button": "Leave",
       "owner_badge": "Owner",
       "create_post": "Create Post",
+      "manage_button": "Manage Community",
       "joined_success": "Joined!",
       "left_success": "Left",
       "member_of": "You are now a member of {{name}}",
       "left_community": "You have left {{name}}",
       "tabs": {
         "all": "All",
+        "general": "General",
+        "lifestyle": "Lifestyle",
         "news": "News",
         "entertainment": "Entertainment",
         "discussion": "Discussion"
@@ -258,6 +266,7 @@
     "tabs": {
       "overview": "Overview",
       "reports": "Reports",
+      "requests": "Requests",
       "members": "Members",
       "bans": "Bans",
       "staff": "Staff"
@@ -289,10 +298,31 @@
         "other": "Other"
       }
     },
+    "requests": {
+      "approved_title": "Request Approved",
+      "approved_desc": "The user has been added to the community.",
+      "declined_title": "Request Declined",
+      "declined_desc": "The join request has been rejected.",
+      "table": {
+        "user": "User",
+        "date": "Date",
+        "actions": "Actions",
+        "empty": "No pending join requests."
+      }
+    },
     "members": {
-      "kicked_title": "User Kicked",
-      "kicked_desc": "Member removed from community.",
+      "title": "Community Members",
       "search_placeholder": "Search members...",
+      "kicked_title": "Member Kicked",
+      "kicked_desc": "User has been removed from the community.",
+      "role_updated_title": "Role Updated",
+      "role_updated_desc": "User's role has been changed successfully.",
+      "promote_mod": "Promote to Moderator",
+      "promote_owner": "Promote to Owner",
+      "demote_member": "Demote to Member",
+      "change_role": "Change Role",
+      "confirm_owner_title": "Promote to Owner?",
+      "confirm_owner_desc": "This user will have full control over the community. Are you sure?",
       "table": {
         "user": "User",
         "role": "Role",
@@ -301,9 +331,9 @@
       },
       "kick_dialog": {
         "title": "Kick Member?",
-        "desc": "Are you sure you want to remove {{name}} from the community? They can join again later.",
-        "confirm": "Kick User",
-        "cancel": "Cancel"
+        "desc": "Are you sure you want to remove {{name}} from this community?",
+        "cancel": "Cancel",
+        "confirm": "Kick"
       }
     },
     "bans": {

@@ -120,4 +120,25 @@ router.get("/:username/comments", async (req, res) => {
     }
 });
 
+router.get("/user/communities", isAuthenticated, async (req, res) => {
+    try {
+        const communities = await storage.getUserCommunities((req.user as any).id);
+        res.json(communities);
+    } catch (error) {
+        console.error("Error getting user communities:", error);
+        res.status(500).send("Failed to get user communities");
+    }
+});
+
+router.get("/user/moderated-communities", isAuthenticated, async (req, res) => {
+    try {
+        const userId = (req.user as any).id;
+        const communities = await storage.getModeratedCommunities(userId);
+        res.json(communities);
+    } catch (error) {
+        console.error("Error getting moderated communities:", error);
+        res.status(500).send("Failed to get moderated communities");
+    }
+});
+
 export default router;

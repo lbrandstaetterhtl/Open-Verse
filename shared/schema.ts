@@ -119,6 +119,7 @@ export const communities = pgTable("communities", {
   creatorId: integer("creator_id").notNull(),
   imageUrl: text("image_url"),
   allowedCategories: text("allowed_categories").notNull().default("news,entertainment,discussion"),
+  isPrivate: boolean("is_private").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -136,6 +137,14 @@ export const communityBans = pgTable("community_bans", {
   userId: integer("user_id").notNull(),
   reason: text("reason"),
   bannedAt: timestamp("banned_at").notNull().defaultNow(),
+});
+
+export const communityJoinRequests = pgTable("community_join_requests", {
+  id: serial("id").primaryKey(),
+  communityId: integer("community_id").notNull(),
+  userId: integer("user_id").notNull(),
+  status: text("status", { enum: ["pending", "approved", "declined"] }).notNull().default("pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const themes = pgTable("themes", {
@@ -199,6 +208,7 @@ export const insertCommunitySchema = createInsertSchema(communities)
     description: true,
     imageUrl: true,
     allowedCategories: true,
+    isPrivate: true,
   })
   .extend({
     name: z
@@ -208,6 +218,7 @@ export const insertCommunitySchema = createInsertSchema(communities)
     description: z.string().min(10, "Description must be at least 10 characters"),
     imageUrl: z.string().optional(),
     allowedCategories: z.string().default("news,entertainment,discussion"),
+    isPrivate: z.boolean().default(false).optional(),
   });
 
 export const insertDiscussionPostSchema = basePostSchema.extend({
@@ -337,6 +348,7 @@ export type InsertTheme = z.infer<typeof insertThemeSchema>;
 export type Community = typeof communities.$inferSelect;
 export type CommunityMember = typeof communityMembers.$inferSelect;
 export type CommunityBan = typeof communityBans.$inferSelect;
+export type CommunityJoinRequest = typeof communityJoinRequests.$inferSelect;
 export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
 
 export type ActivityLog = typeof activityLogs.$inferSelect;

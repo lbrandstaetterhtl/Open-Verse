@@ -65,7 +65,7 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
   const reactions = post.reactions ?? { likes: 0, dislikes: 0 };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="p-4 lg:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -107,7 +107,7 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
                   }
                 }}
                 disabled={followMutation.isPending || unfollowMutation.isPending}
-                className="text-xs lg:text-sm"
+                className="text-xs lg:text-sm min-h-[44px] px-4 active:scale-[0.98] transition-transform duration-75"
               >
                 {author.isFollowing ? t("feed.following") : t("feed.follow")}
               </Button>
@@ -189,6 +189,7 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
                   input.value = "";
                 }
               }}
+              className="min-h-[44px] active:scale-[0.98] transition-transform duration-75"
             >
               {t("comments.post_button")}
             </Button>
@@ -225,7 +226,8 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
                       size="sm"
                       onClick={() => likeCommentMutation.mutate(comment.id)}
                       disabled={likeCommentMutation.isPending}
-                      className="h-8"
+                      className="min-h-[44px] min-w-[44px] hover:bg-muted active:scale-[0.98] transition-transform duration-75 inline-flex"
+                      aria-label={t("actions.like")}
                     >
                       <Heart
                         className={`h-4 w-4 mr-1 ${comment.isLiked ? "fill-current" : ""}`}
@@ -241,7 +243,8 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
                               variant="ghost"
                               size="sm"
                               disabled={deleteCommentMutation.isPending}
-                              className="h-8 w-8 p-0"
+                              className="min-h-[44px] min-w-[44px] p-0 active:scale-[0.98] transition-transform duration-75"
+                              aria-label={t("actions.delete")}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -286,7 +289,8 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
             size="sm"
             onClick={() => reactionMutation.mutate({ postId: post.id, isLike: true })}
             disabled={reactionMutation.isPending}
-            className="h-8"
+            className="min-h-[44px] min-w-[44px] hover:scale-110 active:scale-90 transition-all duration-150 ease-out"
+            aria-label={t("actions.like")}
           >
             <ThumbsUp
               className={`h-4 w-4 mr-1 ${post.userReaction?.isLike ? "fill-current" : ""}`}
@@ -298,7 +302,8 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
             size="sm"
             onClick={() => reactionMutation.mutate({ postId: post.id, isLike: false })}
             disabled={reactionMutation.isPending}
-            className="h-8"
+            className="min-h-[44px] min-w-[44px] hover:scale-110 active:scale-90 transition-all duration-150 ease-out"
+            aria-label={t("actions.dislike")}
           >
             <ThumbsDown
               className={`h-4 w-4 mr-1 ${post.userReaction?.isLike === false ? "fill-current" : ""}`}
@@ -317,7 +322,8 @@ export function PostCard({ post, reportType = "post" }: PostCardProps) {
                     variant="ghost"
                     size="sm"
                     disabled={deletePostMutation.isPending}
-                    className="h-8"
+                    className="min-h-[44px] min-w-[44px] active:scale-[0.98] transition-transform duration-75"
+                    aria-label={t("actions.delete")}
                   >
                     {deletePostMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

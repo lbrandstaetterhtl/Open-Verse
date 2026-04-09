@@ -13,8 +13,10 @@ app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
 // PRODUCTION SECURITY [SEC-001]: Enable trust proxy if the application is behind a reverse proxy (Nginx, etc.)
 // This ensures that req.ip and secure cookies work correctly.
-if (process.env.TRUST_PROXY) {
-  app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : process.env.TRUST_PROXY);
+if (process.env.TRUST_PROXY === "true" || process.env.TRUST_PROXY === "1") {
+  app.set("trust proxy", 1);
+} else if (process.env.TRUST_PROXY && process.env.TRUST_PROXY !== "false") {
+  app.set("trust proxy", process.env.TRUST_PROXY);
 }
 
 // Ensure uploads directory exists and set proper permissions

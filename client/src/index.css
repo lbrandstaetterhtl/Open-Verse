@@ -66,6 +66,27 @@
     /* REDESIGN [UX-008]: Optimize font rendering */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* UI-FIX [UI-002]: Focus Ring System */
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+
+  /* UI-FIX [UI-003]: Selection Styling */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.2);
+  }
+
+  /* UI-FIX [UI-004]: Reduced Motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   body {

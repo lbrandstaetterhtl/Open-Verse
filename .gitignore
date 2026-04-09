@@ -132,3 +132,6 @@ server/public/
 .env
 .env.*
 !.env.example
+
+# Custom Documentation
+TECHNICAL_DOCUMENTATION.md

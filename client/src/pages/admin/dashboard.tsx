@@ -30,7 +30,8 @@ import {
   Settings,
   LogOut,
   Home,
-  Trophy
+  Trophy,
+  Crown
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
@@ -65,6 +66,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useAuth } from "@/hooks/use-auth";
@@ -475,7 +482,8 @@ export default function AdminDashboard() {
                               </div>
                             </TableCell>
                             <TableCell>
-                               <Badge variant={u.role === "owner" ? "destructive" : u.role === "admin" ? "default" : "secondary"} className="text-[9px] py-0 font-bold tracking-wider">
+                               <Badge variant={u.role === "owner" ? "destructive" : u.role === "admin" ? "default" : "secondary"} className="text-[9px] py-0 font-bold tracking-wider flex items-center gap-1">
+                                 {u.role === "owner" && <Crown className="h-2 w-2" />}
                                  {u.role.toUpperCase()}
                                </Badge>
                             </TableCell>
@@ -499,6 +507,62 @@ export default function AdminDashboard() {
                                   </TooltipTrigger>
                                   <TooltipContent side="top">Toggle Verification</TooltipContent>
                                 </Tooltip>
+
+                                <DropdownMenu>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary transition-all hover:bg-background">
+                                          <Shield className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Manage Role</TooltipContent>
+                                  </Tooltip>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      disabled={u.role === "user"}
+                                      onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "user" } })}
+                                    >
+                                      <UserMinus className="mr-2 h-4 w-4" />
+                                      Demote to User
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      disabled={u.role === "admin"}
+                                      onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "admin" } })}
+                                    >
+                                      <Shield className="mr-2 h-4 w-4" />
+                                      Make Admin
+                                    </DropdownMenuItem>
+                                    {user.role === "owner" && (
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <DropdownMenuItem disabled={u.role === "owner"} onSelect={(e) => e.preventDefault()}>
+                                            <Trophy className="mr-2 h-4 w-4" />
+                                            Promote to Owner
+                                          </DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Make {u.username} an Owner?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              This user will receive full system access and can manage other owners. This is a critical security privilege.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              className="bg-red-600 hover:bg-red-700"
+                                              onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "owner" } })}
+                                            >
+                                              Confirm Promotion
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
 
                                 <AlertDialog>
                                   <Tooltip>

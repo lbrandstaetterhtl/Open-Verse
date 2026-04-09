@@ -7,7 +7,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Users, Search, Hash } from "lucide-react";
+import { Plus, Users, Search, Hash, Lock } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { useTranslation } from "react-i18next";
@@ -21,6 +21,7 @@ interface Community {
   imageUrl?: string;
   creatorId: number;
   role?: string;
+  isPrivate?: boolean;
 }
 
 export default function CommunityFeedPage() {
@@ -100,7 +101,10 @@ export default function CommunityFeedPage() {
                         <Link key={c.id} href={`/c/${c.slug}`}>
                           <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer transition-colors text-sm">
                             <Hash className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                            <span className="truncate">{c.name}</span>
+                            <span className="truncate flex items-center gap-1">
+                              {c.name}
+                              {c.isPrivate && <Lock className="h-3 w-3 text-muted-foreground" />}
+                            </span>
                           </div>
                         </Link>
                       ))}
@@ -143,7 +147,10 @@ export default function CommunityFeedPage() {
                               </span>
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">{c.name}</p>
+                              <p className="text-sm font-medium truncate flex items-center gap-1">
+                                {c.name}
+                                {c.isPrivate && <Lock className="h-3 w-3 text-muted-foreground inline" />}
+                              </p>
                               <p className="text-xs text-muted-foreground capitalize">
                                 {c.role || "member"}
                               </p>
@@ -198,7 +205,10 @@ export default function CommunityFeedPage() {
                     <Link key={c.id} href={`/c/${c.slug}`}>
                       <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer text-sm">
                         <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="truncate">{c.name}</span>
+                        <span className="truncate flex items-center gap-1">
+                          {c.name}
+                          {c.isPrivate && <Lock className="h-3 w-3 text-muted-foreground inline" />}
+                        </span>
                       </div>
                     </Link>
                   ))}
