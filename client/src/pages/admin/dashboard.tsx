@@ -466,7 +466,8 @@ export default function AdminDashboard() {
                                 <UserAvatar user={{ username: u.username }} size="sm" />
                                 <div className="flex flex-col min-w-0">
                                   <Link href={`/users/${u.username}`} className="hover:text-primary transition-colors text-sm font-bold truncate leading-tight">{u.username}</Link>
-                                  {u.verified && <span className="text-[9px] text-primary font-black uppercase tracking-tighter mt-0.5">Verified Partner</span>}
+                                  <span className="text-[9px] font-mono text-muted-foreground">ID: {u.id}</span>
+                                  {Boolean(u.verified) && <span className="text-[9px] text-primary font-black uppercase tracking-tighter mt-0.5">Verified Partner</span>}
                                 </div>
                               </div>
                             </TableCell>

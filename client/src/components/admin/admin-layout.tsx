@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
+import { Navbar } from "@/components/layout/navbar";
 import { cn } from "@/lib/utils";
 import { 
   Shield, 
@@ -9,45 +10,34 @@ import {
   Settings, 
   ChevronLeft,
   LayoutDashboard,
-  Search,
-  Bell,
-  User
+  Radar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
+import { useTranslation } from "react-i18next";
+
 export function AdminLayout({ children }: AdminLayoutProps) {
   const { user } = useAuth();
   const [location] = useLocation();
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-
-  // Ctrl+K to focus search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        document.getElementById('admin-global-search')?.focus();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  const { t } = useTranslation();
 
   const navItems = [
-    { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/users", label: "User Management", icon: Users },
-    { href: "/admin/reports", label: "Content Reports", icon: Flag },
-    { href: "/admin/logs", label: "Activity Logs", icon: Activity },
-    { href: "/admin/settings", label: "Admin Settings", icon: Settings },
+    { href: "/admin", label: t("admin.title", "Dashboard"), icon: LayoutDashboard },
+    { href: "/admin/users", label: t("admin.tabs.users", "User Management"), icon: Users },
+    { href: "/admin/reports", label: t("admin.tabs.reports", "Content Reports"), icon: Flag },
+    { href: "/admin/monitoring", label: t("admin.tabs.monitoring", "Monitoring System"), icon: Radar },
+    { href: "/admin/logs", label: t("admin.tabs.logs", "Activity Logs"), icon: Activity },
+    { href: "/admin/settings", label: t("admin.tabs.settings", "Admin Settings"), icon: Settings },
   ];
 
   return (
-    <div className="flex h-screen bg-muted/30 overflow-hidden">
+    <>
+      <Navbar />
+      <div className="flex h-[calc(100vh-3.5rem)] bg-muted/30 overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 border-r bg-card flex flex-col z-30 shrink-0">
         <div className="p-6 flex items-center gap-3 border-b mb-4">
@@ -96,46 +86,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Top Header */}
-        <header className="h-16 border-b bg-card px-8 flex items-center justify-between z-20 shrink-0">
-          <div className="flex items-center gap-6 flex-1 max-w-2xl">
-            <div className="relative flex-1 group">
-              <Search className={cn(
-                "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors",
-                isSearchFocused ? "text-primary" : "text-muted-foreground"
-              )} />
-              <Input 
-                id="admin-global-search"
-                placeholder="Search anything... (Ctrl+K)" 
-                className="pl-10 h-9 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-card transition-all"
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative group">
-              <Bell className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-card" />
-            </Button>
-            <div className="flex items-center gap-3 pl-4 border-l">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold leading-tight">{user?.username}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{user?.role}</p>
-              </div>
-              <div className="bg-primary/10 p-2 rounded-full border border-primary/20">
-                <User className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </div>
-        </header>
-
         {/* Scrollable Content Pane */}
         <main className="flex-1 overflow-auto bg-muted/10 p-8 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent">
           {children}
         </main>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

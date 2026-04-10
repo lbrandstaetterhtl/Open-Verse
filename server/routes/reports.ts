@@ -4,6 +4,8 @@ import { isAuthenticated, isAdmin } from "../middleware/auth";
 import { insertReportSchema } from "@shared/schema";
 import { broadcastMessage, connections } from "../services/websocket";
 import { WebSocket } from 'ws';
+import { notificationService } from "../services/notification-service";
+import { activityLogger } from "../services/activity-logger";
 
 const router = Router();
 
@@ -64,6 +66,15 @@ router.post("/", isAuthenticated, async (req, res) => {
             }
         });
 
+        activityLogger.logFromRequest(req, {
+            action: 'report.submit',
+            category: 'moderation',
+            description: `Teilt mit: ${result.data.reason.substring(0, 50)}`,
+            targetType: 'Report',
+            targetId: String(report.id),
+            severity: 'warning'
+        }).catch(err => console.error('[Monitor] report.submit failed:', err));
+
         res.status(201).json(report);
     } catch (error) {
         console.error("Error creating report:", error);
@@ -106,13 +117,14 @@ router.patch("/:id", isAdmin, async (req, res) => {
                 }
 
                 try {
-                    await storage.createNotification({
+                    await notificationService.notify({
                         userId: report.reporterId,
+                        actorId: (req.user as any).id,
                         type: "report_resolved",
-                        fromUserId: (req.user as any).id,
+                        actionUrl: "/notifications"
                     });
                 } catch (notifError) {
-                    console.error(notifError);
+                    console.error("[NotificationService] Error notifying reporter:", notifError);
                 }
 
                 res.json(updatedReport);
@@ -124,15 +136,31 @@ router.patch("/:id", isAdmin, async (req, res) => {
             const updatedReport = await storage.updateReportStatus(reportId, status);
             if (status === "rejected") {
                 try {
-                    await storage.createNotification({
+                    await notificationService.notify({
                         userId: report.reporterId,
+                        actorId: (req.user as any).id,
                         type: "report_rejected",
-                        fromUserId: (req.user as any).id,
+                        actionUrl: "/notifications"
                     });
-                } catch (notifError) { console.error(notifError); }
+                } catch (notifError) { console.error("[NotificationService] Error notifying reporter:", notifError); }
             }
             res.json(updatedReport);
         }
+        
+        // Ensure log is recorded for any report patch
+        const updatedReport = await storage.getReport(reportId);
+        if (updatedReport) {
+            activityLogger.logFromRequest(req, {
+                action: 'report.resolve',
+                category: 'moderation',
+                description: `Report Status auf ${status} gesetzt`,
+                targetType: 'Report',
+                targetId: String(reportId),
+                severity: status === 'rejected' ? 'info' : 'warning',
+                newValue: { status }
+            }).catch(err => console.error('[Monitor] report.resolve failed:', err));
+        }
+        
     } catch (error) {
         console.error("Error updating report:", error);
         res.status(500).send("Failed to update report status");

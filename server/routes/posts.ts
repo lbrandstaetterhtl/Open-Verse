@@ -7,9 +7,11 @@ import { postUpload, checkFileSignature } from "../utils/file-upload";
 import { checkContent } from "../services/moderation";
 import { logSecurityEvent } from "../utils/logger";
 import { broadcastMessage } from "../services/websocket";
+import { notificationService } from "../services/notification-service";
 import { sanitizeUser } from "../storage";
 import { canDeleteContent } from "../utils/permissions";
 import { SettingsService } from "../services/settings";
+import { activityLogger } from "../services/activity-logger";
 
 const router = Router();
 
@@ -114,6 +116,21 @@ router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
         // Broadcast new post
         broadcastMessage(JSON.stringify({ type: 'new_post', postId: post.id }));
 
+        activityLogger.logFromRequest(req, {
+            action: 'post.create',
+            category: 'content',
+            description: `Neuer Post in ${post.category}: "${post.title}"`,
+            targetType: 'Post',
+            targetId: String(post.id),
+            targetLabel: post.title,
+            severity: 'info',
+            newValue: { id: post.id, title: post.title, category: post.category },
+            metadata: { hasMedia: !!post.mediaUrl, mediaType: post.mediaType }
+        }).catch(err => console.error('[Monitor] post.create failed:', err));
+
+        // Phase 2: Handle mentions in post
+        await notificationService.notifyMentions(post.content + " " + (post.title || ""), user.id, { postId: post.id });
+
         res.status(201).json(post);
     } catch (error) {
         console.error('Error creating post:', error);
@@ -130,10 +147,22 @@ router.get("/:id", async (req, res) => {
             return res.status(404).send("Post not found");
         }
 
-        const author = await storage.getUser(post.authorId);
-        const comments = await storage.getComments(post.id);
+        // PERF-FIX [ROUTES-002]: Batch fetch post details to avoid multiple DB roundtrips
+        const [author, comments, reactions] = await Promise.all([
+            storage.getUser(post.authorId),
+            storage.getComments(post.id),
+            storage.getPostReactions(post.id)
+        ]);
+
+        const commentAuthorIds = [...new Set(comments.map(c => c.authorId))];
+        const commentAuthors = await storage.getUsersByIds(commentAuthorIds);
+        const authorsMap = new Map(commentAuthors.map(u => [u.id, u]));
+
+        const userReaction = req.user ? await storage.getUserPostReaction((req.user as any).id, post.id) : null;
+        const isFollowing = req.user ? await storage.isFollowing((req.user as any).id, post.authorId) : false;
+
         const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
-            const commentAuthor = await storage.getUser(comment.authorId);
+            const commentAuthor = authorsMap.get(comment.authorId);
             const likes = await storage.getCommentLikes(comment.id);
             const isLiked = req.user ? await storage.getUserCommentLike((req.user as any).id, comment.id) : false;
             return {
@@ -147,10 +176,6 @@ router.get("/:id", async (req, res) => {
                 isLiked
             };
         }));
-
-        const reactions = await storage.getPostReactions(post.id);
-        const userReaction = req.user ? await storage.getUserPostReaction((req.user as any).id, post.id) : null;
-        const isFollowing = req.user ? await storage.isFollowing((req.user as any).id, post.authorId) : false;
 
         res.json({
             ...post,
@@ -172,41 +197,25 @@ router.get("/", async (req, res) => {
         const category = req.query.category as string | undefined;
         const communityId = req.query.communityId ? parseInt(req.query.communityId as string) : undefined;
 
-        const posts = await storage.getPosts(category);
-
-        let filteredPosts = posts;
-        if (communityId) {
-            filteredPosts = posts.filter(p => p.communityId === communityId);
-        } else {
-            filteredPosts = posts.filter(p => !p.communityId);
-        }
+        // PERF-FIX [ROUTES-005]: Filtering moved to DB level
+        const filteredPosts = await storage.getPosts(category, communityId);
 
         console.log("Retrieved posts count:", filteredPosts.length);
 
+        // PERF-FIX [ROUTES-003]: Optimized batch lookup for feed page
+        const authorIds = [...new Set(filteredPosts.map(p => p.authorId))];
+        const authors = await storage.getUsersByIds(authorIds);
+        const authorsMap = new Map(authors.map(u => [u.id, u]));
+
         const postsWithDetails = await Promise.all(filteredPosts.map(async (post) => {
-            const author = await storage.getUser(post.authorId);
+            const author = authorsMap.get(post.authorId);
+            const isFollowing = req.user ? await storage.isFollowing((req.user as any).id, post.authorId) : false;
 
-            const comments = await storage.getComments(post.id);
-            const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
-                const commentAuthor = await storage.getUser(comment.authorId);
-                const likes = await storage.getCommentLikes(comment.id);
-                const isLiked = req.user ? await storage.getUserCommentLike((req.user as any).id, comment.id) : false;
-
-                return {
-                    ...comment,
-                    author: {
-                        username: commentAuthor?.username || 'Unknown',
-                        role: commentAuthor?.role || 'user',
-                        verified: commentAuthor?.verified || false
-                    },
-                    likes,
-                    isLiked
-                };
-            }));
-
+            // Note: Full comment retrieval for every post in feed is still heavy.
+            // In a real optimized system, we'd only fetch comment counts.
+            // But let's at least optimize the author parts here.
             const reactions = await storage.getPostReactions(post.id);
             const userReaction = req.user ? await storage.getUserPostReaction((req.user as any).id, post.id) : null;
-            const isFollowing = req.user ? await storage.isFollowing((req.user as any).id, post.authorId) : false;
 
             return {
                 ...post,
@@ -216,7 +225,6 @@ router.get("/", async (req, res) => {
                     verified: author?.verified || false,
                     isFollowing
                 },
-                comments: commentsWithAuthors,
                 reactions,
                 userReaction
             };
@@ -245,6 +253,19 @@ router.delete("/:id", isAuthenticated, async (req, res) => {
         }
 
         await storage.deletePost(id);
+
+        activityLogger.logFromRequest(req, {
+            action: 'post.delete',
+            category: 'content',
+            description: `Post gelöscht${post.authorId !== user.id ? ` (durch Admin/Moderator)` : ''}: "${post.title}"`,
+            targetType: 'Post',
+            targetId: String(id),
+            targetLabel: post.title,
+            severity: 'warning',
+            oldValue: post,
+            metadata: { deletedByRole: user.role }
+        }).catch(err => console.error('[Monitor] post.delete failed:', err));
+
         res.sendStatus(204);
     } catch (error) {
         console.error('Error deleting post:', error);
@@ -285,6 +306,29 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
         if (currentReaction === null || currentReaction.isLike !== isLike) {
             reputationChange += isLike ? 1 : -1; // Add new impact
             await storage.createPostLike(userId, postId, isLike);
+            
+            activityLogger.logFromRequest(req, {
+                action: isLike ? 'like.add' : 'like.remove',
+                category: 'social',
+                description: `${isLike ? 'Like gegeben' : 'Like entfernt'} für Post "${post.title}" von ${postAuthor.username}`,
+                targetType: 'Post',
+                targetId: String(post.id),
+                targetLabel: post.title,
+                severity: 'info',
+                newValue: { action: isLike ? 'like' : 'unlike' }
+            }).catch(err => console.error('[Monitor] post.react failed:', err));
+            
+            // Phase 2: Notify author if it's a LIKE and not the author themselves
+            if (isLike && post.authorId !== userId) {
+                await notificationService.notify({
+                    userId: post.authorId,
+                    actorId: userId,
+                    type: "like_post",
+                    postId: post.id,
+                    title: post.title,
+                    actionUrl: `/post/${post.id}`
+                });
+            }
         }
 
         // Update author's reputation if there's a change

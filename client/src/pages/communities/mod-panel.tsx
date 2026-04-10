@@ -388,7 +388,7 @@ function MembersManager({ communityId }: { communityId: number }) {
   });
 
   const currentUserMember = members?.find((m) => m.user.id === currentUser?.id);
-  const isOwner = currentUserMember?.role === "owner";
+  const isOwner = currentUserMember?.role === "owner" || currentUser?.role === "admin" || currentUser?.role === "owner";
 
   const filteredMembers =
     members?.filter((m) => m.user.username.toLowerCase().includes(searchTerm.toLowerCase())) || [];
@@ -434,8 +434,13 @@ function MembersManager({ communityId }: { communityId: number }) {
                 <TableRow key={member.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      {member.user.username}
-                      {member.role === "owner" && <Crown className="h-3 w-3 text-amber-500 fill-amber-500" />}
+                      <div className="flex flex-col">
+                        <span className="flex items-center gap-1">
+                          {member.user.username}
+                          {member.role === "owner" && <Crown className="h-3 w-3 text-amber-500 fill-amber-500" />}
+                        </span>
+                        <span className="text-[9px] font-mono text-muted-foreground">ID: {member.user.id}</span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -557,6 +562,7 @@ function BansManager({ communityId }: { communityId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "bans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
       setBanUserId("");
       setBanReason("");
       setBanDialogOpen(false);

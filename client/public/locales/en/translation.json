@@ -19,6 +19,8 @@
     "error": "An error occurred",
     "submit": "Submit",
     "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
     "delete": "Delete",
     "edit": "Edit",
     "save": "Save",
@@ -51,6 +53,8 @@
     "report": "Report",
     "delete": "Delete",
     "cancel": "Cancel",
+    "like": "Like",
+    "dislike": "Dislike",
     "delete_post_confirm": "Are you sure you want to delete this post? This action cannot be undone.",
     "delete_comment_confirm": "Are you sure you want to delete this comment? This action cannot be undone."
   },
@@ -71,7 +75,8 @@
     },
     "tabs": {
       "users": "Users",
-      "reports": "Reports"
+      "reports": "Reports",
+      "monitoring": "Monitoring System"
     },
     "roles": {
       "owner": "Owner",
@@ -134,13 +139,50 @@
   },
   "notifications": {
     "title": "Notifications",
+    "manage_desc": "Stay updated with your latest interactions and account activity.",
     "empty": "No notifications yet",
-    "new_follower": "started following you",
-    "new_message": "sent you a message",
-    "report_resolved": "resolved your report",
-    "report_rejected": "rejected your report",
-    "community_kick": "kicked you from {{name}}",
-    "interaction": "interacted with your post"
+    "empty_desc": "When you get notifications, they'll show up here.",
+    "mark_all_read": "Mark all as read",
+    "settings": "Settings",
+    "view_all": "View all notifications",
+    "clear_all": "Clear all",
+    "confirm_clear_all": "Are you sure you want to clear all notifications?",
+    "error_load": "Could not load notifications.",
+    "tabs": {
+      "all": "All",
+      "unread": "Unread",
+      "settings": "Preferences"
+    },
+    "types": {
+      "new_follower": "{{actor}} started following you",
+      "new_message": "{{actor}} sent you a message",
+      "like_post": "{{actor}} liked your post",
+      "like_comment": "{{actor}} liked your comment",
+      "comment_post": "{{actor}} commented on your post",
+      "comment_reply": "{{actor}} replied to your comment",
+      "mention_post": "{{actor}} mentioned you in a post",
+      "mention_comment": "{{actor}} mentioned you in a comment",
+      "community_join_approved": "Your request to join {{name}} was approved",
+      "community_join_request": "{{actor}} requested to join {{name}}",
+      "community_kick": "You were kicked from {{name}}",
+      "report_resolved": "Your report was resolved",
+      "report_rejected": "Your report was rejected",
+      "system_announcement": "System Announcement: {{name}}",
+      "action": "{{actor}} performed an action",
+      "welcome": "Welcome to Osiris! We are glad you are here."
+    },
+    "pref": {
+      "social_header": "Social Interactions",
+      "social_desc": "Choose what social events you want to be notified about.",
+      "system_header": "System & Community",
+      "system_desc": "Manage community alerts and administrative notifications.",
+      "likes": "Likes on your content",
+      "comments": "Comments and replies",
+      "mentions": "Mentions",
+      "followers": "New Followers",
+      "community_invites": "Community Events",
+      "system": "System Announcements"
+    }
   },
   "ai_generator": {
     "title": "AI Post Generator",
@@ -428,5 +470,42 @@
     "reset_confirm": "Are you sure you want to reset all colors to their defaults? This cannot be undone.",
     "import_success": "Theme imported successfully",
     "export_success": "Theme configuration copied to clipboard"
+  },
+  "footer": {
+    "default_tagline": "Unleash your creativity. Build the universe.",
+    "copyright": "© {{year}} Osiris Platform. All rights reserved."
+  },
+  "monitoring": {
+    "title": "Monitoring Overview",
+    "events_today": "Events Today",
+    "open_anomalies": "Open Anomalies",
+    "critical": "Critical",
+    "error_rate": "Error Rate (1h)",
+    "active_users": "Active Users",
+    "in_last_5m": "in last 5m",
+    "activity_logs": "Activity Logs",
+    "anomalies": "Anomaly Detection",
+    "search_action": "Search action or description...",
+    "all_categories": "All Categories",
+    "all_severities": "All Severities",
+    "time": "Time",
+    "severity": "Severity",
+    "user": "User",
+    "action": "Action",
+    "description": "Description",
+    "ip": "IP",
+    "no_logs": "No logs found",
+    "status": "Status",
+    "type": "Type",
+    "auto_action": "Auto Action",
+    "no_anomalies": "No anomalies found",
+    "open": "Open",
+    "investigating": "Investigating",
+    "resolved": "Resolved",
+    "false_positive": "False Positive",
+    "metrics": {
+      "events_minute_chart": "Events Activity (24h)",
+      "errors_by_category": "Errors & Warnings by Category"
+    }
   }
 }

@@ -134,13 +134,48 @@
   },
   "notifications": {
     "title": "通知",
+    "manage_desc": "随时了解您的最新互动和账户动态。",
     "empty": "暂无通知",
-    "new_follower": "开始关注你",
-    "new_message": "给你发了一条消息",
-    "report_resolved": "已解决您的举报",
-    "report_rejected": "已驳回您的举报",
-    "community_kick": "将与其从 {{name}} 踢出",
-    "interaction": "与您的帖子进行了互动"
+    "empty_desc": "当您收到通知时，它们将显示在这里。",
+    "mark_all_read": "全部标记为已读",
+    "settings": "设置",
+    "view_all": "查看所有通知",
+    "clear_all": "清空全部",
+    "confirm_clear_all": "您确定要清空所有通知吗？",
+    "error_load": "无法加载通知。",
+    "tabs": {
+      "all": "全部",
+      "unread": "未读",
+      "settings": "通知设置"
+    },
+    "types": {
+      "new_follower": "{{actor}} 开始关注了您",
+      "new_message": "{{actor}} 给您发送了一条消息",
+      "like_post": "{{actor}} 赞了您的帖子",
+      "like_comment": "{{actor}} 赞了您的评论",
+      "comment_post": "{{actor}} 评论了您的帖子",
+      "comment_reply": "{{actor}} 回复了您的评论",
+      "mention_post": "{{actor}} 在帖子中提到了您",
+      "mention_comment": "{{actor}} 在评论中提到了您",
+      "community_join_approved": "您加入 {{name}} 社区的申请已通过",
+      "community_join_request": "{{actor}} 申请加入 {{name}} 社区",
+      "community_kick": "您已被移出 {{name}} 社区",
+      "report_resolved": "您的举报已处理",
+      "report_rejected": "您的举报已被驳回",
+      "system_announcement": "系统公告: {{name}}"
+    },
+    "pref": {
+      "social_header": "社交互动",
+      "social_desc": "选择您希望接收通知的社交事件。",
+      "system_header": "系统与社区",
+      "system_desc": "管理社区提醒和系统通知。",
+      "likes": "点赞通知",
+      "comments": "评论与回复",
+      "mentions": "提到我的",
+      "followers": "新粉丝",
+      "community_invites": "社区动态",
+      "system": "系统公告"
+    }
   },
   "ai_generator": {
     "title": "AI 帖子生成器",

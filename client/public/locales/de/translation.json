@@ -71,7 +71,8 @@
     },
     "tabs": {
       "users": "Benutzer",
-      "reports": "Meldungen"
+      "reports": "Meldungen",
+      "monitoring": "Monitoring System"
     },
     "roles": {
       "owner": "Inhaber",
@@ -134,13 +135,50 @@
   },
   "notifications": {
     "title": "Benachrichtigungen",
+    "manage_desc": "Bleib über deine neuesten Interaktionen und Kontoaktivitäten auf dem Laufenden.",
     "empty": "Noch keine Benachrichtigungen",
-    "new_follower": "folgt dir jetzt",
-    "new_message": "hat dir eine Nachricht gesendet",
-    "report_resolved": "hat deinen Report angenommen",
-    "report_rejected": "hat deinen Report abgelehnt",
-    "community_kick": "hat dich aus {{name}} gekickt",
-    "interaction": "hat mit deinem Beitrag interagiert"
+    "empty_desc": "Wenn du Benachrichtigungen erhältst, werden sie hier angezeigt.",
+    "mark_all_read": "Alle als gelesen markieren",
+    "settings": "Einstellungen",
+    "view_all": "Alle Benachrichtigungen anzeigen",
+    "clear_all": "Alle löschen",
+    "confirm_clear_all": "Bist du sicher, dass du alle Benachrichtigungen löschen möchtest?",
+    "error_load": "Benachrichtigungen konnten nicht geladen werden.",
+    "tabs": {
+      "all": "Alle",
+      "unread": "Ungelesen",
+      "settings": "Einstellungen"
+    },
+    "types": {
+      "new_follower": "{{actor}} folgt dir jetzt",
+      "new_message": "{{actor}} hat dir eine Nachricht gesendet",
+      "like_post": "{{actor}} gefällt dein Beitrag",
+      "like_comment": "{{actor}} gefällt dein Kommentar",
+      "comment_post": "{{actor}} hat deinen Beitrag kommentiert",
+      "comment_reply": "{{actor}} hat auf deinen Kommentar geantwortet",
+      "mention_post": "{{actor}} hat dich in einem Beitrag erwähnt",
+      "mention_comment": "{{actor}} hat dich in einem Kommentar erwähnt",
+      "community_join_approved": "Deine Anfrage zum Beitritt zu {{name}} wurde angenommen",
+      "community_join_request": "{{actor}} möchte {{name}} beitreten",
+      "community_kick": "Du wurdest aus {{name}} gekickt",
+      "report_resolved": "Dein Report wurde bearbeitet",
+      "report_rejected": "Dein Report wurde abgelehnt",
+      "system_announcement": "System-Ankündigung: {{name}}",
+      "action": "{{actor}} hat eine Aktion durchgeführt",
+      "welcome": "Willkommen bei Osiris! Schön, dass du da bist."
+    },
+    "pref": {
+      "social_header": "Soziale Interaktionen",
+      "social_desc": "Wähle aus, über welche sozialen Ereignisse du benachrichtigt werden möchtest.",
+      "system_header": "System & Community",
+      "system_desc": "Verwalte Community-Warnungen und administrative Benachrichtigungen.",
+      "likes": "Likes auf deine Inhalte",
+      "comments": "Kommentare und Antworten",
+      "mentions": "Erwähnungen",
+      "followers": "Neue Follower",
+      "community_invites": "Community-Ereignisse",
+      "system": "System-Ankündigungen"
+    }
   },
   "ai_generator": {
     "title": "KI-Beitragsgenerator",
@@ -428,5 +466,38 @@
     "reset_confirm": "Möchten Sie wirklich alle Farben auf die Standardwerte zurücksetzen? Dies kann nicht rückgängig gemacht werden.",
     "import_success": "Theme erfolgreich importiert",
     "export_success": "Theme-Konfiguration in die Zwischenablage kopiert"
+  },
+  "monitoring": {
+    "title": "Monitoring-Übersicht",
+    "events_today": "Ereignisse Heute",
+    "open_anomalies": "Offene Anomalien",
+    "critical": "Kritisch",
+    "error_rate": "Fehlerrate (1h)",
+    "active_users": "Aktive Benutzer",
+    "in_last_5m": "in den letzten 5 Min",
+    "activity_logs": "Aktivitätsprotokolle",
+    "anomalies": "Anomalie-Erkennung",
+    "search_action": "Nach Aktion oder Beschreibung suchen...",
+    "all_categories": "Alle Kategorien",
+    "all_severities": "Alle Schweregrade",
+    "time": "Zeitpunkt",
+    "severity": "Schweregrad",
+    "user": "Benutzer",
+    "action": "Aktion",
+    "description": "Beschreibung",
+    "ip": "IP",
+    "no_logs": "Keine Protokolle gefunden",
+    "status": "Status",
+    "type": "Typ",
+    "auto_action": "Autom. Aktion",
+    "no_anomalies": "Keine Anomalien gefunden",
+    "open": "Offen",
+    "investigating": "In Untersuchung",
+    "resolved": "Behoben",
+    "false_positive": "Fehlalarm",
+    "metrics": {
+      "events_minute_chart": "Aktivitäten (24h)",
+      "errors_by_category": "Fehler & Warnungen nach Kategorie"
+    }
   }
 }

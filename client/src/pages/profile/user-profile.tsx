@@ -4,7 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trophy, UserPlus, UserMinus, BadgeCheck, ArrowLeft } from "lucide-react";
+import { Loader2, Trophy, UserPlus, UserMinus, BadgeCheck } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { MessageSquare, Calendar } from "lucide-react";
 import { Post, User } from "@shared/schema";
+import { BackButton } from "@/components/ui/back-button";
 
 export default function UserProfilePage() {
   const { username } = useParams();
@@ -160,14 +161,7 @@ export default function UserProfilePage() {
       <Navbar />
       <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto space-y-8">
-          <Button
-            variant="ghost"
-            className="mb-4 pl-0 hover:bg-transparent hover:text-primary"
-            onClick={() => window.history.back()}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+          <BackButton fallback="/feed" />
           <div className="flex items-center gap-4">
             <UserAvatar user={profile} size="lg" />
             <div>

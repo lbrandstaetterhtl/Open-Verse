@@ -13,6 +13,7 @@ import { Loader2, Info, Menu } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
+import { BackButton } from "@/components/ui/back-button";
 
 type Message = {
   id: number;
@@ -132,7 +133,10 @@ export default function ChatPage() {
         <div className="max-w-4xl mx-auto">
           {/* Mobile Header */}
           <div className="flex items-center justify-between mb-4 lg:mb-8">
-            <h1 className="text-xl lg:text-3xl font-bold">Messages</h1>
+            <div className="flex items-center gap-4">
+              <BackButton fallback="/feed" className="-ml-3" />
+              <h1 className="text-xl lg:text-3xl font-bold">Messages</h1>
+            </div>
             <Button
               variant="ghost"
               size="icon"

@@ -13,8 +13,10 @@ import {
   ShieldAlert,
   Users,
   Menu,
+  AlertCircle,
+  Ticket,
 } from "lucide-react";
-import { NotificationsDialog } from "@/components/notifications/notifications-dialog";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ModeToggle } from "@/components/theme/mode-toggle";
 import { LanguageToggle } from "@/components/theme/language-toggle";
 import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
@@ -50,6 +52,7 @@ export function Navbar() {
 
   const secondaryLinks = [
     { href: "/ai-generator", icon: Bot, label: t("navbar.ai_generator") },
+    { href: "/tickets", icon: AlertCircle, label: t("navbar.support", "Support Tickets") },
     { href: "/chat", icon: MessageCircle, label: t("navbar.messages") },
     { href: "/profile", icon: UserCircle, label: t("navbar.profile") },
     { href: "/theme-builder", icon: Palette, label: t("navbar.theme_builder") },
@@ -57,7 +60,7 @@ export function Navbar() {
       ? [{ href: "/mod-panel", icon: ShieldAlert, label: t("navbar.mod_panel") }]
       : []),
     ...(user?.isAdmin || user?.role === "admin" || user?.role === "owner"
-      ? [{ href: "/admin", icon: Shield, label: t("navbar.admin") }]
+      ? [{ href: "/admin", icon: Shield, label: t("navbar.admin") }, { href: "/admin/tickets", icon: Ticket, label: t("navbar.manage_tickets", "Manage Tickets") }]
       : []),
   ];
 
@@ -96,7 +99,7 @@ export function Navbar() {
                               )}
                             >
                               <link.icon className="h-5 w-5 opacity-80" />
-                              <span className="font-medium">{link.label}</span>
+                              <span className="text-sm font-medium">{link.label}</span>
                             </Button>
                           </Link>
                         ))}
@@ -120,7 +123,7 @@ export function Navbar() {
                               )}
                             >
                               <link.icon className="h-5 w-5 opacity-80" />
-                              <span className="font-medium">{link.label}</span>
+                              <span className="text-sm font-medium">{link.label}</span>
                             </Button>
                           </Link>
                         ))}
@@ -133,45 +136,45 @@ export function Navbar() {
 
           <Link href="/" className="flex items-center space-x-2">
             <OpenVerseIcon className="h-8 w-auto object-contain text-primary" />
-            <span className="font-bold hidden sm:inline">{settings.site_name}</span>
+            <span className="font-bold hidden sm:inline text-sm tracking-tight">{settings.site_name}</span>
           </Link>
         </div>
 
         {/* REDESIGN [UX-001]: Centered Desktop Links */}
-        <div className="hidden md:flex flex-1 items-center justify-center px-4">
-          <div className="flex items-center space-x-1">
+        <div className="hidden md:flex flex-1 items-center justify-center px-4 min-w-0 overflow-x-auto no-scrollbar">
+          <div className="flex items-center space-x-1 flex-shrink-0">
             {primaryLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 <Button
                   variant={location === link.href ? "secondary" : "ghost"}
                   size="sm"
                   className={cn(
-                    "flex items-center space-x-1.5 transition-all duration-200",
+                    "flex items-center space-x-1.5 transition-all duration-200 flex-shrink-0",
                     location === link.href && "bg-primary/10 text-primary hover:bg-primary/20"
                   )}
                 >
                   <link.icon className="h-4 w-4" />
-                  <span className="hidden lg:inline text-sm font-medium">{link.label}</span>
+                  <span className="hidden lg:inline text-xs font-medium">{link.label}</span>
                 </Button>
               </Link>
             ))}
           </div>
 
-          <Separator orientation="vertical" className="h-6 mx-2" />
+          <Separator orientation="vertical" className="h-6 mx-2 flex-shrink-0" />
 
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 flex-shrink-0">
             {secondaryLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 <Button
                   variant={location === link.href ? "secondary" : "ghost"}
                   size="sm"
                   className={cn(
-                    "flex items-center space-x-1.5 transition-all duration-200",
+                    "flex items-center space-x-1.5 transition-all duration-200 flex-shrink-0 px-2 lg:px-3",
                     location === link.href && "bg-primary/10 text-primary hover:bg-primary/20"
                   )}
                 >
                   <link.icon className="h-4 w-4" />
-                  <span className="hidden xl:inline text-sm font-medium">{link.label}</span>
+                  <span className="hidden xl:inline text-xs font-medium">{link.label}</span>
                 </Button>
               </Link>
             ))}
@@ -179,8 +182,8 @@ export function Navbar() {
         </div>
 
         {/* Utility actions (Right) */}
-        <div className="flex items-center space-x-1 justify-end">
-          <NotificationsDialog />
+        <div className="flex items-center space-x-1 justify-end flex-shrink-0 ml-auto">
+          <NotificationBell />
           <LanguageToggle />
           <ModeToggle />
           <Button
@@ -190,7 +193,7 @@ export function Navbar() {
             disabled={logoutMutation.isPending}
             className="hidden sm:inline-flex"
           >
-            {t("navbar.logout")}
+            <span className="text-xs font-medium">{t("navbar.logout")}</span>
           </Button>
         </div>
       </div>

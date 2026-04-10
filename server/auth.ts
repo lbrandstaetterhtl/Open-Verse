@@ -12,6 +12,7 @@ import { sendVerificationEmail } from "./utils/email";
 import rateLimit from "express-rate-limit";
 import { logSecurityEvent } from "./utils/logger";
 import { insertUserSchema } from "@shared/schema";
+import { activityLogger } from "./services/activity-logger";
 
 declare global {
   namespace Express {
@@ -118,6 +119,14 @@ export function setupAuth(app: Express, sessionParser: any) {
             type: "AUTH_FAILURE",
             details: { reason: "User not found" },
           });
+          activityLogger.log({
+            action: 'auth.login_failed',
+            category: 'auth',
+            description: `Fehlgeschlagener Login-Versuch (User not found)`,
+            severity: 'warning',
+            status: 'failure',
+            metadata: { username }
+          });
           return done(null, false, { message: "Invalid username or password" });
         }
 
@@ -128,6 +137,15 @@ export function setupAuth(app: Express, sessionParser: any) {
             type: "AUTH_FAILURE",
             userId: user.id,
             details: { reason: "Invalid password" },
+          });
+          activityLogger.log({
+            userId: user.id,
+            action: 'auth.login_failed',
+            category: 'auth',
+            description: `Fehlgeschlagener Login-Versuch für ${user.username}`,
+            severity: 'warning',
+            status: 'failure',
+            metadata: { username }
           });
           return done(null, false, { message: "Invalid username or password" });
         }
@@ -201,13 +219,18 @@ export function setupAuth(app: Express, sessionParser: any) {
       }
 
       // Create the user first
+      // SECURITY FIX [AUTH-004]: Prevent IDOR - ignore any emailVerified value from request
+      const { emailVerified: _, ...registerData } = data;
       const user = await storage.createUser({
-        ...data,
+        ...registerData,
         password: await hashPassword(data.password),
       } as any);
 
-      // Verify email if needed or just set as verified for now
-      await storage.verifyUserEmail(user.id);
+      // SECURITY FIX [AUTH-003]: Do not auto-verify email on registration if SendGrid is available
+      // It will be verified either by the link or by being manually set if NO SendGrid is used
+      if (!process.env.SENDGRID_API_KEY) {
+        await storage.verifyUserEmail(user.id);
+      }
 
       // Add Default Theme for new user
       try {
@@ -282,9 +305,14 @@ export function setupAuth(app: Express, sessionParser: any) {
         if (err) return res.status(500).send(err.message);
         // SEC-FIX [SEC-005]: Session Fixation Protection
         const passportData = (req.session as any).passport;
+        // SECURITY FIX [AUTH-002]: Preserve or regenerate CSRF token after session change
+        const oldCsrfToken = (req.session as any).csrfToken;
+        
         req.session.regenerate((err) => {
           if (err) return res.status(500).send(err.message);
           (req.session as any).passport = passportData;
+          (req.session as any).csrfToken = oldCsrfToken || randomBytes(32).toString("hex");
+          
           req.session.save((err) => {
             if (err) return res.status(500).send(err.message);
             logSecurityEvent({
@@ -292,6 +320,16 @@ export function setupAuth(app: Express, sessionParser: any) {
               userId: user.id,
               details: { action: "register" },
             });
+            activityLogger.log({
+              userId: user.id,
+              userUsername: user.username,
+              action: 'auth.register',
+              category: 'auth',
+              description: `Neuer Account registriert: ${user.username}`,
+              severity: 'info',
+              status: 'success',
+              req
+            }).catch(err => console.error('[Monitor] auth.register log failed:', err));
             res.status(201).json(user);
           });
         });
@@ -312,17 +350,37 @@ export function setupAuth(app: Express, sessionParser: any) {
         
         // SEC-FIX [SEC-005]: Session Fixation Protection
         const passportData = (req.session as any).passport;
+        const oldCsrfToken = (req.session as any).csrfToken;
+
         req.session.regenerate((err) => {
           if (err) return next(err);
           (req.session as any).passport = passportData;
+          (req.session as any).csrfToken = oldCsrfToken || randomBytes(32).toString("hex");
+          
           req.session.save((err) => {
             if (err) return next(err);
             console.log("User logged in successfully:", user.username);
+            activityLogger.log({
+              userId: user.id,
+              action: 'auth.login',
+              category: 'auth',
+              description: `User ${user.email} hat sich eingeloggt`,
+              targetType: 'User',
+              targetId: String(user.id),
+              targetLabel: user.email,
+              severity: 'info',
+              status: 'success',
+              metadata: { method: 'password' },
+              req,
+            });
             res.json(sanitizeUser(user));
           });
         });
       });
     })(req, res, next);
+    // Note: We don't log failed auth attempts directly here unless it's easy to intercept the failure callback, 
+    // but Passport's local strategy returns false to info if it fails.
+    // For failed logins, we'll log it inside the local strategy callback.
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -332,6 +390,15 @@ export function setupAuth(app: Express, sessionParser: any) {
       req.session.destroy((err) => {
         if (err) return next(err);
         console.log("User logged out successfully:", username);
+        activityLogger.log({
+          userId: req.user?.id,
+          action: 'auth.logout',
+          category: 'auth',
+          description: `User ${username} hat sich ausgeloggt`,
+          severity: 'info',
+          status: 'success',
+          req
+        });
         res.sendStatus(200);
       });
     });

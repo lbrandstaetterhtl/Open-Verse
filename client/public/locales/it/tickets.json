@@ -1,0 +1,152 @@
+{
+  "title": "Tickets",
+  "myTickets": "My Tickets",
+  "allTickets": "All Tickets",
+  "newTicket": "New Ticket",
+  "createTicket": "Create Ticket",
+  "ticketNumber": "Ticket Number",
+  "noTickets": "No tickets found",
+  "noTicketsDescription": "Create your first support ticket",
+  "fields": {
+    "title": "Title",
+    "titlePlaceholder": "Short, precise description of the issue",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe the issue in as much detail as possible...",
+    "type": "Type",
+    "priority": "Priority",
+    "status": "Status",
+    "assignedTo": "Assigned to",
+    "relatedUser": "Related User",
+    "relatedPost": "Related Post",
+    "relatedUrl": "External URL",
+    "tags": "Tags",
+    "createdBy": "Created by",
+    "createdAt": "Created at",
+    "updatedAt": "Updated at",
+    "resolvedAt": "Resolved at",
+    "closedAt": "Closed at"
+  },
+  "types": {
+    "bug_report": "Bug Report",
+    "feature_request": "Feature Request",
+    "user_complaint": "User Complaint",
+    "content_issue": "Content Issue",
+    "security_concern": "Security Concern",
+    "performance_issue": "Performance Issue",
+    "access_request": "Access Request",
+    "data_issue": "Data Issue",
+    "other": "Other"
+  },
+  "status": {
+    "open": "Open",
+    "in_progress": "In Progress",
+    "on_hold": "On Hold",
+    "resolved": "Resolved",
+    "closed": "Closed"
+  },
+  "priority": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "actions": {
+    "changeStatus": "Change Status",
+    "changePriority": "Change Priority",
+    "assign": "Assign",
+    "close": "Close",
+    "reopen": "Reopen",
+    "delete": "Delete",
+    "restore": "Restore",
+    "addComment": "Add Comment",
+    "editComment": "Edit",
+    "deleteComment": "Delete",
+    "markInternal": "Mark as internal",
+    "viewHistory": "View History"
+  },
+  "comments": {
+    "title": "Activity",
+    "placeholder": "Add a comment...",
+    "internal": "Internal",
+    "internalHint": "Only visible to owners",
+    "system": "System",
+    "edited": "(edited)",
+    "noComments": "No comments yet"
+  },
+  "systemMessages": {
+    "created": "Ticket created",
+    "status_change": "Status changed: {{from}} → {{to}}",
+    "priority_change": "Priority changed: {{from}} → {{to}}",
+    "assignment_change": "Assigned to: {{to}}",
+    "unassigned": "Assignment removed"
+  },
+  "filters": {
+    "search": "Search tickets...",
+    "allStatus": "All Statuses",
+    "allTypes": "All Types",
+    "allPriorities": "All Priorities",
+    "sortBy": "Sort by",
+    "newest": "Newest first",
+    "oldest": "Oldest first",
+    "priority": "Priority (Critical first)",
+    "lastUpdated": "Last updated",
+    "resetFilters": "Reset Filters",
+    "activeFilters": "{{count}} active filters"
+  },
+  "stats": {
+    "total": "Total",
+    "open": "Open",
+    "inProgress": "In Progress",
+    "onHold": "On Hold",
+    "critical": "Critical",
+    "avgResolutionTime": "Avg. Resolution Time",
+    "hours": "{{count}} hours"
+  },
+  "validation": {
+    "titleRequired": "Title is required",
+    "titleTooShort": "Title must be at least 10 characters",
+    "titleTooLong": "Title cannot exceed 200 characters",
+    "descriptionRequired": "Description is required",
+    "descriptionTooShort": "Description must be at least 50 characters",
+    "typeRequired": "Type is required",
+    "priorityRequired": "Priority is required",
+    "invalidUrl": "Invalid URL",
+    "commentRequired": "Comment cannot be empty"
+  },
+  "confirmations": {
+    "deleteTicket": "Delete ticket?",
+    "deleteTicketDescription": "Ticket {{number}} will be permanently deleted.",
+    "deleteComment": "Delete comment?",
+    "closeTicket": "Close ticket?",
+    "closeTicketDescription": "Closed tickets can only be reopened by an owner."
+  },
+  "errors": {
+    "loadFailed": "Failed to load tickets",
+    "createFailed": "Failed to create ticket",
+    "updateFailed": "Failed to update ticket",
+    "deleteFailed": "Failed to delete ticket",
+    "commentFailed": "Failed to add comment",
+    "forbidden": "Action not allowed",
+    "notFound": "Ticket not found",
+    "invalidTransition": "Status transition not allowed"
+  },
+  "success": {
+    "created": "Ticket {{number}} has been created",
+    "updated": "Ticket has been updated",
+    "deleted": "Ticket has been deleted",
+    "statusChanged": "Status has been changed to '{{status}}'",
+    "commentAdded": "Comment has been added",
+    "assigned": "Ticket has been assigned"
+  },
+  "help": {
+    "title": "Writing a good ticket",
+    "bug_report": "Describe: What did you expect? What happened? Steps to reproduce?",
+    "feature_request": "Describe: What problem does this solve? Who benefits?",
+    "security_concern": "Report security vulnerabilities without exposing sensitive details.",
+    "priority_guide": "Priority Guide",
+    "priority_low": "Can wait for several weeks",
+    "priority_medium": "Should be processed soon",
+    "priority_high": "Should be processed in the next few days",
+    "priority_critical": "Must be processed immediately"
+  }
+}

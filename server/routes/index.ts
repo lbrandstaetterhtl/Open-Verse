@@ -22,7 +22,10 @@ import messageRoutes from "./messages";
 import notificationRoutes from "./notifications";
 import userRoutes from "./users";
 import adminRoutes from "./admin";
+import ticketRoutes from "./tickets";
+import monitoringRoutes from "./monitoring";
 import { SettingsService } from "../services/settings";
+import { monitoringMiddleware, slowQueryMiddleware } from "../middleware/monitoring";
 import path from "path";
 import xss from "xss";
 
@@ -44,7 +47,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 mediaSrc: ["'self'", "data:", "blob:"],
                 scriptSrc: scriptSrcDirective,
                 connectSrc: ["'self'", "ws:", "wss:"],
-                frameOptions: ["'DENY'"], // SEC-FIX: Prevent clickjacking
+                frameAncestors: ["'none'"], // SEC-FIX: Correct CSP directive for clickjacking protection
             },
         },
         hsts: {
@@ -77,7 +80,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // 3. Setup Auth (Registers passport and populates req.user)
     setupAuth(app, sessionParser);
 
-    // 4. Maintenance Mode Middleware
+    // 4. Monitoring Middleware
+    app.use(monitoringMiddleware);
+    app.use(slowQueryMiddleware);
+
+    // 5. Maintenance Mode Middleware
     // MUST be after setupAuth so req.user is available for staff bypass
     app.use(async (req, res, next) => {
         // Skip maintenance check for assets, auth, and public settings
@@ -146,8 +153,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(401).send("Unauthorized");
         }
         try {
-            const posts = await storage.getCommunityFeedPosts((req.user as any).id);
-            res.json(posts);
+            const userId = (req.user as any).id;
+            const posts = await storage.getCommunityFeedPosts(userId);
+            
+            // Enrich posts with author and reaction details
+            const authorIds = [...new Set(posts.map(p => p.authorId))];
+            const authors = await storage.getUsersByIds(authorIds);
+            const authorsMap = new Map(authors.map(u => [u.id, u]));
+
+            const postsWithDetails = await Promise.all(posts.map(async (post) => {
+                const author = authorsMap.get(post.authorId);
+                const isFollowing = await storage.isFollowing(userId, post.authorId);
+                const reactions = await storage.getPostReactions(post.id);
+                const userReaction = await storage.getUserPostReaction(userId, post.id);
+
+                return {
+                    ...post,
+                    author: {
+                        id: author?.id,
+                        username: author?.username || 'Unknown',
+                        verified: author?.verified || false,
+                        isFollowing,
+                        role: author?.role || 'member'
+                    },
+                    reactions,
+                    userReaction
+                };
+            }));
+
+            res.json(postsWithDetails);
         } catch (error) {
             console.error("Error fetching community feed:", error);
             res.status(500).send("Failed to fetch community feed");
@@ -159,7 +193,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use("/api/comments", commentsRoutes);
     app.use("/api/communities", communityRoutes);
     app.use("/api/reports", reportRoutes);
+    app.use("/api/admin/monitoring", monitoringRoutes);
     app.use("/api/admin", adminRoutes);
+    app.use("/api/tickets", ticketRoutes);
     app.use("/api/messages", messageRoutes);
     app.use("/api/notifications", notificationRoutes);
     app.use("/api/user/themes", themeRoutes);

@@ -1,0 +1,152 @@
+{
+  "title": "Tickets",
+  "myTickets": "Meine Tickets",
+  "allTickets": "Alle Tickets",
+  "newTicket": "Neues Ticket",
+  "createTicket": "Ticket erstellen",
+  "ticketNumber": "Ticket-Nummer",
+  "noTickets": "Keine Tickets vorhanden",
+  "noTicketsDescription": "Erstelle dein erstes Support-Ticket",
+  "fields": {
+    "title": "Titel",
+    "titlePlaceholder": "Kurze, präzise Beschreibung des Problems",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Beschreibe das Problem so detailliert wie möglich...",
+    "type": "Typ",
+    "priority": "Priorität",
+    "status": "Status",
+    "assignedTo": "Zugewiesen an",
+    "relatedUser": "Betroffener User",
+    "relatedPost": "Betroffener Post",
+    "relatedUrl": "Externe URL",
+    "tags": "Tags",
+    "createdBy": "Erstellt von",
+    "createdAt": "Erstellt",
+    "updatedAt": "Aktualisiert",
+    "resolvedAt": "Gelöst",
+    "closedAt": "Geschlossen"
+  },
+  "types": {
+    "bug_report": "Bug Report",
+    "feature_request": "Feature-Wunsch",
+    "user_complaint": "User-Beschwerde",
+    "content_issue": "Content-Problem",
+    "security_concern": "Sicherheitsproblem",
+    "performance_issue": "Performance-Problem",
+    "access_request": "Zugriffsanfrage",
+    "data_issue": "Datenproblem",
+    "other": "Sonstiges"
+  },
+  "status": {
+    "open": "Offen",
+    "in_progress": "In Bearbeitung",
+    "on_hold": "Wartend",
+    "resolved": "Gelöst",
+    "closed": "Geschlossen"
+  },
+  "priority": {
+    "low": "Niedrig",
+    "medium": "Mittel",
+    "high": "Hoch",
+    "critical": "Kritisch"
+  },
+  "actions": {
+    "changeStatus": "Status ändern",
+    "changePriority": "Priorität ändern",
+    "assign": "Zuweisen",
+    "close": "Schließen",
+    "reopen": "Erneut öffnen",
+    "delete": "Löschen",
+    "restore": "Wiederherstellen",
+    "addComment": "Kommentar hinzufügen",
+    "editComment": "Bearbeiten",
+    "deleteComment": "Löschen",
+    "markInternal": "Als intern markieren",
+    "viewHistory": "Verlauf anzeigen"
+  },
+  "comments": {
+    "title": "Aktivität",
+    "placeholder": "Kommentar hinzufügen...",
+    "internal": "Intern",
+    "internalHint": "Nur für Owner sichtbar",
+    "system": "System",
+    "edited": "(bearbeitet)",
+    "noComments": "Noch keine Kommentare"
+  },
+  "systemMessages": {
+    "created": "Ticket erstellt",
+    "status_change": "Status geändert: {{from}} → {{to}}",
+    "priority_change": "Priorität geändert: {{from}} → {{to}}",
+    "assignment_change": "Zugewiesen an: {{to}}",
+    "unassigned": "Zuweisung entfernt"
+  },
+  "filters": {
+    "search": "Tickets durchsuchen...",
+    "allStatus": "Alle Status",
+    "allTypes": "Alle Typen",
+    "allPriorities": "Alle Prioritäten",
+    "sortBy": "Sortieren nach",
+    "newest": "Neueste zuerst",
+    "oldest": "Älteste zuerst",
+    "priority": "Priorität (Kritisch zuerst)",
+    "lastUpdated": "Zuletzt aktualisiert",
+    "resetFilters": "Filter zurücksetzen",
+    "activeFilters": "{{count}} aktive Filter"
+  },
+  "stats": {
+    "total": "Gesamt",
+    "open": "Offen",
+    "inProgress": "In Bear.",
+    "onHold": "Wartend",
+    "critical": "Kritisch",
+    "avgResolutionTime": "Ø Lösungszeit",
+    "hours": "{{count}} Stunden"
+  },
+  "validation": {
+    "titleRequired": "Titel ist erforderlich",
+    "titleTooShort": "Titel muss mindestens 10 Zeichen haben",
+    "titleTooLong": "Titel darf maximal 200 Zeichen haben",
+    "descriptionRequired": "Beschreibung ist erforderlich",
+    "descriptionTooShort": "Beschreibung muss mindestens 50 Zeichen haben",
+    "typeRequired": "Typ ist erforderlich",
+    "priorityRequired": "Priorität ist erforderlich",
+    "invalidUrl": "Keine gültige URL",
+    "commentRequired": "Kommentar darf nicht leer sein"
+  },
+  "confirmations": {
+    "deleteTicket": "Ticket wirklich löschen?",
+    "deleteTicketDescription": "Das Ticket {{number}} wird unwiderruflich gelöscht.",
+    "deleteComment": "Kommentar wirklich löschen?",
+    "closeTicket": "Ticket schließen?",
+    "closeTicketDescription": "Geschlossene Tickets können nur vom Owner wieder geöffnet werden."
+  },
+  "errors": {
+    "loadFailed": "Tickets konnten nicht geladen werden",
+    "createFailed": "Ticket konnte nicht erstellt werden",
+    "updateFailed": "Ticket konnte nicht aktualisiert werden",
+    "deleteFailed": "Ticket konnte nicht gelöscht werden",
+    "commentFailed": "Kommentar konnte nicht hinzugefügt werden",
+    "forbidden": "Keine Berechtigung",
+    "notFound": "Ticket nicht gefunden",
+    "invalidTransition": "Nicht erlaubter Statuswechsel"
+  },
+  "success": {
+    "created": "Ticket {{number}} wurde erstellt",
+    "updated": "Ticket wurde aktualisiert",
+    "deleted": "Ticket wurde gelöscht",
+    "statusChanged": "Status wurde auf '{{status}}' geändert",
+    "commentAdded": "Kommentar wurde hinzugefügt",
+    "assigned": "Ticket wurde zugewiesen"
+  },
+  "help": {
+    "title": "Gutes Ticket schreiben",
+    "bug_report": "Beschreibe: Was hast du erwartet? Was ist passiert? Reproduzierbar?",
+    "feature_request": "Beschreibe: Welches Problem löst das Feature? Wer profitiert?",
+    "security_concern": "Sicherheitslücke ohne sensible Details melden.",
+    "priority_guide": "Prioritäts-Guide",
+    "priority_low": "Kann mehrere Wochen warten",
+    "priority_medium": "Sollte bald bearbeitet werden",
+    "priority_high": "Sollte in den nächsten Tagen bearbeitet werden",
+    "priority_critical": "Sollte sofort bearbeitet werden"
+  }
+}

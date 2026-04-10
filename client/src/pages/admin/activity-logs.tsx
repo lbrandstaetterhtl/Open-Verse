@@ -208,11 +208,11 @@ export default function ActivityLogsPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                          <div className="h-7 w-7 rounded-sm bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
-                            <span className="text-[10px] font-black text-primary">{log.adminEmail.charAt(0).toUpperCase()}</span>
+                            <span className="text-[10px] font-black text-primary">{(log.userEmail || "S").charAt(0).toUpperCase()}</span>
                          </div>
                          <div className="flex flex-col">
-                            <span className="text-xs font-bold leading-tight">{log.adminEmail}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{log.adminRole}</span>
+                            <span className="text-xs font-bold leading-tight">{log.userEmail || "System"}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{log.userRole || "Admin"}</span>
                          </div>
                       </div>
                     </TableCell>
@@ -252,7 +252,7 @@ export default function ActivityLogsPage() {
                             </div>
                             <div className="flex flex-wrap gap-2">
                                <Badge variant="outline" className="gap-1.5 font-bold uppercase tracking-widest text-[10px]"><Calendar className="h-3 w-3" /> {format(new Date(log.createdAt), "PPpp")}</Badge>
-                               <Badge variant="outline" className="gap-1.5 font-bold uppercase tracking-widest text-[10px]"><User className="h-3 w-3" /> {log.adminEmail}</Badge>
+                               <Badge variant="outline" className="gap-1.5 font-bold uppercase tracking-widest text-[10px]"><User className="h-3 w-3" /> {log.userEmail || "System"}</Badge>
                                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase tracking-widest bg-muted/50">
                                  {statusIcons[log.status as keyof typeof statusIcons]}
                                  {log.status}

@@ -18,8 +18,14 @@ const ProfilePage = lazy(() => import("@/pages/profile/my-profile"));
 const UserProfilePage = lazy(() => import("@/pages/profile/user-profile"));
 const ChatPage = lazy(() => import("@/pages/chat/chat-page"));
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
-const ActivityLogsPage = lazy(() => import("@/pages/admin/activity-logs"));
+const ActivityLogsPageOld = lazy(() => import("@/pages/admin/activity-logs")); // Legacy, if keeping
 const AdminSettingsPage = lazy(() => import("@/pages/admin/settings"));
+const NotificationsPage = lazy(() => import("@/pages/notifications/notifications-page"));
+
+// Monitoring Pages
+const MonitoringOverview = lazy(() => import("@/pages/admin/monitoring/MonitoringOverview").then(m => ({ default: m.MonitoringOverview })));
+const ActivityLogsPage = lazy(() => import("@/pages/admin/monitoring/ActivityLogsPage").then(m => ({ default: m.ActivityLogsPage })));
+const AnomaliesPage = lazy(() => import("@/pages/admin/monitoring/AnomaliesPage").then(m => ({ default: m.AnomaliesPage })));
 
 // Feed Pages
 const MediaFeedPage = lazy(() => import("@/pages/feed/media"));
@@ -43,10 +49,13 @@ const CreateCommunityPage = lazy(() => import("@/pages/communities/create-commun
 const CommunityPage = lazy(() => import("@/pages/communities/community-page"));
 const ModPanel = lazy(() => import("@/pages/communities/mod-panel"));
 
-function Router() {
-  // Initialize WebSocket connection
-  useWebSocket();
+// Ticket Pages
+const TicketsPage = lazy(() => import("@/pages/tickets/TicketsPage"));
+const CreateTicketPage = lazy(() => import("@/pages/tickets/CreateTicketPage"));
+const TicketDetailPage = lazy(() => import("@/pages/tickets/TicketDetailPage"));
+const AdminTicketsOverview = lazy(() => import("@/pages/admin/AdminTicketsOverview"));
 
+function Router() {
   return (
     <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
       <Switch>
@@ -73,12 +82,23 @@ function Router() {
         {/* AI Generator Route */}
         <ProtectedRoute path="/ai-generator" component={AIGeneratorPage} />
 
+        {/* Ticket Routes */}
+        <ProtectedRoute path="/tickets" component={TicketsPage} />
+        <ProtectedRoute path="/tickets/new" component={CreateTicketPage} />
+        <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} />
+        <ProtectedRoute path="/admin/tickets" component={AdminTicketsOverview} />
+
         {/* Admin Routes */}
         <ProtectedRoute path="/admin" component={AdminDashboard} />
         <ProtectedRoute path="/admin/users" component={AdminDashboard} />
         <ProtectedRoute path="/admin/reports" component={AdminDashboard} />
-        <ProtectedRoute path="/admin/logs" component={ActivityLogsPage} />
+        <ProtectedRoute path="/admin/logs" component={ActivityLogsPageOld} />
         <ProtectedRoute path="/admin/settings" component={AdminSettingsPage} />
+        
+        {/* Monitoring Routes */}
+        <ProtectedRoute path="/admin/monitoring" component={MonitoringOverview} />
+        <ProtectedRoute path="/admin/monitoring/activity" component={ActivityLogsPage} />
+        <ProtectedRoute path="/admin/monitoring/anomalies" component={AnomaliesPage} />
 
         {/* Community Routes */}
         <ProtectedRoute path="/create-community" component={CreateCommunityPage} />
@@ -87,6 +107,9 @@ function Router() {
 
         {/* Theme Builder Route */}
         <ProtectedRoute path="/theme-builder" component={ThemeBuilderPage} />
+
+        {/* Notifications Route */}
+        <ProtectedRoute path="/notifications" component={NotificationsPage} />
 
         {/* Other Routes */}
         <ProtectedRoute path="/" component={MediaFeedPage} />
@@ -131,11 +154,17 @@ function HeadManager() {
 import { MaintenanceGuard } from "@/components/layout/maintenance-guard";
 import { Footer } from "@/components/layout/footer";
 
+function WebSocketManager() {
+  useWebSocket();
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <AuthProvider>
+          <WebSocketManager />
           <GlobalThemeApplier />
           <HeadManager />
           <MaintenanceGuard>

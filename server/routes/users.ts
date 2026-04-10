@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
+import { notificationService } from "../services/notification-service";
+import { activityLogger } from "../services/activity-logger";
 
 const router = Router();
 
@@ -25,11 +27,21 @@ router.post("/follow/:userId", isAuthenticated, async (req, res) => {
 
         await storage.followUser(followerId, followingId);
 
-        await storage.createNotification({
+        await notificationService.notify({
             userId: followingId,
+            actorId: followerId,
             type: "new_follower",
-            fromUserId: followerId,
+            actionUrl: `/profile/${(req.user as any).username}`
         });
+
+        activityLogger.logFromRequest(req, {
+            action: 'follow.add',
+            category: 'social',
+            description: `Folgt nun User ${targetUser.username}`,
+            targetType: 'User',
+            targetId: String(followingId),
+            severity: 'info'
+        }).catch(err => console.error('[Monitor] follow.add failed:', err));
 
         res.sendStatus(200);
     } catch (error) {
@@ -54,6 +66,16 @@ router.delete("/follow/:userId", isAuthenticated, async (req, res) => {
         }
 
         await storage.unfollowUser(followerId, followingId);
+        
+        activityLogger.logFromRequest(req, {
+            action: 'follow.remove',
+            category: 'social',
+            description: `Ist User ${targetUser.username} entfolgt`,
+            targetType: 'User',
+            targetId: String(followingId),
+            severity: 'info'
+        }).catch(err => console.error('[Monitor] follow.remove failed:', err));
+        
         res.sendStatus(200);
     } catch (error) {
         console.error("Error unfollowing user:", error);

@@ -134,13 +134,48 @@
   },
   "notifications": {
     "title": "Notifiche",
+    "manage_desc": "Resta aggiornato sulle tue interazioni e sull'attività del tuo account.",
     "empty": "Nessuna notifica",
-    "new_follower": "ha iniziato a seguirti",
-    "new_message": "ti ha inviato un messaggio",
-    "report_resolved": "ha risolto la tua segnalazione",
-    "report_rejected": "ha respinto la tua segnalazione",
-    "community_kick": "ti ha espulso da {{name}}",
-    "interaction": "ha interagito con il tuo post"
+    "empty_desc": "Le tue notifiche appariranno qui.",
+    "mark_all_read": "Segna tutto come letto",
+    "settings": "Impostazioni",
+    "view_all": "Vedi tutte le notifiche",
+    "clear_all": "Cancella tutto",
+    "confirm_clear_all": "Sei sicuro di voler cancellare tutte le notifiche?",
+    "error_load": "Impossibile caricare le notifiche.",
+    "tabs": {
+      "all": "Tutto",
+      "unread": "Non lette",
+      "settings": "Preferenze"
+    },
+    "types": {
+      "new_follower": "{{actor}} ha iniziato a seguirti",
+      "new_message": "{{actor}} ti ha inviato un messaggio",
+      "like_post": "A {{actor}} piace il tuo post",
+      "like_comment": "A {{actor}} piace il tuo commento",
+      "comment_post": "{{actor}} ha commentato il tuo post",
+      "comment_reply": "{{actor}} ha risposto al tuo commento",
+      "mention_post": "{{actor}} ti ha menzionato in un post",
+      "mention_comment": "{{actor}} ti ha menzionato in un commento",
+      "community_join_approved": "La tua richiesta di adesione a {{name}} è stata approvata",
+      "community_join_request": "{{actor}} ha chiesto di unirsi a {{name}}",
+      "community_kick": "Sei stato rimosso da {{name}}",
+      "report_resolved": "La tua segnalazione è stata risolta",
+      "report_rejected": "La tua segnalazione è stata respinta",
+      "system_announcement": "Annuncio di sistema: {{name}}"
+    },
+    "pref": {
+      "social_header": "Interazioni Sociali",
+      "social_desc": "Scegli per quali eventi sociali vuoi ricevere notifiche.",
+      "system_header": "Sistema e Community",
+      "system_desc": "Gestisci gli avvisi della community e le notifiche amministrative.",
+      "likes": "Mi piace",
+      "comments": "Commenti e risposte",
+      "mentions": "Menzioni",
+      "followers": "Nuovi follower",
+      "community_invites": "Eventi community",
+      "system": "Annunci di sistema"
+    }
   },
   "ai_generator": {
     "title": "Generatore Post IA",

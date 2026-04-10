@@ -87,14 +87,7 @@ if (!process.env.SENDGRID_API_KEY) {
   console.warn("SENDGRID_API_KEY is invalid - email verification will be skipped");
 }
 
-// Global error handler
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  console.error("Unhandled error:", err);
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
-});
-
+// Register routes
 (async () => {
   try {
     console.log("Starting server...");
@@ -102,7 +95,19 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     // FEATURE [AS-009]: Initialize system settings
     await SettingsService.seed();
     
+    // TICKET SYSTEM: Initialize Database Tables
+    const { addTicketSystem } = await import("./migrations/add_ticket_system");
+    await addTicketSystem();
+    
     const server = await registerRoutes(app);
+
+    // Global error handler - MOVED HERE [INDEX-001] to catch route errors correctly
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error("Unhandled error:", err);
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+    });
 
     if (app.get("env") === "development") {
       await setupVite(app, server);

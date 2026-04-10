@@ -4,6 +4,8 @@ import { isAuthenticated } from "../middleware/auth";
 import { insertCommentSchema } from "@shared/schema";
 import { broadcastMessage } from "../services/websocket";
 import { canDeleteContent } from "../utils/permissions";
+import { notificationService } from "../services/notification-service";
+import { activityLogger } from "../services/activity-logger";
 
 const router = Router();
 
@@ -23,10 +25,42 @@ router.post("/", isAuthenticated, async (req, res) => {
             authorId: (req.user as any).id,
         });
 
+        const post = await storage.getPost(comment.postId);
+        if (post && post.authorId !== comment.authorId) {
+            // Notify post author
+            await notificationService.notify({
+                userId: post.authorId,
+                actorId: comment.authorId,
+                type: "comment_post",
+                postId: post.id,
+                commentId: comment.id,
+                preview: comment.content.substring(0, 100),
+                actionUrl: `/post/${post.id}#comment-${comment.id}`
+            });
+        }
+
+        // Handle Mentions
+        await notificationService.notifyMentions(comment.content, comment.authorId, { 
+            postId: comment.postId, 
+            commentId: comment.id 
+        });
+
         broadcastMessage(JSON.stringify({
             type: 'new_comment',
             data: comment
         }));
+
+        activityLogger.logFromRequest(req, {
+            action: 'comment.create',
+            category: 'content',
+            description: `Neuer Kommentar verfasst`,
+            targetType: 'Comment',
+            targetId: String(comment.id),
+            targetLabel: comment.content.substring(0, 50),
+            severity: 'info',
+            newValue: comment,
+            metadata: { postId: comment.postId }
+        }).catch(err => console.error('[Monitor] comment.create failed:', err));
 
         res.status(201).json(comment);
     } catch (error) {
@@ -59,7 +93,30 @@ router.post("/:id/like", isAuthenticated, async (req, res) => {
             } else {
                 await storage.likeComment(userId, commentId);
                 await storage.updateUserKarma(commentAuthor.id, 1);
+
+                // Notify comment author
+                if (comment.authorId !== userId) {
+                    await notificationService.notify({
+                        userId: comment.authorId,
+                        actorId: userId,
+                        type: "like_comment",
+                        postId: comment.postId,
+                        commentId: comment.id,
+                        actionUrl: `/post/${comment.postId}#comment-${comment.id}`
+                    });
+                }
             }
+            
+            activityLogger.logFromRequest(req, {
+                action: isLiked ? 'like.remove' : 'like.add',
+                category: 'social',
+                description: `${isLiked ? 'Like entfernt' : 'Like gegeben'} für Kommentar von ${commentAuthor.username}`,
+                targetType: 'Comment',
+                targetId: String(comment.id),
+                severity: 'info',
+                metadata: { postId: comment.postId, authorId: comment.authorId }
+            }).catch(err => console.error('[Monitor] comment.react failed:', err));
+            
         } catch (error) {
             console.error('Error updating karma:', error);
             throw error;
@@ -101,6 +158,19 @@ router.delete("/:id", isAuthenticated, async (req, res) => {
         }
 
         await storage.deleteComment(id);
+        
+        activityLogger.logFromRequest(req, {
+            action: 'comment.delete',
+            category: 'content',
+            description: `Kommentar gelöscht${comment.authorId !== (req.user as any).id ? ' (durch Mod/Admin)' : ''}`,
+            targetType: 'Comment',
+            targetId: String(id),
+            targetLabel: comment.content.substring(0, 50),
+            severity: 'warning',
+            oldValue: comment,
+            metadata: { deletedByRole: (req.user as any).role, postId: comment.postId }
+        }).catch(err => console.error('[Monitor] comment.delete failed:', err));
+        
         res.sendStatus(204);
     } catch (error) {
         console.error('Error deleting comment:', error);

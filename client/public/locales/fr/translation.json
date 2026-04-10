@@ -134,12 +134,48 @@
   },
   "notifications": {
     "title": "Notifications",
-    "empty": "Pas encore de notifications",
-    "new_follower": "a commencé à vous suivre",
-    "new_message": "vous a envoyé un message",
-    "report_resolved": "a résolu votre signalement",
-    "report_rejected": "a examiné votre signalement (aucune violation)",
-    "interaction": "a interagi avec votre publication"
+    "manage_desc": "Restez informé de vos interactions et de l'activité de votre compte.",
+    "empty": "Aucune notification",
+    "empty_desc": "Vos notifications s'afficheront ici.",
+    "mark_all_read": "Tout marquer comme lu",
+    "settings": "Paramètres",
+    "view_all": "Voir toutes les notifications",
+    "clear_all": "Tout effacer",
+    "confirm_clear_all": "Voulez-vous vraiment effacer toutes les notifications ?",
+    "error_load": "Impossible de charger les notifications.",
+    "tabs": {
+      "all": "Tout",
+      "unread": "Non lu",
+      "settings": "Préférences"
+    },
+    "types": {
+      "new_follower": "{{actor}} a commencé à vous suivre",
+      "new_message": "{{actor}} vous a envoyé un message",
+      "like_post": "{{actor}} a aimé votre publication",
+      "like_comment": "{{actor}} a aimé votre commentaire",
+      "comment_post": "{{actor}} a commenté votre publication",
+      "comment_reply": "{{actor}} a répondu à votre commentaire",
+      "mention_post": "{{actor}} vous a mentionné dans une publication",
+      "mention_comment": "{{actor}} vous a mentionné dans un commentaire",
+      "community_join_approved": "Votre demande d'adhésion à {{name}} a été approuvée",
+      "community_join_request": "{{actor}} a demandé à rejoindre {{name}}",
+      "community_kick": "Vous avez été expulsé de {{name}}",
+      "report_resolved": "Votre rapport a été résolu",
+      "report_rejected": "Votre rapport a été rejeté",
+      "system_announcement": "Annonce système : {{name}}"
+    },
+    "pref": {
+      "social_header": "Interactions Sociales",
+      "social_desc": "Choisissez les événements sociaux dont vous souhaitez être informé.",
+      "system_header": "Système et Communauté",
+      "system_desc": "Gérez les alertes communautaires et les notifications administratives.",
+      "likes": "Mentions J'aime",
+      "comments": "Commentaires et réponses",
+      "mentions": "Mentions",
+      "followers": "Nouveaux abonnés",
+      "community_invites": "Événements communautaires",
+      "system": "Annonces système"
+    }
   },
   "ai_generator": {
     "title": "Générateur de Post IA",

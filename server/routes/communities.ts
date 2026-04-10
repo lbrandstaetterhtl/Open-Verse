@@ -2,6 +2,8 @@ import { Router } from "express";
 import { storage } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
 import { insertCommunitySchema } from "@shared/schema";
+import { notificationService } from "../services/notification-service";
+import { activityLogger } from "../services/activity-logger";
 
 const router = Router();
 
@@ -43,6 +45,17 @@ router.post("/", isAuthenticated, async (req, res) => {
             creatorId: (req.user as any).id,
             slug,
         });
+
+        activityLogger.logFromRequest(req, {
+            action: 'community.create',
+            category: 'social',
+            description: `Neue Community erstellt: ${community.name}`,
+            targetType: 'Community',
+            targetId: String(community.id),
+            targetLabel: community.name,
+            severity: 'info',
+            newValue: community
+        }).catch(err => console.error('[Monitor] community.create failed:', err));
 
         res.status(201).json(community);
     } catch (error) {
@@ -112,18 +125,30 @@ router.post("/:id/join", isAuthenticated, async (req, res) => {
             const members = await storage.getCommunityMembers(communityId);
             const owners = members.filter(m => m.role === "owner" || m.role === "moderator");
             for (const owner of owners) {
-                await storage.createNotification({
+                await notificationService.notify({
                     userId: owner.userId,
-                    type: "action",
-                    fromUserId: userId,
-                    read: false,
-                    createdAt: new Date()
+                    actorId: userId,
+                    type: "community_join_request",
+                    communityId: communityId,
+                    title: community.name,
+                    actionUrl: `/mod-panel/${community.id}/requests`
                 });
             }
             return res.status(202).json({ message: "Join request submitted" });
         }
 
         await storage.addCommunityMember(communityId, userId, "member");
+        
+        activityLogger.logFromRequest(req, {
+            action: 'community.join',
+            category: 'social',
+            description: `Ist der Community beigetreten: ${community.name}`,
+            targetType: 'Community',
+            targetId: String(community.id),
+            targetLabel: community.name,
+            severity: 'info'
+        }).catch(err => console.error('[Monitor] community.join failed:', err));
+        
         res.sendStatus(200);
     } catch (error) {
         console.error("Error joining community:", error);
@@ -144,6 +169,16 @@ router.post("/:id/leave", isAuthenticated, async (req, res) => {
         }
 
         await storage.removeCommunityMember(communityId, userId);
+        
+        activityLogger.logFromRequest(req, {
+            action: 'community.leave',
+            category: 'social',
+            description: `Hat die Community verlassen (ID: ${communityId})`,
+            targetType: 'Community',
+            targetId: String(communityId),
+            severity: 'info'
+        }).catch(err => console.error('[Monitor] community.leave failed:', err));
+        
         res.sendStatus(200);
     } catch (error) {
         console.error("Error leaving community:", error);
@@ -184,12 +219,12 @@ router.post("/:id/requests/:userId/approve", isAuthenticated, async (req, res) =
         await storage.addCommunityMember(communityId, targetUserId, "member");
         
         // Notify user
-        await storage.createNotification({
+        await notificationService.notify({
             userId: targetUserId,
-            type: "welcome",
-            fromUserId: currentUserId,
-            read: false,
-            createdAt: new Date()
+            actorId: currentUserId,
+            type: "community_join_approved",
+            communityId: communityId,
+            actionUrl: `/community/${(await storage.getCommunity(communityId))?.slug}`
         });
 
         res.sendStatus(200);
@@ -218,6 +253,93 @@ router.post("/:id/requests/:userId/decline", isAuthenticated, async (req, res) =
     }
 });
 
+// Kick a member from the community
+router.delete("/:id/members/:userId", isAuthenticated, async (req, res) => {
+    try {
+        const communityId = parseInt(req.params.id);
+        const targetUserId = parseInt(req.params.userId);
+        const currentUserId = (req.user as any).id;
+
+        const currentMember = await storage.getCommunityMember(communityId, currentUserId);
+        if (!currentMember || (currentMember.role !== "owner" && currentMember.role !== "moderator")) {
+            return res.status(403).send("Unauthorized");
+        }
+
+        const targetMember = await storage.getCommunityMember(communityId, targetUserId);
+        if (!targetMember) {
+            return res.status(404).send("Member not found");
+        }
+
+        if (targetMember.role === "owner") {
+            return res.status(403).send("Cannot kick a community owner");
+        }
+
+        // Moderators cannot kick other moderators
+        if (currentMember.role === "moderator" && targetMember.role === "moderator") {
+            return res.status(403).send("Moderators cannot kick other moderators");
+        }
+
+        await storage.removeCommunityMember(communityId, targetUserId);
+        
+        activityLogger.logFromRequest(req, {
+            action: 'community.ban_member',
+            category: 'social',
+            description: `Mitglied (UserId: ${targetUserId}) aus Community geworfen`,
+            targetType: 'Community',
+            targetId: String(communityId),
+            severity: 'warning',
+            metadata: { kickedUserId: targetUserId }
+        }).catch(err => console.error('[Monitor] community member kick failed:', err));
+        
+        res.sendStatus(200);
+    } catch (error) {
+        console.error("Error kicking member:", error);
+        res.status(500).send("Failed to kick member");
+    }
+});
+
+// Add a moderator
+router.post("/:id/moderators", isAuthenticated, async (req, res) => {
+    try {
+        const communityId = parseInt(req.params.id);
+        const targetUserId = parseInt(req.body.userId);
+        const currentUserId = (req.user as any).id;
+
+        if (isNaN(targetUserId)) {
+            return res.status(400).send("Invalid target User ID");
+        }
+
+        const currentMember = await storage.getCommunityMember(communityId, currentUserId);
+        const isGlobalAdmin = (req.user as any).role === "admin" || (req.user as any).role === "owner";
+
+        if (!isGlobalAdmin && (!currentMember || currentMember.role !== "owner")) {
+            return res.status(403).send("Only owners or global admins can add moderators");
+        }
+
+        const targetUser = await storage.getUser(targetUserId);
+        if (!targetUser) {
+            return res.status(404).send("User not found on the platform");
+        }
+
+        const targetMember = await storage.getCommunityMember(communityId, targetUserId);
+        if (targetMember) {
+            // If they are already a member, promote them
+            if (targetMember.role === "owner") {
+                return res.status(400).send("User is already an owner");
+            }
+            await storage.updateCommunityMemberRole(communityId, targetUserId, "moderator");
+        } else {
+            // Add them as a completely new member with moderator privileges
+            await storage.addCommunityMember(communityId, targetUserId, "moderator");
+        }
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.error("Error adding moderator:", error);
+        res.status(500).send("Failed to add moderator");
+    }
+});
+
 router.patch("/:id/members/:userId/role", isAuthenticated, async (req, res) => {
     try {
         const communityId = parseInt(req.params.id);
@@ -225,17 +347,32 @@ router.patch("/:id/members/:userId/role", isAuthenticated, async (req, res) => {
         const currentUserId = (req.user as any).id;
         const { role } = req.body;
 
+        console.log(`[DEBUG PATCH ROLE] community=${communityId}, target=${targetUserId}, current=${currentUserId}, bodyRole=${role}`);
+
         if (!["member", "moderator", "owner"].includes(role)) {
+            console.log(`[DEBUG PATCH ROLE] Invalid role`);
             return res.status(400).send("Invalid role");
         }
 
         const currentMember = await storage.getCommunityMember(communityId, currentUserId);
+        console.log(`[DEBUG PATCH ROLE] currentMember=`, currentMember);
+        
         if (!currentMember || currentMember.role !== "owner") {
-            return res.status(403).send("Only owners can change member roles");
+            // Global admins bypass this UI check but might have been blocked here. Let's allow global admins:
+            const isGlobalAdmin = (req.user as any).role === "admin" || (req.user as any).role === "owner";
+            console.log(`[DEBUG PATCH ROLE] isGlobalAdmin=${isGlobalAdmin}`);
+            
+            if (!isGlobalAdmin) {
+                console.log(`[DEBUG PATCH ROLE] Rejected: Not an owner or global admin`);
+                return res.status(403).send("Only owners can change member roles");
+            }
         }
 
         const targetMember = await storage.getCommunityMember(communityId, targetUserId);
+        console.log(`[DEBUG PATCH ROLE] targetMember=`, targetMember);
+        
         if (!targetMember) {
+            console.log(`[DEBUG PATCH ROLE] Target not found`);
             return res.status(404).send("Member not found");
         }
 
@@ -244,15 +381,130 @@ router.patch("/:id/members/:userId/role", isAuthenticated, async (req, res) => {
             const members = await storage.getCommunityMembers(communityId);
             const ownersCount = members.filter(m => m.role === "owner").length;
             if (ownersCount <= 1) {
+                console.log(`[DEBUG PATCH ROLE] Cannot demote last owner`);
                 return res.status(400).send("A community must have at least one owner");
             }
         }
 
+        console.log(`[DEBUG PATCH ROLE] Proceeding to update role...`);
         await storage.updateCommunityMemberRole(communityId, targetUserId, role);
+        console.log(`[DEBUG PATCH ROLE] Role updated successfully!`);
         res.sendStatus(200);
     } catch (error) {
         console.error("Error updating member role:", error);
         res.status(500).send("Failed to update member role");
+    }
+});
+
+router.get("/:id/members", isAuthenticated, async (req, res) => {
+    try {
+        const communityId = parseInt(req.params.id);
+        const members = await storage.getCommunityMembers(communityId);
+        res.json(members);
+    } catch (error) {
+        console.error("Error fetching community members:", error);
+        res.status(500).send("Failed to fetch community members");
+    }
+});
+
+router.get("/:id/bans", isAuthenticated, async (req, res) => {
+    try {
+        const communityId = parseInt(req.params.id);
+        const userId = (req.user as any).id;
+
+        const member = await storage.getCommunityMember(communityId, userId);
+        if (!member || (member.role !== "owner" && member.role !== "moderator")) {
+            return res.status(403).send("Unauthorized");
+        }
+
+        const bans = await storage.getCommunityBans(communityId);
+        res.json(bans);
+    } catch (error) {
+        console.error("Error fetching community bans:", error);
+        res.status(500).send("Failed to fetch community bans");
+    }
+});
+
+router.get("/:id/reports", isAuthenticated, async (req, res) => {
+    try {
+        const communityId = parseInt(req.params.id);
+        const userId = (req.user as any).id;
+
+        const member = await storage.getCommunityMember(communityId, userId);
+        if (!member || (member.role !== "owner" && member.role !== "moderator")) {
+            return res.status(403).send("Unauthorized");
+        }
+
+        const reports = await storage.getCommunityReports(communityId);
+        res.json(reports);
+    } catch (error) {
+        console.error("Error fetching community reports:", error);
+        res.status(500).send("Failed to fetch community reports");
+    }
+});
+
+router.post("/:id/ban", isAuthenticated, async (req, res) => {
+    try {
+        const communityId = parseInt(req.params.id);
+        const currentUserId = (req.user as any).id;
+        const { userId, reason } = req.body;
+
+        const member = await storage.getCommunityMember(communityId, currentUserId);
+        if (!member || (member.role !== "owner" && member.role !== "moderator")) {
+            return res.status(403).send("Unauthorized");
+        }
+
+        const targetMember = await storage.getCommunityMember(communityId, userId);
+        if (targetMember && targetMember.role === "owner") {
+            return res.status(403).send("Cannot ban a community owner");
+        }
+
+        await storage.banUserFromCommunity(communityId, userId, reason);
+        
+        activityLogger.logFromRequest(req, {
+            action: 'community.ban_member',
+            category: 'social',
+            description: `Mitglied (UserId: ${userId}) dauerhaft aus Community gebannt`,
+            targetType: 'Community',
+            targetId: String(communityId),
+            severity: 'warning',
+            metadata: { bannedUserId: userId, reason }
+        }).catch(err => console.error('[Monitor] community.ban_member failed:', err));
+        
+        res.sendStatus(200);
+    } catch (error) {
+        console.error("Error banning user:", error);
+        res.status(500).send("Failed to ban user");
+    }
+});
+
+router.delete("/:id/ban/:userId", isAuthenticated, async (req, res) => {
+    try {
+        const communityId = parseInt(req.params.id);
+        const targetUserId = parseInt(req.params.userId);
+        const currentUserId = (req.user as any).id;
+
+        const member = await storage.getCommunityMember(communityId, currentUserId);
+        if (!member || (member.role !== "owner" && member.role !== "moderator")) {
+            return res.status(403).send("Unauthorized");
+        }
+
+        await storage.unbanUserFromCommunity(communityId, targetUserId);
+        
+        activityLogger.logFromRequest(req, {
+            action: 'community.unban_member',
+            category: 'social',
+            description: `Mitglied (UserId: ${targetUserId}) entbannt`,
+            targetType: 'Community',
+            targetId: String(communityId),
+            severity: 'info',
+            metadata: { unbannedUserId: targetUserId }
+        }).catch(err => console.error('[Monitor] community.unban_member failed:', err));
+        
+        res.sendStatus(200);
+    } catch (error) {
+        console.error("Error unbanning user:", error);
+        res.status(500).send("Failed to unban user");
     }
 });
 

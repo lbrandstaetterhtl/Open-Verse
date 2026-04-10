@@ -52,8 +52,13 @@ export function useWebSocket() {
             queryClient.invalidateQueries({ queryKey: ["/api/followers"] });
             queryClient.invalidateQueries({ queryKey: ["/api/following"] });
             break;
+          case "notification":
+            queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/notifications/counts"] });
+            break;
           case "new_notification":
             queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/notifications/counts"] });
             break;
           case "banned":
             toastRef.current({

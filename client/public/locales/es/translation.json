@@ -134,13 +134,48 @@
   },
   "notifications": {
     "title": "Notificaciones",
-    "empty": "No hay notificaciones todavía",
-    "new_follower": "empezó a seguirte",
-    "new_message": "te envió un mensaje",
-    "report_resolved": "ha resuelto su reporte",
-    "report_rejected": "ha rechazado su reporte",
-    "community_kick": "te ha expulsado de {{name}}",
-    "interaction": "interactuó con tu publicación"
+    "manage_desc": "Mantente informado sobre tus interacciones y actividad de la cuenta.",
+    "empty": "No hay notificaciones",
+    "empty_desc": "Cuando recibas notificaciones, aparecerán aquí.",
+    "mark_all_read": "Marcar todo como leído",
+    "settings": "Ajustes",
+    "view_all": "Ver todas las notificaciones",
+    "clear_all": "Borrar todo",
+    "confirm_clear_all": "¿Estás seguro de que deseas borrar todas las notificaciones?",
+    "error_load": "No se pudieron cargar las notificaciones.",
+    "tabs": {
+      "all": "Todo",
+      "unread": "No leído",
+      "settings": "Preferencias"
+    },
+    "types": {
+      "new_follower": "{{actor}} comenzó a seguirte",
+      "new_message": "{{actor}} te envió un mensaje",
+      "like_post": "A {{actor}} le gustó tu publicación",
+      "like_comment": "A {{actor}} le gustó tu comentario",
+      "comment_post": "{{actor}} comentó tu publicación",
+      "comment_reply": "{{actor}} respondió a tu comentario",
+      "mention_post": "{{actor}} te mencionó en una publicación",
+      "mention_comment": "{{actor}} te mencionó en un comentario",
+      "community_join_approved": "Tu solicitud para unirte a {{name}} fue aprobada",
+      "community_join_request": "{{actor}} solicitó unirse a {{name}}",
+      "community_kick": "Fuiste expulsado de {{name}}",
+      "report_resolved": "Tu reporte fue resuelto",
+      "report_rejected": "Tu reporte fue rechazado",
+      "system_announcement": "Anuncio del sistema: {{name}}"
+    },
+    "pref": {
+      "social_header": "Interacciones Sociales",
+      "social_desc": "Elige sobre qué eventos sociales deseas ser notificado.",
+      "system_header": "Sistema y Comunidad",
+      "system_desc": "Gestiona alertas de comunidad y notificaciones administrativas.",
+      "likes": "Me gusta",
+      "comments": "Comentarios y respuestas",
+      "mentions": "Menciones",
+      "followers": "Nuevos seguidores",
+      "community_invites": "Eventos de comunidad",
+      "system": "Anuncios del sistema"
+    }
   },
   "ai_generator": {
     "title": "Generador de Posts con IA",

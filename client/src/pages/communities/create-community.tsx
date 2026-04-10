@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Navbar } from "@/components/layout/navbar";
 import { useLocation } from "wouter";
 import { Users, Loader2 } from "lucide-react";
+import { BackButton } from "@/components/ui/back-button";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
@@ -90,8 +91,13 @@ export default function CreateCommunityPage() {
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle>{t("community.create.title")}</CardTitle>
-              <CardDescription>{t("community.create.subtitle")}</CardDescription>
+              <div className="flex items-center gap-4">
+                <BackButton fallback="/feed" className="-ml-2" />
+                <div>
+                  <CardTitle>{t("community.create.title")}</CardTitle>
+                  <CardDescription>{t("community.create.subtitle")}</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <form

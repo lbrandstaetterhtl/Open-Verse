@@ -6,9 +6,11 @@ import {
   InsertUser,
   InsertMediaPost,
   Notification,
+  NotificationPreferences,
   Message,
   followers,
   notifications,
+  notificationPreferences,
   messages,
   verificationTokens,
   commentLikes,
@@ -32,6 +34,7 @@ import {
   communities,
   communityMembers,
   communityBans,
+  communityJoinRequests,
 } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -107,12 +110,28 @@ export interface IStorage {
   // Notifications
   createNotification(notification: {
     userId: number;
+    actorId?: number;
     type: string;
-    fromUserId: number;
+    postId?: number;
+    commentId?: number;
+    communityId?: number;
+    title?: string;
+    message?: string;
+    preview?: string;
+    actionUrl?: string;
+    groupKey?: string;
   }): Promise<Notification>;
-  getNotifications(userId: number): Promise<Notification[]>;
+  getNotifications(userId: number, options?: { limit?: number; offset?: number; unreadOnly?: boolean; type?: string[] }): Promise<(Notification & { actor?: User | null })[]>;
+  getNotificationCounts(userId: number): Promise<{ unread: number; unseen: number }>;
   markNotificationAsRead(notificationId: number): Promise<void>;
+  markAllNotificationsAsRead(userId: number): Promise<void>;
+  markNotificationsAsSeen(userId: number): Promise<void>;
   deleteNotification(notificationId: number): Promise<void>;
+  deleteAllNotifications(userId: number): Promise<void>;
+
+  // Notification Preferences
+  getNotificationPreferences(userId: number): Promise<NotificationPreferences>;
+  updateNotificationPreferences(userId: number, preferences: Partial<NotificationPreferences>): Promise<NotificationPreferences>;
 
   // Messages
   createMessage(message: {
@@ -462,16 +481,20 @@ export class DatabaseStorage implements IStorage {
     return newPost;
   }
 
-  async getPosts(category?: string): Promise<Post[]> {
-
+  async getPosts(category?: string, communityId?: number): Promise<Post[]> {
     const sqlite = getSqlite();
-
-
     if (process.env.USE_SQLITE === "true" && sqlite) {
       let query = "SELECT p.* FROM posts p LEFT JOIN communities c ON p.community_id = c.id";
       const params: any[] = [];
-      
-      let whereClauses = ["(c.is_private IS NULL OR c.is_private = 0)"];
+      let whereClauses = [];
+
+      // Privacy Filter: Strongly separate community and global feeds
+      if (communityId) {
+        whereClauses.push("p.community_id = ?");
+        params.push(communityId);
+      } else {
+        whereClauses.push("p.community_id IS NULL");
+      }
 
       if (category) {
         if (category.includes(",")) {
@@ -483,19 +506,13 @@ export class DatabaseStorage implements IStorage {
           params.push(category);
         }
       }
-      
-      query += " WHERE " + whereClauses.join(" AND ");
+
+      if (whereClauses.length > 0) {
+        query += " WHERE " + whereClauses.join(" AND ");
+      }
       query += " ORDER BY p.created_at DESC LIMIT 100";
 
       const rows = sqlite.prepare(query).all(...params);
-      if (rows.length > 0)
-        console.log(
-          "DEBUG: First row keys:",
-          Object.keys(rows[0]),
-          "Sample created_at:",
-          rows[0].created_at,
-        );
-
       return rows.map((row: any) => ({
         id: row.id,
         title: row.title,
@@ -505,46 +522,33 @@ export class DatabaseStorage implements IStorage {
         karma: row.karma,
         mediaUrl: row.media_url,
         mediaType: row.media_type,
-        communityId: row.community_id,
+        communityId: row.community_id || null,
         createdAt: new Date(Number(row.created_at) * 1000),
       }));
     }
 
-    if (category) {
-      // Handle multiple categories separated by comma
-      if (category.includes(",")) {
-        const categories = category.split(",");
-        console.log("Querying multiple categories:", categories);
-
-        const result = await db
-          .select()
-          .from(posts)
-          .where(or(...categories.map((cat) => eq(posts.category, cat.trim()))))
-          .orderBy(desc(posts.createdAt))
-          .limit(100);
-
-        console.log("Found posts for categories:", result);
-        return result;
-      }
-
-      // Single category
-      console.log("Querying single category:", category);
-      const result = await db
-        .select()
-        .from(posts)
-        .where(eq(posts.category, category))
-        .orderBy(desc(posts.createdAt))
-        .limit(100);
-
-      console.log("Found posts for category:", result);
-      return result;
+    const whereConditions = [];
+    if (communityId) {
+      whereConditions.push(eq(posts.communityId, communityId));
+    } else {
+      whereConditions.push(isNull(posts.communityId));
     }
 
-    // No category filter
-    const result = await db.select().from(posts).orderBy(desc(posts.createdAt)).limit(100);
+    if (category) {
+      if (category.includes(",")) {
+        const categories = category.split(",").map(c => c.trim());
+        whereConditions.push(inArray(posts.category, categories));
+      } else {
+        whereConditions.push(eq(posts.category, category));
+      }
+    }
 
-    console.log("Found all posts:", result);
-    return result;
+    return await db
+      .select()
+      .from(posts)
+      .where(and(...whereConditions))
+      .orderBy(desc(posts.createdAt))
+      .limit(100);
   }
 
   async getPostsByUser(userId: number): Promise<Post[]> {
@@ -805,6 +809,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFollowers(userId: number): Promise<User[]> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite.prepare(`
+        SELECT u.* FROM users u
+        INNER JOIN followers f ON f.follower_id = u.id
+        WHERE f.following_id = ?
+      `).all(userId);
+      return rows.map((user: any) => ({
+        ...user,
+        emailVerified: Boolean(user.email_verified),
+        isAdmin: Boolean(user.is_admin),
+        verified: Boolean(user.verified),
+        createdAt: new Date(Number(user.created_at) * 1000),
+      }));
+    }
     const result = await db
       .select({
         id: users.id,
@@ -822,6 +841,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFollowing(userId: number): Promise<User[]> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite.prepare(`
+        SELECT u.* FROM users u
+        INNER JOIN followers f ON f.following_id = u.id
+        WHERE f.follower_id = ?
+      `).all(userId);
+      return rows.map((user: any) => ({
+        ...user,
+        emailVerified: Boolean(user.email_verified),
+        isAdmin: Boolean(user.is_admin),
+        verified: Boolean(user.verified),
+        createdAt: new Date(Number(user.created_at) * 1000),
+      }));
+    }
     const result = await db
       .select({
         id: users.id,
@@ -847,34 +881,11 @@ export class DatabaseStorage implements IStorage {
     return !!result;
   }
 
-  async getNotifications(userId: number): Promise<Notification[]> {
-    const result = await db
-      .select({
-        id: notifications.id,
-        userId: notifications.userId,
-        type: notifications.type,
-        fromUserId: notifications.fromUserId,
-        read: notifications.read,
-        createdAt: notifications.createdAt,
-        fromUser: {
-          username: users.username,
-        },
-      })
-      .from(notifications)
-      .innerJoin(users, eq(users.id, notifications.fromUserId))
-      .where(eq(notifications.userId, userId))
-      .orderBy(desc(notifications.createdAt));
 
-    return result;
-  }
 
-  async markNotificationAsRead(notificationId: number): Promise<void> {
-    await db.update(notifications).set({ read: true }).where(eq(notifications.id, notificationId));
-  }
 
-  async deleteNotification(notificationId: number): Promise<void> {
-    await db.delete(notifications).where(eq(notifications.id, notificationId));
-  }
+
+
 
   // Messages
 
@@ -898,8 +909,8 @@ export class DatabaseStorage implements IStorage {
         try {
           await this.createNotification({
             userId: message.receiverId,
+            actorId: message.senderId,
             type: "new_message",
-            fromUserId: message.senderId,
           });
         } catch (notifErr) {
           console.error("Failed to create message notification:", notifErr);
@@ -1086,6 +1097,25 @@ export class DatabaseStorage implements IStorage {
     const [report] = await db.select().from(reports).where(eq(reports.id, id));
     return report;
   }
+
+  async getUsersByIds(ids: number[]): Promise<User[]> {
+    if (ids.length === 0) return [];
+    
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const placeholders = ids.map(() => "?").join(",");
+      const rows = sqlite.prepare(`SELECT * FROM users WHERE id IN (${placeholders})`).all(...ids);
+      return rows.map((user: any) => ({
+        ...user,
+        emailVerified: Boolean(user.email_verified),
+        isAdmin: Boolean(user.is_admin),
+        verified: Boolean(user.verified),
+        createdAt: new Date(Number(user.created_at) * 1000),
+      }));
+    }
+    
+    return db.select().from(users).where(inArray(users.id, ids));
+  }
   async deleteUser(id: number): Promise<void> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
@@ -1107,7 +1137,13 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Drizzle: Delete all user-related data
+    // SECURITY FIX [STORAGE-013]: Complete user data wipeout for Drizzle/Postgres path
+    await db.delete(messages).where(or(eq(messages.senderId, id), eq(messages.receiverId, id)));
+    await db.delete(notifications).where(or(eq(notifications.userId, id), eq(notifications.actorId, id)));
+    await db.delete(themes).where(eq(themes.userId, id));
+    await db.delete(commentLikes).where(eq(commentLikes.userId, id));
     await db.delete(postLikes).where(eq(postLikes.userId, id));
+    await db.delete(communityMembers).where(eq(communityMembers.userId, id));
     await db.delete(comments).where(eq(comments.authorId, id));
     await db.delete(posts).where(eq(posts.authorId, id));
     await db.delete(reports).where(eq(reports.reporterId, id));
@@ -1115,6 +1151,7 @@ export class DatabaseStorage implements IStorage {
       .delete(followers)
       .where(or(eq(followers.followerId, id), eq(followers.followingId, id)));
     await db.delete(users).where(eq(users.id, id));
+    this.incrementDeletedUsersCount();
   }
 
   // Themes
@@ -1219,7 +1256,7 @@ export class DatabaseStorage implements IStorage {
     if (discussionId) conditions.push(eq(reports.discussionId, discussionId));
 
     if (conditions.length > 0) {
-      db.update(reports) // removed await as we don't necessarily need to wait or return
+      await db.update(reports) // SECURITY FIX [STORAGE-014]: Added missing await
         .set({ status })
         .where(or(...conditions));
     }
@@ -1419,30 +1456,175 @@ export class DatabaseStorage implements IStorage {
     return report;
   }
 
-  async createNotification(notification: any): Promise<Notification> {
+  async createNotification(notification: {
+    userId: number;
+    actorId?: number;
+    type: string;
+    postId?: number;
+    commentId?: number;
+    communityId?: number;
+    title?: string;
+    message?: string;
+    preview?: string;
+    actionUrl?: string;
+    groupKey?: string;
+  }): Promise<Notification> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      const { userId, type, fromUserId } = notification;
       const createdAt = Math.floor(Date.now() / 1000);
       const res = sqlite
-        .prepare(
-          "INSERT INTO notifications (user_id, type, from_user_id, read, created_at) VALUES (?, ?, ?, ?, ?)",
-        )
-        .run(userId, type, fromUserId, 0, createdAt);
+        .prepare(`
+          INSERT INTO notifications (
+            user_id, actor_id, type, post_id, comment_id, community_id, 
+            title, message, preview, action_url, group_key, read, seen, archived, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)
+        `)
+        .run(
+          notification.userId,
+          notification.actorId || null,
+          notification.type,
+          notification.postId || null,
+          notification.commentId || null,
+          notification.communityId || null,
+          notification.title || null,
+          notification.message || null,
+          notification.preview || null,
+          notification.actionUrl || null,
+          notification.groupKey || null,
+          createdAt
+        );
       return {
         id: res.lastInsertRowid as number,
-        userId,
-        type,
-        fromUserId,
+        ...notification,
+        actorId: notification.actorId || null,
+        postId: notification.postId || null,
+        commentId: notification.commentId || null,
+        communityId: notification.communityId || null,
+        title: notification.title || null,
+        message: notification.message || null,
+        preview: notification.preview || null,
+        actionUrl: notification.actionUrl || null,
+        groupKey: notification.groupKey || null,
         read: false,
+        seen: false,
+        archived: false,
         createdAt: new Date(createdAt * 1000),
       };
     }
     const [newNotification] = await db
       .insert(notifications)
-      .values({ ...notification, read: false })
+      .values({
+        ...notification,
+        read: false,
+        seen: false,
+        archived: false,
+      })
       .returning();
     return newNotification;
+  }
+
+  async getNotifications(
+    userId: number,
+    options: { limit?: number; offset?: number; unreadOnly?: boolean; type?: string[] } = {}
+  ): Promise<(Notification & { actor?: User | null })[]> {
+    const { limit = 50, offset = 0, unreadOnly = false, type } = options;
+    
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      let query = `
+        SELECT n.*, u.username as actor_username, u.profile_picture_url as actor_avatar
+        FROM notifications n
+        LEFT JOIN users u ON n.actor_id = u.id
+        WHERE n.user_id = ? AND n.archived = 0
+      `;
+      const params: any[] = [userId];
+
+      if (unreadOnly) {
+        query += " AND n.read = 0";
+      }
+      if (type && type.length > 0) {
+        query += ` AND n.type IN (${type.map(() => "?").join(",")})`;
+        params.push(...type);
+      }
+
+      query += " ORDER BY n.created_at DESC LIMIT ? OFFSET ?";
+      params.push(limit, offset);
+
+      const rows = sqlite.prepare(query).all(...params);
+      return rows.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        actorId: row.actor_id,
+        type: row.type,
+        postId: row.post_id,
+        commentId: row.comment_id,
+        communityId: row.community_id,
+        title: row.title,
+        message: row.message,
+        preview: row.preview,
+        actionUrl: row.action_url,
+        read: Boolean(row.read),
+        seen: Boolean(row.seen),
+        archived: Boolean(row.archived),
+        groupKey: row.group_key,
+        createdAt: isNaN(Number(row.created_at)) ? new Date(row.created_at) : new Date(Number(row.created_at) * 1000),
+        actor: row.actor_id ? {
+          id: row.actor_id,
+          username: row.actor_username,
+          profilePictureUrl: row.actor_avatar
+        } as User : null
+      }));
+    }
+
+    // Postgres / Drizzle
+    let whereClause = and(eq(notifications.userId, userId), eq(notifications.archived, false));
+    if (unreadOnly) {
+      whereClause = and(whereClause, eq(notifications.read, false));
+    }
+    if (type && type.length > 0) {
+      whereClause = and(whereClause, inArray(notifications.type, type));
+    }
+
+    const result = await db
+      .select({
+        notification: notifications,
+        actor: users
+      })
+      .from(notifications)
+      .leftJoin(users, eq(notifications.actorId, users.id))
+      .where(whereClause)
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return result.map(({ notification, actor }) => ({
+      ...notification,
+      actor: actor ? sanitizeUser(actor) : null
+    }));
+  }
+
+  async getNotificationCounts(userId: number): Promise<{ unread: number; unseen: number }> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const unread = sqlite.prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0 AND archived = 0").get(userId) as { count: number };
+      const unseen = sqlite.prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND seen = 0 AND archived = 0").get(userId) as { count: number };
+      return { unread: unread.count, unseen: unseen.count };
+    }
+
+    const unreadResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.read, false), eq(notifications.archived, false)));
+    
+    const unseenResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.seen, false), eq(notifications.archived, false)));
+
+    return {
+      unread: Number(unreadResult[0].count),
+      unseen: Number(unseenResult[0].count)
+    };
   }
 
   getDeletedUsersCount(): number {
@@ -1598,6 +1780,114 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(communities).orderBy(desc(communities.createdAt));
   }
 
+  async markNotificationAsRead(notificationId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite.prepare("UPDATE notifications SET read = 1 WHERE id = ?").run(notificationId);
+      return;
+    }
+    await db.update(notifications).set({ read: true }).where(eq(notifications.id, notificationId));
+  }
+
+  async markAllNotificationsAsRead(userId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite.prepare("UPDATE notifications SET read = 1 WHERE user_id = ? AND archived = 0").run(userId);
+      return;
+    }
+    await db.update(notifications).set({ read: true }).where(and(eq(notifications.userId, userId), eq(notifications.archived, false)));
+  }
+
+  async markNotificationsAsSeen(userId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite.prepare("UPDATE notifications SET seen = 1 WHERE user_id = ? AND archived = 0").run(userId);
+      return;
+    }
+    await db.update(notifications).set({ seen: true }).where(and(eq(notifications.userId, userId), eq(notifications.archived, false)));
+  }
+
+  async deleteNotification(notificationId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite.prepare("UPDATE notifications SET archived = 1 WHERE id = ?").run(notificationId);
+      return;
+    }
+    await db.update(notifications).set({ archived: true }).where(eq(notifications.id, notificationId));
+  }
+
+  async deleteAllNotifications(userId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite.prepare("UPDATE notifications SET archived = 1 WHERE user_id = ?").run(userId);
+      return;
+    }
+    await db.update(notifications).set({ archived: true }).where(eq(notifications.userId, userId));
+  }
+
+  async getNotificationPreferences(userId: number): Promise<NotificationPreferences> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      let prefs = sqlite.prepare("SELECT * FROM notification_preferences WHERE user_id = ?").get(userId) as any;
+      if (!prefs) {
+        // Create default preferences
+        sqlite.prepare("INSERT INTO notification_preferences (user_id) VALUES (?)").run(userId);
+        prefs = sqlite.prepare("SELECT * FROM notification_preferences WHERE user_id = ?").get(userId);
+      }
+      return {
+        userId: prefs.user_id,
+        likePost: Boolean(prefs.like_post),
+        likeComment: Boolean(prefs.like_comment),
+        commentPost: Boolean(prefs.comment_post),
+        replyComment: Boolean(prefs.reply_comment),
+        mentionPost: Boolean(prefs.mention_post),
+        mentionComment: Boolean(prefs.mention_comment),
+        newFollower: Boolean(prefs.new_follower),
+        communityInvite: Boolean(prefs.community_invite),
+        communityPost: Boolean(prefs.community_post),
+        postMilestone: Boolean(prefs.post_milestone),
+        systemAnnouncement: Boolean(prefs.system_announcement),
+        browserNotifications: Boolean(prefs.browser_notifications),
+        updatedAt: isNaN(Number(prefs.updated_at)) ? new Date(prefs.updated_at) : new Date(Number(prefs.updated_at) * 1000)
+      };
+    }
+
+    const [prefs] = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId));
+    if (!prefs) {
+      const [newPrefs] = await db.insert(notificationPreferences).values({ userId }).returning();
+      return newPrefs;
+    }
+    return prefs;
+  }
+
+  async updateNotificationPreferences(userId: number, update: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const sets: string[] = [];
+      const params: any[] = [];
+      
+      for (const [key, value] of Object.entries(update)) {
+        if (key === 'userId' || key === 'updatedAt') continue;
+        const dbKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        sets.push(`${dbKey} = ?`);
+        params.push(value ? 1 : 0);
+      }
+      
+      if (sets.length > 0) {
+        params.push(userId);
+        sqlite.prepare(`UPDATE notification_preferences SET ${sets.join(", ")}, updated_at = strftime('%s', 'now') WHERE user_id = ?`).run(...params);
+      }
+      return this.getNotificationPreferences(userId);
+    }
+
+    const [updated] = await db
+      .update(notificationPreferences)
+      .set({ ...update, updatedAt: new Date() })
+      .where(eq(notificationPreferences.userId, userId))
+      .returning();
+    return updated;
+  }
+
   async getCommunityFeedPosts(userId: number): Promise<Post[]> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
@@ -1667,6 +1957,11 @@ export class DatabaseStorage implements IStorage {
       `).run(communityId, userId, createdAt);
       return;
     }
+    await db.insert(communityJoinRequests).values({ 
+      communityId, 
+      userId, 
+      status: 'pending' 
+    });
   }
 
   async updateJoinRequestStatus(communityId: number, userId: number, status: string): Promise<void> {
@@ -1679,6 +1974,16 @@ export class DatabaseStorage implements IStorage {
       `).run(status, communityId, userId);
       return;
     }
+    await db
+      .update(communityJoinRequests)
+      .set({ status })
+      .where(
+        and(
+          eq(communityJoinRequests.communityId, communityId),
+          eq(communityJoinRequests.userId, userId),
+          eq(communityJoinRequests.status, "pending")
+        )
+      );
   }
 
   async getJoinRequest(communityId: number, userId: number): Promise<any | undefined> {
@@ -1698,7 +2003,18 @@ export class DatabaseStorage implements IStorage {
         createdAt: isNaN(Number((row as any).created_at)) ? new Date((row as any).created_at) : new Date(Number((row as any).created_at) * 1000),
       };
     }
-    return undefined;
+    const [request] = await db
+      .select()
+      .from(communityJoinRequests)
+      .where(
+        and(
+          eq(communityJoinRequests.communityId, communityId),
+          eq(communityJoinRequests.userId, userId)
+        )
+      )
+      .orderBy(desc(communityJoinRequests.createdAt))
+      .limit(1);
+    return request;
   }
 
   async getCommunityJoinRequests(communityId: number): Promise<any[]> {
@@ -1726,8 +2042,12 @@ export class DatabaseStorage implements IStorage {
     }
     const result = await db
       .select({
-        request: communityJoinRequests,
-        user: users
+        id: communityJoinRequests.id,
+        communityId: communityJoinRequests.communityId,
+        userId: communityJoinRequests.userId,
+        status: communityJoinRequests.status,
+        createdAt: communityJoinRequests.createdAt,
+        username: users.username,
       })
       .from(communityJoinRequests)
       .innerJoin(users, eq(communityJoinRequests.userId, users.id))
@@ -1739,12 +2059,15 @@ export class DatabaseStorage implements IStorage {
       )
       .orderBy(desc(communityJoinRequests.createdAt));
 
-    return result.map(({ request, user }) => ({
-      ...request,
-      userId: request.userId,
+    return result.map((row) => ({
+      id: row.id,
+      communityId: row.communityId,
+      userId: row.userId,
+      status: row.status,
+      createdAt: row.createdAt,
       user: {
-        id: user.id,
-        username: user.username
+        id: row.userId,
+        username: row.username
       }
     }));
   }
@@ -1807,11 +2130,15 @@ export class DatabaseStorage implements IStorage {
   ): Promise<void> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      sqlite
+      const info = sqlite
         .prepare(
           "UPDATE community_members SET role = ? WHERE community_id = ? AND user_id = ?",
         )
         .run(role, communityId, userId);
+        
+      if (info.changes === 0) {
+          throw new Error("No rows updated in SQLite!");
+      }
       return;
     }
     await db
@@ -1853,7 +2180,9 @@ export class DatabaseStorage implements IStorage {
       const rows = sqlite
         .prepare(
           `
-        SELECT cm.*, u.* 
+        SELECT 
+          cm.id as member_id, cm.community_id, cm.user_id, cm.role as member_role, cm.joined_at,
+          u.username, u.email, u.created_at, u.email_verified, u.is_admin, u.verified, u.karma, u.bio
         FROM community_members cm
         JOIN users u ON cm.user_id = u.id
         WHERE cm.community_id = ?
@@ -1862,20 +2191,18 @@ export class DatabaseStorage implements IStorage {
         .all(communityId);
 
       return rows.map((row: any) => ({
-        id: row.id,
+        id: row.member_id,
         communityId: row.community_id,
         userId: row.user_id,
-        role: row.role,
-        joinedAt: new Date(row.joined_at * 1000),
+        role: row.member_role,
+        joinedAt: new Date(Number(row.joined_at) * 1000),
         user: {
-          id: row.user_id, // maps to u.id
+          id: row.user_id,
           username: row.username,
           email: row.email,
-          createdAt: new Date(row.created_at * 1000),
+          createdAt: new Date(Number(row.created_at) * 1000),
           emailVerified: Boolean(row.email_verified),
           isAdmin: Boolean(row.is_admin),
-          role: row.role, // this overwrites existing role, need to be careful. The user role is hidden by community role in this specific select? No, unique column names in join?
-          // SQLite returns mixed columns. Let's sanitize carefully.
           verified: Boolean(row.verified),
           karma: row.karma,
           bio: row.bio,
@@ -1884,17 +2211,35 @@ export class DatabaseStorage implements IStorage {
     }
 
     const members = await db
-      .select()
+      .select({
+        id: communityMembers.id,
+        communityId: communityMembers.communityId,
+        userId: communityMembers.userId,
+        role: communityMembers.role,
+        joinedAt: communityMembers.joinedAt,
+        username: users.username,
+        email: users.email,
+        bio: users.bio,
+        profilePictureUrl: users.profilePictureUrl,
+      })
       .from(communityMembers)
       .innerJoin(users, eq(communityMembers.userId, users.id))
       .where(eq(communityMembers.communityId, communityId));
 
-    return members.map(
-      ({ community_members, users }: { community_members: CommunityMember; users: User }) => ({
-        ...community_members,
-        user: sanitizeUser(users),
-      }),
-    );
+    return members.map((row) => ({
+      id: row.id,
+      communityId: row.communityId,
+      userId: row.userId,
+      role: row.role,
+      joinedAt: row.joinedAt,
+      user: {
+        id: row.userId,
+        username: row.username,
+        email: row.email,
+        bio: row.bio,
+        profilePictureUrl: row.profilePictureUrl,
+      },
+    }));
   }
 
   async getUserCommunities(userId: number): Promise<(Community & { role: string })[]> {
@@ -1925,23 +2270,22 @@ export class DatabaseStorage implements IStorage {
     }
 
     const result = await db
-      .select()
+      .select({
+        id: communities.id,
+        name: communities.name,
+        description: communities.description,
+        slug: communities.slug,
+        creatorId: communities.creatorId,
+        imageUrl: communities.imageUrl,
+        isPrivate: communities.isPrivate,
+        createdAt: communities.createdAt,
+        role: communityMembers.role,
+      })
       .from(communityMembers)
       .innerJoin(communities, eq(communityMembers.communityId, communities.id))
       .where(eq(communityMembers.userId, userId));
 
-    return result.map(
-      ({
-        community_members,
-        communities,
-      }: {
-        community_members: CommunityMember;
-        communities: Community;
-      }) => ({
-        ...communities,
-        role: community_members.role,
-      }),
-    );
+    return result;
   }
 
   async getModeratedCommunities(userId: number): Promise<(Community & { role: string })[]> {
@@ -1972,7 +2316,17 @@ export class DatabaseStorage implements IStorage {
     }
 
     const result = await db
-      .select()
+      .select({
+        id: communities.id,
+        name: communities.name,
+        description: communities.description,
+        slug: communities.slug,
+        creatorId: communities.creatorId,
+        imageUrl: communities.imageUrl,
+        isPrivate: communities.isPrivate,
+        createdAt: communities.createdAt,
+        role: communityMembers.role,
+      })
       .from(communityMembers)
       .innerJoin(communities, eq(communityMembers.communityId, communities.id))
       .where(
@@ -1982,18 +2336,7 @@ export class DatabaseStorage implements IStorage {
         ),
       );
 
-    return result.map(
-      ({
-        community_members,
-        communities,
-      }: {
-        community_members: CommunityMember;
-        communities: Community;
-      }) => ({
-        ...communities,
-        role: community_members.role,
-      }),
-    );
+    return result;
   }
 
   // Community Bans
@@ -2071,7 +2414,9 @@ export class DatabaseStorage implements IStorage {
       const rows = sqlite
         .prepare(
           `
-        SELECT cb.*, u.*
+        SELECT 
+          cb.id as ban_id, cb.community_id, cb.user_id, cb.reason, cb.banned_at,
+          u.username, u.email, u.created_at, u.email_verified, u.is_admin, u.verified, u.karma, u.bio
         FROM community_bans cb
         JOIN users u ON cb.user_id = u.id
         WHERE cb.community_id = ?
@@ -2080,19 +2425,18 @@ export class DatabaseStorage implements IStorage {
         .all(communityId);
 
       return rows.map((row: any) => ({
-        id: row.id,
+        id: row.ban_id,
         communityId: row.community_id,
         userId: row.user_id,
         reason: row.reason,
-        bannedAt: new Date(row.banned_at * 1000),
+        bannedAt: new Date(Number(row.banned_at) * 1000),
         user: {
           id: row.user_id,
           username: row.username,
           email: row.email,
-          createdAt: new Date(row.created_at * 1000),
+          createdAt: new Date(Number(row.created_at) * 1000),
           emailVerified: Boolean(row.email_verified),
           isAdmin: Boolean(row.is_admin),
-          role: row.role, // user role
           verified: Boolean(row.verified),
           karma: row.karma,
           bio: row.bio,
@@ -2101,14 +2445,30 @@ export class DatabaseStorage implements IStorage {
     }
 
     const bans = await db
-      .select()
+      .select({
+        id: communityBans.id,
+        communityId: communityBans.communityId,
+        userId: communityBans.userId,
+        reason: communityBans.reason,
+        bannedAt: communityBans.bannedAt,
+        username: users.username,
+        profilePictureUrl: users.profilePictureUrl,
+      })
       .from(communityBans)
       .innerJoin(users, eq(communityBans.userId, users.id))
       .where(eq(communityBans.communityId, communityId));
 
-    return bans.map(({ community_bans, users }: { community_bans: CommunityBan; users: User }) => ({
-      ...community_bans,
-      user: sanitizeUser(users),
+    return bans.map((row) => ({
+      id: row.id,
+      communityId: row.communityId,
+      userId: row.userId,
+      reason: row.reason,
+      bannedAt: row.bannedAt,
+      user: {
+        id: row.userId,
+        username: row.username,
+        profilePictureUrl: row.profilePictureUrl,
+      },
     }));
   }
 
@@ -2141,7 +2501,30 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date(row.created_at * 1000),
       }));
     }
-    return [];
+    const communityPosts = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(eq(posts.communityId, communityId));
+
+    const postIds = communityPosts.map(p => p.id);
+
+    const communityComments = await db
+      .select({ id: comments.id })
+      .from(comments)
+      .where(inArray(comments.postId, postIds.length > 0 ? postIds : [-1]));
+
+    const commentIds = communityComments.map(c => c.id);
+
+    return await db
+      .select()
+      .from(reports)
+      .where(
+        or(
+          inArray(reports.postId, postIds.length > 0 ? postIds : [-1]),
+          inArray(reports.commentId, commentIds.length > 0 ? commentIds : [-1])
+        )
+      )
+      .orderBy(desc(reports.createdAt));
   }
 }
 

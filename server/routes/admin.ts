@@ -3,7 +3,7 @@ import { db } from "../db";
 import { users, posts, reports, comments, activityLogs, adminSettings } from "@shared/schema";
 import { adminUpdateUserSchema, adminUpdateReportSchema } from "@shared/schema";
 import { eq, desc, count, sql, and } from "drizzle-orm";
-import { ActivityLogger } from "../services/activity-log";
+import { activityLogger } from "../services/activity-logger";
 import { SettingsService } from "../services/settings";
 
 const router = Router();
@@ -188,17 +188,17 @@ router.patch("/users/:id", async (req, res) => {
         }
 
         // FEATURE [AL-004]: Log the user update
-        ActivityLogger.log(req, {
-            action: "user.edit",
+        activityLogger.logFromRequest(req, {
+            action: "user.settings_change",
             category: "users",
             targetType: "User",
-            targetId: updatedUser.id,
+            targetId: String(updatedUser.id),
             targetLabel: updatedUser.username,
             description: `Admin updated user profile for ${updatedUser.username}`,
             newValue: result.data,
-            severity: "medium",
+            severity: "warning",
             status: "success",
-        });
+        }).catch(err => console.error('[Monitor] user.settings_change failed:', err));
 
         res.json(updatedUser);
     } catch (error) {
@@ -215,16 +215,16 @@ router.delete("/users/:id", async (req, res) => {
         await db.delete(users).where(eq(users.id, userId));
 
         if (targetUser) {
-            ActivityLogger.log(req, {
-                action: "user.delete",
+            activityLogger.logFromRequest(req, {
+                action: "user.delete_account",
                 category: "users",
                 targetType: "User",
-                targetId: userId,
+                targetId: String(userId),
                 targetLabel: targetUser.username,
                 description: `Admin deleted user ${targetUser.username}`,
-                severity: "high",
+                severity: "critical",
                 status: "success",
-            });
+            }).catch(err => console.error('[Monitor] admin.user_delete failed:', err));
         }
         res.json({ success: true });
     } catch (error) {
@@ -254,15 +254,16 @@ router.patch("/reports/:id", async (req, res) => {
             .where(eq(reports.id, parseInt(req.params.id)))
             .returning();
 
-        ActivityLogger.log(req, {
-            action: "report.moderate",
-            category: "content",
+        activityLogger.logFromRequest(req, {
+            action: "report.resolve",
+            category: "moderation",
             targetType: "Report",
-            targetId: updatedReport.id,
+            targetId: String(updatedReport.id),
             description: `Admin updated report status to ${result.data.status}`,
-            severity: result.data.status === "rejected" ? "low" : "medium",
+            severity: result.data.status === "rejected" ? "info" : "warning",
             status: "success",
-        });
+            newValue: { status: result.data.status }
+        }).catch(err => console.error('[Monitor] report.resolve failed:', err));
 
         res.json(updatedReport);
     } catch (error) {

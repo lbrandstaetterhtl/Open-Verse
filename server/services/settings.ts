@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { adminSettings } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
-import { ActivityLogger } from "./activity-log";
+import { activityLogger } from "./activity-logger";
 import { type Request } from "express";
 
 /* FEATURE [AS-003]: Admin Settings – Implementation of the central settings service. */
@@ -66,8 +66,8 @@ export class SettingsService {
       .from(adminSettings)
       .where(and(eq(adminSettings.category, category), eq(adminSettings.key, key)));
 
-    ActivityLogger.log(req, {
-      action: "settings.update",
+    activityLogger.logFromRequest(req, {
+      action: "admin.settings_change",
       category: "settings",
       targetType: "Setting",
       targetId: key,
@@ -75,45 +75,45 @@ export class SettingsService {
       description: `Updated setting ${category}.${key}`,
       oldValue: setting?.isSensitive ? "********" : oldValue,
       newValue: setting?.isSensitive ? "********" : value,
-      severity: "medium",
+      severity: "warning",
       status: "success",
-    });
+    }).catch(err => console.error('[Monitor] admin.settings_change failed:', err));
   }
 
   static async seed() {
     const defaults = [
       // General
-      { category: "general", key: "site_name", label: "Site Name", value: "Open-Verse", valueType: "string" },
-      { category: "general", key: "site_description", label: "Site Description", value: "The next generation social platform.", valueType: "text" },
-      { category: "general", key: "maintenance_mode", label: "Maintenance Mode", value: "false", valueType: "boolean" },
-      { category: "general", key: "support_email", label: "Support Email", value: "support@open-verse.com", valueType: "string" },
+      { category: "general", key: "site_name", label: "Site Name", value: "Open-Verse", valueType: "string", description: "The global name of the platform displayed in the navigation bar and document titles." },
+      { category: "general", key: "site_description", label: "Site Description", value: "The next generation social platform.", valueType: "text", description: "A short slogan or description used for SEO meta tags and social media sharing." },
+      { category: "general", key: "maintenance_mode", label: "Maintenance Mode", value: "false", valueType: "boolean", description: "If enabled, blocks all non-admin users from accessing the site and displays a maintenance page." },
+      { category: "general", key: "support_email", label: "Support Email", value: "support@open-verse.com", valueType: "string", description: "The email address users can contact for help, shown in the footer and error pages." },
       
       // Users
-      { category: "users", key: "registration_enabled", label: "Allow Registration", value: "true", valueType: "boolean" },
-      { category: "users", key: "require_email_verification", label: "Require Email Verification", value: "false", valueType: "boolean" },
-      { category: "users", key: "default_user_karma", label: "Default User Karma", value: "0", valueType: "integer" },
-      { category: "users", key: "max_usernames_per_ip", label: "Max Accounts per IP", value: "5", valueType: "integer" },
+      { category: "users", key: "registration_enabled", label: "Allow Registration", value: "true", valueType: "boolean", description: "Toggle whether new users can create accounts on the platform." },
+      { category: "users", key: "require_email_verification", label: "Require Email Verification", value: "false", valueType: "boolean", description: "If enabled, users must verify their email before they can post, comment, or vote." },
+      { category: "users", key: "default_user_karma", label: "Default User Karma", value: "0", valueType: "integer", description: "The starting amount of Karma given to newly registered users." },
+      { category: "users", key: "max_usernames_per_ip", label: "Max Accounts per IP", value: "5", valueType: "integer", description: "Limit the number of accounts that can be registered from a single IP address to prevent spam." },
       
       // Content
-      { category: "content", key: "ai_generation_enabled", label: "AI Post Generation", value: "true", valueType: "boolean" },
-      { category: "content", key: "max_upload_size_mb", label: "Max Upload Size (MB)", value: "10", valueType: "integer" },
-      { category: "content", key: "post_cooldown_seconds", label: "Post Cooldown (Seconds)", value: "30", valueType: "integer" },
-      { category: "content", key: "profanity_filter_enabled", label: "Enable Profanity Filter", value: "true", valueType: "boolean" },
+      { category: "content", key: "ai_generation_enabled", label: "AI Post Generation", value: "true", valueType: "boolean", description: "Enable or disable the built-in AI post generator tool for users." },
+      { category: "content", key: "max_upload_size_mb", label: "Max Upload Size (MB)", value: "10", valueType: "integer", description: "Maximum file size allowed for media uploads (images and videos)." },
+      { category: "content", key: "post_cooldown_seconds", label: "Post Cooldown (Seconds)", value: "30", valueType: "integer", description: "Required wait time between creating new posts to prevent flooding." },
+      { category: "content", key: "profanity_filter_enabled", label: "Enable Profanity Filter", value: "true", valueType: "boolean", description: "Automatically censor known profanity and slurs in posts and comments." },
       
       // Security
-      { category: "security", key: "session_timeout_minutes", label: "Session Timeout", value: "60", valueType: "integer" },
-      { category: "security", key: "max_login_attempts", label: "Max Login Attempts", value: "5", valueType: "integer" },
-      { category: "security", key: "admin_ip_allowlist", label: "Admin IP Allowlist", value: "", valueType: "text" },
+      { category: "security", key: "session_timeout_minutes", label: "Session Timeout", value: "60", valueType: "integer", description: "How long an inactive user session remains valid before requiring them to log in again." },
+      { category: "security", key: "max_login_attempts", label: "Max Login Attempts", value: "5", valueType: "integer", description: "Number of failed login attempts allowed before temporarily locking the account." },
+      { category: "security", key: "admin_ip_allowlist", label: "Admin IP Allowlist", value: "", valueType: "text", description: "Comma-separated list of IP addresses allowed to access the admin dashboard. Leave blank to disable." },
       
       // Email
-      { category: "email", key: "smtp_host", label: "SMTP Host", value: "smtp.sendgrid.net", valueType: "string" },
-      { category: "email", key: "smtp_port", label: "SMTP Port", value: "587", valueType: "integer" },
-      { category: "email", key: "smtp_user", label: "SMTP User", value: "apikey", valueType: "string" },
-      { category: "email", key: "smtp_password", label: "SMTP Password", value: "", valueType: "string" },
+      { category: "email", key: "smtp_host", label: "SMTP Host", value: "smtp.sendgrid.net", valueType: "string", description: "Hostname of the outgoing mail server used for system notifications." },
+      { category: "email", key: "smtp_port", label: "SMTP Port", value: "587", valueType: "integer", description: "Port number for the SMTP server (usually 587 for TLS or 465 for SSL)." },
+      { category: "email", key: "smtp_user", label: "SMTP User", value: "apikey", valueType: "string", description: "Username used to authenticate with the SMTP server." },
+      { category: "email", key: "smtp_password", label: "SMTP Password", value: "", valueType: "string", description: "Password or API Key for the SMTP server. This value is encrypted and hidden." },
       
       // Appearance
-      { category: "appearance", key: "theme", label: "Default Site Theme", value: "dark", valueType: "string" },
-      { category: "appearance", key: "custom_footer_text", label: "Custom Footer Text", value: "© 2024 Open-Verse. All rights reserved.", valueType: "string" },
+      { category: "appearance", key: "theme", label: "Default Site Theme", value: "dark", valueType: "string", description: "The default visual theme applied for guests and new registrations." },
+      { category: "appearance", key: "custom_footer_text", label: "Custom Footer Text", value: "© 2024 Open-Verse. All rights reserved.", valueType: "string", description: "Text displayed at the very bottom of every public page on the site." },
     ];
 
     for (const d of defaults) {
@@ -130,6 +130,7 @@ export class SettingsService {
           category: d.category,
           key: d.key,
           label: d.label,
+          description: d.description,
           value: d.value,
           valueType: d.valueType,
           isSensitive: isSensitive ? (isSqlite ? 1 : true) : (isSqlite ? 0 : false),

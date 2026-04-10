@@ -153,8 +153,8 @@ export default function AdminSettingsPage() {
                                 <label className="text-sm font-black uppercase tracking-widest text-foreground leading-none">
                                   {setting.label}
                                 </label>
-                                {setting.isSensitive && <Badge variant="outline" className="text-[9px] font-black tracking-tighter uppercase px-1.5 py-0 h-4 bg-orange-500/10 text-orange-500 border-none">Sensitive</Badge>}
-                                {setting.isReadonly && <Badge variant="outline" className="text-[9px] font-black tracking-tighter uppercase px-1.5 py-0 h-4 bg-muted text-muted-foreground border-none">Readonly</Badge>}
+                                {Boolean(setting.isSensitive) && <Badge variant="outline" className="text-[9px] font-black tracking-tighter uppercase px-1.5 py-0 h-4 bg-orange-500/10 text-orange-500 border-none">Sensitive</Badge>}
+                                {Boolean(setting.isReadonly) && <Badge variant="outline" className="text-[9px] font-black tracking-tighter uppercase px-1.5 py-0 h-4 bg-muted text-muted-foreground border-none">Readonly</Badge>}
                              </div>
                              <p className="text-xs text-muted-foreground font-medium max-w-md">{setting.description || "No description provided for this configuration value."}</p>
                              <div className="flex items-center gap-4 pt-2">
@@ -169,7 +169,7 @@ export default function AdminSettingsPage() {
                           </div>
                           
                           <div className="shrink-0 flex items-center justify-end">
-                             {setting.isReadonly ? (
+                             {Boolean(setting.isReadonly) ? (
                                <div className="bg-muted p-2 rounded px-4 text-xs font-mono font-bold text-muted-foreground border italic">
                                  {setting.value}
                                 </div>
@@ -246,7 +246,7 @@ function SettingControl({ setting, updateMutation, showSensitive, toggleSensitiv
     );
   }
 
-  const isSensitive = setting.isSensitive;
+  const isSensitive = Boolean(setting.isSensitive);
   const isShowing = showSensitive[setting.id];
 
   return (
@@ -258,7 +258,7 @@ function SettingControl({ setting, updateMutation, showSensitive, toggleSensitiv
           value={localValue}
           onChange={(e) => setLocalValue(e.target.value)}
         />
-        {isSensitive && (
+        {isSensitive ? (
           <button 
             type="button"
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
@@ -266,7 +266,7 @@ function SettingControl({ setting, updateMutation, showSensitive, toggleSensitiv
           >
             {isShowing ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
-        )}
+        ) : null}
       </div>
       {isDirty && (
           <Button size="sm" className="w-fit gap-2 h-8" onClick={() => updateMutation.mutate({ id: setting.id, value: localValue })}>
