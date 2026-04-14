@@ -128,7 +128,7 @@ export class CommunityStorage {
       const memberRows = sqlite
         .prepare("SELECT community_id FROM community_members WHERE user_id = ?")
         .all(userId) as { community_id: number }[];
-      const communityIds = memberRows.map((r) => r.community_id);
+      const communityIds = memberRows.map((r: { community_id: number }) => r.community_id);
 
       if (communityIds.length === 0) return [];
 
@@ -295,7 +295,7 @@ export class CommunityStorage {
       .innerJoin(users, eq(communityMembers.userId, users.id))
       .where(eq(communityMembers.communityId, communityId));
 
-    return members.map((row) => ({
+    return members.map((row: any) => ({
       id: row.id,
       communityId: row.communityId,
       userId: row.userId,
@@ -565,9 +565,9 @@ export class CommunityStorage {
       }));
     }
     const communityPosts = await db.select({ id: posts.id }).from(posts).where(eq(posts.communityId, communityId));
-    const postIds = communityPosts.map(p => p.id);
+    const postIds = communityPosts.map((p: { id: number }) => p.id);
     const communityComments = await db.select({ id: comments.id }).from(comments).where(inArray(comments.postId, postIds.length > 0 ? postIds : [-1]));
-    const commentIds = communityComments.map(c => c.id);
+    const commentIds = communityComments.map((c: { id: number }) => c.id);
     return await db.select().from(reports).where(or(inArray(reports.postId, postIds.length > 0 ? postIds : [-1]), inArray(reports.commentId, commentIds.length > 0 ? commentIds : [-1]))).orderBy(desc(reports.createdAt));
   }
 }

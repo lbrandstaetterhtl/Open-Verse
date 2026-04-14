@@ -17,9 +17,7 @@ import {
   Zap,
   BarChart3,
   Award,
-  Home,
-  MessageSquare,
-  Newspaper
+  ShieldAlert
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";

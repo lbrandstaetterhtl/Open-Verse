@@ -151,7 +151,7 @@ export class NotificationStorage {
       .limit(limit)
       .offset(offset);
 
-    return result.map(({ notification, actor }) => ({
+    return result.map(({ notification, actor }: { notification: Notification; actor: User | null }) => ({
       ...notification,
       actor: actor || null
     }));

@@ -10,11 +10,9 @@ import {
   communities, 
   followers, 
   postLikes,
-  type AnalyticsSnapshot,
-  type CommunityAnalytics,
-  type CreatorAnalytics
+  type AnalyticsSnapshot
 } from "@shared/schema";
-import { eq, and, gte, lte, sql, count, desc, inArray, or } from "drizzle-orm";
+import { eq, and, gte, sql, count, desc, inArray } from "drizzle-orm";
 import { subDays, startOfDay, endOfDay, format } from "date-fns";
 
 export class AnalyticsService {
@@ -27,8 +25,8 @@ export class AnalyticsService {
     const dayEnd = endOfDay(date);
     
     // Unix seconds
-    const startTs = Math.floor(dayStart.getTime() / 1000);
-    const endTs = Math.floor(dayEnd.getTime() / 1000);
+    // const startTs = Math.floor(dayStart.getTime() / 1000);
+    // const endTs = Math.floor(dayEnd.getTime() / 1000);
     const dateStr = format(dayStart, "yyyy-MM-dd");
 
     try {
@@ -186,8 +184,8 @@ export class AnalyticsService {
   }
 
   private async computeCreatorAnalytics(start: Date, end: Date, dateStr: string) {
-    const startTs = Math.floor(start.getTime() / 1000);
-    const endTs = Math.floor(end.getTime() / 1000);
+    // const startTs = Math.floor(start.getTime() / 1000);
+    // const endTs = Math.floor(end.getTime() / 1000);
 
     // Get creators active in the period
     const activeCreators = await db.select({ userId: posts.authorId })

@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { systemMetrics, activityLogs, anomalyEvents, tickets } from "@shared/schema";
-import { count, eq, and, or, gte, inArray, sql, isNull } from "drizzle-orm";
+import { count, eq, and, inArray, sql, isNull } from "drizzle-orm";
 
 class MetricsService {
   private buffer: any[] = [];

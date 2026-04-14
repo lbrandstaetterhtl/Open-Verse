@@ -1,13 +1,9 @@
 import { storage } from "../storage";
 import { notificationService } from "./notification-service";
-import {
-  type Ticket,
-  type InsertTicket,
-} from "@shared/schema";
 
-export class TicketService {
+export const TicketService = {
   /** GENERATE TICKET NUMBER */
-  static async generateTicketNumber(): Promise<string> {
+  async generateTicketNumber(): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = `TKT-${year}-`;
 
@@ -22,10 +18,10 @@ export class TicketService {
       if (!isNaN(lastNum)) nextNumber = lastNum + 1;
     }
     return `${prefix}${String(nextNumber).padStart(4, "0")}`;
-  }
+  },
 
   /** GET TICKETS */
-  static async getTickets(
+  async getTickets(
     userRole: string,
     userId: number,
     filters: any
@@ -46,10 +42,10 @@ export class TicketService {
       page: filters.page || 1,
       totalPages: Math.ceil(total / (filters.limit || 20))
     };
-  }
+  },
 
   /** GET STATS */
-  static async getStats() {
+  async getStats() {
     const supportStore = await storage.getSupportStore();
     const rows = await supportStore.getStats();
     
@@ -80,10 +76,10 @@ export class TicketService {
     const avg_resolution_time_hours = resolvedCount > 0 ? (totalResolutionTime / resolvedCount) / 3600 : 0;
 
     return { total, by_status, by_priority, by_type, open_critical, avg_resolution_time_hours: Math.round(avg_resolution_time_hours) };
-  }
+  },
 
   /** GET TICKET BY ID */
-  static async getTicketById(id: number, userRole: string, userId: number) {
+  async getTicketById(id: number, userRole: string, userId: number) {
     const supportStore = await storage.getSupportStore();
     const ticket = await supportStore.getTicket(id);
 
@@ -97,10 +93,10 @@ export class TicketService {
     const history = await supportStore.getHistory(id);
 
     return { ticket, comments, history };
-  }
+  },
 
   /** CREATE TICKET */
-  static async createTicket(data: any, userId: number) {
+  async createTicket(data: any, userId: number) {
     const ticketNumber = await this.generateTicketNumber();
     const supportStore = await storage.getSupportStore();
     
@@ -114,10 +110,10 @@ export class TicketService {
     await this.createSystemComment(ticket.id, userId, 'created', null, 'open');
 
     return this.getTicketById(ticket.id, "owner", userId);
-  }
+  },
 
   /** UPDATE TICKET */
-  static async updateTicket(id: number, data: any, userId: number) {
+  async updateTicket(id: number, data: any, userId: number) {
     const supportStore = await storage.getSupportStore();
     const current = await supportStore.getTicket(id);
     if (!current) return null;
@@ -165,16 +161,16 @@ export class TicketService {
     }
 
     return true;
-  }
+  },
 
   /** DELETE TICKET */
-  static async deleteTicket(id: number) {
+  async deleteTicket(id: number) {
     const supportStore = await storage.getSupportStore();
     return supportStore.deleteTicket(id);
-  }
+  },
 
   /** CREATE COMMENT */
-  static async addComment(ticketId: number, authorId: number, content: string, isInternal: boolean) {
+  async addComment(ticketId: number, authorId: number, content: string, isInternal: boolean) {
     const supportStore = await storage.getSupportStore();
     const commentId = await supportStore.addComment({
       ticketId, authorId, content, isInternal, isSystem: false
@@ -206,29 +202,29 @@ export class TicketService {
     }
     
     return commentId;
-  }
+  },
 
   /** EDIT COMMENT */
-  static async editComment(commentId: number, authorId: number, userRole: string, content: string) {
+  async editComment(commentId: number, _authorId: number, _userRole: string, content: string) {
     const supportStore = await storage.getSupportStore();
     // Simplified: in reality we'd check author here or in the route
     return supportStore.updateComment(commentId, content);
-  }
+  },
 
   /** DELETE COMMENT */
-  static async deleteComment(commentId: number, authorId: number, userRole: string) {
+  async deleteComment(commentId: number, _authorId: number, _userRole: string) {
     const supportStore = await storage.getSupportStore();
     return supportStore.deleteComment(commentId);
-  }
+  },
 
   /** RESTORE TICKET */
-  static async restoreTicket(ticketId: number) {
+  async restoreTicket(ticketId: number) {
     const supportStore = await storage.getSupportStore();
     return supportStore.restoreTicket(ticketId);
-  }
+  },
 
   /** SYSTEM COMMENT */
-  private static async createSystemComment(
+  async createSystemComment(
     ticketId: number,
     authorId: number,
     changeType: string,
@@ -249,4 +245,4 @@ export class TicketService {
       changeType, changeFrom: from, changeTo: to
     });
   }
-}
+};

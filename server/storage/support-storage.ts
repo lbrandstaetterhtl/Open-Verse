@@ -1,17 +1,10 @@
 import type {
   Ticket} from "@shared/schema";
 import {
-  InsertTicket,
-  TicketComment,
-  TicketStatusHistory,
   tickets,
-  ticketComments,
-  ticketStatusHistory,
-  users,
-  User,
 } from "@shared/schema";
 import { db, getSqlite } from "../db";
-import { eq, desc, and, or, sql, like, asc } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 export class SupportStorage {
   async createTicket(ticket: any): Promise<Ticket> {
@@ -73,8 +66,8 @@ export class SupportStorage {
       if (sortBy === 'updated') order = "updated_at DESC";
       if (sortBy === 'priority') order = "CASE priority WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END, created_at DESC";
 
-      const rows = sqlite.prepare(`SELECT * FROM tickets WHERE ${whereClause} ORDER BY ${order} LIMIT ? OFFSET ?`).all(...params, limit, offset);
-      return { tickets: rows.map(r => this.mapSqliteRow(r)), total };
+      const rows = sqlite.prepare(`SELECT * FROM tickets WHERE ${whereClause} ORDER BY ${order} LIMIT ? OFFSET ?`).all(...params, limit, offset) as any[];
+      return { tickets: rows.map((r: any) => this.mapSqliteRow(r)), total };
     }
 
     // Postgres implementation would go here... for now returning empty to keep focus on SQLite stability

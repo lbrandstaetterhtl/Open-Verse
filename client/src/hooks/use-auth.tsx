@@ -1,9 +1,8 @@
-import type { ReactNode} from "react";
+import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import type { User as SelectUser, InsertUser } from "@shared/schema";
-import { insertUserSchema } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,6 +18,7 @@ type AuthContextType = {
 type LoginData = Pick<InsertUser, "username" | "password">;
 
 export const AuthContext = createContext<AuthContextType | null>(null);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const {
@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    staleTime: 5 * 60 * 1000, 
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -39,17 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/login", credentials);
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
-      // Clear ALL cached data from previous user
+    onSuccess: (data: SelectUser) => {
       queryClient.clear();
-      // Set new user data
-      queryClient.setQueryData(["/api/user"], user);
-      // Refetch will happen automatically due to clear()
+      queryClient.setQueryData(["/api/user"], data);
     },
-    onError: (error: Error) => {
+    onError: (err: Error) => {
       toast({
         title: "Login failed",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     },
@@ -60,17 +57,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", credentials);
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
-      // Clear ALL cached data (shouldn't have any, but just in case)
+    onSuccess: (data: SelectUser) => {
       queryClient.clear();
-      // Set new user data
-      queryClient.setQueryData(["/api/user"], user);
+      queryClient.setQueryData(["/api/user"], data);
       sessionStorage.setItem("isNewUser", "true");
     },
-    onError: (error: Error) => {
+    onError: (err: Error) => {
       toast({
         title: "Registration failed",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     },
@@ -81,22 +76,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
-      // Clear ALL cached data including posts, messages, notifications, etc.
       queryClient.clear();
-      // Set user to null
       queryClient.setQueryData(["/api/user"], null);
     },
-    onError: (error: Error) => {
+    onError: (err: Error) => {
       toast({
         title: "Logout failed",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     },
   });
 
-  // Stabilize context value to prevent cascade re-renders of all useAuth() consumers.
-  // Mutations change identity every render; memoizing on meaningful values prevents this.
   const contextValue = useMemo<AuthContextType>(
     () => ({
       user: user ?? null,
@@ -106,8 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logoutMutation,
       registerMutation,
     }),
-    // Only re-create when actual auth state changes, not on every render
-    [user, isLoading, error],
+    [user, isLoading, error, loginMutation, logoutMutation, registerMutation],
   );
 
   return (

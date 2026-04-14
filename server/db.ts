@@ -5,7 +5,7 @@ import Database from "better-sqlite3";
 import ws from "ws";
 import * as schema from "@shared/schema";
 import path from "node:path";
-import fs from "node:fs";
+
 
 console.log("DEBUG: process.env.USE_SQLITE =", process.env.USE_SQLITE);
 
@@ -452,50 +452,50 @@ if (useSqlite) {
   try {
     sqlite.exec(`ALTER TABLE posts ADD COLUMN community_id INTEGER`);
     console.log("DEBUG: Added community_id column to posts");
-  } catch (e: any) {
+  } catch {
     // Column already exists, ignore
   }
 
   // Add ip_address column to reports if it doesn't exist yet
   try {
     sqlite.exec(`ALTER TABLE reports ADD COLUMN ip_address TEXT`);
-  } catch (e: any) {
+  } catch {
     // Column already exists, ignore
   }
   // Add is_private column to communities if it doesn't exist
   try {
     sqlite.exec(`ALTER TABLE communities ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0`);
     console.log("DEBUG: Added is_private column to communities");
-  } catch (e: any) {
+  } catch {
     // Column already exists, ignore
   }
 
   // FEATURE-FIX [USER-SCHEMA]: Add missing profile columns for SQLite parity
   try {
     sqlite.exec(`ALTER TABLE users ADD COLUMN profile_picture_url TEXT`);
-  } catch (e) {}
+  } catch {}
   try {
     sqlite.exec(`ALTER TABLE users ADD COLUMN bio TEXT`);
-  } catch (e) {}
+  } catch {}
   
   // PHASE 3: Add Moderation columns to users table
-  try { sqlite.exec(`ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0`); } catch (e) {}
-  try { sqlite.exec(`ALTER TABLE users ADD COLUMN is_shadow_banned INTEGER DEFAULT 0`); } catch (e) {}
-  try { sqlite.exec(`ALTER TABLE users ADD COLUMN frozen_until INTEGER`); } catch (e) {}
-  try { sqlite.exec(`ALTER TABLE users ADD COLUMN freeze_reason TEXT`); } catch (e) {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0`); } catch {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN is_shadow_banned INTEGER DEFAULT 0`); } catch {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN frozen_until INTEGER`); } catch {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN freeze_reason TEXT`); } catch {}
 
   // PROFESSIONAL PROFILE FIELDS
-  try { sqlite.exec(`ALTER TABLE users ADD COLUMN display_name TEXT`); } catch (e) {}
-  try { sqlite.exec(`ALTER TABLE users ADD COLUMN avatar_url TEXT`); } catch (e) {}
-  try { sqlite.exec(`ALTER TABLE users ADD COLUMN cover_url TEXT`); } catch (e) {}
-  try { sqlite.exec(`ALTER TABLE users ADD COLUMN location TEXT`); } catch (e) {}
-  try { sqlite.exec(`ALTER TABLE users ADD COLUMN website TEXT`); } catch (e) {}
-  try { sqlite.exec(`ALTER TABLE users ADD COLUMN is_private INTEGER DEFAULT 0`); } catch (e) {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN display_name TEXT`); } catch {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN avatar_url TEXT`); } catch {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN cover_url TEXT`); } catch {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN location TEXT`); } catch {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN website TEXT`); } catch {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN is_private INTEGER DEFAULT 0`); } catch {}
 
   // Migrating profile_picture_url to avatar_url if exists and new is empty
   try {
     sqlite.exec(`UPDATE users SET avatar_url = profile_picture_url WHERE (avatar_url IS NULL OR avatar_url = '') AND profile_picture_url IS NOT NULL`);
-  } catch (e) {}
+  } catch {}
 
   // FEATURE-FIX [NOTIF-SCHEMA]: Add missing notification columns for SQLite parity
   const notifColumns = [
@@ -516,7 +516,7 @@ if (useSqlite) {
     try {
       sqlite.exec(`ALTER TABLE notifications ADD COLUMN ${col.name} ${col.type}`);
       console.log(`DEBUG: Added ${col.name} column to notifications`);
-    } catch (e) {
+    } catch {
       // Ignore "duplicate column" errors
     }
   }
@@ -524,7 +524,7 @@ if (useSqlite) {
   // Data migration: if from_user_id exists, copy it to actor_id
   try {
     sqlite.exec(`UPDATE notifications SET actor_id = from_user_id WHERE actor_id IS NULL AND from_user_id IS NOT NULL`);
-  } catch (e) {
+  } catch {
     // Ignore if from_user_id doesn't exist
   }
 } else {
@@ -532,11 +532,18 @@ if (useSqlite) {
   neonConfig.webSocketConstructor = ws;
 
   if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+    } else {
+      console.warn("WARNING: DATABASE_URL is missing. Production-mode DB logic will fail if called.");
+      // Fallback pool for analysis tools
+      pool = null;
+      db = null;
+    }
+  } else {
+    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    db = drizzleNeon({ client: pool, schema });
   }
-
-  pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  db = drizzleNeon({ client: pool, schema });
 }
 
 export function getSqlite() {

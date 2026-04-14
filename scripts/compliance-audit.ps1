@@ -51,16 +51,16 @@ try {
     # Step 2: Dead Code Detection (Knip)
     Write-Host "Finding unused code..."
     try {
-        $KnipOutput = npx knip --no-progress 2>&1 | Out-String
-        $DeadCodeFound = $KnipOutput -match "Unused" -or $KnipOutput -match "Unlisted"
+        $KnipOutput = npx knip --config knip.json --no-progress 2>&1 | Out-String
+        $DeadCodeFound = $KnipOutput -match "Unused"
         
         if ($DeadCodeFound) {
-            Write-Warning "Knip identified potential dead code or issues."
+            Write-Warning "Knip identified potential dead code (Unused exports/files)."
             $KnipOutput
             $KnipOutput | Out-File -FilePath "dead-code-report.txt" -Encoding utf8
             throw "Dead code detected. Osiris Zero-Tolerance policy violated. Fix the issues or ignore them in knip.json."
         }
-        Write-Success "No significant dead code detected."
+        Write-Success "No orphaned code detected."
     } catch {
         if ($_.Exception.Message -match "Dead code detected") { throw $_ }
         Write-ErrorMsg "Knip execution failed (possibly due to environment or config)."

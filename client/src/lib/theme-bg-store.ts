@@ -54,40 +54,6 @@ export async function getBgBlobUrl(key: string): Promise<string | null> {
     });
 }
 
-/** Delete a specific background blob */
-export async function deleteBgBlob(key: string): Promise<void> {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        tx.objectStore(STORE_NAME).delete(key);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
-}
-
-/** Remove all blobs whose keys are NOT in the usedKeys set */
-export async function cleanupUnreferencedBlobs(usedKeys: string[]): Promise<void> {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        const cursorReq = store.openCursor();
-        const keySet = new Set(usedKeys);
-
-        cursorReq.onsuccess = () => {
-            const cursor = cursorReq.result;
-            if (cursor) {
-                if (!keySet.has(cursor.key as string)) {
-                    cursor.delete();
-                }
-                cursor.continue();
-            }
-        };
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
-}
-
 /** Generate a unique key for a new background blob */
 export function generateBgKey(): string {
     return `theme-bg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

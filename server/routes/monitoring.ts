@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
-import { activityLogs, anomalyEvents, systemMetrics, alertRules, alertHistory, users } from "@shared/schema";
-import { count, eq, desc, and, gte, inArray, sql, or, like } from "drizzle-orm";
+import { activityLogs, anomalyEvents, users } from "@shared/schema";
+import { count, eq, desc, and, inArray, sql, or, like } from "drizzle-orm";
 import { isOwner, isAdmin } from "../middleware/auth";
 
 const router = Router();
@@ -196,7 +196,7 @@ router.get("/metrics/chart-data", async (req, res) => {
 
     const timeData = Array.from(timeDataMap.values());
     
-    const categoryDataTotal = Array.from(categoryMap.values()).reduce((sum, val) => sum + val, 0);
+
     const categoryData: any[] = [];
     categoryMap.forEach((value, name) => {
         if (value > 0) {

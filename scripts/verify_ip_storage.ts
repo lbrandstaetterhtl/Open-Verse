@@ -1,5 +1,5 @@
 import { storage } from "../server/storage";
-import { users, posts, reports } from "@shared/schema";
+
 
 async function main() {
   try {

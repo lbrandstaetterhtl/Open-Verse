@@ -4,32 +4,26 @@ import { KPICard } from "@/components/analytics/KPICard";
 import { 
     ShieldCheck, 
     TicketCheck, 
-    MessageSquare, 
     Clock, 
     RefreshCcw,
     TrendingUp,
     Award,
     AlertCircle,
     BarChart2,
-    Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { format } from "date-fns";
-
 export default function ModeratorPerformancePage() {
     const { t } = useTranslation();
     const { toast } = useToast();
     const [period, setPeriod] = useState<'today' | '7d' | '30d'>('7d');
-    const [sortBy, setSortBy] = useState('score');
+    const [sortBy, _setSortBy] = useState('score');
     
     const { data: leaderboard, isLoading: loadingLeaderboard } = useModeratorLeaderboard(period, sortBy);
     const { data: teamOverview, isLoading: loadingOverview } = useTeamOverview();
@@ -42,7 +36,7 @@ export default function ModeratorPerformancePage() {
                 title: t("modPerf.snapshot_success", "Snapshot Completed"),
                 description: t("modPerf.snapshot_success_desc", "Performance metrics have been updated for today."),
             });
-        } catch (error) {
+        } catch {
             toast({
                 title: t("modPerf.snapshot_error", "Error"),
                 variant: "destructive",

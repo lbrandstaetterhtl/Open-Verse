@@ -10,13 +10,9 @@ import type {
   CommunityMember,
   CommunityBan} from "@shared/schema";
 import {
-  Report,
-  Notification,
-  NotificationPreferences,
-  Message,
   InsertCommunity
 } from "@shared/schema";
-import { db, pool, getSqlite } from "./db";
+import { pool, getSqlite } from "./db";
 import connectPg from "connect-pg-simple";
 import sqliteStoreFactory from "better-sqlite3-session-store";
 
@@ -46,14 +42,14 @@ export interface IStorage {
   deleteUser(id: number): Promise<void>;
 
   // Content
-  createPost(post: any): Promise<Post>;
-  getPosts(options?: any): Promise<Post[]>;
+  createPost(post: Omit<Post, "id" | "createdAt" | "karma">): Promise<Post>;
+  getPosts(options?: { category?: string; communityId?: number; limit?: number; offset?: number }): Promise<Post[]>;
   getPost(id: number): Promise<Post | undefined>;
   getPostsByUser(userId: number): Promise<Post[]>;
   getLikedPostsByUser(userId: number): Promise<Post[]>;
   updatePostKarma(id: number, karma: number): Promise<Post>;
   deletePost(id: number): Promise<void>;
-  createComment(comment: any): Promise<Comment>;
+  createComment(comment: Omit<Comment, "id" | "createdAt" | "karma">): Promise<Comment>;
   getComments(postId: number): Promise<Comment[]>;
   getComment(id: number): Promise<Comment | undefined>;
   updateCommentKarma(id: number, karma: number): Promise<Comment>;
@@ -87,11 +83,11 @@ export interface IStorage {
   getMutualFollowers(userId1: number, userId2: number): Promise<User[]>;
 
   // Communities
-  createCommunity(community: any): Promise<Community>;
+  createCommunity(community: InsertCommunity & { creatorId: number; slug: string }): Promise<Community>;
   getCommunity(id: number): Promise<Community | undefined>;
   getCommunityBySlug(slug: string): Promise<Community | undefined>;
-  getCommunities(options?: any): Promise<Community[]>;
-  getCommunityFeedPosts(userId: number, options?: any): Promise<Post[]>;
+  getCommunities(options?: { limit?: number; offset?: number }): Promise<Community[]>;
+  getCommunityFeedPosts(userId: number, options?: { limit?: number; offset?: number }): Promise<Post[]>;
   addCommunityMember(communityId: number, userId: number, role?: string): Promise<CommunityMember>;
   removeCommunityMember(communityId: number, userId: number): Promise<void>;
   getCommunityMember(communityId: number, userId: number): Promise<CommunityMember | undefined>;
@@ -125,7 +121,7 @@ export interface IStorage {
 
 export function sanitizeUser(user: any): User {
   if (!user) return user;
-  const { password, ...safeUser } = user;
+  const { password: _, ...safeUser } = user;
   return safeUser as User;
 }
 
@@ -186,14 +182,14 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(id: number) { return this.userStore.deleteUser(id); }
 
   // Content Proxy
-  async createPost(p: any) { return this.contentStore.createPost(p); }
-  async getPosts(o?: any) { return this.contentStore.getPosts(o); }
+  async createPost(p: Omit<Post, "id" | "createdAt" | "karma">) { return this.contentStore.createPost(p); }
+  async getPosts(o?: { category?: string; communityId?: number; limit?: number; offset?: number }) { return this.contentStore.getPosts(o); }
   async getPost(id: number) { return this.contentStore.getPost(id); }
   async getPostsByUser(id: number) { return this.contentStore.getPostsByUser(id); }
   async getLikedPostsByUser(id: number) { return this.contentStore.getLikedPostsByUser(id); }
   async updatePostKarma(id: number, k: number) { return this.contentStore.updatePostKarma(id, k); }
   async deletePost(id: number) { return this.contentStore.deletePost(id); }
-  async createComment(c: any) { return this.contentStore.createComment(c); }
+  async createComment(c: Omit<Comment, "id" | "createdAt" | "karma">) { return this.contentStore.createComment(c); }
   async getComments(id: number) { return this.contentStore.getComments(id); }
   async getComment(id: number) { return this.contentStore.getComment(id); }
   async updateCommentKarma(id: number, k: number) { return this.contentStore.updateCommentKarma(id, k); }
@@ -230,11 +226,11 @@ export class DatabaseStorage implements IStorage {
   async getCommentsByUser(uId: number) { return this.contentStore.getCommentsByUser(uId); }
 
   // Community Proxy
-  async createCommunity(c: any) { return this.communityStore.createCommunity(c); }
+  async createCommunity(c: InsertCommunity & { creatorId: number; slug: string }) { return this.communityStore.createCommunity(c); }
   async getCommunity(id: number) { return this.communityStore.getCommunity(id); }
   async getCommunityBySlug(s: string) { return this.communityStore.getCommunityBySlug(s); }
-  async getCommunities(o?: any) { return this.communityStore.getCommunities(o); }
-  async getCommunityFeedPosts(uId: number, o?: any) { return this.communityStore.getCommunityFeedPosts(uId, o); }
+  async getCommunities(o?: { limit?: number; offset?: number }) { return this.communityStore.getCommunities(o); }
+  async getCommunityFeedPosts(uId: number, o?: { limit?: number; offset?: number }) { return this.communityStore.getCommunityFeedPosts(uId, o); }
   async addCommunityMember(cId: number, uId: number, r?: string) { return this.communityStore.addCommunityMember(cId, uId, r); }
   async removeCommunityMember(cId: number, uId: number) { return this.communityStore.removeCommunityMember(cId, uId); }
   async getCommunityMember(cId: number, uId: number) { return this.communityStore.getCommunityMember(cId, uId); }

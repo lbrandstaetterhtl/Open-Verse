@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useParams, Link } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { useTicket, useAddComment, useUpdateTicket, useDeleteTicket } from "@/hooks/use-tickets";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TicketStatusBadge, TicketPriorityBadge } from "@/components/tickets/badges";
-import { Loader2, MessageSquare, History, User, Clock, AlertTriangle, UserCircle2 } from "lucide-react";
+import { Loader2, History, User, Clock, UserCircle2 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { BackButton } from "@/components/ui/back-button";
@@ -55,7 +55,7 @@ export default function TicketDetailPage() {
     );
   }
 
-  const { ticket, comments, history } = data;
+  const { ticket, comments } = data;
 
   const handleUpdateStatus = async (status: string) => {
     try {
@@ -69,7 +69,7 @@ export default function TicketDetailPage() {
   const handleUpdatePriority = async (priority: string) => {
     try {
       await updateTicket({ id: ticket.id, data: { priority } });
-    } catch (err: any) {
+    } catch {
       toast({ title: "Failed to update", variant: "destructive" });
     }
   };
@@ -78,7 +78,7 @@ export default function TicketDetailPage() {
     try {
       await updateTicket({ id: ticket.id, data: { assignedTo } });
       toast({ title: "Assignment updated" });
-    } catch (err: any) {
+    } catch {
       toast({ title: "Failed to assign", variant: "destructive" });
     }
   };

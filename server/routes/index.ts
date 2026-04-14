@@ -9,7 +9,6 @@ import compression from "compression";
 import { setupAuth, validateCsrf } from "../auth";
 import { storage } from "../storage";
 import { connections } from "../services/websocket";
-import { logSecurityEvent } from "../utils/logger";
 import { banCheckMiddleware } from "../middleware/ban-check";
 
 // Feature Routes
@@ -30,8 +29,6 @@ import modPerformanceRoutes from "./mod-performance";
 import securityRoutes from "./security";
 import { SettingsService } from "../services/settings";
 import { monitoringMiddleware, slowQueryMiddleware } from "../middleware/monitoring";
-import path from "node:path";
-import xss from "xss";
 
 
 
@@ -146,10 +143,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const keys = ["site_name", "maintenance_mode", "registration_enabled", "site_description"];
             const settings: Record<string, any> = {};
             
-            for (const key of keys) {
+            const settingsArray = await Promise.all(keys.map(async (key) => {
                 const category = key.includes("registration") ? "users" : "general";
-                settings[key] = await SettingsService.get(category, key);
-            }
+                return { key, value: await SettingsService.get(category, key) };
+            }));
+            
+            settingsArray.forEach(({ key, value }) => {
+                settings[key] = value;
+            });
             
             res.json(settings);
         } catch (error) {
@@ -257,8 +258,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (url.pathname === '/ws') {
             sessionParser(req as any, {} as any, () => {
-                const session = (req as any).session;
-                const userId = session?.passport?.user;
+                const currentSession = (req as any).session;
+                const userId = currentSession?.passport?.user;
                 if (!userId) {
                     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
                     socket.destroy();
@@ -272,8 +273,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     wss.on('connection', (ws, req: any) => {
-        const session = req.session;
-        const userId = session?.passport?.user;
+        const currentSession = req.session;
+        const userId = currentSession?.passport?.user;
 
         if (!userId) {
             console.warn("[WS] Connection attempted without valid session/user");

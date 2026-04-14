@@ -4,9 +4,7 @@ import { useTranslation } from "react-i18next";
 import { 
   Activity, 
   Search, 
-  Filter, 
   Download, 
-  Eye, 
   Shield, 
   User, 
   AlertCircle,
@@ -16,7 +14,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,12 +40,12 @@ import { type ActivityLog } from "@shared/schema";
 
 /* FEATURE [AL-007]: Activity Logs – Frontend implementation. */
 export default function ActivityLogsPage() {
-  const { t } = useTranslation();
+  const { _t } = useTranslation();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [severity, setSeverity] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
+  const [status] = useState("all");
+
 
   const { data: logs, isLoading } = useQuery<ActivityLog[]>({
     queryKey: ["/api/admin/logs", { search, category, severity, status }],
@@ -65,8 +63,8 @@ export default function ActivityLogsPage() {
     }
   });
 
-  const handleExport = (format: "csv" | "json") => {
-    window.open(`/api/admin/logs/export?format=${format}`, "_blank");
+  const handleExport = (exportFormat: "csv" | "json") => {
+    window.open(`/api/admin/logs/export?format=${exportFormat}`, "_blank");
   };
 
   const severityColors = {
@@ -233,7 +231,7 @@ export default function ActivityLogsPage() {
                     <TableCell className="text-right pr-6">
                       <Sheet>
                         <SheetTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={() => setSelectedLog(log)} className="h-8 w-8 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
                             <ChevronRight className="h-4 w-4" />
                           </Button>
                         </SheetTrigger>

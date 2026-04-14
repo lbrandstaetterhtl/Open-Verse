@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
-import { 
   Users, 
   Flag, 
   Shield, 
@@ -24,13 +23,6 @@ import {
   Filter,
   MoreVertical,
   ArrowRight,
-  ChevronRight,
-  LayoutDashboard,
-  Bell,
-  Settings,
-  LogOut,
-  Home,
-  Trophy,
   Crown
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -298,12 +290,6 @@ export default function AdminDashboard() {
     setSelectedUsers(next);
   };
 
-  const toggleReportSelection = (id: number) => {
-    const next = new Set(selectedReports);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedReports(next);
-  };
 
   const handleBulkAction = async (reason: string, duration?: number) => {
     if (!bulkAction) return;

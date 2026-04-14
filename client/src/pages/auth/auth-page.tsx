@@ -1,9 +1,8 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -18,29 +17,24 @@ import {
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import {
-  Network,
   Newspaper,
   MessageSquare,
   Users,
-  Sparkles,
-  Globe,
   TrendingUp,
   Info,
   Eye,
   EyeOff,
+  CheckCircle2,
 } from "lucide-react";
 import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
 import type { InsertUser, LoginCredentials } from "@shared/schema";
 import { insertUserSchema, loginSchema } from "@shared/schema";
-import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2 } from "lucide-react";
-
 import { useSiteSettings } from "@/hooks/use-site-settings";
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
-  const [location, params] = useLocation();
+  const { user } = useAuth();
+  const [location] = useLocation();
   const { settings } = useSiteSettings();
   const isVerified = location.includes("verified=true");
 

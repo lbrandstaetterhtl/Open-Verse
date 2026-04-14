@@ -4,7 +4,7 @@ import {
   messages,
 } from "@shared/schema";
 import { db, getSqlite } from "../db";
-import { eq, and, or, desc, asc, sql } from "drizzle-orm";
+import { eq, and, or, asc, sql } from "drizzle-orm";
 
 export class MessageStorage {
   async createMessage(message: {

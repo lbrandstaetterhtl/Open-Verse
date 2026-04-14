@@ -72,7 +72,7 @@ router.get("/:id", isAuthenticated, async (req, res) => {
 router.post("/", isAuthenticated, async (req, res) => {
   try {
     const user = req.user as any;
-    const { title, description, type, priority, relatedUserId, relatedPostId, relatedUrl, tags, attachments } = req.body;
+    const { title, description, type, priority } = req.body;
 
     if (!title || !description || !type || !priority) {
       return res.status(400).send("Missing required fields");

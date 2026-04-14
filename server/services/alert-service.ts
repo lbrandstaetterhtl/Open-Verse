@@ -1,13 +1,11 @@
 import { db } from "../db";
-import { alertHistory, alertRules } from "@shared/schema";
-import { eq, and, gte } from "drizzle-orm";
-import { notificationService } from "./notification-service";
+import { alertHistory } from "@shared/schema";
 
 class AlertService {
   async fire(params: { severity: string, title: string, description: string }): Promise<void> {
     try {
       // Find rules or just fire an adhoc alert
-      const now = Math.floor(Date.now() / 1000);
+
       
       await db.insert(alertHistory).values({
         ruleName: "Adhoc Alert",
@@ -19,7 +17,7 @@ class AlertService {
 
       // If critical, notify admins
       if (params.severity === "critical") {
-        SystemAdminNotifier.notifyAdmins({
+        notifyAdmins({
           title: `CRITICAL ALERT: ${params.title}`,
           message: params.description,
         });
@@ -30,12 +28,10 @@ class AlertService {
   }
 }
 
-class SystemAdminNotifier {
-  static async notifyAdmins(params: { title: string, message: string }) {
-    // Basic implementation to notify admins, e.g. using existing notificationService logic
-    // Currently omitted from the spec, but we can do a best effort
-    console.error(`[ADMIN NOTIFY] ${params.title} - ${params.message}`);
-  }
+async function notifyAdmins(params: { title: string, message: string }) {
+  // Basic implementation to notify admins, e.g. using existing notificationService logic
+  // Currently omitted from the spec, but we can do a best effort
+  console.error(`[ADMIN NOTIFY] ${params.title} - ${params.message}`);
 }
 
 export const alertService = new AlertService();

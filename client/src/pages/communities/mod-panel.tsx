@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldAlert, Gavel, UserX } from "lucide-react";
+import { Loader2, ShieldAlert } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useState } from "react";
@@ -39,18 +39,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
-  ExternalLink,
   MoreHorizontal,
-  Shield,
   Ban,
   CheckCircle,
   XCircle,
-  AlertTriangle,
   Search,
   UserPlus,
   Trash2,
-  Flag,
-  Eye,
   UserMinus,
   Crown,
 } from "lucide-react";
@@ -71,13 +66,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Link } from "wouter";
+
 import { useTranslation } from "react-i18next";
 
 export default function ModPanel() {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const { _user } = useAuth();
+  const { _toast } = useToast();
   const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
 
   const { data: communities, isLoading: isLoadingCommunities } = useQuery<Community[]>({
@@ -948,11 +943,3 @@ function RequestsManager({ communityId }: { communityId: number }) {
   );
 }
 
-function SkeletonLoader() {
-  return (
-    <div className="space-y-4">
-      <div className="h-8 bg-muted rounded w-1/3"></div>
-      <div className="h-32 bg-muted rounded w-full"></div>
-    </div>
-  );
-}

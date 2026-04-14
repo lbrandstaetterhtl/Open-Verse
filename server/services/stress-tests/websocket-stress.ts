@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { performance } from 'node:perf_hooks';
+
 import { StressTest } from './base';
 import type { TestConfig, TestResult } from '../../types/stress';
 import type { Logger } from '../../utils/logger';
@@ -54,6 +54,7 @@ export class WebSocketStressTest extends StressTest {
       });
 
       sockets.push(ws);
+      // eslint-disable-next-line no-await-in-loop
       await new Promise(r => setTimeout(r, 5)); // Stagger
     }
 
@@ -67,7 +68,7 @@ export class WebSocketStressTest extends StressTest {
             metrics.messagesSent++;
           }
         });
-      } catch (e) {
+      } catch (_e) {
         clearInterval(floodInterval);
       }
     }, 1000 / messageRate);
@@ -76,6 +77,7 @@ export class WebSocketStressTest extends StressTest {
     const checkInterval = 500;
     while (Date.now() - startTime < testDuration) {
       this.checkCancellation(logger);
+      // eslint-disable-next-line no-await-in-loop
       await new Promise(r => setTimeout(r, checkInterval));
     }
     

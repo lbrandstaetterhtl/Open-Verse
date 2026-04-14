@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   User,
-  Settings,
   Shield,
   Palette,
   ShieldAlert,
@@ -28,7 +27,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import type { Community } from "@shared/schema";
 import { Separator } from "@/components/ui/separator";
-import { motion, AnimatePresence } from "framer-motion";
+
 
 export function UserMenu() {
   const { t } = useTranslation();

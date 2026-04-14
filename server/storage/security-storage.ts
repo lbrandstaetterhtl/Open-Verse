@@ -2,7 +2,6 @@ import type {
   Report} from "@shared/schema";
 import {
   reports,
-  bans,
 } from "@shared/schema";
 import { db, getSqlite } from "../db";
 import { eq, and, desc, sql, or } from "drizzle-orm";

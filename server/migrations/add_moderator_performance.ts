@@ -34,17 +34,17 @@ export async function addModeratorPerformanceSystem() {
   `);
 
   // Indexe erstellen
-  try { sqlite.exec("CREATE INDEX IF NOT EXISTS idx_mod_perf_date ON moderator_performance_snapshots(snapshot_date);"); } catch(e){}
-  try { sqlite.exec("CREATE INDEX IF NOT EXISTS idx_mod_perf_score ON moderator_performance_snapshots(performance_score);"); } catch(e){}
+  try { sqlite.exec("CREATE INDEX IF NOT EXISTS idx_mod_perf_date ON moderator_performance_snapshots(snapshot_date);"); } catch {}
+  try { sqlite.exec("CREATE INDEX IF NOT EXISTS idx_mod_perf_score ON moderator_performance_snapshots(performance_score);"); } catch {}
 
   // 2. Bestehende Tabellen für Performance-Daten erweitern
-  try { sqlite.exec("ALTER TABLE reports ADD COLUMN resolved_by INTEGER;"); } catch (e) {}
-  try { sqlite.exec("ALTER TABLE reports ADD COLUMN resolved_at INTEGER;"); } catch (e) {}
-  try { sqlite.exec("ALTER TABLE reports ADD COLUMN resolution_time_seconds INTEGER;"); } catch (e) {}
+  try { sqlite.exec("ALTER TABLE reports ADD COLUMN resolved_by INTEGER;"); } catch {}
+  try { sqlite.exec("ALTER TABLE reports ADD COLUMN resolved_at INTEGER;"); } catch {}
+  try { sqlite.exec("ALTER TABLE reports ADD COLUMN resolution_time_seconds INTEGER;"); } catch {}
 
-  try { sqlite.exec("ALTER TABLE tickets ADD COLUMN first_response_at INTEGER;"); } catch (e) {}
-  try { sqlite.exec("ALTER TABLE tickets ADD COLUMN response_time_seconds INTEGER;"); } catch (e) {}
-  try { sqlite.exec("ALTER TABLE tickets ADD COLUMN resolution_time_seconds INTEGER;"); } catch (e) {}
+  try { sqlite.exec("ALTER TABLE tickets ADD COLUMN first_response_at INTEGER;"); } catch {}
+  try { sqlite.exec("ALTER TABLE tickets ADD COLUMN response_time_seconds INTEGER;"); } catch {}
+  try { sqlite.exec("ALTER TABLE tickets ADD COLUMN resolution_time_seconds INTEGER;"); } catch {}
 
   console.log("✅ Moderator Performance Tabellen bereit");
 }

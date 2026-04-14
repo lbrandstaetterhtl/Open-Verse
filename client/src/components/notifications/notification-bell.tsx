@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Check, Settings, ListFilter, Trash2 } from "lucide-react";
+import { Bell, Check, Settings } from "lucide-react";
 import { 
   Popover, 
   PopoverContent, 
@@ -12,9 +12,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+
 import { 
   Tooltip, 
   TooltipContent, 
@@ -28,8 +28,8 @@ export function NotificationBell() {
   const { t } = useTranslation();
   
   const { data: counts } = useNotificationCounts();
-  const { data: notifications, isLoading, isFetching } = useNotifications({ limit: 10 });
-  const { markAsSeen, markAllAsRead, deleteAllNotifications } = useNotificationMutations();
+  const { data: notifications, isLoading } = useNotifications({ limit: 10 });
+  const { markAsSeen, markAllAsRead } = useNotificationMutations();
   const [_, setLocation] = useLocation();
 
   const [lastCount, setLastCount] = useState(0);

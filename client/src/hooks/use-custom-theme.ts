@@ -19,7 +19,7 @@ import {
   SAVED_THEMES_EVENT,
   setActiveThemeInfo,
 } from "@/lib/theme-utils";
-import { saveBgBlob, deleteBgBlob, generateBgKey, cleanupUnreferencedBlobs } from "@/lib/theme-bg-store";
+import { saveBgBlob, generateBgKey } from "@/lib/theme-bg-store";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -295,7 +295,7 @@ export function useCustomTheme() {
           setActiveThemeInfo(freshTheme.id, freshTheme.name);
           return;
         }
-      } catch (error) { }
+      } catch { }
     }
 
     // Fallback to cached data
@@ -349,20 +349,6 @@ export function useCustomTheme() {
     updateBackground({ mode: "solid", image: undefined, gradient: "" });
   };
 
-  /** Collect all bg image refs currently used by local themes */
-  function collectUsedBgRefs(): string[] {
-    const refs: string[] = [];
-    const themes = getSavedThemes();
-    for (const t of themes) {
-      if (t.colors.background?.image) {
-        refs.push(t.colors.background.image.value);
-      }
-    }
-    if (customTheme.background?.image) {
-      refs.push(customTheme.background.image.value);
-    }
-    return refs;
-  }
 
   return {
     customTheme,

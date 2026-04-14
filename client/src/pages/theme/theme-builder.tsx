@@ -5,8 +5,8 @@ import { useCustomTheme } from "@/hooks/use-custom-theme";
 import { ThemeGroup } from "@/components/theme/theme-group";
 import { ThemeBackground } from "@/components/theme/theme-background";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Palette,
   Type,
@@ -15,19 +15,14 @@ import {
   Download,
   Upload,
   RotateCcw,
-  Sparkles,
   Save,
   Plus,
   Image,
   Layers,
   History,
-  Trash2,
-  Check,
-  ChevronRight,
   Monitor,
   Smartphone,
   Info,
-  ExternalLink,
 } from "lucide-react";
 import {
   exportTheme,
@@ -35,8 +30,6 @@ import {
   loadCustomTheme,
   defaultTheme,
   applyTheme,
-  hslToHex,
-  hexToHsl,
   getActiveThemeInfo,
   setActiveThemeInfo,
   clearActiveThemeInfo,
@@ -44,7 +37,7 @@ import {
   availableFonts,
 } from "@/lib/theme-utils";
 import { useToast } from "@/hooks/use-toast";
-import type { ThemeColors, CustomTheme, SavedTheme, BackgroundMode, BackgroundConfig } from "@/lib/theme-utils";
+import type { ThemeColors, CustomTheme, BackgroundMode } from "@/lib/theme-utils";
 import { galaxyGradients, defaultBackground } from "@/lib/theme-utils";
 import { Input } from "@/components/ui/input";
 import {
@@ -58,7 +51,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Navbar } from "@/components/layout/navbar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
+
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -88,16 +81,16 @@ const COLOR_METADATA: Record<keyof ThemeColors, { label: string; description: st
 
 export default function ThemeBuilderPage() {
   const { t } = useTranslation();
-  const [, setLocation] = useLocation();
+  const [, _setLocation] = useLocation();
   const {
     customTheme,
-    isDark,
-    updateColor,
+    isDark: _isDark,
+    updateColor: _updateColor,
     resetTheme,
     importTheme: importCustomTheme,
     savedThemes,
     saveThemeAs,
-    deleteTheme,
+    deleteTheme: _deleteTheme,
     loadTheme,
     uploadBackground,
   } = useCustomTheme();
@@ -237,7 +230,7 @@ export default function ThemeBuilderPage() {
     
     // Cleanup: restore global theme when leaving component
     return () => {
-      const globalIsDark = document.documentElement.classList.contains("dark");
+      // Cleanup: ThemeProvider will take over on next render.
       // This is a bit tricky since we don't want to break the app's dark mode setting,
       // but the ThemeProvider will usually take over on next render or mount.
     };
@@ -272,7 +265,7 @@ export default function ThemeBuilderPage() {
       setActiveThemeInfo(saved.id, saved.name);
       setHasUnsavedChanges(false);
       toast({ title: t("theme.saved"), description: t("theme.saved_desc", { name: themeName }) });
-    } catch (error) {
+    } catch {
       toast({ title: t("theme.save_failed"), variant: "destructive" });
     }
   };
@@ -336,7 +329,7 @@ export default function ThemeBuilderPage() {
       setWorkingTheme(updated);
       setHasUnsavedChanges(true);
       pushToHistory(updated);
-    } catch (err) {
+    } catch {
       toast({ title: "Upload failed", variant: "destructive" });
     } finally {
       setBgUploading(false);

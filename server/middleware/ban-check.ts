@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { bans, users } from "@shared/schema";
-import { eq, and, or, gt, inArray } from "drizzle-orm";
+import { eq, and, or, gt } from "drizzle-orm";
 import { activityLogger } from "../services/activity-logger";
 import crypto from "node:crypto";
 
@@ -97,23 +97,6 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
   }
 }
 
-/**
- * Helper um Where-Bedingungen anzupassen wenn der User NICHT shadowgebannt ist
- */
-// Shadow ban logic preserved in middleware but exports removed to satisfy Knip compliance
-function applyShadowBanFilter(req: Request, query: any) {
-  if (!(req as any).isShadowBanned) {
-    return { ...query, excludeShadowBanned: true };
-  }
-  return query;
-}
-
-function applyShadowBanFilterSql(req: Request) {
-  if (!(req as any).isShadowBanned) {
-    return eq(users.isShadowBanned, 0);
-  }
-  return; 
-}
 
 function generateFingerprint(userAgent: string, headers: any): string {
   const components = [

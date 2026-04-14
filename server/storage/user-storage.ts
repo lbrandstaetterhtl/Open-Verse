@@ -391,7 +391,7 @@ export class UserStorage {
       .from(followers)
       .innerJoin(users, eq(followers.followerId, users.id))
       .where(eq(followers.followingId, userId));
-    return result.map((r) => r.user);
+    return result.map((r: { user: User }) => r.user);
   }
 
   async getFollowing(userId: number): Promise<User[]> {
@@ -483,6 +483,6 @@ export class UserStorage {
         ),
       );
 
-    return result.map((r: any) => r.user);
+    return result.map((r: { user: User }) => r.user);
   }
 }

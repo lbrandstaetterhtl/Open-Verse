@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { ModeratorStatsCard } from "@/components/monitoring/ModeratorStatsCard";
 

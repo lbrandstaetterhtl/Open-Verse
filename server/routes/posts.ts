@@ -2,14 +2,14 @@ import { Router } from "express";
 import path from "node:path";
 import fs from "node:fs";
 import { storage } from "../storage";
-import { isAuthenticated, isAdmin, isOwner } from "../middleware/auth";
+import { isAuthenticated } from "../middleware/auth";
 import { postUpload, checkFileSignature, sanitizeImage } from "../utils/file-upload";
 import { checkContent } from "../services/moderation";
 import { logSecurityEvent } from "../utils/logger";
 import { broadcastMessage } from "../services/websocket";
 import { notificationService } from "../services/notification-service";
 import { sanitizeUser } from "../storage";
-import { canDeleteContent } from "../utils/permissions";
+
 import { SettingsService } from "../services/settings";
 import { activityLogger } from "../services/activity-logger";
 

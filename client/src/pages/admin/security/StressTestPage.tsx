@@ -2,17 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { 
   Zap, 
-  Play, 
   Square, 
   Terminal, 
   Activity, 
-  AlertTriangle,
   History,
-  Info,
   ChevronRight,
   ShieldAlert,
   Cpu,
@@ -47,9 +42,8 @@ export default function StressTestPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [intensity, setIntensity] = useState<"low" | "medium" | "high" | "extreme">("medium");
-  const [duration, setDuration] = useState(30);
+  const [duration] = useState(30);
   const [currentModule, setCurrentModule] = useState<string | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -72,17 +66,6 @@ export default function StressTestPage() {
       description: `Starting ${moduleId} with ${intensity} intensity.` 
     });
 
-    // We use a POST to start, but for logs we use SSE. 
-    // Usually SSE is a GET. We'll send parameters via query string for simplicity in SSE.
-    const url = `/api/security/stress-test/${moduleId}?intensity=${intensity}&duration=${duration}`;
-    
-    // Create SSE connection
-    // NOTE: Our backend currently expects a POST. We should update the backend to support either 
-    // or use a fetch/stream reader. Let's use fetch with NDJSON/Streaming for better POST support 
-    // but the backend implemented SSE via response.write. 
-    // Standard EventSource only supports GET. 
-    // I'll adjust the backend to support GET for logging or use fetch streaming.
-    
     const startStreaming = async () => {
       try {
         const response = await fetch(`/api/security/stress-test/${moduleId}`, {

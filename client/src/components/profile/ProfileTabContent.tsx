@@ -1,5 +1,4 @@
-import { Post, Comment } from "@shared/schema";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { format } from "date-fns";
 import { Link } from "wouter";

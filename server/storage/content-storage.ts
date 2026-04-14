@@ -57,7 +57,7 @@ export class ContentStorage {
 
       if (category) {
         if (category.includes(",")) {
-          const categories = category.split(",").map((c) => c.trim());
+          const categories = category.split(",").map((c: string) => c.trim());
           whereClauses.push(`p.category IN (${categories.map(() => "?").join(",")})`);
           params.push(...categories);
         } else {
@@ -72,7 +72,7 @@ export class ContentStorage {
       query += " ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
       params.push(limit, offset);
 
-      const rows = sqlite.prepare(query).all(...params);
+      const rows = sqlite.prepare(query).all(...params) as any[];
       return rows.map((row: any) => ({
         id: row.id,
         title: row.title,
@@ -325,7 +325,7 @@ export class ContentStorage {
 
     const rows = await db.select({ postId: postLikes.postId, isLike: postLikes.isLike, count: sql<number>`count(*)` }).from(postLikes).where(inArray(postLikes.postId, postIds)).groupBy(postLikes.postId, postLikes.isLike);
     postIds.forEach(id => results.set(id, { likes: 0, dislikes: 0 }));
-    rows.forEach(row => {
+    rows.forEach((row: { postId: number; isLike: boolean; count: number }) => {
       const stats = results.get(row.postId) || { likes: 0, dislikes: 0 };
       if (row.isLike) stats.likes = Number(row.count);
       else stats.dislikes = Number(row.count);
@@ -428,6 +428,6 @@ export class ContentStorage {
       .where(and(eq(postLikes.userId, userId), eq(postLikes.isLike, true)))
       .orderBy(desc(postLikes.createdAt));
 
-    return result.map((r: any) => r.post);
+    return result.map((r: { post: Post }) => r.post);
   }
 }
