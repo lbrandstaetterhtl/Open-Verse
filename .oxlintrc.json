@@ -1,0 +1,59 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "import",
+    "jsdoc",
+    "node",
+    "promise",
+    "react",
+    "oxc"
+  ],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "categories": {
+    "correctness": "warn",
+    "perf": "warn",
+    "suspicious": "warn",
+    "pedantic": "off",
+    "style": "off"
+  },
+  "rules": {
+    "no-console": "off",
+    "no-unused-vars": "off",
+    "no-duplicate-imports": "off",
+    "no-shadow": "off",
+    "eqeqeq": "off",
+    "no-var": "off",
+    "prefer-const": "off",
+    "no-debugger": "off",
+    "no-await-in-loop": "off",
+    "typescript/no-unused-vars": "off",
+    "typescript/no-explicit-any": "off",
+    "typescript/ban-ts-comment": "off",
+    "typescript/no-shadow": "off",
+    "typescript/no-floating-promises": "off",
+    "import/no-cycle": "off",
+    "import/no-duplicates": "off",
+    "import/first": "off",
+    "unicorn/prefer-node-protocol": "off",
+    "oxc/no-map-spread": "off",
+    "oxc/no-async-endpoint-handlers": "off",
+    "max-lines": "off",
+    "max-lines-per-function": "off"
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "node_modules/**",
+    "coverage/**",
+    "scripts/**",
+    "server/scratch/**",
+    "server/scripts/**",
+    "**/*.js",
+    "**/*.mjs"
+  ]
+}
