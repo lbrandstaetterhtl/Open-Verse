@@ -11,7 +11,7 @@ async function testAIGeneration() {
       imageContext: "has_image",
       language: "english",
     });
-    console.log("Result:", content.substring(0, 50) + "...");
+    console.log("Result:", content.slice(0, 50) + "...");
   } catch (error) {
     console.error("Test 1 Failed:", error);
   }
@@ -36,7 +36,7 @@ async function testAIGeneration() {
   console.log("\n[Test 3] Topic Only (No Image)");
   try {
     const content = await generatePostContent({ topic: "Coding" });
-    console.log("Result:", content.substring(0, 50) + "...");
+    console.log("Result:", content.slice(0, 50) + "...");
   } catch (error) {
     console.error("Test 3 Failed:", error);
   }

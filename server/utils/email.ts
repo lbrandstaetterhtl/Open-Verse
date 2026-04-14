@@ -4,7 +4,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
 // SECURITY FIX [VULN-011]: HTML-escape user input before embedding in email
 function escapeHtml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return str.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 }
 
 export async function sendVerificationEmail(email: string, username: string, token: string) {
@@ -29,6 +29,6 @@ export async function sendVerificationEmail(email: string, username: string, tok
     await sgMail.send(msg);
   } catch (error) {
     console.error("Error sending verification email:", error);
-    throw new Error("Failed to send verification email");
+    throw new Error("Failed to send verification email", { cause: error });
   }
 }

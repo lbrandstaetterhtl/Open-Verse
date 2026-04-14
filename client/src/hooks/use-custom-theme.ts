@@ -23,7 +23,7 @@ import { saveBgBlob, deleteBgBlob, generateBgKey, cleanupUnreferencedBlobs } fro
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Theme } from "@shared/schema";
+import type { Theme } from "@shared/schema";
 
 export function useCustomTheme() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -75,7 +75,7 @@ export function useCustomTheme() {
 
   // Track auth state to reset theme on login/logout
   // const { user } is already available from top scope
-  const [prevUserId, setPrevUserId] = useState<number | null | undefined>(undefined);
+  const [prevUserId, setPrevUserId] = useState<number | null | undefined>();
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -261,9 +261,9 @@ export function useCustomTheme() {
         colors: JSON.parse(newTheme.colors),
         createdAt: new Date(newTheme.createdAt),
       };
-    } else {
-      return saveNamedTheme(name, colorsToSave, id as string);
     }
+      return saveNamedTheme(name, colorsToSave, id as string);
+    
   };
 
   const deleteTheme = async (id: string | number) => {
@@ -315,7 +315,7 @@ export function useCustomTheme() {
           ...partial,
           overlay: {
             ...(prev.background?.overlay || defaultBackground.overlay),
-            ...(partial.overlay || {}),
+            ...partial.overlay,
           },
         },
       };
@@ -337,12 +337,12 @@ export function useCustomTheme() {
       }
       const data = await res.json();
       return { type: "fileRef", value: data.fileRef };
-    } else {
+    }
       // Guest: store in IndexedDB
       const key = generateBgKey();
       await saveBgBlob(key, file);
       return { type: "dataRef", value: key };
-    }
+    
   };
 
   const removeBackground = () => {

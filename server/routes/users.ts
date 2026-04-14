@@ -110,7 +110,33 @@ router.get("/:username/posts", async (req, res) => {
             return res.status(404).send("User not found");
         }
         const posts = await storage.getPostsByUser(user.id);
-        res.json(posts);
+        
+        // Enrich posts with author and reaction details
+        const postIds = posts.map(p => p.id);
+        const batchReactions = await storage.getBatchPostReactions(postIds);
+        const currentUserId = (req.user as any)?.id;
+
+        const postsWithDetails = await Promise.all(posts.map(async (post) => {
+            const isFollowing = currentUserId ? await storage.isFollowing(currentUserId, post.authorId) : false;
+            const reactions = batchReactions.get(post.id) || { likes: 0, dislikes: 0 };
+            const userReaction = currentUserId ? await storage.getUserPostReaction(currentUserId, post.id) : null;
+
+            return {
+                ...post,
+                author: {
+                    id: user.id,
+                    username: user.username,
+                    verified: user.verified || false,
+                    isFollowing,
+                    role: user.role || 'member'
+                },
+                reactions,
+                userReaction,
+                comments: [] // Posts already have comments in the detailed view if needed
+            };
+        }));
+
+        res.json(postsWithDetails);
     } catch (error) {
         console.error("Error fetching user posts:", error);
         res.status(500).send("Failed to fetch user posts");
@@ -139,6 +165,99 @@ router.get("/:username/comments", async (req, res) => {
     } catch (error) {
         console.error("Error fetching user comments:", error);
         res.status(500).send("Failed to fetch user comments");
+    }
+});
+
+router.get("/:username/liked", async (req, res) => {
+    try {
+        const user = await storage.getUserByUsername(req.params.username);
+        if (!user) {
+            return res.status(404).send("User not found");
+        }
+
+        const posts = await storage.getLikedPostsByUser(user.id);
+        
+        // Enrich posts
+        const authorIds = [...new Set(posts.map(p => p.authorId))];
+        const authors = await storage.getUsersByIds(authorIds);
+        const authorsMap = new Map(authors.map(u => [u.id, u]));
+
+        const postIds = posts.map(p => p.id);
+        const batchReactions = await storage.getBatchPostReactions(postIds);
+        const currentUserId = (req.user as any)?.id;
+
+        const postsWithDetails = await Promise.all(posts.map(async (post) => {
+            const author = authorsMap.get(post.authorId);
+            const isFollowing = currentUserId ? await storage.isFollowing(currentUserId, post.authorId) : false;
+            const reactions = batchReactions.get(post.id) || { likes: 0, dislikes: 0 };
+            const userReaction = currentUserId ? await storage.getUserPostReaction(currentUserId, post.id) : null;
+
+            return {
+                ...post,
+                author: {
+                    id: author?.id,
+                    username: author?.username || 'Unknown',
+                    verified: author?.verified || false,
+                    isFollowing,
+                    role: author?.role || 'member'
+                },
+                reactions,
+                userReaction,
+                comments: []
+            };
+        }));
+
+        res.json(postsWithDetails);
+    } catch (error) {
+        console.error("Error getting liked posts:", error);
+        res.status(500).send("Failed to get liked posts");
+    }
+});
+
+router.get("/:username", async (req, res) => {
+    try {
+        const user = await storage.getUserByUsername(req.params.username);
+        if (!user) {
+            return res.status(404).send("User not found");
+        }
+
+        const [followersCount, followingCount, posts] = await Promise.all([
+            storage.getFollowerCount(user.id),
+            storage.getFollowingCount(user.id),
+            storage.getPostsByUser(user.id)
+        ]);
+
+        let isFollowing = false;
+        let isFollowingBack = false;
+        let mutualFollowers: any[] = [];
+
+        if (req.isAuthenticated()) {
+            const currentUserId = (req.user as any).id;
+            const targetUserId = user.id;
+
+            if (currentUserId !== targetUserId) {
+                [isFollowing, isFollowingBack, mutualFollowers] = await Promise.all([
+                    storage.isFollowing(currentUserId, targetUserId),
+                    storage.isFollowing(targetUserId, currentUserId),
+                    storage.getMutualFollowers(currentUserId, targetUserId)
+                ]);
+            }
+        }
+
+        res.json({
+            ...user,
+            stats: {
+                followers: followersCount,
+                following: followingCount,
+                posts: posts.length
+            },
+            isFollowing,
+            isFollowingBack,
+            mutualFollowers: mutualFollowers.slice(0, 3) // Only return first 3 for preview
+        });
+    } catch (error) {
+        console.error("Error fetching user profile:", error);
+        res.status(500).send("Failed to fetch user profile");
     }
 });
 

@@ -1,6 +1,6 @@
-import http from "http";
-import fs from "fs";
-import path from "path";
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 import FormData from "form-data";
 
 // Configuration
@@ -59,7 +59,7 @@ function attackUpload() {
   if (!active) return;
 
   // Create a dummy multipart request directly
-  const boundary = "----WebKitFormBoundary" + Math.random().toString(36).substr(2);
+  const boundary = "----WebKitFormBoundary" + Math.random().toString(36).slice(2);
   const content = `--${boundary}
 Content-Disposition: form-data; name="content"
 

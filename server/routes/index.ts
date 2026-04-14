@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
+import { createServer, type Server } from "node:http";
 import session from 'express-session';
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -10,6 +10,7 @@ import { setupAuth, validateCsrf } from "../auth";
 import { storage } from "../storage";
 import { connections } from "../services/websocket";
 import { logSecurityEvent } from "../utils/logger";
+import { banCheckMiddleware } from "../middleware/ban-check";
 
 // Feature Routes
 import aiRoutes from "./ai";
@@ -24,9 +25,12 @@ import userRoutes from "./users";
 import adminRoutes from "./admin";
 import ticketRoutes from "./tickets";
 import monitoringRoutes from "./monitoring";
+import analyticsRoutes from "./analytics";
+import modPerformanceRoutes from "./mod-performance";
+import securityRoutes from "./security";
 import { SettingsService } from "../services/settings";
 import { monitoringMiddleware, slowQueryMiddleware } from "../middleware/monitoring";
-import path from "path";
+import path from "node:path";
 import xss from "xss";
 
 
@@ -39,6 +43,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const scriptSrcDirective = process.env.NODE_ENV === 'production'
         ? ["'self'"]
         : ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
+    
     app.use(helmet({
         contentSecurityPolicy: {
             directives: {
@@ -47,15 +52,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 mediaSrc: ["'self'", "data:", "blob:"],
                 scriptSrc: scriptSrcDirective,
                 connectSrc: ["'self'", "ws:", "wss:"],
-                frameAncestors: ["'none'"], // SEC-FIX: Correct CSP directive for clickjacking protection
+                frameAncestors: ["'none'"],
+                objectSrc: ["'none'"], // SEC-FIX: Block plugins
+                upgradeInsecureRequests: [],
             },
         },
         hsts: {
             maxAge: 31536000,
             includeSubDomains: true,
             preload: true
-        }
+        },
+        referrerPolicy: { policy: "strict-origin-when-cross-origin" }
     }));
+
+    // SEC-FIX [SEC-011]: Permissions-Policy to disable unneeded browser features
+    app.use((req, res, next) => {
+        res.setHeader(
+            "Permissions-Policy",
+            "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        );
+        next();
+    });
     app.disable('x-powered-by');
 
     if (!process.env.SESSION_SECRET) {
@@ -79,6 +96,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // 3. Setup Auth (Registers passport and populates req.user)
     setupAuth(app, sessionParser);
+
+    // 3.5. Security & Ban Check Middleware (Block IPs, Devices, Accounts)
+    app.use(banCheckMiddleware);
 
     // 4. Monitoring Middleware
     app.use(monitoringMiddleware);
@@ -154,17 +174,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         try {
             const userId = (req.user as any).id;
-            const posts = await storage.getCommunityFeedPosts(userId);
+            const limit = parseInt(req.query.limit as string) || 50;
+            const offset = parseInt(req.query.offset as string) || 0;
+
+            const posts = await storage.getCommunityFeedPosts(userId, { limit, offset });
             
             // Enrich posts with author and reaction details
             const authorIds = [...new Set(posts.map(p => p.authorId))];
             const authors = await storage.getUsersByIds(authorIds);
             const authorsMap = new Map(authors.map(u => [u.id, u]));
 
+            // PERF-FIX [OPT-002]: Batch fetch reactions (Prevents N+1)
+            const postIds = posts.map(p => p.id);
+            const batchReactions = await storage.getBatchPostReactions(postIds);
+
             const postsWithDetails = await Promise.all(posts.map(async (post) => {
                 const author = authorsMap.get(post.authorId);
+                // TODO: Batch this too in next iteration
                 const isFollowing = await storage.isFollowing(userId, post.authorId);
-                const reactions = await storage.getPostReactions(post.id);
+                const reactions = batchReactions.get(post.id) || { likes: 0, dislikes: 0 };
                 const userReaction = await storage.getUserPostReaction(userId, post.id);
 
                 return {
@@ -194,7 +222,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use("/api/communities", communityRoutes);
     app.use("/api/reports", reportRoutes);
     app.use("/api/admin/monitoring", monitoringRoutes);
+    app.use("/api/admin/analytics", analyticsRoutes);
+    app.use("/api/admin/performance", modPerformanceRoutes);
     app.use("/api/admin", adminRoutes);
+    app.use("/api/security", securityRoutes);
     app.use("/api/tickets", ticketRoutes);
     app.use("/api/messages", messageRoutes);
     app.use("/api/notifications", notificationRoutes);
@@ -206,6 +237,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     httpServer.on('upgrade', (req, socket, head) => {
         const url = new URL(req.url || '', `http://${req.headers.host}`);
+        
+        // SEC-FIX [SEC-006]: Strict Origin Validation to prevent CSWSH
+        const origin = req.headers.origin;
+        const host = req.headers.host;
+        
+        if (origin) {
+            const originUrl = new URL(origin);
+            const isLocalhost = originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1';
+            const matchesHost = host && originUrl.host === host;
+
+            if (!matchesHost && !isLocalhost) {
+                console.warn(`[SEC] Blocked WebSocket upgrade from unauthorized origin: ${origin}`);
+                socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+                socket.destroy();
+                return;
+            }
+        }
+
         if (url.pathname === '/ws') {
             sessionParser(req as any, {} as any, () => {
                 const session = (req as any).session;

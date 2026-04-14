@@ -22,10 +22,17 @@ const ActivityLogsPageOld = lazy(() => import("@/pages/admin/activity-logs")); /
 const AdminSettingsPage = lazy(() => import("@/pages/admin/settings"));
 const NotificationsPage = lazy(() => import("@/pages/notifications/notifications-page"));
 
+// Security Pages
+const BansPage = lazy(() => import("@/pages/admin/BansPage").then(m => ({ default: m.BansPage })));
+const AutoPunishmentPage = lazy(() => import("@/pages/admin/AutoPunishmentPage").then(m => ({ default: m.AutoPunishmentPage })));
+
 // Monitoring Pages
 const MonitoringOverview = lazy(() => import("@/pages/admin/monitoring/MonitoringOverview").then(m => ({ default: m.MonitoringOverview })));
 const ActivityLogsPage = lazy(() => import("@/pages/admin/monitoring/ActivityLogsPage").then(m => ({ default: m.ActivityLogsPage })));
 const AnomaliesPage = lazy(() => import("@/pages/admin/monitoring/AnomaliesPage").then(m => ({ default: m.AnomaliesPage })));
+const GrowthDashboardPage = lazy(() => import("@/pages/admin/analytics/GrowthDashboardPage"));
+const ModeratorPerformancePage = lazy(() => import("@/pages/admin/analytics/ModeratorPerformancePage"));
+const StressTestPage = lazy(() => import("@/pages/admin/security/StressTestPage"));
 
 // Feed Pages
 const MediaFeedPage = lazy(() => import("@/pages/feed/media"));
@@ -55,10 +62,11 @@ const CreateTicketPage = lazy(() => import("@/pages/tickets/CreateTicketPage"));
 const TicketDetailPage = lazy(() => import("@/pages/tickets/TicketDetailPage"));
 const AdminTicketsOverview = lazy(() => import("@/pages/admin/AdminTicketsOverview"));
 
+import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
+
 function Router() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
-      <Switch>
+    <Switch>
         <Route path="/auth" component={AuthPage} />
 
         {/* Feed Routes */}
@@ -94,11 +102,17 @@ function Router() {
         <ProtectedRoute path="/admin/reports" component={AdminDashboard} />
         <ProtectedRoute path="/admin/logs" component={ActivityLogsPageOld} />
         <ProtectedRoute path="/admin/settings" component={AdminSettingsPage} />
+        <ProtectedRoute path="/admin/bans" component={BansPage} />
+        <ProtectedRoute path="/admin/auto-punishments" component={AutoPunishmentPage} />
         
         {/* Monitoring Routes */}
         <ProtectedRoute path="/admin/monitoring" component={MonitoringOverview} />
         <ProtectedRoute path="/admin/monitoring/activity" component={ActivityLogsPage} />
         <ProtectedRoute path="/admin/monitoring/anomalies" component={AnomaliesPage} />
+        <ProtectedRoute path="/admin/analytics" component={GrowthDashboardPage} />
+        <ProtectedRoute path="/admin/performance" component={ModeratorPerformancePage} />
+        <ProtectedRoute path="/admin/security/stress-test" component={StressTestPage} />
+        <ProtectedRoute path="/security/stress-test" component={StressTestPage} />
 
         {/* Community Routes */}
         <ProtectedRoute path="/create-community" component={CreateCommunityPage} />
@@ -115,7 +129,6 @@ function Router() {
         <ProtectedRoute path="/" component={MediaFeedPage} />
         <Route component={NotFound} />
       </Switch>
-    </Suspense>
   );
 }
 
@@ -152,7 +165,7 @@ function HeadManager() {
 }
 
 import { MaintenanceGuard } from "@/components/layout/maintenance-guard";
-import { Footer } from "@/components/layout/footer";
+import { AppShell } from "@/components/layout/AppShell";
 
 function WebSocketManager() {
   useWebSocket();
@@ -168,12 +181,9 @@ function App() {
           <GlobalThemeApplier />
           <HeadManager />
           <MaintenanceGuard>
-            <div className="flex flex-col min-h-screen">
-              <div className="flex-grow pt-14">
-                <Router />
-              </div>
-              <Footer />
-            </div>
+            <AppShell>
+              <Router />
+            </AppShell>
           </MaintenanceGuard>
           <NewUserDialog />
           <Toaster />

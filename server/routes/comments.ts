@@ -34,7 +34,7 @@ router.post("/", isAuthenticated, async (req, res) => {
                 type: "comment_post",
                 postId: post.id,
                 commentId: comment.id,
-                preview: comment.content.substring(0, 100),
+                preview: comment.content.slice(0, 100),
                 actionUrl: `/post/${post.id}#comment-${comment.id}`
             });
         }
@@ -56,7 +56,7 @@ router.post("/", isAuthenticated, async (req, res) => {
             description: `Neuer Kommentar verfasst`,
             targetType: 'Comment',
             targetId: String(comment.id),
-            targetLabel: comment.content.substring(0, 50),
+            targetLabel: comment.content.slice(0, 50),
             severity: 'info',
             newValue: comment,
             metadata: { postId: comment.postId }
@@ -165,7 +165,7 @@ router.delete("/:id", isAuthenticated, async (req, res) => {
             description: `Kommentar gelöscht${comment.authorId !== (req.user as any).id ? ' (durch Mod/Admin)' : ''}`,
             targetType: 'Comment',
             targetId: String(id),
-            targetLabel: comment.content.substring(0, 50),
+            targetLabel: comment.content.slice(0, 50),
             severity: 'warning',
             oldValue: comment,
             metadata: { deletedByRole: (req.user as any).role, postId: comment.postId }

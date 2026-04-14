@@ -12,7 +12,7 @@ import { useLocation } from "wouter";
 export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
   const { settings } = useSiteSettings();
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
 
   const isAdmin = user && (user.isAdmin || user.role === "admin" || user.role === "owner");
   const isAuthPage = location === "/auth";
@@ -46,7 +46,7 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
           </Alert>
 
           <div className="pt-4">
-            <Button variant="outline" onClick={() => window.location.href = "/auth"}>
+            <Button variant="outline" onClick={() => navigate("/auth")}>
               Staff Login
             </Button>
           </div>

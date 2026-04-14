@@ -1,5 +1,5 @@
-import { db } from "./server/db";
-import { users } from "./shared/schema";
+import { db } from "../server/db";
+import { users } from "../shared/schema";
 import { count } from "drizzle-orm";
 
 async function main() {

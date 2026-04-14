@@ -101,7 +101,7 @@ router.post("/", isAuthenticated, async (req, res) => {
     activityLogger.logFromRequest(req, {
       action: 'ticket.create',
       category: 'support',
-      description: `Neues Ticket erstellt: ${title.substring(0, 50)}`,
+      description: `Neues Ticket erstellt: ${title.slice(0, 50)}`,
       targetType: 'Ticket',
       targetId: String(ticket.id),
       severity: priority === 'critical' ? 'high' : 'info',

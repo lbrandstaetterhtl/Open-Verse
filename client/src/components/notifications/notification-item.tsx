@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useTranslation } from "react-i18next";
-import { NotificationWithActor } from "@/hooks/use-notifications";
+import type { NotificationWithActor } from "@/hooks/use-notifications";
 import { useLocation } from "wouter";
 import { useNotificationMutations } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
@@ -93,7 +93,7 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
 
     // Dynamic localization based on type
     const translationKey = `notifications.types.${notification.type}`;
-    let content = t(translationKey, { 
+    const content = t(translationKey, { 
       actor: actorName, 
       name: notification.title || actorName,
       defaultValue: notification.message || t(`notifications.${notification.type}`, { name: notification.title })

@@ -1,9 +1,9 @@
 import { Router } from "express";
-import path from "path";
-import fs from "fs";
+import path from "node:path";
+import fs from "node:fs";
 import { storage } from "../storage";
 import { isAuthenticated, isAdmin, isOwner } from "../middleware/auth";
-import { postUpload, checkFileSignature } from "../utils/file-upload";
+import { postUpload, checkFileSignature, sanitizeImage } from "../utils/file-upload";
 import { checkContent } from "../services/moderation";
 import { logSecurityEvent } from "../utils/logger";
 import { broadcastMessage } from "../services/websocket";
@@ -80,7 +80,7 @@ router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
             postData.title = title;
         } else {
             // Generate a default title from content or use a placeholder
-            postData.title = content ? (content.length > 50 ? content.substring(0, 47) + "..." : content) : "New Post";
+            postData.title = content ? (content.length > 50 ? content.slice(0, 47) + "..." : content) : "New Post";
         }
 
         if (req.files && Array.isArray(req.files) && req.files.length > 0) {
@@ -105,6 +105,17 @@ router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
                 } catch (e) { console.error("Error deleting invalid file:", e); }
                 logSecurityEvent({ type: 'FILE_UPLOAD_REJECTED', details: { reason: 'Invalid Magic Bytes', originalName: uploadedFile.originalname, mime: uploadedFile.mimetype } });
                 return res.status(400).send("File content does not match extension.");
+            }
+
+            // SEC-003: Sanitize Image (Strip EXIF, etc.)
+            try {
+                await sanitizeImage(uploadedFile.path);
+            } catch (error) {
+                console.error("Image sanitization failed:", error);
+                try {
+                    fs.unlinkSync(uploadedFile.path);
+                } catch (e) { console.error("Error deleting failed sanitization file:", e); }
+                return res.status(400).send("Failed to process image metadata.");
             }
 
             postData.mediaUrl = uploadedFile.filename;
@@ -161,9 +172,19 @@ router.get("/:id", async (req, res) => {
         const userReaction = req.user ? await storage.getUserPostReaction((req.user as any).id, post.id) : null;
         const isFollowing = req.user ? await storage.isFollowing((req.user as any).id, post.authorId) : false;
 
+        const isSelfShadowBanned = (req as any).isShadowBanned === true;
+        const currentUserId = (req.user as any)?.id;
+
+        // PERF-FIX [STAB-005]: Batch fetch comment details
         const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
             const commentAuthor = authorsMap.get(comment.authorId);
-            const likes = await storage.getCommentLikes(comment.id);
+            
+            if (commentAuthor?.isShadowBanned && !isSelfShadowBanned && comment.authorId !== currentUserId) {
+                return null;
+            }
+
+            // TODO: Batch these likes too
+            const likesCount = await storage.getCommentLikes(comment.id);
             const isLiked = req.user ? await storage.getUserCommentLike((req.user as any).id, comment.id) : false;
             return {
                 ...comment,
@@ -172,15 +193,17 @@ router.get("/:id", async (req, res) => {
                     role: commentAuthor?.role || 'user',
                     verified: commentAuthor?.verified || false
                 },
-                likes,
+                likes: likesCount,
                 isLiked
             };
         }));
+        
+        const filteredComments = commentsWithAuthors.filter(Boolean);
 
         res.json({
             ...post,
             author: author ? sanitizeUser(author) : undefined,
-            comments: commentsWithAuthors,
+            comments: filteredComments,
             likes: reactions.likes - reactions.dislikes,
             userVote: userReaction,
             isFollowing
@@ -196,9 +219,11 @@ router.get("/", async (req, res) => {
         console.log("Fetching posts with query:", req.query);
         const category = req.query.category as string | undefined;
         const communityId = req.query.communityId ? parseInt(req.query.communityId as string) : undefined;
+        const limit = parseInt(req.query.limit as string) || 50;
+        const offset = parseInt(req.query.offset as string) || 0;
 
-        // PERF-FIX [ROUTES-005]: Filtering moved to DB level
-        const filteredPosts = await storage.getPosts(category, communityId);
+        // PERF-FIX [ROUTES-005]: Filtering and Pagination moved to DB level
+        const filteredPosts = await storage.getPosts({ category, communityId, limit, offset });
 
         console.log("Retrieved posts count:", filteredPosts.length);
 
@@ -207,14 +232,15 @@ router.get("/", async (req, res) => {
         const authors = await storage.getUsersByIds(authorIds);
         const authorsMap = new Map(authors.map(u => [u.id, u]));
 
-        const postsWithDetails = await Promise.all(filteredPosts.map(async (post) => {
+        // PERF-FIX [OPT-002]: Batch fetch reactions (Prevents N+1)
+        const postIds = filteredPosts.map(p => p.id);
+        const batchReactions = await storage.getBatchPostReactions(postIds);
+
+        let postsWithDetails = await Promise.all(filteredPosts.map(async (post) => {
             const author = authorsMap.get(post.authorId);
             const isFollowing = req.user ? await storage.isFollowing((req.user as any).id, post.authorId) : false;
 
-            // Note: Full comment retrieval for every post in feed is still heavy.
-            // In a real optimized system, we'd only fetch comment counts.
-            // But let's at least optimize the author parts here.
-            const reactions = await storage.getPostReactions(post.id);
+            const reactions = batchReactions.get(post.id) || { likes: 0, dislikes: 0 };
             const userReaction = req.user ? await storage.getUserPostReaction((req.user as any).id, post.id) : null;
 
             return {
@@ -223,12 +249,26 @@ router.get("/", async (req, res) => {
                     id: author?.id,
                     username: author?.username || 'Unknown',
                     verified: author?.verified || false,
+                    isShadowBanned: author?.isShadowBanned || 0,
                     isFollowing
                 },
                 reactions,
                 userReaction
             };
         }));
+
+        // PHASE 4: Shadowban Filtering
+        const isSelfShadowBanned = (req as any).isShadowBanned === true;
+        const currentUserId = (req.user as any)?.id;
+        
+        postsWithDetails = postsWithDetails.filter(p => {
+             // Let the author see their own post always
+             if (p.author.id === currentUserId) return true;
+             // If author is shadowbanned, only other shadowbanned can see or nobody
+             // Standard shadowban: nobody else sees it.
+             if (p.author.isShadowBanned) return isSelfShadowBanned; 
+             return true;
+        });
 
         res.json(postsWithDetails);
     } catch (error) {

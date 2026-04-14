@@ -13,6 +13,16 @@ export const users = pgTable("users", {
   role: text("role").notNull().default("user"),
   verified: boolean("verified").notNull().default(false),
   bio: text("bio"),
+  displayName: text("display_name"),
+  avatarUrl: text("avatar_url"),
+  coverUrl: text("cover_url"),
+  location: text("location"),
+  website: text("website"),
+  isPrivate: boolean("is_private").notNull().default(false),
+  isFrozen: integer("is_frozen").default(0),
+  isShadowBanned: integer("is_shadow_banned").default(0),
+  frozenUntil: integer("frozen_until"),
+  freezeReason: text("freeze_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -39,6 +49,8 @@ export const posts = pgTable("posts", {
   authorIdx: index("posts_author_idx").on(t.authorId),
   communityIdx: index("posts_community_idx").on(t.communityId),
   categoryIdx: index("posts_category_idx").on(t.category),
+  communityTimelineIdx: index("posts_community_timeline_idx").on(t.communityId, t.createdAt), // PERF: Community feed
+  globalTimelineIdx: index("posts_global_timeline_idx").on(t.createdAt), // PERF: Global feed
 }));
 
 export const comments = pgTable("comments", {
@@ -63,7 +75,14 @@ export const reports = pgTable("reports", {
   ipAddress: text("ip_address"),
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+  resolvedBy: integer("resolved_by").references(() => users.id, { onDelete: "set null" }),
+  resolvedAt: timestamp("resolved_at"),
+  resolutionTimeSeconds: integer("resolution_time_seconds"),
+}, (t) => ({
+  statusIdx: index("reports_status_idx").on(t.status),
+  createdIdx: index("reports_created_idx").on(t.createdAt),
+  reporterIdx: index("reports_reporter_idx").on(t.reporterId),
+}));
 
 export const followers = pgTable(
   "followers",
@@ -104,7 +123,11 @@ export const notifications = pgTable("notifications", {
   groupKey: text("group_key"),
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  userIdIdx: index("notifications_user_idx").on(t.userId),
+  readIdx: index("notifications_read_idx").on(t.read),
+  createdIdx: index("notifications_created_idx").on(t.createdAt),
+}));
 
 export const notificationPreferences = pgTable("notification_preferences", {
   userId: integer("user_id").primaryKey(),
@@ -135,7 +158,11 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   read: boolean("read").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  receiverIdx: index("messages_receiver_idx").on(t.receiverId),
+  senderIdx: index("messages_sender_idx").on(t.senderId),
+  readIdx: index("messages_read_idx").on(t.read),
+}));
 
 export const postLikes = pgTable(
   "post_likes",
@@ -148,6 +175,7 @@ export const postLikes = pgTable(
   },
   (t) => ({
     uniqueLike: unique().on(t.userId, t.postId),
+    postIdIdx: index("post_likes_post_id_idx").on(t.postId),
   }),
 );
 
@@ -161,6 +189,7 @@ export const commentLikes = pgTable(
   },
   (t) => ({
     uniqueLike: unique().on(t.userId, t.commentId),
+    commentIdIdx: index("comment_likes_comment_id_idx").on(t.commentId),
   }),
 );
 
@@ -400,6 +429,12 @@ export const updateProfileSchema = z
     username: z.string().min(1, "Username is required"),
     email: z.string().email("Please enter a valid email address"),
     bio: z.string().optional(),
+    displayName: z.string().max(50, "Name too long").optional(),
+    avatarUrl: z.string().url("Invalid avatar URL").optional().or(z.literal("")),
+    coverUrl: z.string().url("Invalid cover URL").optional().or(z.literal("")),
+    location: z.string().max(30, "Location too long").optional(),
+    website: z.string().url("Invalid website URL").optional().or(z.literal("")),
+    isPrivate: z.boolean().optional(),
   })
   .partial();
 
@@ -516,6 +551,11 @@ export const tickets = pgTable("tickets", {
   resolvedAt: timestamp("resolved_at"),
   closedAt: timestamp("closed_at"),
   deletedAt: timestamp("deleted_at"),
+  
+  // PERFORMANCE METRICS
+  firstResponseAt: timestamp("first_response_at"),
+  responseTimeSeconds: integer("response_time_seconds"),
+  resolutionTimeSeconds: integer("resolution_time_seconds"),
 }, (t) => ({
   createdByIdx: index("idx_tickets_created_by").on(t.createdBy),
   assignedToIdx: index("idx_tickets_assigned_to").on(t.assignedTo),
@@ -571,3 +611,198 @@ export const insertTicketSchema = createInsertSchema(tickets).pick({
   tags: true,
   attachments: true,
 });
+
+// PHASE 3: MODERATION & BANS
+export const bans = pgTable("bans", {
+  id: serial("id").primaryKey(),
+  banType: text("ban_type").notNull(), 
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  ipAddress: text("ip_address"),
+  ipRange: text("ip_range"),
+  deviceFingerprint: text("device_fingerprint"),
+  reason: text("reason").notNull(),
+  severity: text("severity").notNull().default("medium"),
+  isPermanent: integer("is_permanent").default(0),
+  expiresAt: integer("expires_at"),
+  isShadow: integer("is_shadow").default(0),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdByType: text("created_by_type").default("admin"), 
+  anomalyId: integer("anomaly_id").references(() => anomalyEvents.id, { onDelete: "set null" }),
+  notes: text("notes"),
+  isActive: integer("is_active").default(1),
+  revokedBy: integer("revoked_by").references(() => users.id, { onDelete: "set null" }),
+  revokedAt: integer("revoked_at"),
+  revokeReason: text("revoke_reason"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const autoPunishmentRules = pgTable("auto_punishment_rules", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: integer("is_active").default(1),
+  anomalyType: text("anomaly_type").notNull(),
+  severityThreshold: text("severity_threshold").notNull().default("high"),
+  action: text("action").notNull(),
+  actionDurationHours: integer("action_duration_hours"),
+  actionReason: text("action_reason").notNull(),
+  escalateAfterCount: integer("escalate_after_count").default(1),
+  escalationWindowHours: integer("escalation_window_hours").default(24),
+  cooldownHours: integer("cooldown_hours").default(1),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const autoPunishmentExecutions = pgTable("auto_punishment_executions", {
+  id: serial("id").primaryKey(),
+  ruleId: integer("rule_id").references(() => autoPunishmentRules.id, { onDelete: "set null" }),
+  ruleName: text("rule_name").notNull(),
+  anomalyId: integer("anomaly_id").references(() => anomalyEvents.id, { onDelete: "set null" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  banId: integer("ban_id").references(() => bans.id, { onDelete: "set null" }),
+  actionTaken: text("action_taken").notNull(),
+  actionDetail: text("action_detail"),
+  success: integer("success").default(1),
+  errorMessage: text("error_message"),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const bulkActionLogs = pgTable("bulk_action_logs", {
+  id: serial("id").primaryKey(),
+  performedBy: integer("performed_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  actionType: text("action_type").notNull(),
+  targetType: text("target_type").notNull(),
+  targetIds: text("target_ids").notNull(), 
+  targetCount: integer("target_count").notNull(),
+  successCount: integer("success_count").default(0),
+  failCount: integer("fail_count").default(0),
+  reason: text("reason"),
+  metadata: text("metadata").default("{}"),
+  createdAt: integer("created_at").notNull(),
+});
+
+export type Ban = typeof bans.$inferSelect;
+export type InsertBan = typeof bans.$inferInsert;
+export type AutoPunishmentRule = typeof autoPunishmentRules.$inferSelect;
+export type InsertAutoPunishmentRule = typeof autoPunishmentRules.$inferInsert;
+export type AutoPunishmentExecution = typeof autoPunishmentExecutions.$inferSelect;
+export type InsertAutoPunishmentExecution = typeof autoPunishmentExecutions.$inferInsert;
+export type BulkActionLog = typeof bulkActionLogs.$inferSelect;
+export type InsertBulkActionLog = typeof bulkActionLogs.$inferInsert;
+
+export const insertAutoPunishmentRuleSchema = createInsertSchema(autoPunishmentRules).pick({
+  name: true,
+  description: true,
+  isActive: true,
+  anomalyType: true,
+  severityThreshold: true,
+  action: true,
+  actionDurationHours: true,
+  actionReason: true,
+  escalateAfterCount: true,
+  escalationWindowHours: true,
+  cooldownHours: true,
+});
+export const analyticsSnapshots = pgTable("analytics_snapshots", {
+  id: serial("id").primaryKey(),
+  snapshotDate: text("snapshot_date").notNull(),
+  snapshotHour: integer("snapshot_hour"),
+  granularity: text("granularity").notNull().default("day"),
+  newUsers: integer("new_users").default(0),
+  totalUsers: integer("total_users").default(0),
+  activeUsersDay: integer("active_users_day").default(0),
+  activeUsersWeek: integer("active_users_week").default(0),
+  activeUsersMonth: integer("active_users_month").default(0),
+  returningUsers: integer("returning_users").default(0),
+  newPosts: integer("new_posts").default(0),
+  newComments: integer("new_comments").default(0),
+  newLikes: integer("new_likes").default(0),
+  newFollows: integer("new_follows").default(0),
+  newCommunities: integer("new_communities").default(0),
+  totalPosts: integer("total_posts").default(0),
+  avgPostsPerUser: real("avg_posts_per_user").default(0),
+  avgSessionActions: real("avg_session_actions").default(0),
+  engagementRate: real("engagement_rate").default(0),
+  d1Retention: real("d1_retention").default(0),
+  d7Retention: real("d7_retention").default(0),
+  d30Retention: real("d30_retention").default(0),
+  createdAt: integer("created_at").notNull(),
+}, (t) => ({
+  uniqueSnapshot: unique().on(t.snapshotDate, t.snapshotHour, t.granularity),
+}));
+
+export const communityAnalytics = pgTable("community_analytics", {
+  id: serial("id").primaryKey(),
+  communityId: integer("community_id").notNull().references(() => communities.id, { onDelete: "cascade" }),
+  snapshotDate: text("snapshot_date").notNull(),
+  newMembers: integer("new_members").default(0),
+  totalMembers: integer("total_members").default(0),
+  newPosts: integer("new_posts").default(0),
+  totalPosts: integer("total_posts").default(0),
+  activeMembers: integer("active_members").default(0),
+  engagementScore: real("engagement_score").default(0),
+  createdAt: integer("created_at").notNull(),
+}, (t) => ({
+  uniqueCommunitySnapshot: unique().on(t.communityId, t.snapshotDate),
+}));
+
+export const creatorAnalytics = pgTable("creator_analytics", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  snapshotDate: text("snapshot_date").notNull(),
+  newPosts: integer("new_posts").default(0),
+  totalPosts: integer("total_posts").default(0),
+  newFollowers: integer("new_followers").default(0),
+  totalFollowers: integer("total_followers").default(0),
+  postLikesReceived: integer("post_likes_received").default(0),
+  postCommentsReceived: integer("post_comments_received").default(0),
+  totalReach: integer("total_reach").default(0),
+  engagementScore: real("engagement_score").default(0),
+  createdAt: integer("created_at").notNull(),
+}, (t) => ({
+  uniqueCreatorSnapshot: unique().on(t.userId, t.snapshotDate),
+}));
+
+export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snapshots", {
+  id: serial("id").primaryKey(),
+  moderatorId: integer("moderator_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  moderatorUsername: text("moderator_username").notNull(),
+  moderatorRole: text("moderator_role").notNull(),
+  
+  snapshotDate: text("snapshot_date").notNull(), // YYYY-MM-DD
+  period: text("period").notNull().default("day"), // day / week / month
+  
+  // Report Metrics
+  reportsResolved: integer("reports_resolved").default(0),
+  reportsDismissed: integer("reports_dismissed").default(0),
+  reportsTotalHandled: integer("reports_total_handled").default(0),
+  avgReportResolutionS: integer("avg_report_resolution_s").default(0),
+  
+  // Ticket Metrics
+  ticketsResolved: integer("tickets_resolved").default(0),
+  ticketsCommented: integer("tickets_commented").default(0),
+  avgTicketResponseS: integer("avg_ticket_response_s").default(0),
+  avgTicketResolutionS: integer("avg_ticket_resolution_s").default(0),
+  
+  // Admin Actions
+  totalAdminActions: integer("total_admin_actions").default(0),
+  userBans: integer("user_bans").default(0),
+  userUnbans: integer("user_unbans").default(0),
+  contentRemovals: integer("content_removals").default(0),
+  
+  // Scoring
+  performanceScore: real("performance_score").default(0),
+  
+  createdAt: integer("created_at").notNull(),
+}, (t) => ({
+  uniqueModSnapshot: unique().on(t.moderatorId, t.snapshotDate, t.period),
+  idxDate: index("idx_mod_perf_date").on(t.snapshotDate),
+  idxScore: index("idx_mod_perf_score").on(t.performanceScore),
+}));
+
+export type AnalyticsSnapshot = typeof analyticsSnapshots.$inferSelect;
+export type CommunityAnalytics = typeof communityAnalytics.$inferSelect;
+export type CreatorAnalytics = typeof creatorAnalytics.$inferSelect;
+export type ModeratorPerformanceSnapshot = typeof moderatorPerformanceSnapshots.$inferSelect;

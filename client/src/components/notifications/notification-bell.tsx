@@ -21,6 +21,7 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -30,6 +31,20 @@ export function NotificationBell() {
   const { data: notifications, isLoading, isFetching } = useNotifications({ limit: 10 });
   const { markAsSeen, markAllAsRead, deleteAllNotifications } = useNotificationMutations();
   const [_, setLocation] = useLocation();
+
+  const [lastCount, setLastCount] = useState(0);
+  const [shouldShake, setShouldShake] = useState(false);
+
+  // Trigger bell-shake on new notifications
+  useEffect(() => {
+    const currentCount = counts?.unread ?? 0;
+    if (currentCount > lastCount) {
+      setShouldShake(true);
+      const timer = setTimeout(() => setShouldShake(false), 600);
+      return () => clearTimeout(timer);
+    }
+    setLastCount(currentCount);
+  }, [counts?.unread]);
 
   // Mark as seen when opened to clear the badge
   useEffect(() => {
@@ -44,12 +59,21 @@ export function NotificationBell() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full" aria-label="Notifications">
-          <Bell className={cn("h-5 w-5 transition-transform", hasUnseen && "animate-pulse")} />
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="relative h-10 w-10 rounded-full active:scale-90 transition-all" 
+          aria-label="Notifications"
+        >
+          <Bell className={cn(
+            "h-5 w-5 transition-all text-muted-foreground", 
+            shouldShake && "animate-bell-shake text-primary",
+            !shouldShake && hasUnseen && "animate-pulse"
+          )} />
           {unreadCount > 0 && (
             <Badge 
               variant="destructive" 
-              className="absolute -top-0.5 -right-0.5 h-5 min-w-5 flex items-center justify-center p-0.5 text-[10px] border-2 border-background animate-in zoom-in"
+              className="absolute -top-0.5 -right-0.5 h-5 min-w-5 flex items-center justify-center p-1 text-[10px] font-black border-2 border-background animate-fade-scale"
             >
               {unreadCount > 99 ? "99+" : unreadCount}
             </Badge>
@@ -148,7 +172,3 @@ export function NotificationBell() {
   );
 }
 
-// Utility function copied from lib/utils if not available globally
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
-}

@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Notification, NotificationPreferences, User } from "@shared/schema";
+import type { Notification, NotificationPreferences, User } from "@shared/schema";
 
 export type NotificationWithActor = Notification & {
   actor?: Partial<User> | null;

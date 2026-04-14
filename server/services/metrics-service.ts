@@ -24,7 +24,7 @@ class MetricsService {
 
   private async flush(): Promise<void> {
     if (this.buffer.length === 0) return;
-    const batch = this.buffer.splice(0, this.buffer.length);
+    const batch = this.buffer.splice(0);
     this.flushTimer = null;
 
     try {

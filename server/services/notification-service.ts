@@ -1,6 +1,7 @@
 import { storage } from "../storage";
 import { sendToUser } from "./websocket";
-import { Notification, User } from "@shared/schema";
+import type { Notification} from "@shared/schema";
+import { User } from "@shared/schema";
 
 export type NotificationType = 
   | "new_follower"
@@ -82,7 +83,7 @@ class NotificationService {
             type: options.commentId ? "mention_comment" : "mention_post",
             postId: options.postId,
             commentId: options.commentId,
-            preview: content.substring(0, 100),
+            preview: content.slice(0, 100),
             actionUrl: options.commentId ? `/post/${options.postId}#comment-${options.commentId}` : `/post/${options.postId}`
           });
           notifiedUserIds.add(user.id);

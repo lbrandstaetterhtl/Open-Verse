@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { AdminLayout } from "@/components/admin/admin-layout";
+import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { ModeratorStatsCard } from "@/components/monitoring/ModeratorStatsCard";
 
 export function ActivityLogsPage() {
   const { t } = useTranslation();
@@ -31,9 +32,10 @@ export function ActivityLogsPage() {
   });
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
       <h1 className="text-3xl font-bold">{t("monitoring.activity_logs", "Activity Logs")}</h1>
+
+      <ModeratorStatsCard />
 
       <div className="flex gap-4 mb-4 bg-card p-4 rounded-lg border">
          <Input 
@@ -110,6 +112,5 @@ export function ActivityLogsPage() {
         </Table>
       </div>
       </div>
-    </AdminLayout>
   );
 }

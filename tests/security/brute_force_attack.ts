@@ -1,4 +1,4 @@
-import http from "http";
+import http from "node:http";
 
 // Configuration
 const TARGET_HOST = "localhost";
@@ -11,7 +11,7 @@ const DURATION_MS = 5000; // Attack for 5 seconds
 let attempts = 0;
 let errors = 0;
 let blocked = 0;
-let startTime = Date.now();
+const startTime = Date.now();
 
 const passwords = [
   "123456",

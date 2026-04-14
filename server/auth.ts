@@ -1,12 +1,12 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import type { Express } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
+import { scrypt, randomBytes, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 import bcrypt from "bcrypt";
 import { storage, sanitizeUser } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import type { User as SelectUser } from "@shared/schema";
 import { updateProfileSchema, updatePasswordSchema } from "@shared/schema";
 import { sendVerificationEmail } from "./utils/email";
 import rateLimit from "express-rate-limit";

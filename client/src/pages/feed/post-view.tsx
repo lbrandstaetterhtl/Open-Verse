@@ -1,8 +1,6 @@
-import { useTranslation } from "react-i18next";
-import { useRoute, Link } from "wouter";
-import { Navbar } from "@/components/layout/navbar";
+import { useRoute, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Post } from "@shared/schema";
+import type { Post } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -69,6 +67,7 @@ export default function PostViewPage() {
   const [, params] = useRoute("/posts/:id");
   const postId = params?.id ? parseInt(params.id) : null;
   const [imageLoadError, setImageLoadError] = useState(false);
+  const [, navigate] = useLocation();
 
   // Check navigation source
   const urlParams = new URLSearchParams(window.location.search);
@@ -180,14 +179,12 @@ export default function PostViewPage() {
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Post deleted successfully" });
-      window.location.href = "/feed/media";
+      navigate("/feed/media");
     },
   });
 
   return (
-    <>
-      <Navbar />
-      <main className="container mx-auto px-4 pt-24">
+    <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
           <Link href={backLink}>
             <Button variant="ghost" size="sm" className="mb-4">
@@ -310,7 +307,7 @@ export default function PostViewPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const input = document.getElementById("comment-input") as HTMLInputElement;
+                        const input = document.querySelector("#comment-input") as HTMLInputElement;
                         if (input?.value?.trim()) {
                           createCommentMutation.mutate({ content: input.value.trim() });
                           input.value = "";
@@ -478,7 +475,6 @@ export default function PostViewPage() {
             </Card>
           )}
         </div>
-      </main>
-    </>
+    </div>
   );
 }

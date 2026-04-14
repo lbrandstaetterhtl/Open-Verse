@@ -16,7 +16,6 @@ import {
   ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
-import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -84,8 +83,7 @@ export default function ActivityLogsPage() {
   };
 
   return (
-    <AdminLayout>
-      <div className="space-y-8 animate-in fade-in duration-500 pb-12">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-12">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
@@ -335,6 +333,5 @@ export default function ActivityLogsPage() {
           </Table>
         </div>
       </div>
-    </AdminLayout>
   );
 }

@@ -1,4 +1,4 @@
-import { apiRequest } from "./test_utils"; // Assuming a helper exists or I'll mock it
+// import { apiRequest } from "./test_utils"; // Removed broken import
 import { checkContent } from "../server/services/moderation";
 
 async function testModeration() {

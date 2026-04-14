@@ -50,7 +50,7 @@ export function ColorPicker({ label, description, value, defaultValue, contrastA
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col">
           <Label className="text-sm font-semibold capitalize">
-            {label.replace(/([A-Z])/g, " $1").trim()}
+            {label.replaceAll(/([A-Z])/g, " $1").trim()}
           </Label>
           {description && (
             <span className="text-xs text-muted-foreground leading-tight mt-0.5">

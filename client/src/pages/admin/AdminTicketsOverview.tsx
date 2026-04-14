@@ -8,7 +8,7 @@ export default function AdminTicketsOverview() {
 
   return (
     <div className="flex flex-col h-full w-full">
-      <div className="container max-w-5xl mx-auto px-4 pt-16 pb-4">
+      <div className="container max-w-5xl mx-auto px-4 py-4">
         {isLoading ? (
           <div className="h-24 flex items-center justify-center border rounded-lg bg-card/50">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -51,7 +51,7 @@ export default function AdminTicketsOverview() {
       </div>
       
       {/* Re-use TicketsPage for the list, it checks if Owner and shows 'All Tickets' */}
-      <div className="flex-1 -mt-16">
+      <div className="flex-1">
         <TicketsPage />
       </div>
     </div>

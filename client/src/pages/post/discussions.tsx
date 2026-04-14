@@ -18,7 +18,7 @@ import { Loader2, MessageSquarePlus } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import * as z from "zod";
+import type * as z from "zod";
 import { useLocation } from "wouter";
 
 type FormData = z.infer<typeof insertDiscussionPostSchema>;

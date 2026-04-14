@@ -1,367 +1,162 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
-import { Navbar } from "@/components/layout/navbar";
-import { UserAvatar } from "@/components/ui/user-avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2, Trophy, UserPlus, UserMinus, BadgeCheck } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Link } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { Spinner } from "@/components/ui/spinner";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from "date-fns";
-import { MessageSquare, Calendar } from "lucide-react";
-import { Post, User } from "@shared/schema";
-import { BackButton } from "@/components/ui/back-button";
+import { ProfileCover } from "@/components/profile/ProfileCover";
+import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { ProfileTabs } from "@/components/profile/ProfileTabs";
+import { ProfileTabContent } from "@/components/profile/ProfileTabContent";
+import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { User, Post } from "@shared/schema";
+import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import { PageTransition } from "@/components/ui/page-transition";
 
 export default function UserProfilePage() {
   const { username } = useParams();
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState("posts");
 
-  const {
-    data: profile,
-    isLoading: profileLoading,
-    error: profileError,
-  } = useQuery<User>({
-    queryKey: ["/api/users", username],
-    queryFn: async () => {
-      const res = await fetch(`/api/users/${username}`);
-      if (!res.ok) {
-        if (res.status === 404) {
-          throw new Error("User not found");
-        }
-        const errorText = await res.text();
-        throw new Error(errorText || "Failed to fetch user profile");
-      }
-      return res.json();
-    },
+  // Fetch enriched public profile data
+  const { 
+    data: profile, 
+    isLoading: profileLoading, 
+    error: profileError 
+  } = useQuery<any>({
+    queryKey: [`/api/users/${username}`],
     enabled: !!username,
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
 
-  const { data: followers, isLoading: followersLoading } = useQuery<User[]>({
-    queryKey: ["/api/followers", username],
-    queryFn: async () => {
-      const res = await fetch(`/api/followers/${username}`);
-      if (!res.ok) throw new Error("Failed to fetch followers");
-      return res.json();
-    },
-    enabled: !!username,
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-  });
-
-  const { data: following, isLoading: followingLoading } = useQuery<User[]>({
-    queryKey: ["/api/following", username],
-    queryFn: async () => {
-      const res = await fetch(`/api/following/${username}`);
-      if (!res.ok) throw new Error("Failed to fetch following");
-      return res.json();
-    },
-    enabled: !!username,
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-  });
-
-  const { data: posts, isLoading: postsLoading } = useQuery<Post[]>({
-    queryKey: ["/api/users", username, "posts"],
-    queryFn: async () => {
-      const res = await fetch(`/api/users/${username}/posts`);
-      if (!res.ok) throw new Error("Failed to fetch user posts");
-      return res.json();
-    },
-    enabled: !!username,
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-  });
-
-  const { data: comments, isLoading: commentsLoading } = useQuery({
-    queryKey: ["/api/users", username, "comments"],
-    queryFn: async () => {
-      const res = await fetch(`/api/users/${username}/comments`);
-      if (!res.ok) throw new Error("Failed to fetch comments");
-      return res.json();
-    },
-    enabled: !!username,
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+  // Fetch tab content
+  const { 
+    data: tabData = [], 
+    isLoading: isTabLoading 
+  } = useQuery<any[]>({
+    queryKey: [`/api/users/${username}/${activeTab}`],
+    enabled: !!username && !!profile,
   });
 
   const followMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const res = await apiRequest("POST", `/api/follow/${userId}`);
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/follow/${profile.id}`);
       if (!res.ok) throw new Error(await res.text());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/following", username] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${username}`] });
       toast({
-        title: "Success",
-        description: "User followed successfully",
+        title: t('profile.follow_success'),
+        description: t('profile.is_now_following', { username }),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('common.error'),
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
 
   const unfollowMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const res = await apiRequest("DELETE", `/api/follow/${userId}`);
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", `/api/follow/${profile.id}`);
       if (!res.ok) throw new Error(await res.text());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/following", username] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${username}`] });
       toast({
-        title: "Success",
-        description: "User unfollowed successfully",
+        title: t('profile.unfollow_success'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('common.error'),
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
 
-  if (profileLoading || followersLoading || followingLoading) {
-    return (
-      <>
-        <Navbar />
-        <main className="container mx-auto px-4 pt-24">
-          <div className="flex justify-center p-8">
-            <Spinner size="lg" />
-          </div>
-        </main>
-      </>
-    );
+  if (profileLoading) {
+    return <ProfilePageSkeleton />;
   }
 
   if (profileError || !profile) {
     return (
-      <>
-        <Navbar />
-        <main className="container mx-auto px-4 pt-24">
-          <Alert variant="destructive">
-            <AlertDescription>
-              {profileError?.message || "Failed to load user profile"}
+      <div className="min-h-screen bg-background pt-24">
+        <main className="container mx-auto px-4">
+          <Alert variant="destructive" className="rounded-2xl shadow-lg border-none bg-destructive/10">
+            <AlertDescription className="text-destructive font-medium">
+              {profileError instanceof Error ? profileError.message : "User not found"}
             </AlertDescription>
           </Alert>
         </main>
-      </>
+      </div>
     );
   }
 
+  const handleFollow = () => {
+    if (!currentUser) {
+      toast({ title: t('auth.login_required'), variant: "destructive" });
+      return;
+    }
+    followMutation.mutate();
+  };
+
+  const handleUnfollow = () => {
+    unfollowMutation.mutate();
+  };
+
+  const isOwnProfile = currentUser?.username === profile.username;
+
   return (
-    <>
-      <Navbar />
-      <main className="container mx-auto px-4 pt-24">
-        <div className="max-w-2xl mx-auto space-y-8">
-          <BackButton fallback="/feed" />
-          <div className="flex items-center gap-4">
-            <UserAvatar user={profile} size="lg" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-4xl font-bold">
-                  {profile.karma < 0 ? "Banned User" : profile.username}
-                </h1>
-                {profile.verified && profile.karma >= 0 && (
-                  <Badge variant="default">
-                    <BadgeCheck className="h-4 w-4 mr-1" />
-                    Verified
-                  </Badge>
-                )}
-                {profile.karma < 0 && <Badge variant="destructive">Banned</Badge>}
-              </div>
-              <div className="flex gap-4 mt-2">
-                <span className="text-muted-foreground">{followers?.length || 0} followers</span>
-                <span className="text-muted-foreground">{following?.length || 0} following</span>
-                <div className="flex items-center text-emerald-500">
-                  <Trophy className="h-4 w-4 mr-1" />
-                  <span>{profile.karma} reputation</span>
-                </div>
-              </div>
-              {profile.bio && profile.karma >= 0 && (
-                <p className="mt-4 text-muted-foreground whitespace-pre-wrap">{profile.bio}</p>
-              )}
-            </div>
-          </div>
+    <PageTransition>
+      <div className="min-h-screen bg-background pb-20">
+        <ProfileCover 
+          coverUrl={profile.coverUrl}
+          avatarUrl={profile.avatarUrl}
+          username={profile.username}
+          isOwnProfile={isOwnProfile}
+        />
 
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="posts">Posts</TabsTrigger>
-              <TabsTrigger value="comments">Comments</TabsTrigger>
-            </TabsList>
+        <ProfileHeader 
+          user={profile}
+          isOwnProfile={isOwnProfile}
+          onFollow={handleFollow}
+          onUnfollow={handleUnfollow}
+          isFollowingLoading={followMutation.isPending || unfollowMutation.isPending}
+          onMessage={() => toast({ title: "Messaging coming soon!" })}
+        />
 
-            <TabsContent value="overview" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Followers</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {followers?.map((follower) => (
-                      <div key={follower.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {follower.karma < 0 ? (
-                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                              <UserMinus className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          ) : (
-                            <Link href={`/users/${follower.username}`}>
-                              <UserAvatar user={follower} size="sm" />
-                            </Link>
-                          )}
-                          {follower.karma < 0 ? (
-                            <span className="text-muted-foreground italic">Banned User</span>
-                          ) : (
-                            <Link href={`/users/${follower.username}`}>
-                              <span className="hover:underline">{follower.username}</span>
-                            </Link>
-                          )}
-                        </div>
-                        {user && user.id !== follower.id && follower.karma >= 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => followMutation.mutate(follower.id)}
-                          >
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Follow Back
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    {!followers?.length && (
-                      <EmptyState title="No followers" description="This user doesn't have any followers yet." />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+        <ProfileTabs 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+          isOwnProfile={isOwnProfile}
+        />
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Following</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {following?.map((followed) => (
-                      <div key={followed.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {followed.karma < 0 ? (
-                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                              <UserMinus className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          ) : (
-                            <Link href={`/users/${followed.username}`}>
-                              <UserAvatar user={followed} size="sm" />
-                            </Link>
-                          )}
-                          {followed.karma < 0 ? (
-                            <span className="text-muted-foreground italic">Banned User</span>
-                          ) : (
-                            <Link href={`/users/${followed.username}`}>
-                              <span className="hover:underline">{followed.username}</span>
-                            </Link>
-                          )}
-                        </div>
-                        {user && user.id !== followed.id && followed.karma >= 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => unfollowMutation.mutate(followed.id)}
-                          >
-                            <UserMinus className="h-4 w-4 mr-2" />
-                            Unfollow
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    {!following?.length && (
-                      <EmptyState title="Not following anyone" description="This user isn't following anyone yet." />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="posts">
-              <div className="space-y-4">
-                {postsLoading ? (
-                  <div className="flex justify-center p-8">
-                    <Spinner size="lg" />
-                  </div>
-                ) : posts?.length === 0 ? (
-                  <EmptyState title="No posts" description="This user hasn't created any posts yet." />
-                ) : (
-                  posts?.map((post) => (
-                    <Card key={post.id} className="hover:bg-muted/50 transition-colors">
-                      <CardHeader>
-                        <CardTitle className="text-lg">
-                          <Link
-                            href={`/posts/${post.id}?from=profile&username=${username}`}
-                            className="hover:underline"
-                          >
-                            {post.title}
-                          </Link>
-                        </CardTitle>
-                        <div className="flex items-center text-sm text-muted-foreground gap-4">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {format(new Date(post.createdAt), "PPP")}
-                          </span>
-                          <span className="capitalize">{post.category}</span>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="line-clamp-3 text-sm text-muted-foreground">{post.content}</p>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="comments">
-              <div className="space-y-4">
-                {commentsLoading ? (
-                  <div className="flex justify-center p-8">
-                    <Spinner size="lg" />
-                  </div>
-                ) : comments?.length === 0 ? (
-                  <EmptyState title="No comments" description="This user hasn't commented on any posts." />
-                ) : (
-                  comments?.map((comment: any) => (
-                    <Card key={comment.id} className="hover:bg-muted/50 transition-colors">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(comment.createdAt), "PPp")}
-                          </p>
-                          {comment.post && (
-                            <Link
-                              href={`/posts/${comment.post.id}`}
-                              className="text-xs text-primary hover:underline"
-                            >
-                              on: {comment.post.title}
-                            </Link>
-                          )}
-                        </div>
-                        <p className="text-base">{comment.content}</p>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
-    </>
+        <main className="container mx-auto px-4 max-w-4xl">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ProfileTabContent 
+                type={activeTab as any} 
+                data={tabData} 
+                isLoading={isTabLoading} 
+              />
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+    </PageTransition>
   );
 }

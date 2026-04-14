@@ -69,7 +69,7 @@ router.post("/", isAuthenticated, async (req, res) => {
         activityLogger.logFromRequest(req, {
             action: 'report.submit',
             category: 'moderation',
-            description: `Teilt mit: ${result.data.reason.substring(0, 50)}`,
+            description: `Teilt mit: ${result.data.reason.slice(0, 50)}`,
             targetType: 'Report',
             targetId: String(report.id),
             severity: 'warning'
@@ -98,7 +98,8 @@ router.patch("/:id", isAdmin, async (req, res) => {
 
         if (status === "resolved") {
             try {
-                const updatedReport = await storage.updateReportStatus(reportId, status);
+                const resolutionTime = Math.floor((Date.now() - new Date(report.createdAt).getTime()) / 1000);
+                const updatedReport = await storage.updateReportStatus(reportId, status, (req.user as any).id, resolutionTime);
 
                 try {
                     if (report.discussionId) {

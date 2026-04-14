@@ -32,8 +32,8 @@ router.post("/", isAuthenticated, async (req, res) => {
 
         const slug = result.data.name
             .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "");
+            .replaceAll(/[^a-z0-9]+/g, "-")
+            .replaceAll(/(^-|-$)/g, "");
 
         const existing = await storage.getCommunityBySlug(slug);
         if (existing) {

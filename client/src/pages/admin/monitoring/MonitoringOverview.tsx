@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Loader2, Activity, AlertTriangle, XCircle, Users } from "lucide-react";
-import { AdminLayout } from "@/components/admin/admin-layout";
 import { useTranslation } from "react-i18next";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
@@ -22,8 +21,7 @@ export function MonitoringOverview() {
   if (isLoading || isLoadingCharts) return <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin" /></div>;
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
       <h1 className="text-3xl font-bold">{t("monitoring.title", "Monitoring Overview")}</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -139,6 +137,5 @@ export function MonitoringOverview() {
         </Card>
       </div>
       </div>
-    </AdminLayout>
   );
 }

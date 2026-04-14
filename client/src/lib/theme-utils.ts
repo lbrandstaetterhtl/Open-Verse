@@ -98,7 +98,7 @@ export function migrateTheme(theme: CustomTheme): CustomTheme {
       ...theme.background,
       overlay: {
         ...defaultBackground.overlay,
-        ...(theme.background.overlay || {}),
+        ...theme.background.overlay,
         opacity: clamp(theme.background.overlay?.opacity ?? 0, 0, 1),
         blur: clamp(theme.background.overlay?.blur ?? 0, 0, 24),
       },
@@ -248,16 +248,16 @@ export function applyFont(fontName: string) {
 
   // Load font from Google Fonts
   const linkId = "custom-theme-font";
-  let link = document.getElementById(linkId) as HTMLLinkElement;
+  let link = document.querySelector(`#${linkId}`) as HTMLLinkElement;
 
   if (!link) {
     link = document.createElement("link");
     link.id = linkId;
     link.rel = "stylesheet";
-    document.head.appendChild(link);
+    document.head.append(link);
   }
 
-  link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, "+")}:wght@300;400;500;600;700&display=swap`;
+  link.href = `https://fonts.googleapis.com/css2?family=${fontName.replaceAll(' ', "+")}:wght@300;400;500;600;700&display=swap`;
 
   // Apply font family
   document.documentElement.style.setProperty(
@@ -271,7 +271,7 @@ export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string, 
   const root = document.documentElement;
 
   Object.entries(colors).forEach(([key, value]) => {
-    const cssVarName = `--${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
+    const cssVarName = `--${key.replaceAll(/([A-Z])/g, "-$1").toLowerCase()}`;
     root.style.setProperty(cssVarName, value);
   });
 
@@ -437,7 +437,8 @@ export function applySavedTheme(theme: SavedTheme): void {
 }
 
 // Reset to default theme
-export function resetToDefaultTheme(): void {
+// Logic preserved for future use but export removed for Knip
+function resetToDefaultTheme(): void {
   localStorage.removeItem("customTheme");
   const isDark = document.documentElement.classList.contains("dark");
   applyTheme(defaultTheme[isDark ? "dark" : "light"], isDark, defaultTheme.font);

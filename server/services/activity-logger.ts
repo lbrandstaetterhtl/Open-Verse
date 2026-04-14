@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { activityLogs } from "@shared/schema";
 import { anomalyDetector } from "./anomaly-detector";
-import { Request } from "express";
+import type { Request } from "express";
 
 export type LogAction =
   | 'auth.login'
@@ -127,7 +127,7 @@ class ActivityLoggerService {
   private async flush(): Promise<void> {
     if (this.queue.length === 0) return;
 
-    const batch = this.queue.splice(0, this.queue.length);
+    const batch = this.queue.splice(0);
     this.flushTimer = null;
 
     try {

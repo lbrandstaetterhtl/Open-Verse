@@ -169,7 +169,7 @@ export default function AdminSettingsPage() {
                           </div>
                           
                           <div className="shrink-0 flex items-center justify-end">
-                             {Boolean(setting.isReadonly) ? (
+                             {setting.isReadonly ? (
                                <div className="bg-muted p-2 rounded px-4 text-xs font-mono font-bold text-muted-foreground border italic">
                                  {setting.value}
                                 </div>

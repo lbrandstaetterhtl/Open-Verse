@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/layout/navbar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertMediaPostSchema } from "@shared/schema";
@@ -18,7 +17,7 @@ import { Loader2, Newspaper } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import * as z from "zod";
+import type * as z from "zod";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -97,9 +96,7 @@ export default function CreateNewsPage() {
   });
 
   return (
-    <>
-      <Navbar />
-      <main className="container mx-auto px-4 pt-24">
+    <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
           <Card>
             <CardHeader>
@@ -187,7 +184,6 @@ export default function CreateNewsPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </>
+    </div>
   );
 }

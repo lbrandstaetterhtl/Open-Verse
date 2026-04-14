@@ -1,9 +1,14 @@
-import express, { type Request, Response, NextFunction } from "express";
+import type { Response, NextFunction } from "express";
+import express, { type Request } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { SettingsService } from "./services/settings";
-import fs from "fs";
-import path from "path";
+import { analyticsService } from "./services/analytics-service";
+import { moderatorPerformanceService } from "./services/moderator-performance-service";
+import { subDays } from "date-fns";
+import { closeDb } from "./db";
+import fs from "node:fs";
+import path from "node:path";
 
 
 const app = express();
@@ -26,21 +31,29 @@ if (!fs.existsSync(uploadsDir)) {
   console.log("Created uploads directory:", uploadsDir);
 }
 
-// Log static file requests for debugging
+// SEC-005: Hardened Static Serving for Uploads
 app.use(
   "/uploads",
   (req, res, next) => {
-    console.log("Static file request:", req.url);
+    // Set restrictive security headers for uploaded content
+    res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline';");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     next();
   },
-  express.static(uploadsDir),
+  express.static(uploadsDir, {
+    index: false,
+    redirect: false,
+    dotfiles: 'ignore'
+  }),
 );
+
 
 // Add request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let capturedJsonResponse;
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
@@ -99,6 +112,55 @@ if (!process.env.SENDGRID_API_KEY) {
     const { addTicketSystem } = await import("./migrations/add_ticket_system");
     await addTicketSystem();
     
+    // MODERATOR PERFORMANCE: Initialize Database Tables
+    const { addModeratorPerformanceSystem } = await import("./migrations/add_moderator_performance");
+    await addModeratorPerformanceSystem();
+
+    // AUTO-PUNISHMENT: Initialize Default Rules
+    const { seedDefaultRules } = await import("./services/auto-punishment-defaults");
+    await seedDefaultRules();
+
+    // ANALYTICS: Run initial bootstrap (compute last 7 days if empty)
+    const latestSnapshot = await analyticsService.getLatestSnapshot();
+    if (!latestSnapshot) {
+      console.log("[Analytics] No snapshots found, bootstrapping last 7 days...");
+      for (let i = 7; i >= 1; i--) {
+        try {
+          await analyticsService.computeDailySnapshot(subDays(new Date(), i));
+        } catch (e) {
+          console.error(`[Analytics] Failed bootstrap for -${i} days:`, e);
+        }
+      }
+    }
+    
+    // MODERATOR PERFORMANCE: Initial bootstrap
+    console.log("[ModPerf] Bootstrapping initial performance snapshots...");
+    for (let i = 7; i >= 0; i--) {
+      try {
+        await moderatorPerformanceService.computeDailySnapshot(
+          subDays(new Date(), i).toISOString().slice(0, 10)
+        );
+      } catch (e) {
+        console.error(`[ModPerf] Bootstrap for -${i} days failed:`, e);
+      }
+    }
+
+    // ANALYTICS: Schedule daily snapshot at 00:05
+    setInterval(async () => {
+      const now = new Date();
+      if (now.getHours() === 0 && now.getMinutes() === 5) {
+        console.log("[Analytics] Running scheduled daily snapshot...");
+        try {
+          await analyticsService.computeDailySnapshot(subDays(new Date(), 1));
+          await moderatorPerformanceService.computeDailySnapshot(
+            subDays(new Date(), 1).toISOString().slice(0, 10)
+          );
+        } catch (e) {
+          console.error("[Analytics] Scheduled snapshot failed:", e);
+        }
+      }
+    }, 60 * 1000); // Check every minute
+    
     const server = await registerRoutes(app);
 
     // Global error handler - MOVED HERE [INDEX-001] to catch route errors correctly
@@ -126,6 +188,47 @@ if (!process.env.SENDGRID_API_KEY) {
     server.on("error", (error: any) => {
       console.error("Server error:", error);
       process.exit(1);
+    });
+
+    // STABILITY-FIX [STAB-001]: Graceful Shutdown Handling
+    const shutdown = async (signal: string) => {
+      console.log(`\n${signal} received. Starting graceful shutdown...`);
+      
+      // Stop accepting new connections
+      server.close(async () => {
+        console.log("HTTP server closed.");
+        
+        try {
+          // Close DB connections
+          await closeDb();
+          console.log("Cleanup complete. Exiting.");
+          process.exit(0);
+        } catch (err) {
+          console.error("Error during DB cleanup:", err);
+          process.exit(1);
+        }
+      });
+
+      // Force exit after 10s if graceful shutdown fails
+      setTimeout(() => {
+        console.error("Could not close connections in time, forcefully shutting down.");
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+
+    // STABILITY-FIX [STAB-002]: Unhandled Rejections & Exceptions
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      // Optional: Send to external monitoring service
+    });
+
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      // Graceful shutdown after uncaught exception
+      shutdown('UncaughtException');
     });
   } catch (error) {
     console.error("Failed to start server:", error);

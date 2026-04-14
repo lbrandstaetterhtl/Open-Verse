@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Community, Post } from "@shared/schema";
+import type { Community} from "@shared/schema";
+import { Post } from "@shared/schema";
 import { useParams, Link } from "wouter";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
@@ -103,7 +104,7 @@ export default function CommunityPage() {
   // Sort posts based on mode
   const filteredPosts =
     posts?.filter((p) => selectedCategory === "all" || p.category === selectedCategory) || [];
-  const sortedPosts = filteredPosts.sort((a, b) => {
+  const sortedPosts = filteredPosts.toSorted((a, b) => {
     switch (sortMode) {
       case "new":
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();

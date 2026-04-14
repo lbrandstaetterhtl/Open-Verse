@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { logSecurityEvent } from "../utils/logger";
 
 // Standard Express Request with User type is handled by global declaration in auth.ts or similar

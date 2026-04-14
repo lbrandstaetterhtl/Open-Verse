@@ -2,6 +2,7 @@ import { db } from "../db";
 import { activityLogs, anomalyEvents, ActivityLog } from "@shared/schema";
 import { count, eq, and, or, gte, desc, inArray, sql } from "drizzle-orm";
 import { alertService } from "./alert-service";
+import { autoPunishmentEngine } from "./auto-punishment-engine";
 
 class AnomalyDetector {
 
@@ -9,6 +10,20 @@ class AnomalyDetector {
     if (entry.action !== 'auth.login_failed') return;
     const ip = entry.req?.ip || "unknown";
     
+    // SEC-FIX [SEC-008]: Dynamic Penalization
+    // If there are recent open anomalies for this user/IP, lower the threshold
+    const recentAnomalies = await db.select({ count: count() })
+      .from(anomalyEvents)
+      .where(and(
+        or(entry.userId ? eq(anomalyEvents.userId, entry.userId) : sql`1=0`, eq(anomalyEvents.description, ip)),
+        eq(anomalyEvents.status, 'open'),
+        sql`${anomalyEvents.createdAt} >= ${new Date(Date.now() - 3600000).toISOString()}` // 1 hour
+      ))
+      .get();
+    
+    const baseThreshold = 10;
+    const penaltyThreshold = recentAnomalies?.count ? Math.max(3, baseThreshold - (recentAnomalies.count * 2)) : baseThreshold;
+
     const failedLogins = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
@@ -20,31 +35,19 @@ class AnomalyDetector {
         sql`${activityLogs.createdAt} >= ${new Date(Date.now() - 900000).toISOString()}`
       ))
       .get();
-
+ 
     const countVal = failedLogins?.count ?? 0;
-    if (countVal >= 10) {
+    if (countVal >= penaltyThreshold) {
       await this.createAnomaly({
         userId: entry.userId,
         type: 'brute_force_login',
-        severity: 'critical',
-        title: 'Brute Force Angriff erkannt',
-        description: `${countVal} fehlgeschlagene Login-Versuche in 15 Minuten von IP ${ip}`,
+        severity: countVal >= baseThreshold ? 'critical' : 'high',
+        title: 'Verschärfter Brute-Force-Schutz',
+        description: `Wiederholte fehlgeschlagene Logins (${countVal}). Schwelle reduziert durch Vorfälle auf ${penaltyThreshold}. IP: ${ip}`,
         triggerValue: countVal,
-        thresholdValue: 10,
+        thresholdValue: penaltyThreshold,
         autoAction: 'account_flagged',
-        evidence: { ip, failedAttempts: countVal }
-      });
-    } else if (countVal >= 5) {
-      await this.createAnomaly({
-        userId: entry.userId,
-        type: 'brute_force_login',
-        severity: 'warning',
-        title: 'Verdächtige Login-Aktivität',
-        description: `${countVal} fehlgeschlagene Login-Versuche in 15 Minuten`,
-        triggerValue: countVal,
-        thresholdValue: 5,
-        autoAction: 'none',
-        evidence: { ip, failedAttempts: countVal }
+        evidence: { ip, failedAttempts: countVal, penaltyApplied: penaltyThreshold < baseThreshold }
       });
     }
   }
@@ -341,15 +344,27 @@ class AnomalyDetector {
       thresholdValue: params.thresholdValue,
       autoAction: params.autoAction,
       status: 'open',
-    });
+    }).returning({ id: anomalyEvents.id });
 
     if (params.severity === 'critical') {
-      await alertService.fire({
-        severity: 'critical',
+      alertService.fire({
+        severity: params.severity as any,
         title: params.title,
         description: params.description,
-      });
+        metadata: { userId: params.userId, anomalyId: inserted[0].id }
+      }).catch(err => console.error("Alert fire failed:", err));
     }
+
+    // Auto-Punishment Engine evaluieren (fire-and-forget)
+    autoPunishmentEngine.evaluate({
+      id: inserted[0].id,
+      userId: params.userId,
+      anomalyType: params.type,
+      severity: params.severity,
+      evidence: params.evidence || {},
+      ipAddress: (this as any).currentRequest?.ip || (this as any).currentRequest?.socket?.remoteAddress,
+      deviceFingerprint: (this as any).currentRequest?.deviceFingerprint,
+    }).catch(err => console.error('[AutoPunishment] Evaluation error:', err));
   }
 }
 

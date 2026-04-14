@@ -1,8 +1,8 @@
 import { storage } from "../server/storage";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import FormData from "form-data";
-import http from "http";
+import http from "node:http";
 
 // This script simulates an external attacker using a tool (like Postman or curl)
 // to bypass the frontend UI and upload a dangerous file directly to the API.

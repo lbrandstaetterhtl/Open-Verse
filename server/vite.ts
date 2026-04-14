@@ -1,11 +1,11 @@
 import express, { type Express } from "express";
-import fs from "fs";
-import path, { dirname } from "path";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createServer as createViteServer, createLogger } from "vite";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-import { type Server } from "http";
+const __filename = import.meta.filename;
+const __dirname = import.meta.dirname;
+import { type Server } from "node:http";
 import viteConfig from "../vite.config";
 
 const viteLogger = createLogger();

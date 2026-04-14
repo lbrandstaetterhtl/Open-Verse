@@ -3,13 +3,14 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { PostCard } from "@/components/post/post-card";
 import type { PostWithAuthor } from "@shared/types";
-import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Users, Search, Hash, Lock } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/error-state";
+import { PageTransition } from "@/components/ui/page-transition";
 import { useTranslation } from "react-i18next";
 import { queryClient } from "@/lib/queryClient";
 
@@ -40,6 +41,7 @@ export default function CommunityFeedPage() {
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
+    staleTime: 15000,
   });
 
   // Fetch user's joined communities
@@ -72,18 +74,17 @@ export default function CommunityFeedPage() {
     : null;
 
   return (
-    <>
-      <Navbar />
+    <PageTransition>
       <main className="container mx-auto px-4 pt-24 pb-12">
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Sidebar - My Communities & Search */}
-          <aside className="hidden lg:block w-72 flex-shrink-0">
-            <div className="sticky top-24 space-y-4">
+          <aside className="w-full lg:w-72 flex-shrink-0 animate-fade-scale">
+            <div className="lg:sticky lg:top-24 space-y-4">
               {/* Search Communities */}
-              <Card>
+              <Card className="border-none shadow-lg bg-card/50 backdrop-blur-md rounded-2xl">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Search className="h-4 w-4" />
+                  <CardTitle className="text-sm font-bold flex items-center gap-2 tracking-tight">
+                    <Search className="h-4 w-4 text-primary" />
                     {t("communities_feed.search_title")}
                   </CardTitle>
                 </CardHeader>
@@ -92,16 +93,16 @@ export default function CommunityFeedPage() {
                     placeholder={t("communities_feed.search_placeholder")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-9"
+                    className="h-10 rounded-xl bg-muted/30 border-none focus:ring-primary/20 transition-all font-medium"
                   />
                   {/* Search Results */}
                   {filteredCommunities && filteredCommunities.length > 0 && (
-                    <div className="mt-3 space-y-1 max-h-48 overflow-y-auto">
+                    <div className="mt-4 space-y-1 max-h-48 overflow-y-auto no-scrollbar animate-fade-up">
                       {filteredCommunities.map((c) => (
                         <Link key={c.id} href={`/c/${c.slug}`}>
-                          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer transition-colors text-sm">
-                            <Hash className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                            <span className="truncate flex items-center gap-1">
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-primary/5 cursor-pointer transition-all active:scale-95 text-sm group">
+                            <Hash className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                            <span className="truncate flex items-center gap-1 font-medium group-hover:text-primary transition-colors">
                               {c.name}
                               {c.isPrivate && <Lock className="h-3 w-3 text-muted-foreground" />}
                             </span>
@@ -111,7 +112,7 @@ export default function CommunityFeedPage() {
                     </div>
                   )}
                   {filteredCommunities && filteredCommunities.length === 0 && (
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs text-muted-foreground mt-3 animate-fade-scale px-1 opacity-60">
                       {t("communities_feed.no_results")}
                     </p>
                   )}
@@ -119,39 +120,45 @@ export default function CommunityFeedPage() {
               </Card>
 
               {/* My Communities */}
-              <Card>
-                <CardHeader className="pb-3">
+              <Card className="border-none shadow-lg bg-card/50 backdrop-blur-md rounded-2xl">
+                <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <Users className="h-4 w-4" />
+                    <CardTitle className="text-sm font-bold flex items-center gap-2 tracking-tight">
+                      <Users className="h-4 w-4 text-primary" />
                       {t("communities_feed.my_communities")}
                     </CardTitle>
                     <Link href="/create-community">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Create community">
-                        <Plus className="h-3.5 w-3.5" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary active:scale-90 transition-all shadow-none">
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </Link>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
                   {communitiesLoading ? (
-                    <Spinner size="sm" className="py-4" />
+                    <div className="space-y-3 py-2">
+                       <Skeleton className="h-10 w-full rounded-xl" />
+                       <Skeleton className="h-10 w-full rounded-xl" />
+                    </div>
                   ) : myCommunities && myCommunities.length > 0 ? (
                     <div className="space-y-1">
-                      {myCommunities.map((c) => (
+                      {myCommunities.map((c, idx) => (
                         <Link key={c.id} href={`/c/${c.slug}`}>
-                          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer transition-colors">
-                            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              <span className="text-xs font-semibold text-primary">
+                          <div 
+                            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-primary/5 cursor-pointer transition-all active:scale-95 group animate-fade-up"
+                            style={{ animationDelay: `${idx * 40}ms` }}
+                          >
+                            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                              <span className="text-xs font-black text-primary">
                                 {c.name.charAt(0).toUpperCase()}
                               </span>
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium truncate flex items-center gap-1">
+                              <p className="text-sm font-bold truncate flex items-center gap-1 group-hover:text-primary transition-colors">
                                 {c.name}
                                 {c.isPrivate && <Lock className="h-3 w-3 text-muted-foreground inline" />}
                               </p>
-                              <p className="text-xs text-muted-foreground capitalize">
+                              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">
                                 {c.role || "member"}
                               </p>
                             </div>
@@ -160,7 +167,7 @@ export default function CommunityFeedPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground text-center py-3">
+                    <p className="text-xs text-muted-foreground text-center py-6 opacity-60">
                       {t("communities_feed.no_joined")}
                     </p>
                   )}
@@ -170,83 +177,65 @@ export default function CommunityFeedPage() {
           </aside>
 
           {/* Main Feed */}
-          <div className="flex-1 min-w-0 max-w-3xl">
+          <div className="flex-1 min-w-0">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 animate-slide-down">
               <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                  <Users className="h-8 w-8 text-primary" />
+                <h1 className="text-4xl font-black tracking-tighter flex items-center gap-3">
+                  <div className="p-2 bg-primary/20 rounded-2xl">
+                    <Users className="h-10 w-10 text-primary" />
+                  </div>
                   {t("communities_feed.header_title")}
                 </h1>
-                <p className="text-muted-foreground mt-1">{t("communities_feed.header_desc")}</p>
+                <p className="text-muted-foreground mt-2 font-medium text-lg leading-relaxed">{t("communities_feed.header_desc")}</p>
               </div>
               <Link href="/create-community">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button size="lg" className="rounded-2xl px-8 shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all active:scale-95">
+                  <Plus className="h-5 w-5 mr-3" />
                   {t("communities_feed.create_button")}
                 </Button>
               </Link>
             </div>
 
-            {/* Mobile search (visible on small screens) */}
-            <div className="lg:hidden mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={t("communities_feed.search_placeholder")}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              {filteredCommunities && filteredCommunities.length > 0 && (
-                <div className="mt-2 border rounded-md p-2 space-y-1 max-h-48 overflow-y-auto">
-                  {filteredCommunities.map((c) => (
-                    <Link key={c.id} href={`/c/${c.slug}`}>
-                      <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer text-sm">
-                        <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="truncate flex items-center gap-1">
-                          {c.name}
-                          {c.isPrivate && <Lock className="h-3 w-3 text-muted-foreground inline" />}
-                        </span>
-                      </div>
+            {/* Feed Content Area */}
+            <div className="relative min-h-[400px]">
+              {postsLoading ? (
+                <div className="animate-fade-in">
+                  <SkeletonFeed />
+                </div>
+              ) : postsError ? (
+                <div className="animate-fade-scale">
+                  <ErrorState 
+                    message={(postsError as Error).message} 
+                    retry={() => queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] })}
+                  />
+                </div>
+              ) : posts?.length === 0 ? (
+                <div className="text-center py-20 px-6 border border-none rounded-3xl bg-muted/10 backdrop-blur-md animate-fade-scale">
+                  <Users className="h-20 w-20 mx-auto text-muted-foreground mb-6 opacity-20" />
+                  <h2 className="text-2xl font-black tracking-tight mb-2">{t("communities_feed.no_posts")}</h2>
+                  <p className="text-muted-foreground mb-8 max-w-sm mx-auto font-medium">
+                    {t("communities_feed.no_posts_desc")}
+                  </p>
+                  <div className="flex justify-center gap-4">
+                    <Link href="/create-community">
+                      <Button variant="outline" className="rounded-xl px-10 hover:bg-muted active:scale-95 transition-all">
+                        {t("communities_feed.join_suggestion")}
+                      </Button>
                     </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {posts?.map((post) => (
+                    <PostCard key={post.id} post={post} />
                   ))}
                 </div>
               )}
             </div>
-
-            {/* Feed Content */}
-            {postsLoading ? (
-              <Spinner size="lg" className="p-8" />
-            ) : postsError ? (
-              <ErrorState 
-                message={(postsError as Error).message} 
-                retry={() => queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] })}
-              />
-            ) : posts?.length === 0 ? (
-              <div className="text-center py-12 border rounded-lg bg-muted/10">
-                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h2 className="text-xl font-semibold mb-2">{t("communities_feed.no_posts")}</h2>
-                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                  {t("communities_feed.no_posts_desc")}
-                </p>
-                <div className="flex justify-center gap-4">
-                  <Link href="/create-community">
-                    <Button variant="outline">{t("communities_feed.join_suggestion")}</Button>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {posts?.map((post) => (
-                  <PostCard key={post.id} post={post} />
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </main>
-    </>
+    </PageTransition>
   );
 }

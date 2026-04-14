@@ -1,7 +1,7 @@
-import fs from "fs";
-import path from "path";
-import { Blob } from "buffer";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import path from "node:path";
+import { Blob } from "node:buffer";
+import { fileURLToPath } from "node:url";
 
 // Node 18+ has native fetch/FormData.
 
@@ -11,8 +11,8 @@ const BASE_URL = "http://127.0.0.1:5000";
 let cookieJar = "";
 let csrfToken = "";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = import.meta.filename;
+const __dirname = import.meta.dirname;
 
 async function request(url: string, options: any = {}) {
   const headers = options.headers || {};

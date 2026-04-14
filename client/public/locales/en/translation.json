@@ -12,7 +12,63 @@
     "admin": "Admin",
     "logout": "Logout",
     "content_feeds": "Feeds",
-    "personal_tools": "Tools"
+    "personal_tools": "Tools",
+    "navigation": "Navigation",
+    "mobile_footer_hint": "Explore premium tools like AI Generator and Support via the User Menu on Desktop."
+  },
+  "profile": {
+    "pro": "Pro",
+    "joined": "Joined",
+    "edit": "Edit Profile",
+    "edit_title": "Edit Profile",
+    "edit_description": "Customize your online identity and professional details.",
+    "following": "Following",
+    "follow": "Follow",
+    "followBack": "Follow Back",
+    "posts": "Posts",
+    "followers": "Followers",
+    "followedBy": "Followed by",
+    "and": "and",
+    "others": "others",
+    "tabs": {
+      "posts": "Posts",
+      "comments": "Comments",
+      "liked": "Liked",
+      "saved": "Saved"
+    },
+    "empty": {
+      "posts": {
+        "title": "No posts",
+        "description": "This user hasn't shared anything yet."
+      },
+      "comments": {
+        "title": "No comments",
+        "description": "No comments found."
+      },
+      "liked": {
+        "title": "No likes",
+        "description": "Content you like will appear here."
+      },
+      "saved": {
+        "title": "No bookmarks",
+        "description": "Saved posts are only visible to you."
+      }
+    },
+    "form": {
+      "name": "Display Name",
+      "bio": "Bio",
+      "bio_placeholder": "Tell us about yourself...",
+      "bio_description": "Displayed on your profile. Max 160 characters.",
+      "location": "Location",
+      "website": "Website",
+      "privacy": "Private Account",
+      "privacy_description": "Only members can see your content."
+    },
+    "update_success_title": "Profile updated",
+    "update_success_desc": "Your changes have been saved successfully.",
+    "follow_success": "Followed successfully",
+    "is_now_following": "You are now following {{username}}",
+    "unfollow_success": "Unfollowed"
   },
   "common": {
     "loading": "Loading...",
@@ -60,6 +116,7 @@
   },
   "admin": {
     "title": "Admin Dashboard",
+    "back_to_site": "Back to Site",
     "reset_roles": "Reset All Roles",
     "stats": {
       "total_users": "Total Users",

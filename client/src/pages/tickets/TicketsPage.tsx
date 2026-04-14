@@ -31,7 +31,7 @@ export default function TicketsPage() {
   };
 
   return (
-    <div className="container max-w-5xl mx-auto py-8 px-4 h-full flex flex-col pt-20">
+    <div className="container max-w-5xl mx-auto py-8 px-4 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <BackButton fallback="/feed" className="mb-2 -ml-4" />

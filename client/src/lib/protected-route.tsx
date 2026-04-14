@@ -1,6 +1,7 @@
+import React from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
-import { Redirect, Route } from "wouter";
+import { Route, Redirect } from "wouter";
+import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 
 export function ProtectedRoute({
   path,
@@ -14,8 +15,8 @@ export function ProtectedRoute({
   if (isLoading) {
     return (
       <Route path={path}>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-border" />
+        <div className="container mx-auto px-4 pt-20">
+          <SkeletonFeed />
         </div>
       </Route>
     );

@@ -1,6 +1,9 @@
-import { createContext, ReactNode, useContext, useMemo } from "react";
-import { useQuery, useMutation, UseMutationResult } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
+import type { ReactNode} from "react";
+import { createContext, useContext, useMemo } from "react";
+import type { UseMutationResult } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import type { User as SelectUser, InsertUser } from "@shared/schema";
+import { insertUserSchema } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,6 +28,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const loginMutation = useMutation({

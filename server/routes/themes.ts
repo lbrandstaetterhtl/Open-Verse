@@ -1,10 +1,10 @@
 import { Router } from "express";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import { storage } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
 import { insertThemeSchema } from "@shared/schema";
-import { themeBackgroundUpload, checkFileSignature } from "../utils/file-upload";
+import { themeBackgroundUpload, checkFileSignature, sanitizeImage } from "../utils/file-upload";
 
 const router = Router();
 
@@ -97,6 +97,15 @@ router.post("/background", isAuthenticated, themeBackgroundUpload.single("backgr
             console.error(`File signature mismatch for ${req.file.originalname} (${req.file.mimetype})`);
             fs.unlink(req.file.path, () => { });
             return res.status(400).json({ error: "File signature mismatch - ensure file matches its extension" });
+        }
+
+        // SEC-003: Sanitize background image
+        try {
+            await sanitizeImage(req.file.path);
+        } catch (error) {
+            console.error("Theme background sanitization failed:", error);
+            fs.unlink(req.file.path, () => { });
+            return res.status(400).json({ error: "Failed to process background image metadata" });
         }
 
         res.json({

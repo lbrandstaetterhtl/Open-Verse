@@ -4,7 +4,10 @@ import { users, posts, reports, comments, activityLogs, adminSettings } from "@s
 import { adminUpdateUserSchema, adminUpdateReportSchema } from "@shared/schema";
 import { eq, desc, count, sql, and } from "drizzle-orm";
 import { activityLogger } from "../services/activity-logger";
+import rateLimit from "express-rate-limit";
 import { SettingsService } from "../services/settings";
+import { bulkActionService } from "../services/bulk-action-service";
+import { bans, autoPunishmentRules, autoPunishmentExecutions, insertAutoPunishmentRuleSchema } from "@shared/schema";
 
 const router = Router();
 
@@ -276,7 +279,7 @@ router.patch("/reports/:id", async (req, res) => {
 router.get("/logs", async (req, res) => {
     try {
         const { category, severity, status, search, adminId } = req.query;
-        let query = db.select().from(activityLogs);
+        const query = db.select().from(activityLogs);
         const conditions = [];
 
         if (category) conditions.push(eq(activityLogs.category, category as string));
@@ -300,22 +303,39 @@ router.get("/logs", async (req, res) => {
     }
 });
 
+// SEC-FIX [SEC-009]: Dedicated Admin Rate Limiter (Stricter than global API)
+const adminLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200, // 200 requests per 15 minutes for admin suite
+    message: "Admin request limit reached. Please wait 15 minutes."
+});
+router.use(adminLimiter);
+
 router.get("/logs/export", async (req, res) => {
     try {
-        const allLogs = await db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt));
+        const limit = Math.min(parseInt(req.query.limit as string) || 5000, 5000);
+        const offset = parseInt(req.query.offset as string) || 0;
+
+        // SEC-FIX [SEC-010]: Prevent DoS by capping export size
+        const pagedLogs = await db.select()
+            .from(activityLogs)
+            .orderBy(desc(activityLogs.createdAt))
+            .limit(limit)
+            .offset(offset);
+
         const format = req.query.format === "csv" ? "csv" : "json";
 
         if (format === "csv") {
             const header = "ID,Timestamp,Admin,Action,Category,Description,Severity,Status\n";
-            const rows = allLogs.map((l: any) => 
-                `${l.id},${l.createdAt},${l.adminEmail},${l.action},${l.category},"${l.description.replace(/"/g, '""')}",${l.severity},${l.status}`
+            const rows = pagedLogs.map((l: any) => 
+                `${l.id},${l.createdAt},${l.adminEmail},${l.action},${l.category},"${l.description.replaceAll('"', '""')}",${l.severity},${l.status}`
             ).join("\n");
             res.setHeader("Content-Type", "text/csv");
-            res.setHeader("Content-Disposition", "attachment; filename=activity_logs.csv");
+            res.setHeader("Content-Disposition", `attachment; filename=activity_logs_${Date.now()}.csv`);
             return res.send(header + rows);
         }
 
-        res.json(allLogs);
+        res.json(pagedLogs);
     } catch (error) {
         console.error("Failed to export logs:", error);
         res.status(500).send("Internal Server Error");
@@ -362,6 +382,184 @@ router.post("/settings/seed", async (req, res) => {
     } catch (error) {
         console.error("Failed to seed settings:", error);
         res.status(500).send("Internal Server Error");
+    }
+});
+
+// BULK ACTIONS
+router.post("/bulk/users", async (req, res) => {
+    try {
+        const result = await bulkActionService.bulkBanUsers({
+            userIds: req.body.user_ids,
+            performedBy: (req.user as any).id,
+            reason: req.body.reason,
+            banType: req.body.action as any,
+            durationHours: req.body.duration_hours,
+        });
+        res.json(result);
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.post("/bulk/reports", async (req, res) => {
+    try {
+        const result = await bulkActionService.bulkCloseReports({
+            reportIds: req.body.report_ids,
+            performedBy: (req.user as any).id,
+            action: req.body.action as any,
+            reason: req.body.reason,
+        });
+        res.json(result);
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.post("/bulk/posts", async (req, res) => {
+    try {
+        const result = await bulkActionService.bulkDeletePosts({
+            postIds: req.body.post_ids,
+            performedBy: (req.user as any).id,
+            action: req.body.action as any,
+            reason: req.body.reason,
+        });
+        res.json(result);
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// BAN MANAGEMENT
+router.get("/bans", async (req, res) => {
+    try {
+        const allBans = await db.select().from(bans).orderBy(desc(bans.createdAt));
+        res.json(allBans);
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.post("/bans", async (req, res) => {
+    try {
+        const body = req.body;
+        const now = Math.floor(Date.now() / 1000);
+        const expiresAt = body.duration_hours ? now + (body.duration_hours * 3600) : null;
+        const newBan = await db.insert(bans).values({
+            banType: body.ban_type,
+            userId: body.user_id,
+            ipAddress: body.ip_address,
+            deviceFingerprint: body.device_fingerprint,
+            reason: body.reason,
+            severity: body.severity || "medium",
+            isPermanent: !body.duration_hours ? 1 : 0,
+            expiresAt,
+            isShadow: body.ban_type === "shadow" ? 1 : 0,
+            createdBy: (req.user as any).id,
+            createdByType: "admin",
+            createdAt: now,
+            updatedAt: now,
+        }).returning();
+        
+        if (body.user_id) {
+            if (body.ban_type === "shadow") {
+                await db.update(users).set({ isShadowBanned: 1 }).where(eq(users.id, body.user_id));
+            } else if (body.ban_type === "account") {
+                await db.update(users).set({ karma: -9999 }).where(eq(users.id, body.user_id));
+            }
+        }
+        res.json(newBan[0]);
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.patch("/bans/:id/revoke", async (req, res) => {
+    try {
+        const now = Math.floor(Date.now() / 1000);
+        const updated = await db.update(bans).set({
+            isActive: 0,
+            revokedBy: (req.user as any).id,
+            revokedAt: now,
+            revokeReason: req.body.reason,
+            updatedAt: now,
+        }).where(eq(bans.id, parseInt(req.params.id))).returning();
+        
+        // Also unban user if it was an account/shadow ban
+        if (updated[0] && updated[0].userId) {
+            if (updated[0].banType === "shadow") {
+               await db.update(users).set({ isShadowBanned: 0 }).where(eq(users.id, updated[0].userId));
+            } else if (updated[0].banType === "account") {
+               // We don't restore karma fully but let's reset to 0
+               await db.update(users).set({ karma: 0 }).where(eq(users.id, updated[0].userId));
+            }
+        }
+        res.json(updated[0]);
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// AUTO-PUNISHMENT
+router.get("/auto-punishments", async (req, res) => {
+    try {
+        const rules = await db.select().from(autoPunishmentRules).orderBy(desc(autoPunishmentRules.id));
+        const executions = await db.select().from(autoPunishmentExecutions).orderBy(desc(autoPunishmentExecutions.createdAt)).limit(50);
+        res.json({ rules, executions });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.post("/auto-punishments/rules", async (req, res) => {
+    try {
+        const payload = insertAutoPunishmentRuleSchema.parse(req.body);
+        const now = Math.floor(Date.now() / 1000);
+        const newRule = await db.insert(autoPunishmentRules).values({
+            ...payload,
+            createdBy: (req.user as any).id,
+            createdAt: now,
+            updatedAt: now
+        }).returning();
+        res.json(newRule[0]);
+    } catch (e: any) {
+        res.status(400).json({ error: e.message });
+    }
+});
+
+router.patch("/auto-punishments/rules/:id", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const payload = insertAutoPunishmentRuleSchema.partial().parse(req.body);
+        const now = Math.floor(Date.now() / 1000);
+        
+        const updateData: any = { ...payload, updatedAt: now };
+        if (typeof payload.isActive === 'boolean') {
+            updateData.isActive = payload.isActive ? 1 : 0;
+        }
+
+        const updated = await db.update(autoPunishmentRules)
+            .set(updateData)
+            .where(eq(autoPunishmentRules.id, id))
+            .returning();
+        
+        if (updated.length === 0) return res.status(404).json({ error: "Rule not found" });
+        res.json(updated[0]);
+    } catch (e: any) {
+        res.status(400).json({ error: e.message });
+    }
+});
+
+router.delete("/auto-punishments/rules/:id", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const deleted = await db.delete(autoPunishmentRules)
+            .where(eq(autoPunishmentRules.id, id))
+            .returning();
+            
+        if (deleted.length === 0) return res.status(404).json({ error: "Rule not found" });
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
     }
 });
 

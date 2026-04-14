@@ -1,0 +1,5 @@
+﻿Drizzle configured for SQLite
+[93m[4mUnlisted binaries[24m[39m (2)
+powershell  package.json
+eslint      package.json
+

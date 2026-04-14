@@ -293,7 +293,7 @@ export default function ThemeBuilderPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${themeName.toLowerCase().replace(/\s+/g, "-")}.json`;
+    a.download = `${themeName.toLowerCase().replaceAll(/\s+/g, "-")}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

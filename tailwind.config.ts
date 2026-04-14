@@ -98,25 +98,66 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        // SMOOTH-FIX: Custom Keyframes
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-scale": {
+          "0%": { opacity: "0", transform: "scale(0.96)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "like-bounce": {
+          "0%": { transform: "scale(1)" },
+          "30%": { transform: "scale(1.4)" },
+          "50%": { transform: "scale(0.9)" },
+          "70%": { transform: "scale(1.1)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "bell-shake": {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "10%, 30%": { transform: "rotate(10deg)" },
+          "20%, 40%": { transform: "rotate(-10deg)" },
+          "50%": { transform: "rotate(0deg)" },
+        },
+        "slide-down": {
+          "0%": { opacity: "0", transform: "translateY(-16px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-up": {
+          "0%": { opacity: "0", transform: "translateY(16px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        // SMOOTH-FIX: Custom Animations
+        "fade-up": "fade-up 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        "fade-scale": "fade-scale 200ms ease-out",
+        shimmer: "shimmer 2s linear infinite",
+        "like-bounce": "like-bounce 450ms cubic-bezier(0.36, 0.07, 0.19, 0.97)",
+        "bell-shake": "bell-shake 0.5s ease-in-out",
+        "slide-down": "slide-down 200ms ease-out",
+        "slide-up": "slide-up 200ms ease-out",
+        "pulse-soft": "pulse 2s ease-in-out infinite",
+      },
+      transitionTimingFunction: {
+        // SMOOTH-FIX: Custom Easing
+        spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        smooth: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        decel: "cubic-bezier(0, 0, 0.2, 1)",
       },
     },
   },

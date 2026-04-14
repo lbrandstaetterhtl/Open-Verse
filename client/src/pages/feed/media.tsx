@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next";
-import { Navbar } from "@/components/layout/navbar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Plus, ImageIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import { PostCard } from "@/components/post/post-card";
+import { PageTransition } from "@/components/ui/page-transition";
 import type { PostWithAuthor } from "@shared/types";
 
 export default function MediaFeedPage() {
@@ -18,6 +18,7 @@ export default function MediaFeedPage() {
   const {
     data: posts,
     isLoading,
+    isRefetching,
     error,
   } = useQuery<PostWithAuthor[]>({
     queryKey: ["/api/posts", "media"],
@@ -37,65 +38,96 @@ export default function MediaFeedPage() {
       return res.json();
     },
     refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    staleTime: 15000,
   });
 
   return (
-    <>
-      <Navbar />
+    <PageTransition>
       <main className="container mx-auto px-4 pt-20 pb-8">
-        {/* REDESIGN [UX-004]: Widened from max-w-3xl to max-w-4xl */}
         <div className="max-w-4xl mx-auto">
-          <div className="lg:hidden mb-6">
-            {/* REDESIGN [UX-005]: Consistent mobile header */}
+          {/* Mobile Header with Smooth Entry */}
+          <div className="lg:hidden mb-6 animate-slide-down">
             <h1 className="text-xl font-bold mb-4">{t("feed.media_title")}</h1>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              <Button size="sm" className="whitespace-nowrap" onClick={() => setLocation("/post/news")}>
+            <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
+              <Button 
+                size="sm" 
+                className="whitespace-nowrap rounded-xl active:scale-95 transition-transform" 
+                onClick={() => setLocation("/post/news")}
+              >
                 <Plus className="h-4 w-4 mr-1" />
                 {t("feed.post_news")}
               </Button>
-              <Button size="sm" className="whitespace-nowrap" onClick={() => setLocation("/post/entertainment")}>
+              <Button 
+                size="sm" 
+                className="whitespace-nowrap rounded-xl active:scale-95 transition-transform" 
+                onClick={() => setLocation("/post/entertainment")}
+              >
                 <Plus className="h-4 w-4 mr-1" />
                 {t("feed.post_entertainment")}
               </Button>
             </div>
           </div>
 
-          <div className="hidden lg:flex items-center justify-between mb-8">
-            {/* REDESIGN [UX-005]: Consistent desktop header */}
-            <h1 className="text-3xl font-bold">{t("feed.media_title")}</h1>
-            <div className="space-x-4">
-              <Button onClick={() => setLocation("/post/news")}>
+          {/* Desktop Header with Smooth Entry */}
+          <div className="hidden lg:flex items-center justify-between mb-8 animate-slide-down">
+            <h1 className="text-3xl font-bold tracking-tight">{t("feed.media_title")}</h1>
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => setLocation("/post/news")}
+                className="rounded-xl px-6 active:scale-95 transition-all hover:shadow-md"
+              >
                 {t("feed.post_news")}
               </Button>
-              <Button onClick={() => setLocation("/post/entertainment")}>
+              <Button 
+                onClick={() => setLocation("/post/entertainment")}
+                className="rounded-xl px-6 active:scale-95 transition-all hover:shadow-md"
+              >
                 {t("feed.post_entertainment")}
               </Button>
             </div>
           </div>
 
-          {isLoading ? (
-            <Spinner size="lg" className="p-8" />
-          ) : error ? (
-            <ErrorState 
-              message={error instanceof Error ? error.message : "Failed to load posts"} 
-              retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] })}
-            />
-          ) : posts?.length === 0 ? (
-            <EmptyState
-              icon={<ImageIcon className="h-10 w-10 text-muted-foreground" />}
-              title={t("feed.no_posts")}
-            />
-          ) : (
-            <div className="space-y-4 lg:space-y-6">
-              {posts?.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
-          )}
+          {/* Content Area with Fluid Transitions */}
+          <div className="relative min-h-[400px]">
+            {isLoading ? (
+              <div className="animate-fade-in">
+                <SkeletonFeed />
+              </div>
+            ) : error ? (
+              <div className="animate-fade-scale">
+                <ErrorState 
+                  message={error instanceof Error ? error.message : "Failed to load posts"} 
+                  retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] })}
+                />
+              </div>
+            ) : posts?.length === 0 ? (
+              <div className="animate-fade-scale">
+                <EmptyState
+                  icon={<ImageIcon className="h-12 w-12 text-muted-foreground/50" />}
+                  title={t("feed.no_posts")}
+                />
+              </div>
+            ) : (
+              <div className="space-y-4 lg:space-y-6">
+                {posts?.map((post, index) => (
+                  <PostCard 
+                    key={post.id} 
+                    post={post} 
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Subtle loading overlay for background refetches */}
+            {isRefetching && !isLoading && (
+              <div className="fixed bottom-8 right-8 bg-primary/10 backdrop-blur-md rounded-full px-4 py-2 border border-primary/20 flex items-center gap-2 animate-slide-up shadow-lg z-50">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-xs font-medium text-primary">Actualizando...</span>
+              </div>
+            )}
+          </div>
         </div>
       </main>
-    </>
+    </PageTransition>
   );
 }

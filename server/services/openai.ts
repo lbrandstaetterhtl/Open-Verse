@@ -26,7 +26,7 @@ export async function generatePostContent({
   }
 
   try {
-    let messages: any[] = [
+    const messages: any[] = [
       {
         role: "system",
         content: `You are a personal social media user sharing your own thoughts.
@@ -39,7 +39,7 @@ export async function generatePostContent({
       },
     ];
 
-    let model = "llama-3.3-70b-versatile";
+    const model = "llama-3.3-70b-versatile";
 
     if (imageContext) {
       console.log("[AI] Image provided, but Vision model unavailable. Generating based on topic.");
@@ -82,18 +82,18 @@ async function generateMockResponse(
 
   const templates = isGerman
     ? [
-        `Hier ist ein Gedanke zu ${topic}! 🌟\n\nEs ist faszinierend, wie ${topic} unseren Alltag beeinflusst. ${imageContext ? "Das Bild fängt die Stimmung perfekt ein." : ""} \n\nWas denkst du darüber? #OpenVerse #${topic.replace(/\s+/g, "")}`,
+        `Hier ist ein Gedanke zu ${topic}! 🌟\n\nEs ist faszinierend, wie ${topic} unseren Alltag beeinflusst. ${imageContext ? "Das Bild fängt die Stimmung perfekt ein." : ""} \n\nWas denkst du darüber? #OpenVerse #${topic.replaceAll(/\s+/g, "")}`,
 
-        `Habe gerade ${topic} entdeckt und bin begeistert! 🤯\n\n${imageContext ? "Die visuellen Eindrücke sprechen für sich." : "Ein tiefgründiges Thema mit so vielen Facetten."}\n\nBleibt dran für mehr Updates! ✨ #${topic.replace(/\s+/g, "")} #Inspiration`,
+        `Habe gerade ${topic} entdeckt und bin begeistert! 🤯\n\n${imageContext ? "Die visuellen Eindrücke sprechen für sich." : "Ein tiefgründiges Thema mit so vielen Facetten."}\n\nBleibt dran für mehr Updates! ✨ #${topic.replaceAll(/\s+/g, "")} #Inspiration`,
 
-        `Warum spricht niemand über ${topic}? 🤔\n\nDas ist ein echter Gamechanger. ${imageContext ? "Dieses Foto bringt es auf den Punkt." : "Ich denke schon den ganzen Tag darüber nach."}\n\nDiskutiert mit in den Kommentaren! 👇 #${topic.replace(/\s+/g, "")} #Community`,
+        `Warum spricht niemand über ${topic}? 🤔\n\nDas ist ein echter Gamechanger. ${imageContext ? "Dieses Foto bringt es auf den Punkt." : "Ich denke schon den ganzen Tag darüber nach."}\n\nDiskutiert mit in den Kommentaren! 👇 #${topic.replaceAll(/\s+/g, "")} #Community`,
       ]
     : [
-        `Here's a thought about ${topic}! 🌟\n\nIt's fascinating how ${topic} impacts our daily lives. ${imageContext ? "Looking at this image, you can really see the essence of it." : ""} \n\nWhat are your thoughts? #OpenVerse #${topic.replace(/\s+/g, "")}`,
+        `Here's a thought about ${topic}! 🌟\n\nIt's fascinating how ${topic} impacts our daily lives. ${imageContext ? "Looking at this image, you can really see the essence of it." : ""} \n\nWhat are your thoughts? #OpenVerse #${topic.replaceAll(/\s+/g, "")}`,
 
-        `Just explored ${topic} and I'm amazed! 🤯\n\n${imageContext ? "The visuals generally speak for themselves." : "It's a deep subject with so many layers."}\n\nCan't wait to share more soon. Stay tuned! ✨ #${topic.replace(/\s+/g, "")} #Inspiration`,
+        `Just explored ${topic} and I'm amazed! 🤯\n\n${imageContext ? "The visuals generally speak for themselves." : "It's a deep subject with so many layers."}\n\nCan't wait to share more soon. Stay tuned! ✨ #${topic.replaceAll(/\s+/g, "")} #Inspiration`,
 
-        `Why is nobody talking about ${topic}? 🤔\n\nIt's such a game changer. ${imageContext ? "This picture perfectly captures the mood." : "I've been thinking about this all day."}\n\nLet's discuss in the comments! 👇 #${topic.replace(/\s+/g, "")} #Community`,
+        `Why is nobody talking about ${topic}? 🤔\n\nIt's such a game changer. ${imageContext ? "This picture perfectly captures the mood." : "I've been thinking about this all day."}\n\nLet's discuss in the comments! 👇 #${topic.replaceAll(/\s+/g, "")} #Community`,
       ];
 
   return (

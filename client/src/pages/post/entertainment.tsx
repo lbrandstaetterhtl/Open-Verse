@@ -18,7 +18,7 @@ import { Loader2, SmilePlus } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import * as z from "zod";
+import type * as z from "zod";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 

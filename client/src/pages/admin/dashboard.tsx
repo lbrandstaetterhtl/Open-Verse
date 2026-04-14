@@ -72,7 +72,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AdminLayout } from "@/components/admin/admin-layout";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -80,6 +79,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { type User, type Report } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import { BulkActionToolbar } from "@/components/admin/BulkActionToolbar";
+import { BulkActionModal } from "@/components/admin/BulkActionModal";
 
 function MetricCard({ 
   title, 
@@ -198,9 +199,11 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient();
 
   const [userFilter, setUserFilter] = useState<"all" | "verified" | "banned">("all");
-  const [reportFilter, setReportFilter] = useState<"all" | "pending" | "resolved" | "rejected">("pending");
+  const [reportFilter, setReportFilter] = useState<"all" | "pending" | "resolved" | "rejected">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
+  const [selectedReports, setSelectedReports] = useState<Set<number>>(new Set());
+  const [bulkAction, setBulkAction] = useState<{ type: "users" | "reports", actionId: string } | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof User; direction: "asc" | "desc" } | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<{
@@ -238,16 +241,6 @@ export default function AdminDashboard() {
     },
   });
 
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      await apiRequest("DELETE", `/api/admin/users/${userId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: t("common.success"), description: t("admin.users_table.delete_success") });
-    },
-  });
-
   const updateReportMutation = useMutation({
     mutationFn: async ({ reportId, status }: { reportId: number; status: string }) => {
       const res = await apiRequest("PATCH", `/api/admin/reports/${reportId}`, { status });
@@ -257,16 +250,6 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/reports"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
       toast({ title: t("common.success"), description: t("admin.reports_table.update_success") });
-    },
-  });
-
-  const resetRolesMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", "/api/admin/reset-roles");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: t("common.success"), description: "Roles have been reset to default" });
     },
   });
 
@@ -284,7 +267,7 @@ export default function AdminDashboard() {
         default: return true;
       }
     })
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       if (!sortConfig) return 0;
       const { key, direction } = sortConfig;
       const aValue = (a as any)[key];
@@ -315,6 +298,40 @@ export default function AdminDashboard() {
     setSelectedUsers(next);
   };
 
+  const toggleReportSelection = (id: number) => {
+    const next = new Set(selectedReports);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedReports(next);
+  };
+
+  const handleBulkAction = async (reason: string, duration?: number) => {
+    if (!bulkAction) return;
+
+    if (bulkAction.type === "users") {
+       await apiRequest("POST", "/api/admin/bulk/users", {
+           user_ids: Array.from(selectedUsers),
+           action: bulkAction.actionId,
+           reason,
+           duration_hours: duration
+       });
+       setSelectedUsers(new Set());
+       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    } else if (bulkAction.type === "reports") {
+       await apiRequest("POST", "/api/admin/bulk/reports", {
+           report_ids: Array.from(selectedReports),
+           action: bulkAction.actionId,
+           reason
+       });
+       setSelectedReports(new Set());
+       queryClient.invalidateQueries({ queryKey: ["/api/admin/reports"] });
+       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+    }
+
+    toast({ title: t("bulk.success", "Bulk action executed successfully.") });
+    setBulkAction(null);
+  };
+
   const handleSort = (key: string) => {
     setSortConfig((prev) => ({
       key: key as keyof User,
@@ -329,8 +346,7 @@ export default function AdminDashboard() {
   const currentTab = location === "/admin/reports" ? "reports" : "users";
 
   return (
-    <AdminLayout>
-      <TooltipProvider>
+    <TooltipProvider>
         <div className="space-y-8 animate-in fade-in duration-500 pb-12">
           <div className="flex flex-col gap-1">
             <h2 className="text-3xl font-bold tracking-tight">{t("admin.title")}</h2>
@@ -393,12 +409,6 @@ export default function AdminDashboard() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                {selectedUsers.size > 0 && (
-                  <Button variant="destructive" size="sm" className="gap-2 shrink-0 h-10 animate-in slide-in-from-right-2 shadow-sm font-bold" onClick={() => { if(window.confirm(`Delete ${selectedUsers.size} users?`)) { /* bulk delete logic */ } }}>
-                    <Trash2 className="h-4 w-4" />
-                    Delete {selectedUsers.size}
-                  </Button>
-                )}
               </div>
             </div>
 
@@ -722,8 +732,23 @@ export default function AdminDashboard() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          <BulkActionToolbar 
+            type={currentTab} 
+            count={currentTab === "users" ? selectedUsers.size : selectedReports.size} 
+            onAction={(actionId) => setBulkAction({ type: currentTab, actionId })}
+            onClear={() => currentTab === "users" ? setSelectedUsers(new Set()) : setSelectedReports(new Set())}
+          />
+
+          <BulkActionModal 
+            isOpen={bulkAction !== null}
+            onClose={() => setBulkAction(null)}
+            onConfirm={handleBulkAction}
+            type={bulkAction?.type || "users"}
+            actionId={bulkAction?.actionId || ""}
+            count={bulkAction?.type === "users" ? selectedUsers.size : selectedReports.size}
+          />
         </div>
       </TooltipProvider>
-    </AdminLayout>
   );
 }

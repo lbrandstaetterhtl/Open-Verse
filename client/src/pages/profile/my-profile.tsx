@@ -1,109 +1,37 @@
-import { Navbar } from "@/components/layout/navbar";
-import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/hooks/use-toast";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  UpdateProfile,
-  UpdatePassword,
-  updateProfileSchema,
-  updatePasswordSchema,
-  User,
-} from "@shared/schema";
-import { UserAvatar } from "@/components/ui/user-avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, UserPlus, UserMinus, Trophy, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { ProfileCover } from "@/components/profile/ProfileCover";
+import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { ProfileTabs } from "@/components/profile/ProfileTabs";
+import { ProfileTabContent } from "@/components/profile/ProfileTabContent";
+import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
+import { EditProfileModal } from "@/components/profile/EditProfileModal";
+import type { UpdateProfile} from "@shared/schema";
+import { User } from "@shared/schema";
+import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import { PageTransition } from "@/components/ui/page-transition";
 
-export default function ProfilePage() {
+export default function MyProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState("posts");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const { data: followers } = useQuery<User[]>({
-    queryKey: ["/api/followers"],
-    queryFn: async () => {
-      const res = await fetch("/api/followers");
-      if (!res.ok) throw new Error("Failed to fetch followers");
-      return res.json();
-    },
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+  // Fetch enriched profile data (stats, etc.)
+  const { data: profileData, isLoading: isProfileLoading } = useQuery<any>({
+    queryKey: [`/api/users/${user?.username}`],
+    enabled: !!user?.username,
   });
 
-  const { data: following } = useQuery<User[]>({
-    queryKey: ["/api/following"],
-    queryFn: async () => {
-      const res = await fetch("/api/following");
-      if (!res.ok) throw new Error("Failed to fetch following");
-      return res.json();
-    },
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-  });
-
-  const followMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const res = await apiRequest("POST", `/api/follow/${userId}`);
-      if (!res.ok) throw new Error(await res.text());
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/following"] });
-      toast({
-        title: "Success",
-        description: "User followed successfully",
-      });
-    },
-  });
-
-  const unfollowMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const res = await apiRequest("DELETE", `/api/follow/${userId}`);
-      if (!res.ok) throw new Error(await res.text());
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/following"] });
-      toast({
-        title: "Success",
-        description: "User unfollowed successfully",
-      });
-    },
-  });
-
-  const profileForm = useForm<UpdateProfile>({
-    resolver: zodResolver(updateProfileSchema),
-    defaultValues: {
-      username: user?.username || "",
-      email: user?.email || "",
-      bio: user?.bio || "",
-    },
-  });
-
-  const passwordForm = useForm<UpdatePassword>({
-    resolver: zodResolver(updatePasswordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
+  // Fetch tab content
+  const { data: tabData = [], isLoading: isTabLoading } = useQuery<any[]>({
+    queryKey: [`/api/users/${user?.username}/${activeTab}`],
+    enabled: !!user?.username && activeTab !== "settings",
   });
 
   const updateProfileMutation = useMutation({
@@ -111,357 +39,83 @@ export default function ProfilePage() {
       const res = await apiRequest("PATCH", "/api/profile", data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedUser) => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}`] });
+      setIsEditModalOpen(false);
       toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+        title: t('profile.update_success_title'),
+        description: t('profile.update_success_desc'),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Update failed",
+        title: t('common.error'),
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  const updatePasswordMutation = useMutation({
-    mutationFn: async (data: UpdatePassword) => {
-      const res = await apiRequest("PATCH", "/api/profile/password", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      passwordForm.reset();
-      toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Update failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  if (isProfileLoading || !user) {
+    return <ProfilePageSkeleton />;
+  }
+
+  const enrichedUser = {
+    ...user,
+    ...profileData,
+  };
 
   return (
-    <>
-      <Navbar />
-      <main className="container mx-auto px-4 pt-20 pb-8">
-        <div className="max-w-2xl mx-auto space-y-8">
-          <div className="flex items-center gap-4">
-            <UserAvatar user={{ username: user?.username || "" }} size="lg" />
-            <div>
-              <h1 className="text-3xl font-bold">Profile Settings</h1>
-              <p className="text-sm text-muted-foreground mt-1">Manage your account and preferences</p>
-            </div>
-          </div>
+    <PageTransition>
+      <div className="min-h-screen bg-background pb-20">
+        <ProfileCover 
+          coverUrl={enrichedUser.coverUrl}
+          avatarUrl={enrichedUser.avatarUrl}
+          username={enrichedUser.username}
+          isOwnProfile={true}
+          onEditCover={() => setIsEditModalOpen(true)}
+          onEditAvatar={() => setIsEditModalOpen(true)}
+        />
 
-          {/* REDESIGN [UX-003]: Prominent stat bar with bold numbers */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-muted/50 rounded-lg p-4 text-center">
-              <p className="text-2xl font-bold">{followers?.length || 0}</p>
-              <p className="text-sm text-muted-foreground">Followers</p>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-4 text-center">
-              <p className="text-2xl font-bold">{following?.length || 0}</p>
-              <p className="text-sm text-muted-foreground">Following</p>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-4 text-center">
-              <div className="flex items-center justify-center gap-1.5">
-                <Trophy className="h-5 w-5 text-emerald-500" />
-                <p className="text-2xl font-bold">{user?.karma || 0}</p>
-              </div>
-              <p className="text-sm text-muted-foreground">Reputation</p>
-            </div>
-          </div>
+        <ProfileHeader 
+          user={enrichedUser}
+          isOwnProfile={true}
+          onEditProfile={() => setIsEditModalOpen(true)}
+        />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Followers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {followers?.map((follower) => (
-                  <div key={follower.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {follower.karma < 0 ? (
-                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                          <UserMinus className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      ) : (
-                        <UserAvatar user={follower} size="sm" />
-                      )}
-                      <span>
-                        {follower.karma < 0 ? (
-                          <span className="text-muted-foreground italic">Banned User</span>
-                        ) : (
-                          follower.username
-                        )}
-                      </span>
-                    </div>
-                    {follower.karma >= 0 ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => followMutation.mutate(follower.id)}
-                      >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Follow Back
-                      </Button>
-                    ) : (
-                      <Button variant="ghost" size="sm" disabled>
-                        Banned
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                {!followers?.length && (
-                  <EmptyState title="No followers" description="You don't have any followers yet." />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <ProfileTabs 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+          isOwnProfile={true}
+        />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Following</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {following?.map((followed) => (
-                  <div key={followed.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {followed.karma < 0 ? (
-                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                          <UserMinus className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      ) : (
-                        <UserAvatar user={followed} size="sm" />
-                      )}
-                      <span>
-                        {followed.karma < 0 ? (
-                          <span className="text-muted-foreground italic">Banned User</span>
-                        ) : (
-                          followed.username
-                        )}
-                      </span>
-                    </div>
-                    {followed.karma >= 0 ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => unfollowMutation.mutate(followed.id)}
-                      >
-                        <UserMinus className="h-4 w-4 mr-2" />
-                        Unfollow
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => unfollowMutation.mutate(followed.id)}
-                      >
-                        <UserMinus className="h-4 w-4 mr-2" />
-                        Unfollow
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                {!following?.length && (
-                  <EmptyState title="Not following anyone" description="You aren't following anyone yet." />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <main className="container mx-auto px-4 max-w-4xl">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ProfileTabContent 
+                type={activeTab as any} 
+                data={tabData} 
+                isLoading={isTabLoading} 
+              />
+            </motion.div>
+          </AnimatePresence>
+        </main>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Update Profile</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...profileForm}>
-                <form
-                  onSubmit={profileForm.handleSubmit((data) => updateProfileMutation.mutate(data))}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={profileForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={profileForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={profileForm.control}
-                    name="bio"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bio</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Tell us about yourself..."
-                            className="resize-none"
-                            {...field}
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="submit"
-                    disabled={updateProfileMutation.isPending}
-                    className="w-full"
-                  >
-                    {updateProfileMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Update Profile"
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...passwordForm}>
-                <form
-                  onSubmit={passwordForm.handleSubmit((data) =>
-                    updatePasswordMutation.mutate(data),
-                  )}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={passwordForm.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input type={showCurrentPassword ? "text" : "password"} {...field} />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                            >
-                              {showCurrentPassword ? (
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <Eye className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={passwordForm.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input type={showNewPassword ? "text" : "password"} {...field} />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => setShowNewPassword(!showNewPassword)}
-                            >
-                              {showNewPassword ? (
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <Eye className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={passwordForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm New Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input type={showConfirmPassword ? "text" : "password"} {...field} />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            >
-                              {showConfirmPassword ? (
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <Eye className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="submit"
-                    disabled={updatePasswordMutation.isPending}
-                    className="w-full"
-                  >
-                    {updatePasswordMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Update Password"
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-    </>
+        <EditProfileModal 
+          user={user}
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSubmit={(data) => updateProfileMutation.mutate(data)}
+          isSubmitting={updateProfileMutation.isPending}
+        />
+      </div>
+    </PageTransition>
   );
 }

@@ -1,6 +1,7 @@
-import fs from "fs";
+import fs from "node:fs";
 import multer from "multer";
-import path from "path";
+import path from "node:path";
+import sharp from "sharp";
 import { logSecurityEvent } from "./logger";
 
 // SEC-002: File Signature Verification Helper
@@ -16,36 +17,58 @@ export async function checkFileSignature(filepath: string, mimetype: string): Pr
             'image/jpeg': ['ffd8ff'],
             'image/png': ['89504e470d0a1a0a'],
             'image/gif': ['47494638'],
-            'video/mp4': ['0000001866747970', '0000002066747970'], // Common MP4 atoms
             'video/webm': ['1a45dfa3']
         };
 
         const hex = buffer.toString('hex', 0, 32); // Check first 32 bytes
 
-        // Basic check for video/mp4 as atom location varies, often starts at offset 4
-        if (hex.includes("66747970")) {
+        // SEC-FIX [SEC-007]: Strict offset check for MP4 atoms (usually starts at offset 4)
+        // Offset 4 bytes = index 8 in hex string
+        const ftypMatch = hex.slice(8, 16) === "66747970";
+        if (mimetype === 'video/mp4' && ftypMatch) {
             return true;
         }
 
         // Check for WebP: RIFF (bytes 0-3) and WEBP (bytes 8-11)
-        const riff = hex.substring(0, 8); // 4 bytes * 2 hex chars
-        const webp = hex.substring(16, 24); // bytes 8-11
-        if (riff === '52494646' && webp === '57454250') {
+        const riff = hex.slice(0, 8); // 4 bytes * 2 hex chars
+        const webp = hex.slice(16, 24); // bytes 8-11
+        if (mimetype === 'image/webp' && riff === '52494646' && webp === '57454250') {
             return true;
         }
 
-        // Flatten all safe signatures
-        const allSafeSignatures = Object.values(signatures).flat();
-        const matches = allSafeSignatures.some(sig => hex.startsWith(sig));
+        // Flatten and use strict prefix matching for other types
+        const expectedSignatures = signatures[mimetype] || [];
+        const matches = expectedSignatures.some(sig => hex.startsWith(sig));
 
         if (!matches) {
-            console.warn(`[checkFileSignature] Signature verification failed for ${mimetype}. Header: ${hex}.`);
+            console.warn(`[SEC] checkFileSignature: Signature mismatch for ${mimetype}. Header: ${hex.slice(0, 16)}...`);
             return false;
         }
         return true;
     } catch (error) {
         console.error("Error in checkFileSignature:", error);
         return false;
+    }
+}
+
+// SEC-003: Image Sanitization (Strip EXIF, etc.)
+export async function sanitizeImage(filepath: string): Promise<void> {
+    const ext = path.extname(filepath).toLowerCase();
+    if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+        return; // Skip for non-image files or gifs
+    }
+
+    try {
+        const tempPath = `${filepath}.tmp`;
+        await sharp(filepath)
+            .rotate() // Auto-rotate based on EXIF before stripping
+            .toFile(tempPath);
+        
+        // Overwrite original with sanctioned version
+        await fs.promises.rename(tempPath, filepath);
+    } catch (error) {
+        console.error(`[sanitizeImage] Failed to sanitize ${filepath}:`, error);
+        throw new Error("Image processing failed during sanitization", { cause: error });
     }
 }
 
@@ -116,3 +139,4 @@ export const themeBackgroundUpload = multer({
     },
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB max for theme backgrounds
 });
+

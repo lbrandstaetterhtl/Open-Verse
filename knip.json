@@ -1,0 +1,35 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "project": [
+    "client/src/**/*.ts", 
+    "client/src/**/*.tsx", 
+    "server/**/*.ts", 
+    "shared/**/*.ts"
+  ],
+  "paths": {
+    "@/*": ["client/src/*"],
+    "@shared/*": ["shared/*"],
+    "@shared": ["shared/index.ts"]
+  },
+  "ignore": [
+    "client/src/components/ui/**"
+  ],
+  "ignoreDependencies": [
+    "@radix-ui/*",
+    "@typescript-eslint/*",
+    "eslint-plugin-*",
+    "cmdk",
+    "vaul",
+    "embla-carousel-react",
+    "input-otp",
+    "memorystore",
+    "react-day-picker",
+    "react-icons",
+    "react-resizable-panels",
+    "zod-validation-error",
+    "@jridgewell/trace-mapping"
+  ],
+  "ignoreBinaries": ["powershell", "eslint"],
+  "ignoreExportsUsedInFile": true,
+  "exclude": ["enumMembers"]
+}

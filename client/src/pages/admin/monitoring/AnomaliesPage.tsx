@@ -5,7 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { AdminLayout } from "@/components/admin/admin-layout";
 import { useTranslation } from "react-i18next";
 
 export function AnomaliesPage() {
@@ -22,8 +21,7 @@ export function AnomaliesPage() {
   });
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
       <h1 className="text-3xl font-bold">{t("monitoring.anomalies", "Anomaly Detection")}</h1>
 
       <div className="flex gap-4 mb-4 bg-card p-4 rounded-lg border">
@@ -82,6 +80,5 @@ export function AnomaliesPage() {
         </Table>
       </div>
       </div>
-    </AdminLayout>
   );
 }

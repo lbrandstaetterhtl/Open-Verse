@@ -30,7 +30,8 @@ import {
   EyeOff,
 } from "lucide-react";
 import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
-import { insertUserSchema, InsertUser, loginSchema, LoginCredentials } from "@shared/schema";
+import type { InsertUser, LoginCredentials } from "@shared/schema";
+import { insertUserSchema, loginSchema } from "@shared/schema";
 import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2 } from "lucide-react";

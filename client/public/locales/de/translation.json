@@ -12,7 +12,63 @@
     "ai_generator": "KI-Generator",
     "mod_panel": "Mod-Panel",
     "content_feeds": "Feeds",
-    "personal_tools": "Tools"
+    "personal_tools": "Tools",
+    "navigation": "Navigation",
+    "mobile_footer_hint": "Entdecke Premium-Tools wie den KI-Generator und Support über das Benutzermenü am Desktop."
+  },
+  "profile": {
+    "pro": "Pro",
+    "joined": "Beigetreten seit",
+    "edit": "Profil bearbeiten",
+    "edit_title": "Profil bearbeiten",
+    "edit_description": "Passen Sie Ihre Online-Identität und beruflichen Details an.",
+    "following": "Folge ich",
+    "follow": "Folgen",
+    "followBack": "Zurückfolgen",
+    "posts": "Beiträge",
+    "followers": "Follower",
+    "followedBy": "Gefolgt von",
+    "and": "und",
+    "others": "weiteren",
+    "tabs": {
+      "posts": "Beiträge",
+      "comments": "Kommentare",
+      "liked": "Gefällt mir",
+      "saved": "Gespeichert"
+    },
+    "empty": {
+      "posts": {
+        "title": "Keine Beiträge",
+        "description": "Dieser Nutzer hat noch nichts geteilt."
+      },
+      "comments": {
+        "title": "Keine Kommentare",
+        "description": "Noch keine Kommentare vorhanden."
+      },
+      "liked": {
+        "title": "Keine Likes",
+        "description": "Inhalte, die dir gefallen, erscheinen hier."
+      },
+      "saved": {
+        "title": "Keine Lesezeichen",
+        "description": "Gespeicherte Beiträge sind nur für dich sichtbar."
+      }
+    },
+    "form": {
+      "name": "Anzeigename",
+      "bio": "Bio",
+      "bio_placeholder": "Erzähle uns etwas über dich...",
+      "bio_description": "Wird in deinem Profil angezeigt. Max. 160 Zeichen.",
+      "location": "Standort",
+      "website": "Webseite",
+      "privacy": "Privates Konto",
+      "privacy_description": "Nur Mitglieder können deine Inhalte sehen."
+    },
+    "update_success_title": "Profil aktualisiert",
+    "update_success_desc": "Deine Änderungen wurden erfolgreich gespeichert.",
+    "follow_success": "Erfolgreich gefolgt",
+    "is_now_following": "Du folgst nun {{username}}",
+    "unfollow_success": "Entfolgt"
   },
   "common": {
     "loading": "Laden...",

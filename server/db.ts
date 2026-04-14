@@ -4,8 +4,8 @@ import { Pool, neonConfig } from "@neondatabase/serverless";
 import Database from "better-sqlite3";
 import ws from "ws";
 import * as schema from "@shared/schema";
-import path from "path";
-import fs from "fs";
+import path from "node:path";
+import fs from "node:fs";
 
 console.log("DEBUG: process.env.USE_SQLITE =", process.env.USE_SQLITE);
 
@@ -41,6 +41,8 @@ if (useSqlite) {
   sqlite.pragma('synchronous = NORMAL');
   sqlite.pragma('temp_store = MEMORY');
   sqlite.pragma('cache_size = -64000');
+  sqlite.pragma('mmap_size = 268435456'); // 256MB memory mapping
+  sqlite.pragma('busy_timeout = 5000');   // 5s busy timeout
   sqlite.pragma('optimize');
 
   // Register 'now' function for compatibility with defaultNow()
@@ -61,6 +63,12 @@ if (useSqlite) {
       role TEXT NOT NULL DEFAULT 'user',
       verified INTEGER NOT NULL DEFAULT 0,
       profile_picture_url TEXT,
+      display_name TEXT,
+      avatar_url TEXT,
+      cover_url TEXT,
+      location TEXT,
+      website TEXT,
+      is_private INTEGER NOT NULL DEFAULT 0,
       bio TEXT,
       created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
@@ -303,6 +311,140 @@ if (useSqlite) {
     CREATE INDEX IF NOT EXISTS idx_alerts_status     ON alert_history(status);
     CREATE INDEX IF NOT EXISTS idx_alerts_created    ON alert_history(created_at DESC);
 
+    -- PHASE 3: BANS & AUTO-PUNISHMENT
+    CREATE TABLE IF NOT EXISTS bans (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      ban_type        TEXT NOT NULL,
+      user_id         INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      ip_address      TEXT,
+      ip_range        TEXT,
+      device_fingerprint TEXT,
+      reason          TEXT NOT NULL,
+      severity        TEXT NOT NULL DEFAULT 'medium',
+      is_permanent    INTEGER DEFAULT 0,
+      expires_at      INTEGER,
+      is_shadow       INTEGER DEFAULT 0,
+      created_by      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_by_type TEXT DEFAULT 'admin',
+      anomaly_id      INTEGER REFERENCES anomaly_events(id) ON DELETE SET NULL,
+      notes           TEXT,
+      is_active       INTEGER DEFAULT 1,
+      revoked_by      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      revoked_at      INTEGER,
+      revoke_reason   TEXT,
+      created_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      updated_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      CHECK (ban_type IN ('ip','hardware','account','shadow','network')),
+      CHECK (severity IN ('warning','medium','high','permanent'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_bans_user_id       ON bans(user_id);
+    CREATE INDEX IF NOT EXISTS idx_bans_ip            ON bans(ip_address);
+    CREATE INDEX IF NOT EXISTS idx_bans_fingerprint   ON bans(device_fingerprint);
+    CREATE INDEX IF NOT EXISTS idx_bans_active        ON bans(is_active) WHERE is_active = 1;
+
+    CREATE TABLE IF NOT EXISTS auto_punishment_rules (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      name            TEXT NOT NULL,
+      description     TEXT,
+      is_active       INTEGER DEFAULT 1,
+      anomaly_type    TEXT NOT NULL,
+      severity_threshold TEXT NOT NULL DEFAULT 'high',
+      action          TEXT NOT NULL,
+      action_duration_hours INTEGER,
+      action_reason   TEXT NOT NULL,
+      escalate_after_count INTEGER DEFAULT 1,
+      escalation_window_hours INTEGER DEFAULT 24,
+      cooldown_hours  INTEGER DEFAULT 1,
+      created_by      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      updated_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      CHECK (action IN ('warn','shadow_ban','temp_ban','ip_ban','hardware_ban','freeze','permanent_ban'))
+    );
+
+    CREATE TABLE IF NOT EXISTS auto_punishment_executions (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      rule_id         INTEGER REFERENCES auto_punishment_rules(id) ON DELETE SET NULL,
+      rule_name       TEXT NOT NULL,
+      anomaly_id      INTEGER REFERENCES anomaly_events(id) ON DELETE SET NULL,
+      user_id         INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      ban_id          INTEGER REFERENCES bans(id) ON DELETE SET NULL,
+      action_taken    TEXT NOT NULL,
+      action_detail   TEXT,
+      success         INTEGER DEFAULT 1,
+      error_message   TEXT,
+      created_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS bulk_action_logs (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      performed_by    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      action_type     TEXT NOT NULL,
+      target_type     TEXT NOT NULL,
+      target_ids      TEXT NOT NULL,
+      target_count    INTEGER NOT NULL,
+      success_count   INTEGER DEFAULT 0,
+      fail_count      INTEGER DEFAULT 0,
+      reason          TEXT,
+      metadata        TEXT DEFAULT '{}',
+      created_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS analytics_snapshots (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      snapshot_date   TEXT NOT NULL,
+      snapshot_hour   INTEGER,
+      granularity     TEXT NOT NULL DEFAULT 'day',
+      new_users       INTEGER DEFAULT 0,
+      total_users     INTEGER DEFAULT 0,
+      active_users_day INTEGER DEFAULT 0,
+      active_users_week INTEGER DEFAULT 0,
+      active_users_month INTEGER DEFAULT 0,
+      returning_users  INTEGER DEFAULT 0,
+      new_posts       INTEGER DEFAULT 0,
+      new_comments    INTEGER DEFAULT 0,
+      new_likes       INTEGER DEFAULT 0,
+      new_follows     INTEGER DEFAULT 0,
+      new_communities INTEGER DEFAULT 0,
+      total_posts     INTEGER DEFAULT 0,
+      avg_posts_per_user REAL DEFAULT 0,
+      avg_session_actions REAL DEFAULT 0,
+      engagement_rate REAL DEFAULT 0,
+      d1_retention    REAL DEFAULT 0,
+      d7_retention    REAL DEFAULT 0,
+      d30_retention   REAL DEFAULT 0,
+      created_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      UNIQUE(snapshot_date, snapshot_hour, granularity)
+    );
+
+    CREATE TABLE IF NOT EXISTS community_analytics (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      community_id    INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+      snapshot_date   TEXT NOT NULL,
+      new_members     INTEGER DEFAULT 0,
+      total_members   INTEGER DEFAULT 0,
+      new_posts       INTEGER DEFAULT 0,
+      total_posts     INTEGER DEFAULT 0,
+      active_members  INTEGER DEFAULT 0,
+      engagement_score REAL DEFAULT 0,
+      created_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      UNIQUE(community_id, snapshot_date)
+    );
+
+    CREATE TABLE IF NOT EXISTS creator_analytics (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      snapshot_date   TEXT NOT NULL,
+      new_posts       INTEGER DEFAULT 0,
+      total_posts     INTEGER DEFAULT 0,
+      new_followers   INTEGER DEFAULT 0,
+      total_followers INTEGER DEFAULT 0,
+      post_likes_received INTEGER DEFAULT 0,
+      post_comments_received INTEGER DEFAULT 0,
+      total_reach     INTEGER DEFAULT 0,
+      engagement_score REAL DEFAULT 0,
+      created_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      UNIQUE(user_id, snapshot_date)
+    );
   `);
   console.log("DEBUG: SQLite tables initialized");
 
@@ -331,10 +473,29 @@ if (useSqlite) {
   // FEATURE-FIX [USER-SCHEMA]: Add missing profile columns for SQLite parity
   try {
     sqlite.exec(`ALTER TABLE users ADD COLUMN profile_picture_url TEXT`);
+  } catch (e) {}
+  try {
     sqlite.exec(`ALTER TABLE users ADD COLUMN bio TEXT`);
-  } catch (e) {
-    // Ignore duplicate column errors
-  }
+  } catch (e) {}
+  
+  // PHASE 3: Add Moderation columns to users table
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0`); } catch (e) {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN is_shadow_banned INTEGER DEFAULT 0`); } catch (e) {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN frozen_until INTEGER`); } catch (e) {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN freeze_reason TEXT`); } catch (e) {}
+
+  // PROFESSIONAL PROFILE FIELDS
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN display_name TEXT`); } catch (e) {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN avatar_url TEXT`); } catch (e) {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN cover_url TEXT`); } catch (e) {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN location TEXT`); } catch (e) {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN website TEXT`); } catch (e) {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN is_private INTEGER DEFAULT 0`); } catch (e) {}
+
+  // Migrating profile_picture_url to avatar_url if exists and new is empty
+  try {
+    sqlite.exec(`UPDATE users SET avatar_url = profile_picture_url WHERE (avatar_url IS NULL OR avatar_url = '') AND profile_picture_url IS NOT NULL`);
+  } catch (e) {}
 
   // FEATURE-FIX [NOTIF-SCHEMA]: Add missing notification columns for SQLite parity
   const notifColumns = [
@@ -381,4 +542,16 @@ if (useSqlite) {
 export function getSqlite() {
   return sqlite;
 }
+
+export async function closeDb() {
+  if (sqlite) {
+    console.log("Closing SQLite database...");
+    sqlite.close();
+  }
+  if (pool) {
+    console.log("Closing Postgres pool...");
+    await pool.end();
+  }
+}
+
 export { pool, db };
