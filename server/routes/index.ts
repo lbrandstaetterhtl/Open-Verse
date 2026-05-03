@@ -51,14 +51,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 connectSrc: ["'self'", "ws:", "wss:"],
                 frameAncestors: ["'none'"],
                 objectSrc: ["'none'"], // SEC-FIX: Block plugins
-                upgradeInsecureRequests: [],
+                // upgradeInsecureRequests: [], // Deaktiviert für lokales HTTP-Testen
             },
         },
-        hsts: {
+        /* hsts: {
             maxAge: 31536000,
             includeSubDomains: true,
             preload: true
-        },
+        }, */
         referrerPolicy: { policy: "strict-origin-when-cross-origin" }
     }));
 
@@ -84,9 +84,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         saveUninitialized: false,
         store: storage.sessionStore,
         cookie: {
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.REQUIRE_HTTPS === 'true', // Muss 'true' sein, wenn ein HTTPS Reverse Proxy genutzt wird
             httpOnly: true, // SEC-FIX: Prevent XSS access to cookies
-            sameSite: 'strict', // SEC-FIX: Strict CSRF protection
+            sameSite: 'lax', // Geändert von 'strict' für besseres lokales Testen
             maxAge: 1000 * 60 * 60 * 24 // 24 hours
         }
     });
