@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build output (wird im Builder-Stage neu erzeugt)
+dist/
+
+# Environment files (niemals ins Image!)
+.env
+.env.*
+!.env.example
+
+# SQLite-Dateien
+*.db
+*.db-shm
+*.db-wal
+
+# Uploads (werden als Volume gemountet)
+uploads/
+
+# Git
+.git/
+.gitignore
+
+# Editor & OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Test & Dev files
+tests/
+scratch/
+*.test.ts
+*.spec.ts
+verification_log*.txt
+fix.js
+test.js
+test_tickets.ts
+check_db.ts
+
+# Documentation
+docs/
+*.md

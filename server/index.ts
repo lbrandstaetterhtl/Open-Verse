@@ -49,6 +49,12 @@ app.use(
 );
 
 
+// DOCKER [HEALTH-001]: Health check endpoint for Docker/load-balancer probes
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", uptime: process.uptime() });
+});
+
+
 // Add request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
