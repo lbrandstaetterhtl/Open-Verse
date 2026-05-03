@@ -51,14 +51,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 connectSrc: ["'self'", "ws:", "wss:"],
                 frameAncestors: ["'none'"],
                 objectSrc: ["'none'"], // SEC-FIX: Block plugins
-                // upgradeInsecureRequests: [], // Deaktiviert für lokales HTTP-Testen
+                upgradeInsecureRequests: null, // EXPLIZIT deaktivieren (sonst ist es per Default an)
             },
         },
-        /* hsts: {
-            maxAge: 31536000,
-            includeSubDomains: true,
-            preload: true
-        }, */
+        hsts: false, // EXPLIZIT deaktivieren (sonst ist es per Default an)
         referrerPolicy: { policy: "strict-origin-when-cross-origin" }
     }));
 
