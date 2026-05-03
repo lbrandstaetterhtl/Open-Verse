@@ -48,19 +48,6 @@ Der Start-Ablauf:
 2. App-Container wartet auf DB (Health Check)
 3. App startet und ist unter Port 5000 erreichbar
 
-### 4. Datenbank-Schema initialisieren (erster Start)
-
-```bash
-docker compose exec app node -e "
-const { execSync } = require('child_process');
-execSync('npx drizzle-kit push', { stdio: 'inherit' });
-"
-```
-
-> [!NOTE]
-> Alternativ kann `drizzle-kit push` auch im Builder-Stage ausgeführt werden,
-> falls du eine Init-Migration bevorzugst.
-
 ### Nützliche Docker-Befehle
 
 ```bash
