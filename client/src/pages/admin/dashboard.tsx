@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
-  Users, 
-  Flag, 
-  Shield, 
-  ShieldOff, 
-  UserPlus, 
-  UserMinus, 
-  Ban, 
-  Check, 
-  AlertTriangle, 
-  BadgeCheck, 
+import {
+  Users,
+  Flag,
+  Shield,
+  ShieldOff,
+  UserPlus,
+  UserMinus,
+  Ban,
+  Check,
+  AlertTriangle,
+  BadgeCheck,
   Search,
   Trash2,
   Activity,
@@ -23,8 +24,10 @@ import { useLocation, Link } from "wouter";
   Filter,
   MoreVertical,
   ArrowRight,
-  Crown
+  Crown,
+  Trophy,
 } from "lucide-react";
+
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import {
