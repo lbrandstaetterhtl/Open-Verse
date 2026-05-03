@@ -2,6 +2,9 @@ import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
 export async function addTicketSystem() {
+  if (process.env.USE_SQLITE !== "true") {
+    return; // Drizzle handles schema creation in Postgres
+  }
   console.log('🎫 Erstelle Ticket-System Tabellen...');
 
   try {

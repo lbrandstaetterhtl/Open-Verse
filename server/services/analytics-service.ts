@@ -246,9 +246,8 @@ export class AnalyticsService {
   async getLatestSnapshot(): Promise<AnalyticsSnapshot | null> {
     const result = await db.select().from(analyticsSnapshots)
         .orderBy(desc(analyticsSnapshots.snapshotDate))
-        .limit(1)
-        .get();
-    return result || null;
+        .limit(1);
+    return result[0] || null;
   }
 }
 

@@ -79,10 +79,11 @@ export async function seedDefaultRules(): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
   try {
     for (const rule of DEFAULT_RULES) {
-      const existing = await db.select()
+      const results = await db.select()
         .from(autoPunishmentRules)
         .where(eq(autoPunishmentRules.name, rule.name))
-        .get();
+        .limit(1);
+      const existing = results[0];
       if (!existing) {
         await db.insert(autoPunishmentRules).values({
           ...rule,
