@@ -18,7 +18,7 @@ export const users = pgTable("users", {
   bio: text("bio"),
   displayName: text("display_name"),
   avatarUrl: text("avatar_url"),
-  profilePictureUrl: text("profile_picture_url"), // Compatibility field
+  profilePictureUrl: text("profile_picture_url"),
   coverUrl: text("cover_url"),
   location: text("location"),
   website: text("website"),
@@ -271,11 +271,48 @@ export const tickets = pgTable("tickets", {
   id: serial("id").primaryKey(),
   ticketNumber: text("ticket_number").notNull().unique(),
   createdBy: integer("created_by").notNull(),
+  assignedTo: integer("assigned_to"),
+  type: text("type"),
+  priority: text("priority"),
   title: text("title").notNull(),
   description: text("description").notNull(),
+  relatedUserId: integer("related_user_id"),
+  relatedPostId: integer("related_post_id"),
+  relatedUrl: text("related_url"),
+  tags: text("tags"),
+  attachments: text("attachments"),
   status: text("status").notNull().default("open"),
+  responseTimeSeconds: integer("response_time_seconds"),
+  resolutionTimeSeconds: integer("resolution_time_seconds"),
+  firstResponseAt: integer("first_response_at"),
+  resolvedAt: integer("resolved_at"),
+  closedAt: integer("closed_at"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
+});
+
+export const ticketComments = pgTable("ticket_comments", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull(),
+  authorId: integer("author_id").notNull(),
+  content: text("content").notNull(),
+  isSystem: integer("is_system").notNull().default(0),
+  isInternal: integer("is_internal").notNull().default(0),
+  changeType: text("change_type"),
+  changeFrom: text("change_from"),
+  changeTo: text("change_to"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const ticketStatusHistory = pgTable("ticket_status_history", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull(),
+  changedBy: integer("changed_by").notNull(),
+  fromStatus: text("from_status"),
+  toStatus: text("to_status"),
+  reason: text("reason"),
+  createdAt: integer("created_at").notNull(),
 });
 
 export const systemMetrics = pgTable("system_metrics", {
@@ -413,6 +450,29 @@ export const analyticsSnapshots = pgTable("analytics_snapshots", {
   createdAt: integer("created_at").notNull(),
 });
 
+export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snapshots", {
+  id: serial("id").primaryKey(),
+  moderatorId: integer("moderator_id").notNull(),
+  moderatorUsername: text("moderator_username").notNull(),
+  moderatorRole: text("moderator_role").notNull(),
+  snapshotDate: text("snapshot_date").notNull(),
+  period: text("period").notNull().default('day'),
+  reportsResolved: integer("reports_resolved").default(0),
+  reportsDismissed: integer("reports_dismissed").default(0),
+  reportsTotalHandled: integer("reports_total_handled").default(0),
+  avgReportResolutionS: integer("avg_report_resolution_s").default(0),
+  ticketsResolved: integer("tickets_resolved").default(0),
+  ticketsCommented: integer("tickets_commented").default(0),
+  avgTicketResponseS: integer("avg_ticket_response_s").default(0),
+  avgTicketResolutionS: integer("avg_ticket_resolution_s").default(0),
+  totalAdminActions: integer("total_admin_actions").default(0),
+  userBans: integer("user_bans").default(0),
+  userUnbans: integer("user_unbans").default(0),
+  contentRemovals: integer("content_removals").default(0),
+  performanceScore: real("performance_score").default(0),
+  createdAt: integer("created_at").notNull(),
+});
+
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users).pick({ username: true, email: true, password: true });
 export const insertCommunitySchema = createInsertSchema(communities);
@@ -436,6 +496,7 @@ export const insertDiscussionPostSchema = createInsertSchema(posts);
 
 // Types
 export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
 export type Post = typeof posts.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Report = typeof reports.$inferSelect;
@@ -451,3 +512,9 @@ export type AdminSetting = typeof adminSettings.$inferSelect;
 export type AnalyticsSnapshot = typeof analyticsSnapshots.$inferSelect;
 export type CreatorAnalytics = typeof creatorAnalytics.$inferSelect;
 export type CommunityAnalytics = typeof communityAnalytics.$inferSelect;
+export type ModeratorPerformanceSnapshot = typeof moderatorPerformanceSnapshots.$inferSelect;
+export type Ticket = typeof tickets.$inferSelect;
+export type Community = typeof communities.$inferSelect;
+export type InsertCommunity = typeof communities.$inferInsert;
+export type CommunityMember = typeof communityMembers.$inferSelect;
+export type CommunityBan = typeof communityBans.$inferSelect;
