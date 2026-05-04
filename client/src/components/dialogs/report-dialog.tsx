@@ -87,8 +87,8 @@ export function ReportDialog({ type, id, trigger }: ReportDialogProps) {
       <AlertDialogTrigger asChild>
         {trigger || (
           <Button variant="ghost" size="sm" className="h-8">
-            <Flag className="h-4 w-4 mr-1" />
-            <span className="text-xs lg:text-sm">Report</span>
+            <Flag className="h-4 w-4 lg:mr-1" />
+            <span className="text-xs lg:text-sm hidden lg:inline">Report</span>
           </Button>
         )}
       </AlertDialogTrigger>

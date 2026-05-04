@@ -10,7 +10,7 @@ export function Footer() {
   const { t } = useTranslation();
 
   return (
-    <footer className="w-full border-t bg-background/50 py-8 px-4 mt-auto">
+    <footer className="w-full border-t bg-background/50 pt-8 pb-24 md:pb-8 px-4 mt-auto">
       <div className="container mx-auto max-w-7xl">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex flex-col items-center md:items-start space-y-2">

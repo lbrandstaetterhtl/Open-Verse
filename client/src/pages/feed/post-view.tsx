@@ -445,8 +445,8 @@ export default function PostViewPage() {
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <>
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                <span className="text-xs lg:text-sm">{t("actions.delete")}</span>
+                                <Trash2 className="h-4 w-4 lg:mr-1" />
+                                <span className="text-xs lg:text-sm hidden lg:inline">{t("actions.delete")}</span>
                               </>
                             )}
                           </Button>

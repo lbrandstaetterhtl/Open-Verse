@@ -113,6 +113,14 @@ export function Navbar() {
                         {t("navbar.mobile_footer_hint", "Explore premium tools like AI Generator and Support via the User Menu on Desktop.")}
                       </p>
                     </div>
+
+                    <div className="flex items-center justify-between px-4 py-2 bg-muted/20 rounded-2xl">
+                      <span className="text-xs font-medium text-muted-foreground">{t("navbar.settings", "Settings")}</span>
+                      <div className="flex items-center gap-2">
+                        <LanguageToggle />
+                        <ModeToggle />
+                      </div>
+                    </div>
                   </div>
                 </SheetContent>
               </Sheet>
@@ -180,16 +188,14 @@ export function Navbar() {
               <NotificationBell />
             </div>
             
-            <Separator orientation="vertical" className="h-5 mx-1 opacity-30" />
-            
-            <div className="flex items-center gap-1">
+            <div className="hidden sm:flex items-center gap-1">
               <LanguageToggle />
               <ModeToggle />
             </div>
 
             {user && (
               <>
-                <Separator orientation="vertical" className="h-8 mx-2 opacity-50" />
+                <Separator orientation="vertical" className="h-8 mx-1 opacity-50 hidden sm:block" />
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <UserMenu />
                 </motion.div>

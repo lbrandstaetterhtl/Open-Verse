@@ -62,8 +62,8 @@ export default function MediaFeedPage() {
                 <Sparkles className="h-3 w-3" />
                 {t("feed.curated", "Curated Feed")}
               </motion.div>
-              <h1 className="text-5xl lg:text-8xl font-black tracking-tighter leading-[0.85] uppercase italic">
-                Media <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/60 to-accent">Verse</span>
+              <h1 className="text-4xl sm:text-5xl lg:text-8xl font-black tracking-tighter leading-[0.85] uppercase italic flex flex-col sm:block">
+                Media <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/60 to-accent whitespace-nowrap">Verse</span>
               </h1>
               <p className="text-lg lg:text-xl text-muted-foreground/80 font-medium max-w-lg leading-relaxed">
                 {t("feed.media_description", "The most visual and engaging stories curated for your exploration.")}
