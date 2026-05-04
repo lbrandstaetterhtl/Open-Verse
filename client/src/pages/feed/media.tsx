@@ -10,6 +10,7 @@ import { PostCard } from "@/components/post/post-card";
 import { PageTransition } from "@/components/ui/page-transition";
 import type { PostWithAuthor } from "@shared/types";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export default function MediaFeedPage() {
   const [, setLocation] = useLocation();
