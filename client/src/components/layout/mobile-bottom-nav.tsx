@@ -20,28 +20,28 @@ export function MobileBottomNav() {
     {
       href: "/feed/media",
       icon: Newspaper,
-      label: t("navbar.media_feed", "Media"),
+      label: t("mobile_nav.media", "Media"),
     },
     {
       href: "/feed/discussions",
       icon: MessageSquare,
-      label: t("navbar.discussions_feed", "Discuss"),
+      label: t("mobile_nav.discussions", "Discuss"),
     },
     {
       href: "/feed/communities",
       icon: Users,
-      label: t("navbar.communities", "Community"),
+      label: t("mobile_nav.communities", "Groups"),
     },
     {
       href: "/notifications",
       icon: Bell,
-      label: t("notifications.title", "Alerts"),
+      label: t("mobile_nav.notifications", "Inbox"),
       badge: unreadCount,
     },
     {
       href: "/profile",
       icon: User,
-      label: t("navbar.profile", "Profile"),
+      label: t("mobile_nav.profile", "Profile"),
     },
   ];
 

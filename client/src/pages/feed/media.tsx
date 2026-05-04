@@ -48,25 +48,8 @@ export default function MediaFeedPage() {
         <div className="max-w-4xl mx-auto">
           {/* Mobile Header with Smooth Entry */}
           <div className="lg:hidden mb-6 animate-slide-down">
-            <h1 className="text-xl font-bold mb-4">{t("feed.media_title")}</h1>
-            <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
-              <Button 
-                size="sm" 
-                className="whitespace-nowrap rounded-xl active:scale-95 transition-transform" 
-                onClick={() => setLocation("/post/news")}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                {t("feed.post_news")}
-              </Button>
-              <Button 
-                size="sm" 
-                className="whitespace-nowrap rounded-xl active:scale-95 transition-transform" 
-                onClick={() => setLocation("/post/entertainment")}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                {t("feed.post_entertainment")}
-              </Button>
-            </div>
+            <h1 className="text-2xl font-black tracking-tighter mb-2">{t("feed.media_title")}</h1>
+            <p className="text-xs text-muted-foreground">{t("feed.media_subtitle", "Stay updated with the latest news and entertainment.")}</p>
           </div>
 
           {/* Desktop Header with Smooth Entry */}

@@ -40,12 +40,8 @@ export default function DiscussionsFeedPage() {
         <div className="max-w-4xl mx-auto">
           {/* Mobile Header */}
           <div className="lg:hidden mb-6 animate-slide-down">
-            <h1 className="text-xl font-bold mb-4 tracking-tight">{t("feed.discussions_title")}</h1>
-            <Link href="/post/discussions">
-              <Button size="sm" className="whitespace-nowrap rounded-xl active:scale-95 transition-transform">
-                {t("feed.create_discussion")}
-              </Button>
-            </Link>
+            <h1 className="text-2xl font-black tracking-tighter mb-2">{t("feed.discussions_title")}</h1>
+            <p className="text-xs text-muted-foreground">{t("feed.discussions_subtitle", "Join the conversation on various topics.")}</p>
           </div>
 
           {/* Desktop Header */}
