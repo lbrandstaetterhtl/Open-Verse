@@ -134,8 +134,8 @@ export class SettingsService {
           description: d.description,
           value: d.value,
           valueType: d.valueType,
-          isSensitive: isSensitive ? (isSqlite ? 1 : true) : (isSqlite ? 0 : false),
-          isReadonly: isSqlite ? 0 : false,
+          isSensitive: isSensitive ? 1 : 0,
+          isReadonly: 0,
           // Removed updatedAt to let DEFAULT (strftime('%s', 'now')) handle it
         });
       }
