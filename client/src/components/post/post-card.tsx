@@ -38,16 +38,18 @@ interface PostCardProps {
   post: PostWithAuthor;
   reportType?: "post" | "discussion";
   compact?: boolean;
+  variant?: "default" | "media";
 }
 
 /**
  * POST-CARD [UI-D-001]: Responsive Post Card
- * Optimized for high information density (Twitter-style) and mobile touch interaction.
+ * Optimized for high information density and premium visual appeal.
  */
 export const PostCard = React.memo(function PostCard({
   post,
   reportType = "post",
   compact = false,
+  variant = "default",
 }: PostCardProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -71,109 +73,108 @@ export const PostCard = React.memo(function PostCard({
     reactionMutation.mutate({ postId: post.id, isLike: !post.userReaction?.isLike });
   }, [post.id, post.userReaction?.isLike, reactionMutation]);
 
+  const isMediaVariant = variant === "media";
+
   return (
     <motion.article 
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={isMediaVariant ? { y: -8, transition: { duration: 0.4, ease: "easeOut" } } : {}}
       className={cn(
-        "group w-full bg-card/40 backdrop-blur-sm transition-all duration-300",
-        // Desktop: Floating Card Style
-        "md:mb-4 md:rounded-3xl md:border md:border-border/40 md:hover:border-primary/20 md:hover:shadow-xl md:hover:shadow-primary/5",
-        // Mobile: Flat Stream Style
-        "border-b border-border/40",
-        // Padding
-        "px-4 py-5 md:p-6",
+        "group w-full bg-card/40 backdrop-blur-md transition-all duration-500",
+        isMediaVariant 
+          ? "rounded-[2.5rem] border border-white/10 shadow-xl hover:shadow-primary/10 hover:bg-card/60" 
+          : "md:mb-4 md:rounded-3xl md:border md:border-border/40 md:hover:border-primary/20 md:hover:shadow-xl md:hover:shadow-primary/5 border-b border-border/40",
+        "p-5 md:p-6",
         "relative overflow-hidden"
       )}
     >
-      {/* Premium Background Light Reflection (Desktop Only) */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+      {/* Premium Background Light Reflection */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
 
-      <div className="flex gap-4">
-        {/* Left: Avatar Section */}
-        <div className="flex-shrink-0">
-          <Link href={`/users/${author.username}`}>
-            <div className="relative group/avatar">
-              <UserAvatar 
-                user={author} 
-                className="h-12 w-12 rounded-2xl ring-2 ring-background transition-all group-hover/avatar:ring-primary/20 group-hover/avatar:scale-105" 
-              />
-              {author.role === 'owner' && (
-                <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5 shadow-lg">
-                  <BadgeCheck className="h-3 w-3 text-white" />
-                </div>
-              )}
-            </div>
-          </Link>
-        </div>
-
-        {/* Right: Content Area */}
-        <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-2">
+      <div className={cn("flex gap-4", isMediaVariant && "flex-col")}>
+        {/* Header Section */}
+        <div className={cn("flex items-start justify-between", isMediaVariant ? "order-2 mt-4" : "flex-shrink-0")}>
+          <div className="flex gap-3 min-w-0 flex-1">
+            <Link href={`/users/${author.username}`}>
+              <div className="relative group/avatar">
+                <UserAvatar 
+                  user={author} 
+                  className={cn(
+                    "rounded-2xl ring-2 ring-background transition-all group-hover/avatar:ring-primary/20 group-hover/avatar:scale-105 shadow-md",
+                    isMediaVariant ? "h-10 w-10" : "h-12 w-12"
+                  )} 
+                />
+                {author.role === 'owner' && (
+                  <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5 shadow-lg">
+                    <BadgeCheck className="h-3 w-3 text-white" />
+                  </div>
+                )}
+              </div>
+            </Link>
             <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-2">
-                <Link href={`/users/${author.username}`} className="font-black text-[15px] md:text-base hover:text-primary transition-colors truncate">
+              <div className="flex items-center gap-1.5">
+                <Link href={`/users/${author.username}`} className="font-black text-[14px] md:text-[15px] hover:text-primary transition-colors truncate tracking-tight">
                   {author.username || "User"}
                 </Link>
-                {author.verified && <BadgeCheck className="h-4 w-4 text-primary" />}
-                <span className="hidden sm:inline-block text-[11px] font-bold text-primary/60 bg-primary/5 px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                  {author.role}
-                </span>
+                {author.verified && <BadgeCheck className="h-3.5 w-3.5 text-primary" />}
               </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground/60 text-[11px] md:text-xs">
+              <div className="text-muted-foreground/60 text-[11px] font-medium flex items-center gap-1">
                 <span className="truncate">@{author.username || "user"}</span>
                 <span>·</span>
                 <span>
                   {(() => {
                     try {
                       return post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: de }) : "";
-                    } catch (e) {
-                      return "";
-                    }
+                    } catch (e) { return ""; }
                   })()}
                 </span>
               </div>
             </div>
-
-            {/* Menu */}
-            <div className="flex-shrink-0 -mr-2">
-               <PostMenu post={post} isOwner={isOwner} onDelete={() => deletePostMutation.mutate(post.id)} reportType={reportType} />
-            </div>
           </div>
+          <div className="flex-shrink-0 -mr-2">
+             <PostMenu post={post} isOwner={isOwner} onDelete={() => deletePostMutation.mutate(post.id)} reportType={reportType} />
+          </div>
+        </div>
 
-          {/* Title (Redesigned) */}
+        {/* Content Area */}
+        <div className={cn("flex-1 min-w-0", isMediaVariant ? "order-3" : "")}>
+          {/* Title */}
           {post.title && post.title !== post.content && (
             <Link href={`/posts/${post.id}`}>
-              <h3 className="font-black text-lg md:text-xl mb-2 tracking-tight hover:text-primary transition-colors line-clamp-2 leading-tight">
+              <h3 className={cn(
+                "font-black tracking-tighter hover:text-primary transition-colors line-clamp-2 leading-tight mb-2",
+                isMediaVariant ? "text-xl" : "text-lg md:text-xl"
+              )}>
                 {post.title}
               </h3>
             </Link>
           )}
 
-          {/* Body Content (Premium Typography) */}
+          {/* Body Content */}
           <p className={cn(
-            "text-[15px] md:text-[17px] text-foreground/80 leading-relaxed break-words font-medium tracking-tight",
-            compact && "line-clamp-6"
+            "text-[15px] md:text-[16px] text-foreground/80 leading-relaxed break-words font-medium tracking-tight",
+            (compact || isMediaVariant) && "line-clamp-3"
           )}>
             {post.content}
           </p>
 
-          {/* Media Section (Immersive) */}
+          {/* Media Section */}
           {post.mediaUrl && !imageLoadError && (
             <motion.div 
               layoutId={`media-${post.id}`}
               className={cn(
-                "mt-4 overflow-hidden bg-muted/20 relative group/media",
-                "rounded-[2rem] border border-border/40 shadow-inner",
-                "aspect-[16/10] md:aspect-auto min-h-[200px] max-h-[600px]"
+                "overflow-hidden bg-muted/20 relative group/media mt-4",
+                "rounded-[2rem] border border-white/10 shadow-inner",
+                isMediaVariant ? "aspect-square" : "aspect-[16/10] md:aspect-auto min-h-[200px] max-h-[600px]",
+                isMediaVariant ? "order-1 -mt-2" : ""
               )}
             >
               {post.mediaType === "image" ? (
                 <img
                   src={`/uploads/${post.mediaUrl}`}
                   alt={post.title || "Post image"}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
+                  className="w-full h-full object-cover transition-transform duration-1000 group-hover/media:scale-110"
                   onError={() => setImageLoadError(true)}
                   loading="lazy"
                 />
@@ -181,13 +182,16 @@ export const PostCard = React.memo(function PostCard({
                 <video
                   src={`/uploads/${post.mediaUrl}`}
                   controls
-                  className="w-full h-full"
+                  className="w-full h-full object-cover"
                   onError={() => setImageLoadError(true)}
                 />
               ) : null}
               
-              {/* Media Overlay Gradient */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover/media:opacity-100 transition-opacity duration-500" />
+              {/* Media Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/media:opacity-100 transition-opacity duration-500" />
+              <div className="absolute top-4 right-4 p-2 rounded-xl bg-black/20 backdrop-blur-md border border-white/20 opacity-0 group-hover/media:opacity-100 transition-all duration-500 translate-y-2 group-hover/media:translate-y-0">
+                {post.mediaType === "video" ? <Play className="h-4 w-4 text-white fill-white" /> : <ImageIcon className="h-4 w-4 text-white" />}
+              </div>
             </motion.div>
           )}
 
@@ -198,41 +202,48 @@ export const PostCard = React.memo(function PostCard({
             </div>
           )}
 
-          {/* Action Bar (Refined) */}
-          <div className="flex items-center justify-between mt-5 -ml-3 max-w-sm">
-            <ActionButton 
-              icon={MessageCircle} 
-              count={post.comments?.length} 
-              label="Antworten"
-              href={`/posts/${post.id}`} 
-              className="hover:text-primary hover:bg-primary/10"
-            />
-            <ActionButton 
-              icon={Heart} 
-              count={post.reactions?.likes} 
-              label="Like"
-              active={post.userReaction?.isLike}
-              activeColor="text-red-500 fill-red-500 bg-red-500/5"
-              onClick={handleLike}
-              animate="like-pop"
-              className="hover:text-red-500 hover:bg-red-500/10"
-            />
-            <ActionButton 
-              icon={Bookmark} 
-              label="Speichern"
-              onClick={() => {}} 
-              className="hover:text-yellow-500 hover:bg-yellow-500/10"
-            />
-            <ActionButton 
-              icon={Share2} 
-              label="Teilen"
-              onClick={() => {
-                if (navigator.share) {
-                  navigator.share({ title: post.title, text: post.content, url: window.location.origin + `/posts/${post.id}` });
-                }
-              }} 
-              className="hover:text-blue-500 hover:bg-blue-500/10"
-            />
+          {/* Action Bar */}
+          <div className={cn(
+            "flex items-center justify-between mt-6 -ml-2",
+            isMediaVariant ? "border-t border-white/5 pt-4" : ""
+          )}>
+            <div className="flex items-center gap-1">
+              <ActionButton 
+                icon={MessageCircle} 
+                count={post.comments?.length} 
+                label="Reply"
+                href={`/posts/${post.id}`} 
+                className="hover:text-primary hover:bg-primary/10"
+              />
+              <ActionButton 
+                icon={Heart} 
+                count={post.reactions?.likes} 
+                label="Like"
+                active={post.userReaction?.isLike}
+                activeColor="text-red-500 fill-red-500 bg-red-500/5"
+                onClick={handleLike}
+                animate="like-pop"
+                className="hover:text-red-500 hover:bg-red-500/10"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <ActionButton 
+                icon={Bookmark} 
+                label="Save"
+                onClick={() => {}} 
+                className="hover:text-yellow-500 hover:bg-yellow-500/10"
+              />
+              <ActionButton 
+                icon={Share2} 
+                label="Share"
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: post.title, text: post.content, url: window.location.origin + `/posts/${post.id}` });
+                  }
+                }} 
+                className="hover:text-blue-500 hover:bg-blue-500/10"
+              />
+            </div>
           </div>
         </div>
       </div>

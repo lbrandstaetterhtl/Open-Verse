@@ -23,12 +23,18 @@ router.post("/", isAuthenticated, async (req, res) => {
         const userKarma = (req.user as any).karma;
 
         // SECURITY FIX [VULN-003]: Re-enable karma requirement for community creation
-        if (userRole !== "admin" && userRole !== "owner" && userKarma < 200) {
+        // Allow global owners and admins to bypass this
+        const isPrivileged = userRole === "admin" || userRole === "owner";
+        
+        if (!isPrivileged && userKarma < 200) {
             return res.status(403).send("You need at least 200 reputation to create a community.");
         }
 
         const result = insertCommunitySchema.safeParse(req.body);
-        if (!result.success) return res.status(400).json(result.error);
+        if (!result.success) {
+            console.error("[Community] Validation failed:", result.error.flatten());
+            return res.status(400).json(result.error);
+        }
 
         const slug = result.data.name
             .toLowerCase()

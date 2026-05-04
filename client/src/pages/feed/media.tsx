@@ -4,18 +4,18 @@ import { Button } from "@/components/ui/button";
 import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { Plus, ImageIcon, Pencil } from "lucide-react";
-import { useLocation } from "wouter";
+import { Plus, ImageIcon, Camera, Play, Sparkles, Filter } from "lucide-react";
+import { Link } from "wouter";
 import { PostCard } from "@/components/post/post-card";
-import { PageTransition } from "@/components/ui/page-transition";
+import { Navbar } from "@/components/layout/navbar";
 import type { PostWithAuthor } from "@shared/types";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 
 export default function MediaFeedPage() {
-  const [, setLocation] = useLocation();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [activeCategory, setActiveCategory] = useState<string>("all");
 
   const {
     data: posts,
@@ -23,104 +23,144 @@ export default function MediaFeedPage() {
     isRefetching,
     error,
   } = useQuery<PostWithAuthor[]>({
-    queryKey: ["/api/posts", "media"],
+    queryKey: ["/api/posts", "media", activeCategory],
     queryFn: async () => {
+      const categoryFilter = activeCategory === "all" ? "news,entertainment" : activeCategory;
       const res = await fetch(
-        "/api/posts?category=news,entertainment&include=author,comments,reactions,userReaction",
-        {
-          headers: {
-            "x-auto-refresh": "true",
-          },
-        },
+        `/api/posts?category=${categoryFilter}&include=author,comments,reactions,userReaction`,
+        { headers: { "x-auto-refresh": "true" } }
       );
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Failed to fetch posts");
-      }
+      if (!res.ok) throw new Error(await res.text() || "Failed to fetch posts");
       return res.json();
     },
-    refetchInterval: 30000,
-    staleTime: 15000,
+    refetchInterval: 60000,
   });
 
   return (
-    <PageTransition>
-      <main className="w-full min-h-screen bg-background relative pb-20">
-        {/* Cinematic Header Section */}
-        <div className="relative overflow-hidden pt-12 pb-8 md:pt-20 md:pb-12">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
-          <div className="max-w-[680px] mx-auto px-4 relative">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase leading-[0.9]">
-                Media <span className="text-primary/40 block">Explorer</span>
-              </h1>
-              <p className="mt-4 text-muted-foreground/60 font-medium max-w-sm text-xs md:text-sm uppercase tracking-widest leading-relaxed">
-                Discover stories, news, and deep-dives from the Open-Verse community.
-              </p>
-            </motion.div>
-            
-            <div className="absolute right-4 bottom-0">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] })}
-                className="group h-10 w-10 p-0 rounded-2xl bg-card/40 backdrop-blur-md border border-border/40 hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
+    <div className="min-h-screen bg-background text-foreground">
+      <Navbar />
+      
+      <main className="container mx-auto px-4 pt-28 pb-12 max-w-7xl">
+        {/* Cinematic Premium Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative mb-16 overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary/10 via-card/40 to-accent/5 border border-white/10 backdrop-blur-3xl p-8 lg:p-16 shadow-2xl shadow-primary/5"
+        >
+          {/* Abstract background blobs */}
+          <div className="absolute -top-32 -left-32 w-80 h-80 bg-primary/20 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+          <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-accent/20 rounded-full blur-[100px] animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} />
+
+          <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-primary text-[10px] font-black uppercase tracking-[0.2em]"
               >
-                <div className={cn(
-                  "h-2 w-2 rounded-full transition-all duration-500", 
-                  isRefetching ? "bg-primary scale-150 animate-pulse" : "bg-muted-foreground/40 group-hover:bg-primary/60"
-                )} />
-              </Button>
+                <Sparkles className="h-3 w-3" />
+                {t("feed.curated", "Curated Feed")}
+              </motion.div>
+              <h1 className="text-5xl lg:text-8xl font-black tracking-tighter leading-[0.85] uppercase italic">
+                Media <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/60 to-accent">Verse</span>
+              </h1>
+              <p className="text-lg lg:text-xl text-muted-foreground/80 font-medium max-w-lg leading-relaxed">
+                {t("feed.media_description", "The most visual and engaging stories curated for your exploration.")}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-6 lg:items-end">
+              <div className="p-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl flex flex-wrap gap-2 w-fit lg:ml-auto">
+                {["all", "news", "entertainment"].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-500 ${
+                      activeCategory === cat 
+                        ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105" 
+                        : "text-muted-foreground hover:bg-white/5"
+                    }`}
+                  >
+                    {t(`feed.${cat}`)}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-4 w-full lg:w-auto lg:ml-auto">
+                <Link href="/post/media/new">
+                  <Button className="flex-1 lg:flex-none h-16 px-10 rounded-2xl shadow-xl shadow-primary/20 gap-3 font-black uppercase tracking-widest text-xs transition-all hover:shadow-primary/40 hover:-translate-y-1 active:translate-y-0 active:scale-95">
+                    <Plus className="h-5 w-5 stroke-[3px]" />
+                    {t("feed.create_story", "Create Story")}
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="max-w-[680px] mx-auto px-0 md:px-4">
-          <div className="relative min-h-[400px]">
-            {isLoading ? (
-              <div className="p-4 space-y-8">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="bg-card/20 rounded-[2rem] border border-border/40 p-6">
-                    <SkeletonFeed />
-                  </div>
-                ))}
+        {/* Content Section */}
+        <div className="relative">
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="aspect-[4/5] rounded-[2.5rem] bg-white/5 animate-pulse border border-white/10 shadow-inner" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="py-20 animate-in fade-in zoom-in duration-500">
+              <ErrorState 
+                message={error instanceof Error ? error.message : "Failed to load media"} 
+                retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] })}
+              />
+            </div>
+          ) : posts?.length === 0 ? (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-40 text-center rounded-[3rem] bg-white/5 border border-dashed border-white/10"
+            >
+              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-8 border border-primary/20">
+                <Camera className="h-10 w-10 text-primary" />
               </div>
-            ) : error ? (
-              <div className="p-8 animate-scale-in">
-                <ErrorState 
-                  message={error instanceof Error ? error.message : "Failed to load posts"} 
-                  retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] })}
-                />
-              </div>
-            ) : posts?.length === 0 ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="p-20 text-center bg-card/10 rounded-[3rem] border border-dashed border-border/40 mx-4"
-              >
-                <EmptyState
-                  icon={<ImageIcon className="h-16 w-16 text-muted-foreground/20" />}
-                  title={t("feed.no_posts")}
-                  description="Be the first one to share a story in this feed."
-                />
-              </motion.div>
-            ) : (
-              <div className="flex flex-col gap-1 md:gap-4">
+              <h3 className="text-3xl font-black tracking-tighter uppercase mb-4">{t("feed.no_media", "Silence in the Verse")}</h3>
+              <p className="text-muted-foreground text-lg max-w-sm font-medium">{t("feed.no_media_desc", "Be the spark that ignites this feed. Share your first media post now.")}</p>
+              <Link href="/post/media/new" className="mt-8">
+                <Button variant="outline" className="rounded-xl border-2 font-bold uppercase tracking-widest text-[10px]">
+                  Ignite Discovery
+                </Button>
+              </Link>
+            </motion.div>
+          ) : (
+            <motion.div 
+              initial="hidden"
+              animate="show"
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.15 }
+                }
+              }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
+            >
+              <AnimatePresence mode="popLayout">
                 {posts?.map((post) => (
-                  <PostCard 
-                    key={post.id} 
-                    post={post} 
-                  />
+                  <motion.div
+                    key={post.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                    className="group"
+                  >
+                    <PostCard post={post} />
+                  </motion.div>
                 ))}
-              </div>
-            )}
-          </div>
+              </AnimatePresence>
+            </motion.div>
+          )}
         </div>
       </main>
-    </PageTransition>
+    </div>
   );
 }

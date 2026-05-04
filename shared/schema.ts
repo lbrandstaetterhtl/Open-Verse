@@ -370,21 +370,21 @@ export const insertCommunitySchema = createInsertSchema(communities)
       .min(3, "Name must be at least 3 characters")
       .max(50, "Name must be less than 50 characters"),
     description: z.string().min(10, "Description must be at least 10 characters"),
-    imageUrl: z.string().optional(),
+    imageUrl: z.string().url("Invalid image URL").optional().or(z.literal("")),
     allowedCategories: z.string().default("news,entertainment,discussion"),
-    isPrivate: z.boolean().default(false).optional(),
+    isPrivate: z.coerce.boolean().default(false),
   });
 
 export const insertDiscussionPostSchema = basePostSchema.extend({
   category: z.literal("discussion"),
-  communityId: z.number().optional(),
+  communityId: z.coerce.number().optional(),
 });
 
 export const insertMediaPostSchema = basePostSchema.extend({
   category: z.enum(["news", "entertainment"]),
   mediaFile: z.any().optional(),
   mediaType: z.enum(["image", "video"]).optional(),
-  communityId: z.number().optional(),
+  communityId: z.coerce.number().optional(),
 });
 
 export const insertCommentSchema = createInsertSchema(comments).pick({
@@ -392,6 +392,7 @@ export const insertCommentSchema = createInsertSchema(comments).pick({
   postId: true,
 }).extend({
   content: z.string().min(1, "Comment cannot be empty").max(10000, "Comment too long"),
+  postId: z.coerce.number(),
 });
 
 export const insertReportSchema = createInsertSchema(reports).pick({

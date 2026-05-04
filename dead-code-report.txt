@@ -1,5 +1,5 @@
 ﻿Drizzle configured for SQLite
-[93m[4mUnlisted binaries[24m[39m (2)
-powershell  package.json
-eslint      package.json
+[93m[4mUnused dependencies[24m[39m (2)
+@types/helmet  package.json:60:6 
+xss            package.json:109:6
 

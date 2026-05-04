@@ -98,7 +98,7 @@ if (useSqlite) {
       content TEXT NOT NULL,
       author_id INTEGER NOT NULL,
       post_id INTEGER NOT NULL,
-      karma INTEGER NOT NULL DEFAULT 5,
+      karma INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
     CREATE TABLE IF NOT EXISTS reports (
