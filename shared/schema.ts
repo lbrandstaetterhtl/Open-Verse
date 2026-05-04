@@ -486,6 +486,7 @@ export const insertUserSchema = createInsertSchema(users).pick({ username: true,
 export const insertCommunitySchema = createInsertSchema(communities).extend({
   creatorId: z.number().nullable().optional(),
   slug: z.string().nullable().optional(),
+  isPrivate: z.boolean().optional().default(false),
 });
 export const insertCommentSchema = createInsertSchema(comments);
 export const insertReportSchema = createInsertSchema(reports);
