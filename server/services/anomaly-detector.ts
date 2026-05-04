@@ -327,7 +327,7 @@ class AnomalyDetector {
 
     if (existing) return;
 
-    await db.insert(anomalyEvents).values({
+    const inserted = await db.insert(anomalyEvents).values({
       userId: params.userId,
       anomalyType: params.type,
       severity: params.severity,

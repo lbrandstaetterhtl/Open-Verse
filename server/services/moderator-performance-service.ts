@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { sql, eq, gte, lte, and, desc, count, avg, sum } from 'drizzle-orm';
+import { sql, eq, gte, lte, and, or, desc, count, avg, sum } from 'drizzle-orm';
 import { 
   users, 
   reports, 
@@ -169,7 +169,10 @@ class ModeratorPerformanceService {
         .where(and(
           eq(tickets.assignedTo, mod.id),
           sql`resolution_time_seconds IS NOT NULL`,
-          timestampCondition(tickets.resolvedAt, dayStart, dayEnd) || timestampCondition(tickets.closedAt, dayStart, dayEnd)
+          or(
+            timestampCondition(tickets.resolvedAt, dayStart, dayEnd),
+            timestampCondition(tickets.closedAt, dayStart, dayEnd)
+          )
         ));
 
     // ── Admin-Aktionen aus Activity Logs ───────────────────

@@ -12,7 +12,7 @@ import {
   postLikes,
   type AnalyticsSnapshot
 } from "@shared/schema";
-import { eq, and, gte, sql, count, desc, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, sql, count, desc, inArray } from "drizzle-orm";
 import { subDays, startOfDay, endOfDay, format } from "date-fns";
 
 export class AnalyticsService {
@@ -85,6 +85,8 @@ export class AnalyticsService {
       let d1Retention = 0;
       if (cohortUsers.length > 0) {
         const cohortIds = cohortUsers.map(u => u.id);
+        const [activeFromCohort] = await db.select({ count: count() })
+            .from(activityLogs)
             .where(and(
                 this.timestampCondition(activityLogs.createdAt, dayStart, dayEnd),
                 inArray(activityLogs.userId, cohortIds as number[])
