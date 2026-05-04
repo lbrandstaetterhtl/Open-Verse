@@ -494,7 +494,9 @@ export const adminUpdateUserSchema = createInsertSchema(users).partial();
 export const adminUpdateReportSchema = createInsertSchema(reports).partial();
 export const updateProfileSchema = createInsertSchema(users).partial();
 export const updatePasswordSchema = z.object({ password: z.string().min(1) });
-export const messageSchema = createInsertSchema(messages);
+export const messageSchema = createInsertSchema(messages).extend({
+  senderId: z.number().optional(),
+});
 export const loginSchema = z.object({ username: z.string().min(1), password: z.string().min(1) });
 
 // Specialized Post Schemas for the Frontend
