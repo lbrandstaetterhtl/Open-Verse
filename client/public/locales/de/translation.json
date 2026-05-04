@@ -122,7 +122,10 @@
     "news": "Nachrichten",
     "entertainment": "Unterhaltung",
     "no_discussions": "Noch keine Diskussionen. Sei der Erste, der eine startet!",
-    "no_posts": "Noch keine Beiträge. Sei der Erste, der etwas teilt!"
+    "no_posts": "Noch keine Beiträge. Sei der Erste, der etwas teilt!",
+    "curated": "Kuratierter Feed",
+    "media_description": "Die visuellsten und ansprechendsten Geschichten, kuratiert für deine Entdeckung.",
+    "create_story": "Story erstellen"
   },
   "comments": {
     "title": "Kommentare",

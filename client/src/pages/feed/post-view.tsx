@@ -1,4 +1,5 @@
 import { useRoute, Link, useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Post } from "@shared/schema";
 import { Button } from "@/components/ui/button";

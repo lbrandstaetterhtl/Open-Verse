@@ -124,7 +124,10 @@
     "news": "News",
     "entertainment": "Entertainment",
     "no_discussions": "No discussions yet. Be the first to start one!",
-    "no_posts": "No posts yet. Be the first to share something!"
+    "no_posts": "No posts yet. Be the first to share something!",
+    "curated": "Curated Feed",
+    "media_description": "The most visual and engaging stories curated for your exploration.",
+    "create_story": "Create Story"
   },
   "comments": {
     "title": "Comments",
