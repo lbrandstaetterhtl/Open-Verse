@@ -102,7 +102,15 @@ export default function CreateCommunityPage() {
             </CardHeader>
             <CardContent>
               <form
-                onSubmit={form.handleSubmit((data) => createCommunityMutation.mutate(data))}
+                onSubmit={form.handleSubmit(
+                  (data) => {
+                    console.log("[CreateCommunity] Submitting data:", data);
+                    createCommunityMutation.mutate(data);
+                  },
+                  (errors) => {
+                    console.error("[CreateCommunity] Validation errors:", errors);
+                  }
+                )}
                 className="space-y-6"
               >
                 <div className="space-y-2">
