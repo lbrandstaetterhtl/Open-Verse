@@ -98,14 +98,20 @@ export const PostCard = React.memo(function PostCard({
           {/* Header: Name, Handle, Time, Menu */}
           <div className="flex items-start justify-between mb-0.5">
             <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-              <Link href={`/users/${author.username}`} className="font-bold text-sm md:text-base hover:underline truncate">
-                {author.username}
+              <Link href={`/users/${author.username}`} className="font-bold text-sm md:text-[15px] hover:underline truncate">
+                {author.username || "User"}
               </Link>
               {author.verified && <BadgeCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />}
-              <span className="text-muted-foreground text-xs md:text-sm truncate">@{author.username}</span>
+              <span className="text-muted-foreground text-xs md:text-sm truncate">@{author.username || "user"}</span>
               <span className="text-muted-foreground text-xs md:text-sm flex-shrink-0">·</span>
               <span className="text-muted-foreground text-xs md:text-sm flex-shrink-0">
-                {post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: de }) : ""}
+                {(() => {
+                  try {
+                    return post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: de }) : "";
+                  } catch (e) {
+                    return "";
+                  }
+                })()}
               </span>
             </div>
 
