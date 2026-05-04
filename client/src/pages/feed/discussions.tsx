@@ -1,93 +1,150 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MessageCircle, Pencil } from "lucide-react";
-import { Link, useLocation } from "wouter";
-import { PostCard } from "@/components/post/post-card";
 import { ErrorState } from "@/components/ui/error-state";
-import { PageTransition } from "@/components/ui/page-transition";
-import { queryClient } from "@/lib/queryClient";
+import { Plus, MessageCircle, Sparkles, Filter, Hash, Quote } from "lucide-react";
+import { Link } from "wouter";
+import { PostCard } from "@/components/post/post-card";
+import { Navbar } from "@/components/layout/navbar";
 import type { PostWithAuthor } from "@shared/types";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 
 export default function DiscussionsFeedPage() {
   const { t } = useTranslation();
-  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const [activeCategory] = useState<string>("discussion");
 
-  const { data: discussions, isLoading, error } = useQuery<PostWithAuthor[]>({
+  const {
+    data: discussions,
+    isLoading,
+    isRefetching,
+    error,
+  } = useQuery<PostWithAuthor[]>({
     queryKey: ["/api/posts", "discussion"],
     queryFn: async () => {
-      const res = await fetch("/api/posts?category=discussion", {
-        headers: {
-          "x-auto-refresh": "true",
-        },
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Failed to fetch discussions");
-      }
+      const res = await fetch(
+        `/api/posts?category=discussion&include=author,comments,reactions,userReaction`,
+        { headers: { "x-auto-refresh": "true" } }
+      );
+      if (!res.ok) throw new Error(await res.text() || "Failed to fetch discussions");
       return res.json();
     },
     refetchInterval: 30000,
-    staleTime: 15000,
   });
 
   return (
-    <PageTransition>
-      {/* Sticky Top Header – Glass Effect on Mobile, Subtle on Desktop */}
-      <header className="sticky top-14 md:relative md:top-0 z-40 w-full glass-premium border-b border-border/40 md:border-none">
-        <div className="max-w-[680px] mx-auto px-4 h-14 flex items-center justify-between">
-          <h1 className="text-base md:hidden font-black tracking-tight uppercase">
-            {t("feed.discussions_title")}
-          </h1>
-          
-          <div className="flex items-center gap-2 ml-auto">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] })}
-              className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
-            >
-              <div className="h-2 w-2 rounded-full bg-muted" />
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background text-foreground">
+      <Navbar />
+      
+      <main className="container mx-auto px-4 pt-28 pb-12 max-w-7xl">
+        {/* Cinematic Premium Header (Matched to Media Feed) */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative mb-16 overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary/10 via-card/40 to-accent/5 border border-white/10 backdrop-blur-3xl p-8 lg:p-16 shadow-2xl shadow-primary/5"
+        >
+          {/* Abstract background blobs */}
+          <div className="absolute -top-32 -left-32 w-80 h-80 bg-primary/20 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+          <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-accent/20 rounded-full blur-[100px] animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} />
 
-      <main className="w-full">
-        <div className="max-w-[680px] mx-auto border-x border-border/40 min-h-screen bg-card/5 md:bg-background">
-          {/* Content Area */}
-          <div className="relative min-h-[400px]">
-            {isLoading ? (
-              <div className="p-4 space-y-4">
-                <SkeletonFeed />
+          <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-primary text-[10px] font-black uppercase tracking-[0.2em]"
+              >
+                <Sparkles className="h-3 w-3" />
+                {t("feed.community_voices", "Community Voices")}
+              </motion.div>
+              <h1 className="text-4xl sm:text-5xl lg:text-8xl font-black tracking-tighter leading-[0.85] uppercase italic flex flex-col sm:block">
+                Discussion <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/60 to-accent whitespace-nowrap">Verse</span>
+              </h1>
+              <p className="text-lg lg:text-xl text-muted-foreground/80 font-medium max-w-lg leading-relaxed">
+                {t("feed.discussion_description", "Connect, debate, and share ideas with a community that values deep conversations.")}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-6 lg:items-end">
+              <div className="flex gap-4 w-full lg:w-auto lg:ml-auto">
+                <Link href="/post/discussion">
+                  <Button className="flex-1 lg:flex-none h-16 px-10 rounded-2xl shadow-xl shadow-primary/20 gap-3 font-black uppercase tracking-widest text-xs transition-all hover:shadow-primary/40 hover:-translate-y-1 active:translate-y-0 active:scale-95">
+                    <Plus className="h-5 w-5 stroke-[3px]" />
+                    {t("feed.start_discussion", "Start Conversation")}
+                  </Button>
+                </Link>
               </div>
-            ) : error ? (
-              <div className="p-8 animate-scale-in">
-                <ErrorState 
-                  message={error instanceof Error ? error.message : "Failed to load discussions"} 
-                  retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] })}
-                />
-              </div>
-            ) : discussions?.length === 0 ? (
-              <div className="p-20 animate-scale-in text-center">
-                <EmptyState
-                  icon={<MessageCircle className="h-12 w-12 text-muted-foreground/50" />}
-                  title={t("feed.no_discussions")}
-                />
-              </div>
-            ) : (
-              <div className="divide-y divide-border/40">
-                {discussions?.map((post) => (
-                  <PostCard key={post.id} post={post} reportType="discussion" />
-                ))}
-              </div>
-            )}
+            </div>
           </div>
+        </motion.div>
+
+        {/* Content Section */}
+        <div className="relative">
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="aspect-[4/5] rounded-[2.5rem] bg-white/5 animate-pulse border border-white/10 shadow-inner" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="py-20 animate-in fade-in zoom-in duration-500">
+              <ErrorState 
+                message={error instanceof Error ? error.message : "Failed to load discussions"} 
+                retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] })}
+              />
+            </div>
+          ) : discussions?.length === 0 ? (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-40 text-center rounded-[3rem] bg-white/5 border border-dashed border-white/10"
+            >
+              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-8 border border-primary/20">
+                <MessageCircle className="h-10 w-10 text-primary" />
+              </div>
+              <h3 className="text-3xl font-black tracking-tighter uppercase mb-4">{t("feed.no_discussions", "Silence in the Verse")}</h3>
+              <p className="text-muted-foreground text-lg max-w-sm font-medium">{t("feed.no_discussions_desc", "Every great movement started with a single word. Be the first to speak.")}</p>
+              <Link href="/post/discussion" className="mt-8">
+                <Button variant="outline" className="rounded-xl border-2 font-bold uppercase tracking-widest text-[10px]">
+                  Break the Silence
+                </Button>
+              </Link>
+            </motion.div>
+          ) : (
+            <motion.div 
+              initial="hidden"
+              animate="show"
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.15 }
+                }
+              }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
+            >
+              <AnimatePresence mode="popLayout">
+                {discussions?.map((post) => (
+                  <motion.div
+                    key={post.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                    className="group"
+                  >
+                    <PostCard post={post} variant="media" reportType="discussion" />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          )}
         </div>
       </main>
-    </PageTransition>
+    </div>
   );
 }
