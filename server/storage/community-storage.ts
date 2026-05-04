@@ -57,6 +57,7 @@ export class CommunityStorage {
 
     const mappedCommunity = {
       ...community,
+      allowedCategories: community.allowedCategories || "news,entertainment,discussion",
       isPrivate: community.isPrivate ? 1 : 0
     };
     const [newCommunity] = await db.insert(communities).values(mappedCommunity).returning();
