@@ -55,8 +55,15 @@ export interface IStorage {
   updateCommentKarma(id: number, karma: number): Promise<Comment>;
   deleteComment(id: number): Promise<void>;
 
-  // Notification Counts
+  // Notifications
+  getNotifications(userId: number, options?: { limit?: number; offset?: number; unreadOnly?: boolean; type?: string[] }): Promise<any[]>;
   getNotificationCounts(userId: number): Promise<{ unread: number; unseen: number }>;
+  markNotificationsAsSeen(userId: number): Promise<void>;
+  markAllNotificationsAsRead(userId: number): Promise<void>;
+  markNotificationAsRead(id: number): Promise<void>;
+  deleteNotification(id: number): Promise<void>;
+  getNotificationPreferences(userId: number): Promise<any>;
+  updateNotificationPreferences(userId: number, update: any): Promise<any>;
 
   // Transactions / Interactions
   createPostLike(userId: number, postId: number, isLike: boolean): Promise<void>;
@@ -248,8 +255,15 @@ export class DatabaseStorage implements IStorage {
   async deleteTheme(id: number) { return this.themeStore.deleteTheme(id); }
   async updateTheme(id: number, t: Partial<InsertTheme>) { return this.themeStore.updateTheme(id, t); }
 
-  // Notification Counts Proxy
+  // Notifications Proxy
+  async getNotifications(userId: number, options?: any) { return this.notificationStore.getNotifications(userId, options); }
   async getNotificationCounts(userId: number) { return this.notificationStore.getNotificationCounts(userId); }
+  async markNotificationsAsSeen(userId: number) { return this.notificationStore.markNotificationsAsSeen(userId); }
+  async markAllNotificationsAsRead(userId: number) { return this.notificationStore.markAllNotificationsAsRead(userId); }
+  async markNotificationAsRead(id: number) { return this.notificationStore.markNotificationAsRead(id); }
+  async deleteNotification(id: number) { return this.notificationStore.deleteNotification(id); }
+  async getNotificationPreferences(userId: number) { return this.notificationStore.getNotificationPreferences(userId); }
+  async updateNotificationPreferences(userId: number, update: any) { return this.notificationStore.updateNotificationPreferences(userId, update); }
 }
 
 export const storage = new DatabaseStorage();
