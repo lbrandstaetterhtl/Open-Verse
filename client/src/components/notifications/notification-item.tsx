@@ -117,65 +117,48 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
   return (
     <div 
       className={cn(
-        "group relative flex items-start gap-4 p-4 transition-all hover:bg-muted/50 cursor-pointer border-b last:border-0",
+        "group relative flex items-start gap-3 px-4 py-3 transition-all cursor-pointer",
+        "hover:bg-accent/50 active:bg-accent/70",
         !notification.read && "bg-primary/5"
       )}
       onClick={handleAction}
     >
-      {/* Unread Indicator */}
+      {/* Indicator Line */}
       {!notification.read && (
-        <div className="absolute left-1 top-1/2 -translate-y-1/2">
-          <Circle className="h-2 w-2 fill-primary text-primary" />
-        </div>
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
       )}
 
-      <div className="relative">
-        <UserAvatar user={{ username: notification.actor?.username || "U" }} size="md" />
-        <div className="absolute -bottom-1 -right-1 rounded-full bg-background p-0.5 shadow-sm border">
+      <div className="relative flex-shrink-0">
+        <UserAvatar user={{ username: notification.actor?.username || "U" }} size="sm" className="h-10 w-10 md:h-11 md:w-11" />
+        <div className="absolute -bottom-1 -right-1 rounded-full bg-background p-1 shadow-sm border border-border/40 scale-90">
           {getIcon()}
         </div>
       </div>
 
-      <div className="flex-1 min-w-0 pr-8">
-        {getContent()}
-        <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mt-1 block">
-          {formatDistanceToNow(new Date(notification.createdAt), {
-            addSuffix: true,
-            locale: locales[i18n.language] || locales.en
-          })}
-        </span>
-      </div>
-
-      <div className="absolute right-2 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!notification.read) markAsRead.mutate(notification.id);
-              }}
-              disabled={notification.read}
-            >
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              <span>{t("common.mark_read")}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-destructive focus:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteNotification.mutate(notification.id);
-              }}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              <span>{t("common.delete")}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <div className="flex items-center justify-between gap-2">
+           {getContent()}
+           <span className="text-[10px] text-muted-foreground whitespace-nowrap tabular-nums">
+              {formatDistanceToNow(new Date(notification.createdAt), {
+                addSuffix: false,
+                locale: locales[i18n.language] || locales.en
+              })}
+           </span>
+        </div>
+        
+        <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+           <Button 
+             variant="ghost" 
+             size="sm" 
+             className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider"
+             onClick={(e) => {
+               e.stopPropagation();
+               deleteNotification.mutate(notification.id);
+             }}
+           >
+             Löschen
+           </Button>
+        </div>
       </div>
     </div>
   );

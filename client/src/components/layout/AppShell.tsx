@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import { useLocation, Link } from "wouter";
 import { Navbar } from "./navbar";
 import { Footer } from "./footer";
-import { MobileBottomNav } from "./mobile-bottom-nav";
+import { MobileLayout } from "./MobileLayout";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { 
@@ -69,7 +69,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className="flex flex-1 pt-14 relative overflow-hidden">
         {/* Persistent Sidebar for Admin Area */}
         {isAdminArea && user && (
-          <aside className="hidden lg:flex w-64 border-r bg-card flex-col z-30 shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] animate-in slide-in-from-left duration-300">
+          <aside className="hidden lg:flex w-64 border-r bg-card flex-col z-30 shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] animate-fade-in duration-300">
             <div className="p-6 flex items-center gap-3 border-b mb-4">
               <div className="bg-primary/10 p-2 rounded-lg text-primary">
                 <Shield className="h-6 w-6" />
@@ -88,7 +88,7 @@ export function AppShell({ children }: AppShellProps) {
                     <div className={cn(
                       "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all group relative cursor-pointer",
                       isActive 
-                        ? "bg-primary text-primary-foreground shadow-sm" 
+                        ? "bg-primary text-primary-foreground shadow-md" 
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}>
                       <item.icon className={cn("h-4 w-4", isActive ? "" : "text-muted-foreground group-hover:text-foreground")} />
@@ -126,20 +126,21 @@ export function AppShell({ children }: AppShellProps) {
           }>
             <div className={cn(
               "flex-1 w-full",
-              isAdminArea ? "p-4 md:p-8" : "container mx-auto",
-              // Mobile: extra bottom padding so content clears the bottom nav
-              !isAdminArea && "pb-24 md:pb-0"
+              isAdminArea ? "p-4 md:p-8" : "container max-w-[1280px] mx-auto",
             )}>
-              {children}
+              {isAdminArea ? (
+                children
+              ) : (
+                <MobileLayout>
+                  {children}
+                </MobileLayout>
+              )}
             </div>
           </Suspense>
           
           <Footer />
         </main>
       </div>
-
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNav />
     </div>
   );
 }

@@ -45,122 +45,99 @@ export function ProfileHeader({
   const joinedDate = user.createdAt ? format(new Date(user.createdAt), "MMMM yyyy") : "";
 
   return (
-    <div className="container mx-auto px-4 pt-20 md:pt-24 pb-8">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        {/* User Info Section */}
-        <div className="space-y-4 max-w-2xl">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-                {user.displayName || user.username}
-              </h1>
-              {user.verified && (
-                <BadgeCheck className="h-6 w-6 text-primary fill-primary/10" title="Verified" />
-              )}
-              {user.karma >= 1000 && (
-                <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                  <Trophy className="h-3 w-3 mr-1" />
-                  {t('profile.pro')}
-                </Badge>
-              )}
-            </div>
-            <p className="text-lg text-muted-foreground">@{user.username}</p>
-          </div>
-
-          {user.bio && (
-            <p className="text-base text-foreground/90 leading-relaxed whitespace-pre-wrap max-w-lg">
-              {user.bio}
-            </p>
-          )}
-
-          {/* Metadata Grid */}
-          <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-sm text-muted-foreground">
-            {user.location && (
-              <div className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                {user.location}
-              </div>
-            )}
-            {user.website && (
-              <a 
-                href={user.website.startsWith('http') ? user.website : `https://${user.website}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-primary hover:underline transition-all"
-              >
-                <LinkIcon className="h-4 w-4" />
-                {user.website.replace(/^https?:\/\/(www\.)?/, '')}
-              </a>
-            )}
-            <div className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              {t('profile.joined')} {joinedDate}
-            </div>
-          </div>
-
-          {/* Mutual Followers Preview */}
-          {!isOwnProfile && user.mutualFollowers && user.mutualFollowers.length > 0 && (
-            <MutualFollowers followers={user.mutualFollowers} />
-          )}
-        </div>
-
-        {/* Action Buttons & Stats Section */}
-        <div className="flex flex-col gap-6 md:items-end">
-          {/* Actions */}
-          <div className="flex items-center gap-3">
+    <div className="w-full px-4 pt-4 md:pt-6">
+      <div className="flex flex-col gap-4">
+        {/* Actions Row */}
+        <div className="flex items-center justify-end relative z-10">
+          <div className="flex items-center gap-2 pt-12">
             {isOwnProfile ? (
-              <Button onClick={onEditProfile} variant="default" className="rounded-full px-6 shadow-lg shadow-primary/20">
-                <Settings className="h-4 w-4 mr-2" />
-                {t('profile.edit')}
+              <Button onClick={onEditProfile} variant="outline" className="rounded-full font-bold px-4 h-9 text-sm active:scale-95 transition-all">
+                Profil bearbeiten
               </Button>
             ) : (
               <>
                 <Button 
                   onClick={onMessage} 
                   variant="outline" 
-                  className="rounded-full h-11 w-11 p-0 flex items-center justify-center border-muted-foreground/20 hover:bg-muted"
+                  className="rounded-full h-9 w-9 p-0 border-border/60 hover:bg-muted active:scale-90 transition-all"
                 >
-                  <MessageCircle className="h-5 w-5" />
+                  <MessageCircle className="h-4 w-4" />
                 </Button>
                 
                 {user.isFollowing ? (
                   <Button 
                     variant="outline" 
-                    className="rounded-full px-8 h-11 border-primary/30 text-primary hover:bg-primary/5 hover:text-primary"
+                    className="rounded-full px-4 h-9 font-bold text-sm border-border/60 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all active:scale-95"
                     onClick={onUnfollow}
                     disabled={isFollowingLoading}
                   >
-                    {isFollowingLoading ? t('common.loading') : t('profile.following')}
+                    Gefolgt
                   </Button>
                 ) : (
                   <Button 
-                    className="rounded-full px-8 h-11 shadow-lg shadow-primary/25"
+                    className="rounded-full px-4 h-9 font-bold text-sm active:scale-95 transition-all shadow-md"
                     onClick={onFollow}
                     disabled={isFollowingLoading}
                   >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    {user.isFollowingBack ? t('profile.followBack') : t('profile.follow')}
+                    Folgen
                   </Button>
                 )}
               </>
             )}
           </div>
+        </div>
 
-          {/* Stats Summary */}
-          <div className="flex items-center gap-8 md:gap-10 border-t md:border-t-0 md:border-l border-muted/30 pt-4 md:pt-0 md:pl-10">
-            <div className="text-center md:text-left transition-transform hover:scale-105">
-              <p className="text-xl font-bold">{user.stats?.posts || 0}</p>
-              <p className="text-sm text-muted-foreground uppercase tracking-wider">{t('profile.posts')}</p>
-            </div>
-            <div className="text-center md:text-left transition-transform hover:scale-105 cursor-pointer">
-              <p className="text-xl font-bold">{user.stats?.followers || 0}</p>
-              <p className="text-sm text-muted-foreground uppercase tracking-wider">{t('profile.followers')}</p>
-            </div>
-            <div className="text-center md:text-left transition-transform hover:scale-105 cursor-pointer">
-              <p className="text-xl font-bold">{user.stats?.following || 0}</p>
-              <p className="text-sm text-muted-foreground uppercase tracking-wider">{t('profile.following')}</p>
-            </div>
+        {/* Info Block */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <h1 className="text-xl md:text-2xl font-black tracking-tight">
+              {user.displayName || user.username}
+            </h1>
+            {user.verified && <BadgeCheck className="h-5 w-5 text-primary fill-primary/5" />}
           </div>
+          <p className="text-sm text-muted-foreground">@{user.username}</p>
+        </div>
+
+        {user.bio && (
+          <p className="text-sm md:text-base text-foreground/90 leading-relaxed max-w-xl">
+            {user.bio}
+          </p>
+        )}
+
+        {/* Metadata */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground font-medium">
+          {user.location && (
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5" />
+              <span>{user.location}</span>
+            </div>
+          )}
+          {user.website && (
+            <a 
+              href={user.website.startsWith('http') ? user.website : `https://${user.website}`} 
+              target="_blank" 
+              className="flex items-center gap-1 text-primary hover:underline"
+            >
+              <LinkIcon className="h-3.5 w-3.5" />
+              <span className="truncate max-w-[150px]">{user.website.replace(/^https?:\/\/(www\.)?/, '')}</span>
+            </a>
+          )}
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>Seit {joinedDate}</span>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="flex items-center gap-5 pt-1 border-b border-border/40 pb-4">
+          <button className="flex items-center gap-1 hover:underline active:scale-95 transition-transform">
+            <span className="font-bold text-sm">{user.stats?.following || 0}</span>
+            <span className="text-muted-foreground text-sm">Gefolgt</span>
+          </button>
+          <button className="flex items-center gap-1 hover:underline active:scale-95 transition-transform">
+            <span className="font-bold text-sm">{user.stats?.followers || 0}</span>
+            <span className="text-muted-foreground text-sm">Follower</span>
+          </button>
         </div>
       </div>
     </div>

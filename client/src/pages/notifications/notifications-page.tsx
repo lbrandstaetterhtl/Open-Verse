@@ -30,186 +30,143 @@ export default function NotificationsPage() {
   };
 
   return (
-    <>
-      <Navbar />
-      <main className="container mx-auto px-4 pt-20 pb-12">
-        <div className="max-w-4xl mx-auto">
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <div>
-              <div className="flex items-center gap-4">
-                <BackButton fallback="/feed" className="-ml-3" />
-                <h1 className="text-3xl font-bold tracking-tight">{t("notifications.title")}</h1>
-              </div>
-            <p className="text-muted-foreground mt-1 ml-12">
-                {t("notifications.manage_desc", "Stay updated with your latest interactions and account activity.")}
-              </p>
+    <PageTransition>
+      {/* Sticky Top Header – Glass Effect */}
+      <header className="sticky top-14 z-40 w-full glass-premium border-b border-border/40">
+        <div className="max-w-[680px] mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+             <BackButton fallback="/feed" className="-ml-2 h-9 w-9 rounded-full" />
+             <h1 className="text-base md:text-lg font-black tracking-tight uppercase">
+                {t("notifications.title")}
+             </h1>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => markAllAsRead.mutate()}
+              disabled={!notifications?.some(n => !n.read)}
+              className="h-9 w-9 p-0 rounded-full hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
+              title={t("notifications.mark_all_read")}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => deleteAllNotifications.mutate()}
+              className="h-9 w-9 p-0 rounded-full hover:bg-destructive/10 hover:text-destructive transition-all active:scale-90"
+              title={t("notifications.clear_all")}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="w-full">
+        <div className="max-w-[680px] mx-auto border-x border-border/40 min-h-screen bg-card/5 md:bg-background">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="border-b border-border/40 bg-background/50">
+               <TabsList className="w-full justify-start h-12 bg-transparent p-0 rounded-none overflow-x-auto no-scrollbar">
+                  <TabsTrigger 
+                    value="all" 
+                    className="flex-1 h-12 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none font-bold text-xs uppercase tracking-widest"
+                  >
+                    {t("notifications.tabs.all", "Alle")}
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="unread" 
+                    className="flex-1 h-12 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none font-bold text-xs uppercase tracking-widest"
+                  >
+                    {t("notifications.tabs.unread", "Ungelesen")}
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="settings" 
+                    className="flex-1 h-12 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none font-bold text-xs uppercase tracking-widest"
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </TabsTrigger>
+               </TabsList>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => markAllAsRead.mutate()}
-                disabled={!notifications?.some(n => !n.read)}
-              >
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                {t("notifications.mark_all_read")}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-destructive hover:bg-destructive/10"
-                onClick={() => {
-                   if (confirm(t("notifications.confirm_clear_all", "Are you sure you want to clear all notifications?"))) {
-                     // We'd need to implement clearAll in mutations
-                     // For now, I'll just use markAllAsRead as a placeholder or add it if needed
-                   }
-                }}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {t("notifications.clear_all", "Clear All")}
-              </Button>
+
+            <div className="relative min-h-[400px]">
+              <TabsContent value="all" className="m-0 border-none">
+                 <NotificationList notifications={notifications} isLoading={isLoading} error={error} refetch={refetch} />
+              </TabsContent>
+
+              <TabsContent value="unread" className="m-0 border-none">
+                 <NotificationList notifications={notifications} isLoading={isLoading} error={error} refetch={refetch} />
+              </TabsContent>
+
+              <TabsContent value="settings" className="m-0 p-4 animate-scale-in">
+                <div className="space-y-6">
+                  <div className="p-4 rounded-2xl bg-muted/20 border border-border/40 space-y-4">
+                    <h3 className="text-sm font-bold flex items-center gap-2">
+                       <Bell className="h-4 w-4 text-primary" />
+                       {t("notifications.pref.social_header")}
+                    </h3>
+                    <div className="space-y-4">
+                      <PreferenceToggle 
+                        id="likePost" 
+                        label={t("notifications.pref.likes")} 
+                        checked={prefs?.likePost} 
+                        onCheckedChange={(v) => handleTogglePreference("likePost", v)} 
+                      />
+                      <PreferenceToggle 
+                        id="commentPost" 
+                        label={t("notifications.pref.comments")} 
+                        checked={prefs?.commentPost} 
+                        onCheckedChange={(v) => handleTogglePreference("commentPost", v)} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
             </div>
-          </header>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <div className="flex items-center justify-between">
-              <TabsList>
-                <TabsTrigger value="all" className="px-6">
-                  {t("notifications.tabs.all", "All")}
-                </TabsTrigger>
-                <TabsTrigger value="unread" className="px-6">
-                  {t("notifications.tabs.unread", "Unread")}
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="px-6 flex items-center gap-2">
-                  <Settings2 className="h-4 w-4" />
-                  {t("notifications.tabs.settings", "Preferences")}
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            <TabsContent value="all" className="mt-0 ring-offset-background focus-visible:outline-none">
-               <NotificationList notifications={notifications} isLoading={isLoading} error={error} refetch={refetch} />
-            </TabsContent>
-
-            <TabsContent value="unread" className="mt-0 ring-offset-background focus-visible:outline-none">
-               <NotificationList notifications={notifications} isLoading={isLoading} error={error} refetch={refetch} />
-            </TabsContent>
-
-            <TabsContent value="settings" className="mt-0 ring-offset-background focus-visible:outline-none">
-              <div className="grid gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Bell className="h-5 w-5 text-primary" />
-                      {t("notifications.pref.social_header", "Social Interactions")}
-                    </CardTitle>
-                    <CardDescription>
-                      {t("notifications.pref.social_desc", "Choose what social events you want to be notified about.")}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <PreferenceToggle 
-                      id="likePost" 
-                      label={t("notifications.pref.likes", "Likes on your posts")} 
-                      checked={prefs?.likePost} 
-                      onCheckedChange={(v) => handleTogglePreference("likePost", v)} 
-                    />
-                    <Separator />
-                    <PreferenceToggle 
-                      id="commentPost" 
-                      label={t("notifications.pref.comments", "Comments on your posts")} 
-                      checked={prefs?.commentPost} 
-                      onCheckedChange={(v) => handleTogglePreference("commentPost", v)} 
-                    />
-                    <Separator />
-                    <PreferenceToggle 
-                      id="mentionPost" 
-                      label={t("notifications.pref.mentions", "Mentions")} 
-                      checked={prefs?.mentionPost} 
-                      onCheckedChange={(v) => handleTogglePreference("mentionPost", v)} 
-                    />
-                     <Separator />
-                    <PreferenceToggle 
-                      id="newFollower" 
-                      label={t("notifications.pref.followers", "New Followers")} 
-                      checked={prefs?.newFollower} 
-                      onCheckedChange={(v) => handleTogglePreference("newFollower", v)} 
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Sliders className="h-5 w-5 text-primary" />
-                      {t("notifications.pref.system_header", "System & Community")}
-                    </CardTitle>
-                    <CardDescription>
-                      {t("notifications.pref.system_desc", "Manage community alerts and administrative notifications.")}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <PreferenceToggle 
-                      id="communityInvite" 
-                      label={t("notifications.pref.community_invites", "Community Invites & Requests")} 
-                      checked={prefs?.communityInvite} 
-                      onCheckedChange={(v) => handleTogglePreference("communityInvite", v)} 
-                    />
-                    <Separator />
-                    <PreferenceToggle 
-                      id="systemAnnouncement" 
-                      label={t("notifications.pref.system", "System Announcements")} 
-                      checked={prefs?.systemAnnouncement} 
-                      onCheckedChange={(v) => handleTogglePreference("systemAnnouncement", v)} 
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
           </Tabs>
         </div>
       </main>
-    </>
+    </PageTransition>
   );
 }
 
 function NotificationList({ notifications, isLoading, error, refetch }: any) {
   const { t } = useTranslation();
   
-  if (isLoading) return <Spinner size="lg" className="py-20" />;
+  if (isLoading) return <div className="p-10 flex justify-center"><Spinner size="lg" /></div>;
   
   if (error) return (
-    <ErrorState 
-      message={t("notifications.error_load", "Could not load notifications.")} 
-      retry={() => refetch()} 
-    />
+    <div className="p-8">
+      <ErrorState 
+        message={t("notifications.error_load")} 
+        retry={() => refetch()} 
+      />
+    </div>
   );
 
   if (!notifications || notifications.length === 0) return (
-    <EmptyState 
-      icon={<Bell className="h-12 w-12 text-muted-foreground/50" />}
-      title={t("notifications.empty")}
-      description={t("notifications.empty_desc", "When you get notifications, they'll show up here.")}
-      className="bg-muted/20 border-dashed py-24"
-    />
+    <div className="p-20 text-center animate-scale-in">
+      <Bell className="h-16 w-16 mx-auto text-muted-foreground/20 mb-4" />
+      <h2 className="text-xl font-bold tracking-tight">{t("notifications.empty")}</h2>
+      <p className="text-sm text-muted-foreground mt-2">{t("notifications.empty_desc")}</p>
+    </div>
   );
 
   return (
-    <Card className="overflow-hidden border-none shadow-md bg-background/50 backdrop-blur-sm">
-      <div className="flex flex-col">
-        {notifications.map((n: any) => (
-          <NotificationItem key={n.id} notification={n} />
-        ))}
-      </div>
-    </Card>
+    <div className="divide-y divide-border/40">
+      {notifications.map((n: any) => (
+        <NotificationItem key={n.id} notification={n} />
+      ))}
+    </div>
   );
 }
 
 function PreferenceToggle({ id, label, checked, onCheckedChange }: { id: string, label: string, checked?: boolean, onCheckedChange: (v: boolean) => void }) {
   return (
     <div className="flex items-center justify-between">
-      <Label htmlFor={id} className="font-medium cursor-pointer">{label}</Label>
+      <Label htmlFor={id} className="text-sm font-medium cursor-pointer">{label}</Label>
       <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
     </div>
   );

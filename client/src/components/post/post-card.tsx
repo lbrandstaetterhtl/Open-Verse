@@ -1,13 +1,11 @@
 import { Link } from "wouter";
-import { format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { de } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFeedMutations } from "@/hooks/use-feed-mutations";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ReportDialog } from "@/components/dialogs/report-dialog";
 import {
@@ -22,360 +20,283 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  ThumbsUp,
-  ThumbsDown,
   MessageCircle,
   Trash2,
   Heart,
   BadgeCheck,
   ImageOff,
-  Loader2,
+  MoreHorizontal,
+  Share2,
+  Bookmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PostWithAuthor } from "@shared/types";
+import { Button } from "@/components/ui/button";
 
 interface PostCardProps {
   post: PostWithAuthor;
-  /** Type used for the ReportDialog (e.g. "post" | "discussion"). Defaults to "post". */
   reportType?: "post" | "discussion";
+  compact?: boolean;
 }
 
-export function PostCard({ post, reportType = "post" }: PostCardProps) {
+/**
+ * POST-CARD [UI-D-001]: Responsive Post Card
+ * Optimized for high information density (Twitter-style) and mobile touch interaction.
+ */
+export const PostCard = React.memo(function PostCard({
+  post,
+  reportType = "post",
+  compact = false,
+}: PostCardProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [imageLoadError, setImageLoadError] = useState(false);
 
   const {
     reactionMutation,
-    followMutation,
-    unfollowMutation,
-    createCommentMutation,
     deletePostMutation,
-    deleteCommentMutation,
-    likeCommentMutation,
   } = useFeedMutations();
 
   const author = post.author ?? {
     username: "Unknown",
     id: 0,
-    isFollowing: false,
     role: "member",
     verified: false,
   };
-  const comments = post.comments ?? [];
-  const reactions = post.reactions ?? { likes: 0, dislikes: 0 };
+
+  const isOwner = user?.id === author.id || user?.role === "owner" || (user?.role === "admin" && author.role !== "owner");
+
+  const handleLike = useCallback(() => {
+    reactionMutation.mutate({ postId: post.id, isLike: !post.userReaction?.isLike });
+  }, [post.id, post.userReaction?.isLike, reactionMutation]);
 
   return (
-    <Card className="overflow-hidden border-none bg-card/50 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-300 ease-smooth hover:-translate-y-1 animate-fade-up fill-mode-both">
-      <CardHeader className="p-4 lg:p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link href={`/users/${author.username}`} className="hover:opacity-80 transition-opacity active:scale-95 duration-150">
-              <UserAvatar user={author} size="sm" />
-            </Link>
-            <div className="min-w-0">
-              <Link href={`/posts/${post.id}`} className="group">
-                <CardTitle className="text-base lg:text-lg truncate group-hover:text-primary transition-colors">{post.title}</CardTitle>
+    <article className={cn(
+      "group w-full bg-background",
+      // Desktop: Card with subtle border and transition
+      "md:border-b md:hover:bg-accent/5 transition-colors duration-150",
+      // Mobile: Full-bleed with separator
+      "border-b border-border/40",
+      // Padding
+      "px-4 py-3 md:py-4",
+      "animate-fade-up"
+    )}>
+      <div className="flex gap-3">
+        {/* Left: Avatar - 44px reachability on mobile */}
+        <div className="flex-shrink-0">
+          <Link href={`/users/${author.username}`}>
+            <UserAvatar 
+              user={author} 
+              size="sm" 
+              className="h-10 w-10 md:h-11 md:w-11 ring-offset-background transition-transform active:scale-95" 
+            />
+          </Link>
+        </div>
+
+        {/* Right: Content Area */}
+        <div className="flex-1 min-w-0">
+          {/* Header: Name, Handle, Time, Menu */}
+          <div className="flex items-start justify-between mb-0.5">
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <Link href={`/users/${author.username}`} className="font-bold text-sm md:text-base hover:underline truncate">
+                {author.username}
               </Link>
-              <div className="flex items-center gap-1">
-                <Link
-                  href={`/users/${author.username}`}
-                  className="hover:text-primary transition-colors text-xs lg:text-sm text-muted-foreground"
-                >
-                  {author.username}
-                </Link>
-                {author.verified && <BadgeCheck className="h-4 w-4 text-primary animate-fade-scale" />}
-                <span className="text-xs lg:text-sm text-muted-foreground tabular-nums">
-                  {" • "}
-                  {post.createdAt ? format(new Date(post.createdAt), "PPP") : ""}
-                </span>
-              </div>
+              {author.verified && <BadgeCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />}
+              <span className="text-muted-foreground text-xs md:text-sm truncate">@{author.username}</span>
+              <span className="text-muted-foreground text-xs md:text-sm flex-shrink-0">·</span>
+              <span className="text-muted-foreground text-xs md:text-sm flex-shrink-0">
+                {post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: de }) : ""}
+              </span>
+            </div>
+
+            {/* Context Menu Button - 44px touch target */}
+            <div className="flex-shrink-0 -mr-2 -mt-1">
+               <PostMenu post={post} isOwner={isOwner} onDelete={() => deletePostMutation.mutate(post.id)} reportType={reportType} />
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-primary text-xs lg:text-sm animate-fade-scale">
-              {post.category}
-            </Badge>
-            {author.id !== user?.id && (
-              <Button
-                variant={author.isFollowing ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  if (author.isFollowing) {
-                    unfollowMutation.mutate(author.id);
-                  } else {
-                    followMutation.mutate(author.id);
-                  }
-                }}
-                disabled={followMutation.isPending || unfollowMutation.isPending}
-                className="text-xs lg:text-sm h-9 px-4 active:scale-90 hover:scale-105 transition-all duration-200 ease-spring"
-              >
-                {author.isFollowing ? t("feed.following") : t("feed.follow")}
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardHeader>
 
-      <CardContent className="p-4 lg:p-6">
-        <p className="text-sm lg:text-base whitespace-pre-wrap mb-4 leading-relaxed">{post.content}</p>
+          {/* Title (for discussions/news) */}
+          {post.title && post.title !== post.content && (
+            <Link href={`/posts/${post.id}`}>
+              <h3 className="font-bold text-sm md:text-base mb-1 hover:text-primary transition-colors line-clamp-2">
+                {post.title}
+              </h3>
+            </Link>
+          )}
 
-        {post.mediaUrl && !imageLoadError && (
-          <div className="mt-4 rounded-xl overflow-hidden bg-muted/20 relative group aspect-video lg:aspect-auto min-h-[200px] max-h-[600px]">
-            {/* SMOOTH-FIX: Layout Shift Prevention with Skeleton Placeholder */}
-            {!imageLoadError && (
-              <div className="absolute inset-0 bg-muted/10 animate-pulse group-data-[loading=false]:hidden" />
-            )}
-            
-            {post.mediaType === "image" ? (
-              <img
-                src={`/uploads/${post.mediaUrl}`}
-                alt={post.title || "Post image"}
-                className="w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-[1.02]"
-                onLoad={(e) => (e.currentTarget.parentElement!.dataset.loading = "false")}
-                onError={() => setImageLoadError(true)}
-                loading="lazy"
-              />
-            ) : post.mediaType === "video" ? (
-              <video
-                src={`/uploads/${post.mediaUrl}`}
-                controls
-                className="w-full h-full rounded-xl transition-transform duration-500 group-hover:scale-[1.02]"
-                onLoadedData={(e) => (e.currentTarget.parentElement!.dataset.loading = "false")}
-                onError={() => setImageLoadError(true)}
-              />
-            ) : null}
-          </div>
-        )}
+          {/* Body Content */}
+          <p className={cn(
+            "text-sm md:text-base text-foreground/90 leading-relaxed break-words",
+            compact && "line-clamp-5"
+          )}>
+            {post.content}
+          </p>
 
-        {imageLoadError && (
-          <div className="mt-4 p-8 rounded-xl bg-muted/10 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-fade-scale">
-            <ImageOff className="h-8 w-8 opacity-20" />
-            <span className="text-xs">{t("media_feed.load_error")}</span>
-          </div>
-        )}
+          {/* Media - Full-bleed on mobile if requested, here responsive */}
+          {post.mediaUrl && !imageLoadError && (
+            <div className={cn(
+              "mt-3 overflow-hidden border border-border/40 bg-muted/10 relative",
+              "rounded-xl aspect-video lg:aspect-auto min-h-[160px] max-h-[500px]"
+            )}>
+              {post.mediaType === "image" ? (
+                <img
+                  src={`/uploads/${post.mediaUrl}`}
+                  alt={post.title || "Post image"}
+                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.01]"
+                  onError={() => setImageLoadError(true)}
+                  loading="lazy"
+                />
+              ) : post.mediaType === "video" ? (
+                <video
+                  src={`/uploads/${post.mediaUrl}`}
+                  controls
+                  className="w-full h-full"
+                  onError={() => setImageLoadError(true)}
+                />
+              ) : null}
+            </div>
+          )}
 
-        {/* Comments Section */}
-        <div className="mt-8 space-y-4 border-t pt-6 border-border/50">
-          <h3 className="text-sm lg:text-base font-semibold flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-primary" />
-            {t("comments.title")}
-          </h3>
+          {imageLoadError && (
+            <div className="mt-3 p-6 rounded-xl bg-muted/10 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <ImageOff className="h-6 w-6 opacity-20" />
+              <span className="text-[10px] uppercase tracking-widest">{t("media_feed.load_error")}</span>
+            </div>
+          )}
 
-          <div className="flex gap-2">
-            <Input
-              data-post-id={post.id}
-              placeholder={t("comments.placeholder")}
-              className="text-sm h-10 transition-all focus:ring-primary/20"
-              aria-label={t("comments.placeholder")}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
-                  createCommentMutation.mutate({
-                    postId: post.id,
-                    content: (e.target as HTMLInputElement).value.trim(),
-                  });
-                  (e.target as HTMLInputElement).value = "";
-                }
-              }}
+          {/* Actions: Metric Bar */}
+          <div className="flex items-center justify-between mt-3 -ml-2 max-w-md">
+            <ActionButton 
+              icon={MessageCircle} 
+              count={post.comments?.length} 
+              label="Antworten"
+              href={`/posts/${post.id}`} 
             />
-            <Button
-              variant="outline"
-              size="sm"
+            <ActionButton 
+              icon={Heart} 
+              count={post.reactions?.likes} 
+              label="Like"
+              active={post.userReaction?.isLike}
+              activeColor="text-red-500 fill-red-500"
+              onClick={handleLike}
+              animate="like-pop"
+            />
+            <ActionButton 
+              icon={Bookmark} 
+              label="Speichern"
+              onClick={() => {}} 
+            />
+            <ActionButton 
+              icon={Share2} 
+              label="Teilen"
               onClick={() => {
-                const input = document.querySelector(
-                  `input[data-post-id="${post.id}"]`,
-                ) as HTMLInputElement;
-                if (input?.value?.trim()) {
-                  createCommentMutation.mutate({
-                    postId: post.id,
-                    content: input.value.trim(),
-                  });
-                  input.value = "";
+                if (navigator.share) {
+                  navigator.share({ title: post.title, text: post.content, url: window.location.origin + `/posts/${post.id}` });
                 }
-              }}
-              className="h-10 active:scale-95 transition-transform"
-            >
-              {t("comments.post_button")}
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            {comments.map((comment, idx) => (
-              <div 
-                key={comment.id} 
-                className="bg-muted/30 hover:bg-muted/50 transition-colors rounded-xl p-3 animate-fade-up"
-                style={{ animationDelay: `${idx * 50}ms` }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Link href={`/users/${comment.author.username}`} className="hover:opacity-80 transition-opacity active:scale-95">
-                      <UserAvatar user={comment.author} size="sm" />
-                    </Link>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1">
-                        <Link
-                          href={`/users/${comment.author.username}`}
-                          className="text-xs lg:text-sm font-medium hover:text-primary transition-colors truncate"
-                        >
-                          {comment.author.username}
-                        </Link>
-                        {comment.author.verified && (
-                          <BadgeCheck className="h-4 w-4 text-primary animate-fade-scale" />
-                        )}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground block tabular-nums">
-                        {format(new Date(comment.createdAt), "PPp")}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant={comment.isLiked ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => likeCommentMutation.mutate(comment.id)}
-                      disabled={likeCommentMutation.isPending}
-                      className="h-8 px-2 hover:bg-primary/10 hover:text-primary active:scale-90 transition-all ease-spring"
-                      aria-label={t("actions.like")}
-                    >
-                      <Heart
-                        className={cn(
-                          "h-3.5 w-3.5 mr-1 transition-all",
-                          comment.isLiked && "fill-current scale-110",
-                        )}
-                      />
-                      <span className="text-[10px] tabular-nums">{comment.likes}</span>
-                    </Button>
-                    {(comment.author.username === user?.username ||
-                      user?.role === "owner" ||
-                      (user?.role === "admin" && comment.author.role !== "owner")) && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={deleteCommentMutation.isPending}
-                              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive active:scale-90 transition-all"
-                              aria-label={t("actions.delete")}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="animate-fade-scale">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="text-xl font-bold">{t("actions.delete")}</AlertDialogTitle>
-                              <AlertDialogDescription className="text-base text-muted-foreground">
-                                {t("actions.delete_comment_confirm")}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter className="gap-2">
-                              <AlertDialogCancel className="h-11 rounded-xl transition-all active:scale-95">{t("actions.cancel")}</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() =>
-                                  deleteCommentMutation.mutate({
-                                    postId: post.id,
-                                    commentId: comment.id,
-                                  })
-                                }
-                                className="h-11 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all active:scale-95"
-                              >
-                                {t("actions.delete")}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                  </div>
-                </div>
-                <p className="text-xs lg:text-sm mt-3 pl-10 text-muted-foreground/90 leading-relaxed">{comment.content}</p>
-              </div>
-            ))}
+              }} 
+            />
           </div>
         </div>
-      </CardContent>
+      </div>
+    </article>
+  );
+});
 
-      <CardFooter className="p-4 lg:p-6 border-t border-border/50 bg-muted/5 flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex items-center space-x-1 sm:space-x-3">
-          <Button
-            variant={post.userReaction?.isLike ? "default" : "ghost"}
-            size="sm"
-            onClick={() => reactionMutation.mutate({ postId: post.id, isLike: true })}
-            disabled={reactionMutation.isPending}
-            className="h-10 px-3 hover:bg-primary/10 hover:text-primary hover:scale-105 active:scale-90 transition-all ease-spring group"
-            aria-label={t("actions.like")}
-          >
-            <ThumbsUp
-              className={cn(
-                "h-4 w-4 mr-1.5 transition-all",
-                post.userReaction?.isLike && "fill-current scale-110 animate-like-bounce",
-                !post.userReaction?.isLike && "group-hover:translate-y-[-2px]"
-              )}
-            />
-            <span className="text-xs lg:text-sm font-medium tabular-nums">{reactions.likes}</span>
-          </Button>
-          <Button
-            variant={post.userReaction?.isLike === false ? "default" : "ghost"}
-            size="sm"
-            onClick={() => reactionMutation.mutate({ postId: post.id, isLike: false })}
-            disabled={reactionMutation.isPending}
-            className="h-10 px-3 hover:bg-destructive/10 hover:text-destructive hover:scale-105 active:scale-90 transition-all ease-spring group"
-            aria-label={t("actions.dislike")}
-          >
-            <ThumbsDown
-              className={cn(
-                "h-4 w-4 mr-1.5 transition-all text-muted-foreground group-hover:text-destructive",
-                post.userReaction?.isLike === false && "fill-current scale-110 text-destructive-foreground",
-                post.userReaction?.isLike !== false && "group-hover:translate-y-[2px]"
-              )}
-            />
-            <span className="text-xs lg:text-sm font-medium tabular-nums">{reactions.dislikes}</span>
-          </Button>
-        </div>
+/** Action Button with 44px Touch Target */
+function ActionButton({ 
+  icon: Icon, 
+  count, 
+  label, 
+  active, 
+  activeColor, 
+  onClick, 
+  href,
+  animate 
+}: { 
+  icon: any, 
+  count?: number, 
+  label: string, 
+  active?: boolean, 
+  activeColor?: string,
+  onClick?: () => void,
+  href?: string,
+  animate?: string
+}) {
+  const [isAnimating, setIsAnimating] = useState(false);
 
-        <div className="flex items-center space-x-2">
-          {(user?.role === "owner" ||
-            (user?.role === "admin" && author.role !== "owner") ||
-            author.id === user?.id) && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={deletePostMutation.isPending}
-                    className="h-10 px-4 hover:bg-destructive/10 hover:text-destructive active:scale-95 transition-all flex items-center gap-2"
-                    aria-label={t("actions.delete")}
-                  >
-                    {deletePostMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Trash2 className="h-4 w-4" />
-                        <span className="text-xs lg:text-sm font-medium">{t("actions.delete")}</span>
-                      </>
-                    )}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="animate-fade-scale">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-xl font-bold">{t("actions.delete")}</AlertDialogTitle>
-                    <AlertDialogDescription className="text-base text-muted-foreground">
-                      {t("actions.delete_post_confirm")}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter className="gap-2">
-                    <AlertDialogCancel className="h-11 rounded-xl transition-all active:scale-95">{t("actions.cancel")}</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => deletePostMutation.mutate(post.id)}
-                      className="h-11 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all active:scale-95"
-                    >
-                      {t("actions.delete")}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          <ReportDialog type={reportType} id={post.id} />
-        </div>
-      </CardFooter>
-    </Card>
+  const handleClick = (e: React.MouseEvent) => {
+    if (onClick) {
+      e.preventDefault();
+      setIsAnimating(true);
+      setTimeout(() => setIsAnimating(false), 350);
+      onClick();
+    }
+  };
+
+  const Content = (
+    <div className={cn(
+      "flex items-center gap-2 text-muted-foreground transition-all duration-150",
+      "hover:bg-accent/10 hover:text-foreground rounded-full p-2 group-active:scale-90",
+      active && activeColor
+    )}>
+      <Icon className={cn(
+        "h-[18px] w-[18px] md:h-5 md:w-5",
+        active && "fill-current",
+        isAnimating && animate && `animate-${animate}`
+      )} />
+      {count !== undefined && count > 0 && (
+        <span className="text-xs md:text-sm tabular-nums font-medium">{count}</span>
+      )}
+    </div>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="group min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label={label}>
+        {Content}
+      </Link>
+    );
+  }
+
+  return (
+    <button 
+      onClick={handleClick} 
+      className="group min-h-[44px] min-w-[44px] flex items-center justify-center outline-none" 
+      aria-label={label}
+    >
+      {Content}
+    </button>
   );
 }
+
+function PostMenu({ post, isOwner, onDelete, reportType }: { post: any, isOwner: boolean, onDelete: () => void, reportType: string }) {
+  const { t } = useTranslation();
+  
+  return (
+    <div className="flex items-center">
+      {isOwner && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="animate-scale-in">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("actions.delete")}</AlertDialogTitle>
+              <AlertDialogDescription>{t("actions.delete_post_confirm")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("actions.cancel")}</AlertDialogCancel>
+              <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {t("actions.delete")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+      <ReportDialog type={reportType as any} id={post.id} />
+    </div>
+  );
+}
+

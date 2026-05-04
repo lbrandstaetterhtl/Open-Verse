@@ -44,56 +44,51 @@ export default function MediaFeedPage() {
 
   return (
     <PageTransition>
-      <main className="container mx-auto px-4 pt-6 md:pt-20 pb-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Mobile Header with Smooth Entry */}
-          <div className="lg:hidden mb-6 animate-slide-down">
-            <h1 className="text-2xl font-black tracking-tighter mb-2">{t("feed.media_title")}</h1>
-            <p className="text-xs text-muted-foreground">{t("feed.media_subtitle", "Stay updated with the latest news and entertainment.")}</p>
+      {/* Sticky Top Header – Glass Effect */}
+      <header className="sticky top-14 z-40 w-full glass-premium border-b border-border/40">
+        <div className="max-w-[680px] mx-auto px-4 h-14 flex items-center justify-between">
+          <h1 className="text-base md:text-lg font-black tracking-tight uppercase">
+            {t("feed.media_title")}
+          </h1>
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] })}
+              className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
+            >
+              <div className={cn("h-2 w-2 rounded-full", isRefetching ? "bg-primary animate-pulse" : "bg-muted")} />
+            </Button>
           </div>
+        </div>
+      </header>
 
-          {/* Desktop Header with Smooth Entry */}
-          <div className="hidden lg:flex items-center justify-between mb-8 animate-slide-down">
-            <h1 className="text-3xl font-bold tracking-tight">{t("feed.media_title")}</h1>
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => setLocation("/post/news")}
-                className="rounded-xl px-6 active:scale-95 transition-all hover:shadow-md"
-              >
-                {t("feed.post_news")}
-              </Button>
-              <Button 
-                onClick={() => setLocation("/post/entertainment")}
-                className="rounded-xl px-6 active:scale-95 transition-all hover:shadow-md"
-              >
-                {t("feed.post_entertainment")}
-              </Button>
-            </div>
-          </div>
-
-          {/* Content Area with Fluid Transitions */}
+      <main className="w-full">
+        <div className="max-w-[680px] mx-auto border-x border-border/40 min-h-screen bg-card/5 md:bg-background">
+          {/* Content Area */}
           <div className="relative min-h-[400px]">
             {isLoading ? (
-              <div className="animate-fade-in">
+              <div className="p-4 space-y-4">
                 <SkeletonFeed />
               </div>
             ) : error ? (
-              <div className="animate-fade-scale">
+              <div className="p-8 animate-scale-in">
                 <ErrorState 
                   message={error instanceof Error ? error.message : "Failed to load posts"} 
                   retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] })}
                 />
               </div>
             ) : posts?.length === 0 ? (
-              <div className="animate-fade-scale">
+              <div className="p-20 animate-scale-in text-center">
                 <EmptyState
                   icon={<ImageIcon className="h-12 w-12 text-muted-foreground/50" />}
                   title={t("feed.no_posts")}
                 />
               </div>
             ) : (
-              <div className="space-y-4 lg:space-y-6">
-                {posts?.map((post, index) => (
+              <div className="divide-y divide-border/40">
+                {posts?.map((post) => (
                   <PostCard 
                     key={post.id} 
                     post={post} 
@@ -101,33 +96,9 @@ export default function MediaFeedPage() {
                 ))}
               </div>
             )}
-
-            {/* Subtle loading overlay for background refetches */}
-            {isRefetching && !isLoading && (
-              <div className="fixed bottom-8 right-8 bg-primary/10 backdrop-blur-md rounded-full px-4 py-2 border border-primary/20 flex items-center gap-2 animate-slide-up shadow-lg z-50">
-                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-xs font-medium text-primary">Actualizando...</span>
-              </div>
-            )}
           </div>
         </div>
       </main>
-
-      {/* Mobile FAB – Create Post */}
-      <motion.div
-        className="fixed bottom-24 right-4 z-50 md:hidden"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.3 }}
-      >
-        <Button
-          onClick={() => setLocation("/post/news")}
-          className="h-14 w-14 rounded-2xl shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all active:scale-90 bg-primary hover:bg-primary/90"
-          aria-label={t("feed.post_news")}
-        >
-          <Pencil className="h-6 w-6" />
-        </Button>
-      </motion.div>
     </PageTransition>
   );
 }
