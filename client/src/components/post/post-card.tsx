@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
@@ -71,84 +72,108 @@ export const PostCard = React.memo(function PostCard({
   }, [post.id, post.userReaction?.isLike, reactionMutation]);
 
   return (
-    <article className={cn(
-      "group w-full bg-background",
-      // Desktop: Card with subtle border and transition
-      "md:border-b md:hover:bg-accent/5 transition-colors duration-150",
-      // Mobile: Full-bleed with separator
-      "border-b border-border/40",
-      // Padding
-      "px-4 py-3 md:py-4",
-      "animate-fade-up"
-    )}>
-      <div className="flex gap-3">
-        {/* Left: Avatar - 44px reachability on mobile */}
+    <motion.article 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        "group w-full bg-card/40 backdrop-blur-sm transition-all duration-300",
+        // Desktop: Floating Card Style
+        "md:mb-4 md:rounded-3xl md:border md:border-border/40 md:hover:border-primary/20 md:hover:shadow-xl md:hover:shadow-primary/5",
+        // Mobile: Flat Stream Style
+        "border-b border-border/40",
+        // Padding
+        "px-4 py-5 md:p-6",
+        "relative overflow-hidden"
+      )}
+    >
+      {/* Premium Background Light Reflection (Desktop Only) */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+
+      <div className="flex gap-4">
+        {/* Left: Avatar Section */}
         <div className="flex-shrink-0">
           <Link href={`/users/${author.username}`}>
-            <UserAvatar 
-              user={author} 
-              size="sm" 
-              className="h-10 w-10 md:h-11 md:w-11 ring-offset-background transition-transform active:scale-95" 
-            />
+            <div className="relative group/avatar">
+              <UserAvatar 
+                user={author} 
+                className="h-12 w-12 rounded-2xl ring-2 ring-background transition-all group-hover/avatar:ring-primary/20 group-hover/avatar:scale-105" 
+              />
+              {author.role === 'owner' && (
+                <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5 shadow-lg">
+                  <BadgeCheck className="h-3 w-3 text-white" />
+                </div>
+              )}
+            </div>
           </Link>
         </div>
 
         {/* Right: Content Area */}
         <div className="flex-1 min-w-0">
-          {/* Header: Name, Handle, Time, Menu */}
-          <div className="flex items-start justify-between mb-0.5">
-            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-              <Link href={`/users/${author.username}`} className="font-bold text-sm md:text-[15px] hover:underline truncate">
-                {author.username || "User"}
-              </Link>
-              {author.verified && <BadgeCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />}
-              <span className="text-muted-foreground text-xs md:text-sm truncate">@{author.username || "user"}</span>
-              <span className="text-muted-foreground text-xs md:text-sm flex-shrink-0">·</span>
-              <span className="text-muted-foreground text-xs md:text-sm flex-shrink-0">
-                {(() => {
-                  try {
-                    return post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: de }) : "";
-                  } catch (e) {
-                    return "";
-                  }
-                })()}
-              </span>
+          {/* Header */}
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2">
+                <Link href={`/users/${author.username}`} className="font-black text-[15px] md:text-base hover:text-primary transition-colors truncate">
+                  {author.username || "User"}
+                </Link>
+                {author.verified && <BadgeCheck className="h-4 w-4 text-primary" />}
+                <span className="hidden sm:inline-block text-[11px] font-bold text-primary/60 bg-primary/5 px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                  {author.role}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground/60 text-[11px] md:text-xs">
+                <span className="truncate">@{author.username || "user"}</span>
+                <span>·</span>
+                <span>
+                  {(() => {
+                    try {
+                      return post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: de }) : "";
+                    } catch (e) {
+                      return "";
+                    }
+                  })()}
+                </span>
+              </div>
             </div>
 
-            {/* Context Menu Button - 44px touch target */}
-            <div className="flex-shrink-0 -mr-2 -mt-1">
+            {/* Menu */}
+            <div className="flex-shrink-0 -mr-2">
                <PostMenu post={post} isOwner={isOwner} onDelete={() => deletePostMutation.mutate(post.id)} reportType={reportType} />
             </div>
           </div>
 
-          {/* Title (for discussions/news) */}
+          {/* Title (Redesigned) */}
           {post.title && post.title !== post.content && (
             <Link href={`/posts/${post.id}`}>
-              <h3 className="font-bold text-sm md:text-base mb-1 hover:text-primary transition-colors line-clamp-2">
+              <h3 className="font-black text-lg md:text-xl mb-2 tracking-tight hover:text-primary transition-colors line-clamp-2 leading-tight">
                 {post.title}
               </h3>
             </Link>
           )}
 
-          {/* Body Content */}
+          {/* Body Content (Premium Typography) */}
           <p className={cn(
-            "text-sm md:text-base text-foreground/90 leading-relaxed break-words",
-            compact && "line-clamp-5"
+            "text-[15px] md:text-[17px] text-foreground/80 leading-relaxed break-words font-medium tracking-tight",
+            compact && "line-clamp-6"
           )}>
             {post.content}
           </p>
 
-          {/* Media - Full-bleed on mobile if requested, here responsive */}
+          {/* Media Section (Immersive) */}
           {post.mediaUrl && !imageLoadError && (
-            <div className={cn(
-              "mt-3 overflow-hidden border border-border/40 bg-muted/10 relative",
-              "rounded-xl aspect-video lg:aspect-auto min-h-[160px] max-h-[500px]"
-            )}>
+            <motion.div 
+              layoutId={`media-${post.id}`}
+              className={cn(
+                "mt-4 overflow-hidden bg-muted/20 relative group/media",
+                "rounded-[2rem] border border-border/40 shadow-inner",
+                "aspect-[16/10] md:aspect-auto min-h-[200px] max-h-[600px]"
+              )}
+            >
               {post.mediaType === "image" ? (
                 <img
                   src={`/uploads/${post.mediaUrl}`}
                   alt={post.title || "Post image"}
-                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.01]"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105"
                   onError={() => setImageLoadError(true)}
                   loading="lazy"
                 />
@@ -160,37 +185,43 @@ export const PostCard = React.memo(function PostCard({
                   onError={() => setImageLoadError(true)}
                 />
               ) : null}
-            </div>
+              
+              {/* Media Overlay Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover/media:opacity-100 transition-opacity duration-500" />
+            </motion.div>
           )}
 
           {imageLoadError && (
-            <div className="mt-3 p-6 rounded-xl bg-muted/10 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-              <ImageOff className="h-6 w-6 opacity-20" />
-              <span className="text-[10px] uppercase tracking-widest">{t("media_feed.load_error")}</span>
+            <div className="mt-4 p-8 rounded-[2rem] bg-muted/5 border border-dashed border-border/60 flex flex-col items-center justify-center gap-3 text-muted-foreground/40">
+              <ImageOff className="h-8 w-8" />
+              <span className="text-[10px] uppercase font-black tracking-[0.2em]">{t("media_feed.load_error")}</span>
             </div>
           )}
 
-          {/* Actions: Metric Bar */}
-          <div className="flex items-center justify-between mt-3 -ml-2 max-w-md">
+          {/* Action Bar (Refined) */}
+          <div className="flex items-center justify-between mt-5 -ml-3 max-w-sm">
             <ActionButton 
               icon={MessageCircle} 
               count={post.comments?.length} 
               label="Antworten"
               href={`/posts/${post.id}`} 
+              className="hover:text-primary hover:bg-primary/10"
             />
             <ActionButton 
               icon={Heart} 
               count={post.reactions?.likes} 
               label="Like"
               active={post.userReaction?.isLike}
-              activeColor="text-red-500 fill-red-500"
+              activeColor="text-red-500 fill-red-500 bg-red-500/5"
               onClick={handleLike}
               animate="like-pop"
+              className="hover:text-red-500 hover:bg-red-500/10"
             />
             <ActionButton 
               icon={Bookmark} 
               label="Speichern"
               onClick={() => {}} 
+              className="hover:text-yellow-500 hover:bg-yellow-500/10"
             />
             <ActionButton 
               icon={Share2} 
@@ -200,11 +231,12 @@ export const PostCard = React.memo(function PostCard({
                   navigator.share({ title: post.title, text: post.content, url: window.location.origin + `/posts/${post.id}` });
                 }
               }} 
+              className="hover:text-blue-500 hover:bg-blue-500/10"
             />
           </div>
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 });
 
@@ -217,7 +249,8 @@ function ActionButton({
   activeColor, 
   onClick, 
   href,
-  animate 
+  animate,
+  className
 }: { 
   icon: any, 
   count?: number, 
@@ -226,7 +259,8 @@ function ActionButton({
   activeColor?: string,
   onClick?: () => void,
   href?: string,
-  animate?: string
+  animate?: string,
+  className?: string
 }) {
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -242,8 +276,9 @@ function ActionButton({
   const Content = (
     <div className={cn(
       "flex items-center gap-2 text-muted-foreground transition-all duration-150",
-      "hover:bg-accent/10 hover:text-foreground rounded-full p-2 group-active:scale-90",
-      active && activeColor
+      "rounded-full p-2 group-active:scale-90",
+      active && activeColor,
+      className
     )}>
       <Icon className={cn(
         "h-[18px] w-[18px] md:h-5 md:w-5",
