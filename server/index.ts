@@ -112,13 +112,15 @@ if (!process.env.SENDGRID_API_KEY) {
 (async () => {
   try {
     logger.info('system', "Starting server...");
+    console.log("DEBUG: Application startup sequence initiated");
     
-    // FEATURE [AS-009]: Initialize system settings
-    await SettingsService.seed();
-
     // MIGRATION [POSTGRES-FIX]: Ensure schema consistency
+    // This MUST run before any other DB operations
     const { ensurePostgresColumns } = await import("./migrations/ensure_postgres_columns");
     await ensurePostgresColumns();
+
+    // FEATURE [AS-009]: Initialize system settings
+    await SettingsService.seed();
     
     // TICKET SYSTEM: Initialize Database Tables
     const { addTicketSystem } = await import("./migrations/add_ticket_system");
@@ -241,6 +243,7 @@ if (!process.env.SENDGRID_API_KEY) {
     });
   } catch (error) {
     logger.critical('system', "Failed to start server", error);
+    console.error("FATAL ERROR DURING STARTUP:", error);
     process.exit(1);
   }
 })();
