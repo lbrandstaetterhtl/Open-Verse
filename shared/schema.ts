@@ -18,6 +18,7 @@ export const users = pgTable("users", {
   bio: text("bio"),
   displayName: text("display_name"),
   avatarUrl: text("avatar_url"),
+  profilePictureUrl: text("profile_picture_url"), // Compatibility field
   coverUrl: text("cover_url"),
   location: text("location"),
   website: text("website"),
@@ -238,6 +239,7 @@ export const bans = pgTable("bans", {
 export const autoPunishmentRules = pgTable("auto_punishment_rules", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  description: text("description"),
   isActive: integer("is_active").default(1),
   anomalyType: text("anomaly_type").notNull(),
   severityThreshold: text("severity_threshold").notNull().default("high"),
@@ -391,6 +393,26 @@ export const communityAnalytics = pgTable("community_analytics", {
   createdAt: integer("created_at").notNull(),
 });
 
+export const analyticsSnapshots = pgTable("analytics_snapshots", {
+  id: serial("id").primaryKey(),
+  snapshotDate: text("snapshot_date").notNull(),
+  snapshotHour: integer("snapshot_hour"),
+  granularity: text("granularity").notNull().default('day'),
+  newUsers: integer("new_users").default(0),
+  totalUsers: integer("total_users").default(0),
+  activeUsersDay: integer("active_users_day").default(0),
+  activeUsersWeek: integer("active_users_week").default(0),
+  activeUsersMonth: integer("active_users_month").default(0),
+  newPosts: integer("new_posts").default(0),
+  newComments: integer("new_comments").default(0),
+  newLikes: integer("new_likes").default(0),
+  newFollows: integer("new_follows").default(0),
+  newCommunities: integer("new_communities").default(0),
+  engagementRate: real("engagement_rate").default(0),
+  d1Retention: real("d1_retention").default(0),
+  createdAt: integer("created_at").notNull(),
+});
+
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users).pick({ username: true, email: true, password: true });
 export const insertCommunitySchema = createInsertSchema(communities);
@@ -405,7 +427,18 @@ export const updatePasswordSchema = z.object({ password: z.string().min(1) });
 export const messageSchema = createInsertSchema(messages);
 export const loginSchema = z.object({ username: z.string().min(1), password: z.string().min(1) });
 
+// Specialized Post Schemas for the Frontend
+export const insertMediaPostSchema = createInsertSchema(posts).extend({
+  mediaFile: z.any().optional(),
+});
+
+export const insertDiscussionPostSchema = createInsertSchema(posts);
+
+// Types
 export type User = typeof users.$inferSelect;
+export type Post = typeof posts.$inferSelect;
+export type Comment = typeof comments.$inferSelect;
+export type Report = typeof reports.$inferSelect;
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type AnomalyEvent = typeof anomalyEvents.$inferSelect;
 export type Ban = typeof bans.$inferSelect;
@@ -414,5 +447,7 @@ export type AutoPunishmentExecution = typeof autoPunishmentExecutions.$inferSele
 export type Theme = typeof themes.$inferSelect;
 export type InsertTheme = typeof themes.$inferInsert;
 export type NotificationPreferences = typeof notificationPreferences.$inferSelect;
-export type Post = typeof posts.$inferSelect;
-export type Comment = typeof comments.$inferSelect;
+export type AdminSetting = typeof adminSettings.$inferSelect;
+export type AnalyticsSnapshot = typeof analyticsSnapshots.$inferSelect;
+export type CreatorAnalytics = typeof creatorAnalytics.$inferSelect;
+export type CommunityAnalytics = typeof communityAnalytics.$inferSelect;
