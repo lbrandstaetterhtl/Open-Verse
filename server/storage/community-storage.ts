@@ -61,6 +61,14 @@ export class CommunityStorage {
       isPrivate: community.isPrivate ? 1 : 0
     };
     const [newCommunity] = await db.insert(communities).values(mappedCommunity).returning();
+    
+    // Automatically add creator as owner
+    await db.insert(communityMembers).values({
+      communityId: newCommunity.id,
+      userId: community.creatorId,
+      role: 'owner'
+    });
+
     return newCommunity;
   }
 
