@@ -2,8 +2,8 @@ import { pgTable, text, serial, integer, timestamp, boolean, unique, index, real
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// APE-FIX [SCHEMA-001]: Universal Integer Schema (PG-Core with SQLite Compatibility)
-// Using integer for booleans (0/1) and timestamps (Unix) to ensure cross-DB compatibility.
+// APE-FIX [SCHEMA-001]: Universal Schema (Postgres-Native with SQLite Compatibility)
+// Using native timestamp types for Postgres compatibility while keeping integer/boolean logic for SQLite.
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -27,15 +27,15 @@ export const users = pgTable("users", {
   isShadowBanned: integer("is_shadow_banned").default(0),
   frozenUntil: integer("frozen_until"),
   freezeReason: text("freeze_reason"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)), 
+  createdAt: timestamp("created_at").notNull().defaultNow(), 
 });
 
 export const verificationTokens = pgTable("verification_tokens", {
   id: serial("id").primaryKey(),
   token: text("token").notNull().unique(),
   userId: integer("user_id").notNull(),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
-  expiresAt: integer("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
 });
 
 export const posts = pgTable("posts", {
@@ -48,7 +48,7 @@ export const posts = pgTable("posts", {
   mediaUrl: text("media_url"),
   mediaType: text("media_type"),
   communityId: integer("community_id"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const comments = pgTable("comments", {
@@ -57,7 +57,7 @@ export const comments = pgTable("comments", {
   authorId: integer("author_id").notNull(),
   postId: integer("post_id").notNull(),
   karma: integer("karma").notNull().default(0),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const reports = pgTable("reports", {
@@ -69,9 +69,9 @@ export const reports = pgTable("reports", {
   discussionId: integer("discussion_id"),
   status: text("status").notNull().default("pending"),
   ipAddress: text("ip_address"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   resolvedBy: integer("resolved_by"),
-  resolvedAt: integer("resolved_at"),
+  resolvedAt: timestamp("resolved_at"),
   resolutionTimeSeconds: integer("resolution_time_seconds"),
 });
 
@@ -79,7 +79,7 @@ export const followers = pgTable("followers", {
   id: serial("id").primaryKey(),
   followerId: integer("follower_id").notNull(),
   followingId: integer("following_id").notNull(),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const notifications = pgTable("notifications", {
@@ -98,7 +98,7 @@ export const notifications = pgTable("notifications", {
   seen: integer("seen").notNull().default(0),
   archived: integer("archived").notNull().default(0),
   groupKey: text("group_key"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const messages = pgTable("messages", {
@@ -107,7 +107,7 @@ export const messages = pgTable("messages", {
   receiverId: integer("receiver_id").notNull(),
   content: text("content").notNull(),
   read: integer("read").notNull().default(0),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const postLikes = pgTable("post_likes", {
@@ -115,14 +115,14 @@ export const postLikes = pgTable("post_likes", {
   userId: integer("user_id").notNull(),
   postId: integer("post_id").notNull(),
   isLike: integer("is_like").notNull().default(1),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const commentLikes = pgTable("comment_likes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   commentId: integer("comment_id").notNull(),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const communities = pgTable("communities", {
@@ -134,7 +134,7 @@ export const communities = pgTable("communities", {
   creatorId: integer("creator_id").notNull(),
   allowedCategories: text("allowed_categories").notNull().default('news,entertainment,discussion'),
   isPrivate: integer("is_private").notNull().default(0),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const communityMembers = pgTable("community_members", {
@@ -142,7 +142,7 @@ export const communityMembers = pgTable("community_members", {
   communityId: integer("community_id").notNull(),
   userId: integer("user_id").notNull(),
   role: text("role").notNull().default('member'),
-  joinedAt: integer("joined_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
 
 export const communityBans = pgTable("community_bans", {
@@ -150,7 +150,7 @@ export const communityBans = pgTable("community_bans", {
   communityId: integer("community_id").notNull(),
   userId: integer("user_id").notNull(),
   reason: text("reason"),
-  bannedAt: integer("banned_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  bannedAt: timestamp("banned_at").notNull().defaultNow(),
 });
 
 export const communityJoinRequests = pgTable("community_join_requests", {
@@ -158,7 +158,7 @@ export const communityJoinRequests = pgTable("community_join_requests", {
   communityId: integer("community_id").notNull(),
   userId: integer("user_id").notNull(),
   status: text("status").notNull().default('pending'),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const activityLogs = pgTable("activity_logs", {
@@ -191,7 +191,7 @@ export const activityLogs = pgTable("activity_logs", {
   isAnomaly: integer("is_anomaly").default(0),
   anomalyType: text("anomaly_type"),
   anomalyScore: real("anomaly_score"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const anomalyEvents = pgTable("anomaly_events", {
@@ -206,11 +206,11 @@ export const anomalyEvents = pgTable("anomaly_events", {
   thresholdValue: real("threshold_value"),
   status: text("status").default("open"),
   resolvedBy: integer("resolved_by"),
-  resolvedAt: integer("resolved_at"),
+  resolvedAt: timestamp("resolved_at"),
   resolutionNote: text("resolution_note"),
   autoAction: text("auto_action"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
-  updatedAt: integer("updated_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const bans = pgTable("bans", {
@@ -223,17 +223,17 @@ export const bans = pgTable("bans", {
   reason: text("reason").notNull(),
   severity: text("severity").notNull().default("medium"),
   isPermanent: integer("is_permanent").default(0),
-  expiresAt: integer("expires_at"),
+  expiresAt: timestamp("expires_at"),
   isShadow: integer("is_shadow").default(0),
   createdBy: integer("created_by"),
   createdByType: text("created_by_type").default("admin"), 
   anomalyId: integer("anomaly_id"),
   isActive: integer("is_active").default(1),
   revokedBy: integer("revoked_by"),
-  revokedAt: integer("revoked_at"),
+  revokedAt: timestamp("revoked_at"),
   revokeReason: text("revoke_reason"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
-  updatedAt: integer("updated_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const autoPunishmentRules = pgTable("auto_punishment_rules", {
@@ -249,8 +249,8 @@ export const autoPunishmentRules = pgTable("auto_punishment_rules", {
   escalateAfterCount: integer("escalate_after_count").default(1),
   escalationWindowHours: integer("escalation_window_hours").default(24),
   cooldownHours: integer("cooldown_hours").default(1),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
-  updatedAt: integer("updated_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const autoPunishmentExecutions = pgTable("auto_punishment_executions", {
@@ -264,7 +264,7 @@ export const autoPunishmentExecutions = pgTable("auto_punishment_executions", {
   actionDetail: text("action_detail"),
   success: integer("success").default(1),
   errorMessage: text("error_message"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const tickets = pgTable("tickets", {
@@ -284,11 +284,11 @@ export const tickets = pgTable("tickets", {
   status: text("status").notNull().default("open"),
   responseTimeSeconds: integer("response_time_seconds"),
   resolutionTimeSeconds: integer("resolution_time_seconds"),
-  firstResponseAt: integer("first_response_at"),
-  resolvedAt: integer("resolved_at"),
-  closedAt: integer("closed_at"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
-  updatedAt: integer("updated_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  firstResponseAt: timestamp("first_response_at"),
+  resolvedAt: timestamp("resolved_at"),
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const ticketComments = pgTable("ticket_comments", {
@@ -301,8 +301,8 @@ export const ticketComments = pgTable("ticket_comments", {
   changeType: text("change_type"),
   changeFrom: text("change_from"),
   changeTo: text("change_to"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
-  updatedAt: integer("updated_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const ticketStatusHistory = pgTable("ticket_status_history", {
@@ -312,7 +312,7 @@ export const ticketStatusHistory = pgTable("ticket_status_history", {
   fromStatus: text("from_status"),
   toStatus: text("to_status"),
   reason: text("reason"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const systemMetrics = pgTable("system_metrics", {
@@ -321,10 +321,10 @@ export const systemMetrics = pgTable("system_metrics", {
   metricValue: real("metric_value").notNull(),
   metricUnit: text("metric_unit"),
   dimensions: text("dimensions").default("{}"),
-  periodStart: integer("period_start").notNull(),
-  periodEnd: integer("period_end").notNull(),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
   granularity: text("granularity").default("minute"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const alertRules = pgTable("alert_rules", {
@@ -337,7 +337,7 @@ export const alertRules = pgTable("alert_rules", {
   windowSeconds: integer("window_seconds").default(300),
   severity: text("severity").notNull().default("warning"),
   isActive: integer("is_active").default(1),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const alertHistory = pgTable("alert_history", {
@@ -351,9 +351,9 @@ export const alertHistory = pgTable("alert_history", {
   thresholdValue: real("threshold_value"),
   status: text("status").default("firing"),
   acknowledgedBy: integer("acknowledged_by"),
-  acknowledgedAt: integer("acknowledged_at"),
-  resolvedAt: integer("resolved_at"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const bulkActionLogs = pgTable("bulk_action_logs", {
@@ -367,7 +367,7 @@ export const bulkActionLogs = pgTable("bulk_action_logs", {
   failCount: integer("fail_count").default(0),
   reason: text("reason"),
   metadata: text("metadata").default("{}"),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const notificationPreferences = pgTable("notification_preferences", {
@@ -377,7 +377,7 @@ export const notificationPreferences = pgTable("notification_preferences", {
   postMilestone: integer("post_milestone").notNull().default(1),
   systemAnnouncement: integer("system_announcement").notNull().default(1),
   browserNotifications: integer("browser_notifications").notNull().default(1),
-  updatedAt: integer("updated_at"),
+  updatedAt: timestamp("updated_at"),
 });
 
 export const themes = pgTable("themes", {
@@ -385,7 +385,7 @@ export const themes = pgTable("themes", {
   userId: integer("user_id").notNull(),
   name: text("name").notNull(),
   colors: text("colors").notNull(),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const adminSettings = pgTable("admin_settings", {
@@ -399,7 +399,7 @@ export const adminSettings = pgTable("admin_settings", {
   isSensitive: integer("is_sensitive").default(0),
   isReadonly: integer("is_readonly").default(0),
   updatedBy: integer("updated_by"),
-  updatedAt: integer("updated_at"),
+  updatedAt: timestamp("updated_at"),
 });
 
 export const creatorAnalytics = pgTable("creator_analytics", {
@@ -414,7 +414,7 @@ export const creatorAnalytics = pgTable("creator_analytics", {
   postCommentsReceived: integer("post_comments_received").default(0),
   totalReach: integer("total_reach").default(0),
   engagementScore: real("engagement_score").default(0),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const communityAnalytics = pgTable("community_analytics", {
@@ -427,7 +427,7 @@ export const communityAnalytics = pgTable("community_analytics", {
   totalPosts: integer("total_posts").default(0),
   activeMembers: integer("active_members").default(0),
   engagementScore: real("engagement_score").default(0),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const analyticsSnapshots = pgTable("analytics_snapshots", {
@@ -447,7 +447,7 @@ export const analyticsSnapshots = pgTable("analytics_snapshots", {
   newCommunities: integer("new_communities").default(0),
   engagementRate: real("engagement_rate").default(0),
   d1Retention: real("d1_retention").default(0),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snapshots", {
@@ -470,7 +470,7 @@ export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snap
   userUnbans: integer("user_unbans").default(0),
   contentRemovals: integer("content_removals").default(0),
   performanceScore: real("performance_score").default(0),
-  createdAt: integer("created_at").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Zod schemas
