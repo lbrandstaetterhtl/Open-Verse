@@ -73,14 +73,14 @@ class AutoPunishmentEngine {
     const now = Math.floor(Date.now() / 1000);
 
     // APE-FIX [BUG-011]: Robust Cooldown Check
-    const recentExecution = await db.select()
+    const [recentExecution] = await db.select()
       .from(autoPunishmentExecutions)
       .where(and(
         eq(autoPunishmentExecutions.ruleId, rule.id),
         eq(autoPunishmentExecutions.userId, anomaly.userId!),
-        gte(autoPunishmentExecutions.createdAt, now - (rule.cooldownHours ?? 1) * 3600)
+        gte(autoPunishmentExecutions.createdAt, new Date(Date.now() - (rule.cooldownHours ?? 1) * 3600 * 1000))
       ))
-      .get();
+      .limit(1);
 
     if (recentExecution) {
       apLogger.ruleEvaluated(rule.name, anomaly.userId!, 'skip', `Cooldown active (last: ${recentExecution.createdAt})`);
@@ -94,7 +94,7 @@ class AutoPunishmentEngine {
         .where(and(
           eq(anomalyEvents.userId, anomaly.userId!),
           eq(anomalyEvents.anomalyType, anomaly.anomalyType),
-          gte(anomalyEvents.createdAt, now - (rule.escalationWindowHours ?? 24) * 3600)
+          gte(anomalyEvents.createdAt, new Date(Date.now() - (rule.escalationWindowHours ?? 24) * 3600 * 1000))
         )).execute();
 
       const recentAnomalies = result[0]?.count ?? 0;
@@ -125,10 +125,11 @@ class AutoPunishmentEngine {
   }
 
   private async isAccountMatureEnough(userId: number): Promise<boolean> {
-    const user = await db.select().from(users).where(eq(users.id, userId)).get();
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!user) return false;
-    const now = Math.floor(Date.now() / 1000);
-    return (now - user.createdAt) >= 86400; // 24 hours
+    const now = Date.now();
+    const createdAt = user.createdAt instanceof Date ? user.createdAt.getTime() : Number(user.createdAt) * 1000;
+    return (now - createdAt) >= 86400 * 1000; // 24 hours
   }
 
   private async executeAction(
@@ -141,7 +142,7 @@ class AutoPunishmentEngine {
     const now = Math.floor(Date.now() / 1000);
 
     try {
-      const expiresAt = rule.actionDurationHours ? now + (rule.actionDurationHours * 3600) : null;
+      const expiresAtDate = rule.actionDurationHours ? new Date(Date.now() + (rule.actionDurationHours * 3600 * 1000)) : null;
 
       switch (rule.action) {
         case 'warn':
@@ -165,13 +166,13 @@ class AutoPunishmentEngine {
             userId: anomaly.userId,
             reason: rule.actionReason,
             severity: 'medium',
-            isPermanent: expiresAt ? 0 : 1,
-            expiresAt,
+            isPermanent: expiresAtDate ? 0 : 1,
+            expiresAt: expiresAtDate,
             isShadow: 1,
             createdByType: 'auto_punishment',
             anomalyId: anomaly.id || null,
-            createdAt: now,
-            updatedAt: now
+            createdAt: new Date(),
+            updatedAt: new Date()
           }).returning();
           await db.update(users).set({ isShadowBanned: 1 }).where(eq(users.id, anomaly.userId!));
           banId = shadowBan.id;
@@ -185,11 +186,11 @@ class AutoPunishmentEngine {
             reason: rule.actionReason,
             severity: rule.action === 'permanent_ban' ? 'permanent' : 'high',
             isPermanent: rule.action === 'permanent_ban' ? 1 : 0,
-            expiresAt,
+            expiresAt: expiresAtDate,
             createdByType: 'auto_punishment',
             anomalyId: anomaly.id || null,
-            createdAt: now,
-            updatedAt: now
+            createdAt: new Date(),
+            updatedAt: new Date()
           }).returning();
           await db.update(users).set({ karma: -1000 }).where(eq(users.id, anomaly.userId!));
           banId = accountBan.id;
@@ -202,11 +203,11 @@ class AutoPunishmentEngine {
               ipAddress: anomaly.ipAddress,
               reason: rule.actionReason,
               severity: 'high',
-              expiresAt,
+              expiresAt: expiresAtDate,
               createdByType: 'auto_punishment',
               anomalyId: anomaly.id || null,
-              createdAt: now,
-              updatedAt: now
+              createdAt: new Date(),
+              updatedAt: new Date()
             }).returning();
             banId = ipBan.id;
           }
@@ -215,7 +216,7 @@ class AutoPunishmentEngine {
 
       if (anomaly.id) {
         await db.update(anomalyEvents)
-          .set({ status: 'resolved', autoAction: rule.action, updatedAt: now })
+          .set({ status: 'resolved', autoAction: rule.action, updatedAt: new Date() })
           .where(eq(anomalyEvents.id, anomaly.id));
       }
 
@@ -237,7 +238,7 @@ class AutoPunishmentEngine {
       actionDetail: JSON.stringify({ reason: rule.actionReason }),
       success: success ? 1 : 0,
       errorMessage: errorMessage || null,
-      createdAt: now,
+      createdAt: new Date(),
     });
   }
 }

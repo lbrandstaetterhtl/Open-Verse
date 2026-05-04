@@ -26,7 +26,7 @@ class BulkActionService {
     await db.transaction(async (tx) => {
       for (const userId of params.userIds) {
         try {
-          const user = await tx.select().from(users).where(eq(users.id, userId)).get();
+          const [user] = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
 
           if (!user) {
             results.failed++;
@@ -34,9 +34,7 @@ class BulkActionService {
             continue;
           }
 
-          const expiresAt = params.durationHours
-            ? now + params.durationHours * 3600
-            : null;
+            expiresAt: params.durationHours ? new Date(Date.now() + params.durationHours * 3600 * 1000) : null,
 
           // Ban-Eintrag erstellen
           await tx.insert(bans).values({
@@ -50,8 +48,8 @@ class BulkActionService {
             isShadow: params.banType === "shadow" ? 1 : 0,
             createdBy: params.performedBy,
             createdByType: "admin",
-            createdAt: now,
-            updatedAt: now,
+            createdAt: new Date(),
+            updatedAt: new Date(),
             isActive: 1,
             notes: null,
             revokeReason: null,
@@ -94,7 +92,7 @@ class BulkActionService {
       successCount: results.success,
       failCount: results.failed,
       reason: params.reason,
-      createdAt: now,
+      createdAt: new Date(),
     });
 
     // Activity Log
@@ -150,7 +148,7 @@ class BulkActionService {
       successCount: results.success,
       failCount: results.failed,
       reason: params.reason,
-      createdAt: now,
+      createdAt: new Date(),
     });
 
     logger.info('admin', `Bulk report close completed`, { 
@@ -199,7 +197,7 @@ class BulkActionService {
       successCount: results.success,
       failCount: results.failed,
       reason: params.reason,
-      createdAt: now,
+      createdAt: new Date(),
     });
 
     logger.info('admin', `Bulk post delete completed`, { 

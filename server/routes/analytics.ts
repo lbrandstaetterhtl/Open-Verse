@@ -51,7 +51,7 @@ router.get("/hot-communities", async (req, res) => {
         .where(eq(communityAnalytics.snapshotDate, dateStr))
         .orderBy(desc(communityAnalytics.engagementScore))
         .limit(10)
-        .all();
+        .execute();
 
         res.json(leaderboard);
     } catch (error) {
@@ -77,7 +77,7 @@ router.get("/top-creators", async (req, res) => {
         .where(eq(creatorAnalytics.snapshotDate, dateStr))
         .orderBy(desc(creatorAnalytics.engagementScore))
         .limit(10)
-        .all();
+        .execute();
 
         res.json(leaderboard);
     } catch (error) {

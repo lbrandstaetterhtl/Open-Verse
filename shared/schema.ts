@@ -25,10 +25,18 @@ export const users = pgTable("users", {
   isPrivate: integer("is_private").notNull().default(0),
   isFrozen: integer("is_frozen").default(0),
   isShadowBanned: integer("is_shadow_banned").default(0),
-  frozenUntil: integer("frozen_until"),
+  frozenUntil: timestamp("frozen_until"),
   freezeReason: text("freeze_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(), 
 });
+
+export const sessions = pgTable("session", {
+  sid: text("sid").primaryKey(),
+  sess: text("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+}, (table) => ({
+  expireIdx: index("IDX_session_expire").on(table.expire),
+}));
 
 export const verificationTokens = pgTable("verification_tokens", {
   id: serial("id").primaryKey(),

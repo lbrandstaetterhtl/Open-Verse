@@ -26,7 +26,9 @@ router.post("/", isAuthenticated, async (req, res) => {
         // Allow global owners and admins to bypass this
         const isPrivileged = userRole === "admin" || userRole === "owner";
         
+        const userId = (req.user as any).id;
         if (!isPrivileged && userKarma < 200) {
+            console.log(`[Community] Creation rejected for user ${userId}: Insufficient Karma (${userKarma}/200)`);
             return res.status(403).send("You need at least 200 reputation to create a community.");
         }
 

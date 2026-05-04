@@ -7,10 +7,10 @@ import { anomalyLogger, dbLogger } from "../logger/service-loggers";
 import { logger } from "../logger";
 
 /**
- * APE-FIX [TIME-001]: Unified Unix Timing
+ * APE-FIX [TIME-001]: Unified Timing
  */
-export function nowUnix(): number {
-  return Math.floor(Date.now() / 1000);
+export function now(): Date {
+  return new Date();
 }
 
 class AnomalyDetector {
@@ -24,7 +24,6 @@ class AnomalyDetector {
   async checkBruteForce(entry: any): Promise<void> {
     if (entry.action !== 'auth.login_failed') return;
     const ip = entry.ipAddress || "unknown";
-    const now = nowUnix();
     
     // Check recent anomalies for dynamic penalization
     const [recentAnomalies] = await db.select({ count: count() })
@@ -32,7 +31,7 @@ class AnomalyDetector {
       .where(and(
         entry.userId ? eq(anomalyEvents.userId, entry.userId) : sql`1=0`,
         eq(anomalyEvents.status, 'open'),
-        gte(anomalyEvents.createdAt, now - 86400)
+        gte(anomalyEvents.createdAt, new Date(Date.now() - 86400 * 1000))
       ));
     
     const baseThreshold = 10;
@@ -47,7 +46,7 @@ class AnomalyDetector {
           entry.userId ? eq(activityLogs.userId, entry.userId) : sql`1=0`,
           eq(activityLogs.ipAddress, ip)
         ),
-        gte(activityLogs.createdAt, now - 900) // 15 min
+        gte(activityLogs.createdAt, new Date(Date.now() - 900 * 1000)) // 15 min
       ));
  
     const countVal = failedLogins?.count ?? 0;
@@ -71,7 +70,6 @@ class AnomalyDetector {
    */
   async checkMassAction(entry: any): Promise<void> {
     const action = entry.action;
-    const now = nowUnix();
     
     const thresholds: Record<string, { window: number; limit: number; severity: string }> = {
       'like.add':       { window: 3600,  limit: 500,  severity: 'warning' },
@@ -90,7 +88,7 @@ class AnomalyDetector {
       .where(and(
         eq(activityLogs.userId, entry.userId),
         eq(activityLogs.action, action as any),
-        gte(activityLogs.createdAt, now - config.window)
+        gte(activityLogs.createdAt, new Date(Date.now() - config.window * 1000))
       ));
 
     const countVal = recentCount?.count ?? 0;
@@ -115,7 +113,6 @@ class AnomalyDetector {
   async checkImpossibleTravel(entry: any): Promise<void> {
     if (entry.action !== 'auth.login' || entry.status !== 'success' || !entry.userId) return;
     const country = entry.ipCountry || "unknown";
-    const now = nowUnix();
 
     const lastLogins = await db.select()
       .from(activityLogs)
@@ -134,17 +131,19 @@ class AnomalyDetector {
     const isKnown = (c: any) => c && c !== 'unknown' && c !== 'local' && c !== 'private';
 
     if (isKnown(prev.ipCountry) && isKnown(country) && prev.ipCountry !== country) {
-      const timeDiff = entry.createdAt - prev.createdAt;
-      const minTravelTime = 14400; // 4 hours buffer for VPN/Roaming
+      const entryTime = entry.createdAt instanceof Date ? entry.createdAt.getTime() : Number(entry.createdAt) * 1000;
+      const prevTime = prev.createdAt instanceof Date ? prev.createdAt.getTime() : Number(prev.createdAt) * 1000;
+      const timeDiffMs = entryTime - prevTime;
+      const minTravelTimeMs = 14400 * 1000; // 4 hours buffer for VPN/Roaming
 
-      if (timeDiff < minTravelTime) {
+      if (timeDiffMs < minTravelTimeMs) {
         await this.createAnomaly({
           userId: entry.userId,
           type: 'impossible_travel',
           severity: 'high',
           title: 'Impossible Travel Detection',
-          description: `Travel from ${prev.ipCountry} to ${country} in ${Math.floor(timeDiff/60)}min`,
-          triggerValue: timeDiff / 60,
+          description: `Travel from ${prev.ipCountry} to ${country} in ${Math.floor(timeDiffMs/60000)}min`,
+          triggerValue: timeDiffMs / 60000,
           thresholdValue: 240,
           autoAction: 'account_flagged',
           evidence: { prevCountry: prev.ipCountry, currCountry: country, timeDiff }
@@ -202,14 +201,13 @@ class AnomalyDetector {
    */
   async checkContentSpam(entry: any): Promise<void> {
     if (!['post.create', 'comment.create'].includes(entry.action) || !entry.userId) return;
-    const now = nowUnix();
 
     const [recentContent] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.userId, entry.userId),
         inArray(activityLogs.action, ['post.create', 'comment.create']),
-        gte(activityLogs.createdAt, now - 300) // 5 min window
+        gte(activityLogs.createdAt, new Date(Date.now() - 300 * 1000)) // 5 min window
       ));
 
     const countVal = recentContent?.count ?? 0;
@@ -235,13 +233,12 @@ class AnomalyDetector {
    */
   async checkAccountSharing(entry: any): Promise<void> {
     if (!entry.userId) return;
-    const now = nowUnix();
 
     const recentIps = await db.select({ ipAddress: activityLogs.ipAddress, country: activityLogs.ipCountry })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.userId, entry.userId),
-        gte(activityLogs.createdAt, now - 3600)
+        gte(activityLogs.createdAt, new Date(Date.now() - 3600 * 1000))
       ))
       .execute();
 
@@ -267,14 +264,13 @@ class AnomalyDetector {
   async checkApiAbuse(entry: any): Promise<void> {
     // Basic rate limit check for API endpoints if logged
     if (entry.category !== 'api' || !entry.userId) return;
-    const now = nowUnix();
     
     const [reqCount] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.userId, entry.userId),
         eq(activityLogs.category, 'api'),
-        gte(activityLogs.createdAt, now - 60)
+        gte(activityLogs.createdAt, new Date(Date.now() - 60 * 1000))
       ));
     
     if ((reqCount?.count ?? 0) > 200) { // 200 req/min
@@ -306,14 +302,14 @@ class AnomalyDetector {
     const now = nowUnix();
 
     await db.transaction(async (tx) => {
-      const existing = await tx.select()
+      const [existing] = await tx.select()
         .from(anomalyEvents)
         .where(and(
           params.userId ? eq(anomalyEvents.userId, params.userId) : isNull(anomalyEvents.userId),
           eq(anomalyEvents.anomalyType, params.type),
           eq(anomalyEvents.status, 'open'),
-          gte(anomalyEvents.createdAt, now - 300) // 5 min dedup
-        )).get();
+          gte(anomalyEvents.createdAt, new Date(Date.now() - 300 * 1000)) // 5 min dedup
+        )).limit(1);
 
       if (existing) {
         anomalyLogger.deduplicated(params.type, params.userId);
@@ -331,8 +327,8 @@ class AnomalyDetector {
         thresholdValue: params.thresholdValue,
         autoAction: params.autoAction,
         status: 'open',
-        createdAt: now,
-        updatedAt: now,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       }).returning({ id: anomalyEvents.id });
 
       anomalyLogger.detected(params.type, params.userId, params.severity, {

@@ -80,7 +80,6 @@ const DEFAULT_RULES = [
 ];
 
 export async function seedDefaultRules(): Promise<void> {
-  const now = Math.floor(Date.now() / 1000);
   try {
     for (const rule of DEFAULT_RULES) {
       const results = await db.select()
@@ -91,8 +90,8 @@ export async function seedDefaultRules(): Promise<void> {
       if (results.length === 0) {
         await db.insert(autoPunishmentRules).values({
           ...rule,
-          createdAt: now,
-          updatedAt: now,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         });
       } else {
         // APE-FIX: Update existing rules to new thresholds if they are defaults
@@ -102,7 +101,7 @@ export async function seedDefaultRules(): Promise<void> {
             action: rule.action,
             actionDurationHours: rule.actionDurationHours,
             severityThreshold: rule.severityThreshold,
-            updatedAt: now
+            updatedAt: new Date()
           })
           .where(eq(autoPunishmentRules.name, rule.name));
       }
