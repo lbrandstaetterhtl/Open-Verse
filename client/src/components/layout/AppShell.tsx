@@ -43,7 +43,11 @@ export function AppShell({ children }: AppShellProps) {
   const isAuthPage = location === "/auth";
 
   if (isAuthPage) {
-    return <main className="min-h-screen">{children}</main>;
+    return (
+      <Suspense fallback={null}>
+        <main className="min-h-screen">{children}</main>
+      </Suspense>
+    );
   }
 
   const adminNavItems = [
