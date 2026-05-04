@@ -1,4 +1,5 @@
-import React, { useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
+import React from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
