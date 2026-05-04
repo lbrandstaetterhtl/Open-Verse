@@ -214,6 +214,27 @@ router.get("/:username/liked", async (req, res) => {
     }
 });
 
+router.get("/communities", isAuthenticated, async (req, res) => {
+    try {
+        const communities = await storage.getUserCommunities((req.user as any).id);
+        res.json(communities);
+    } catch (error) {
+        console.error("Error getting user communities:", error);
+        res.status(500).send("Failed to get user communities");
+    }
+});
+
+router.get("/moderated-communities", isAuthenticated, async (req, res) => {
+    try {
+        const userId = (req.user as any).id;
+        const communities = await storage.getModeratedCommunities(userId);
+        res.json(communities);
+    } catch (error) {
+        console.error("Error getting moderated communities:", error);
+        res.status(500).send("Failed to get moderated communities");
+    }
+});
+
 router.get("/:username", async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
@@ -258,27 +279,6 @@ router.get("/:username", async (req, res) => {
     } catch (error) {
         console.error("Error fetching user profile:", error);
         res.status(500).send("Failed to fetch user profile");
-    }
-});
-
-router.get("/user/communities", isAuthenticated, async (req, res) => {
-    try {
-        const communities = await storage.getUserCommunities((req.user as any).id);
-        res.json(communities);
-    } catch (error) {
-        console.error("Error getting user communities:", error);
-        res.status(500).send("Failed to get user communities");
-    }
-});
-
-router.get("/user/moderated-communities", isAuthenticated, async (req, res) => {
-    try {
-        const userId = (req.user as any).id;
-        const communities = await storage.getModeratedCommunities(userId);
-        res.json(communities);
-    } catch (error) {
-        console.error("Error getting moderated communities:", error);
-        res.status(500).send("Failed to get moderated communities");
     }
 });
 

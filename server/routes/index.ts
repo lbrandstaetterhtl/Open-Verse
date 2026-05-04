@@ -229,7 +229,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use("/api/messages", messageRoutes);
     app.use("/api/notifications", notificationRoutes);
     app.use("/api/user/themes", themeRoutes);
-    app.use("/api", userRoutes);
+    app.use("/api/users", userRoutes);
+    app.use("/api/user", userRoutes);
+    app.use("/api", userRoutes); // Fallback for any other legacy routes
 
     // 8. WebSocket Setup
     const wss = new WebSocketServer({ noServer: true });
