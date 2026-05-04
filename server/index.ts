@@ -9,9 +9,35 @@ import { subDays } from "date-fns";
 import { closeDb } from "./db";
 import fs from "node:fs";
 import path from "node:path";
+import helmet from "helmet";
+import cors from "cors";
 
 
 const app = express();
+
+// SECURITY-FIX [SEC-001]: Global Security Headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Vite/Dev need inline
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      fontSrc: ["'self'", "https:", "data:"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Required for some media loads
+}));
+
+// SECURITY-FIX [SEC-005]: Explicit CORS Policy
+app.use(cors({
+  origin: true, // Allow all origins in dev, or specific origins in prod
+  credentials: true,
+}));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
@@ -169,12 +195,17 @@ if (!process.env.SENDGRID_API_KEY) {
     
     const server = await registerRoutes(app);
 
-    // Global error handler - MOVED HERE [INDEX-001] to catch route errors correctly
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error("Unhandled error:", err);
+    // SECURITY-FIX [SEC-002]: Hardened Error Handler (No Info-Leak in Prod)
+    app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
+      const isDev = app.get("env") === "development";
+      
+      console.error(`[Error] ${req.method} ${req.path} ::`, err);
+
+      res.status(status).json({ 
+        message: isDev ? err.message : "Internal Server Error",
+        ...(isDev && { stack: err.stack })
+      });
     });
 
     if (app.get("env") === "development") {

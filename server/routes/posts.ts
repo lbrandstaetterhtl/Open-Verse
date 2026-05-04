@@ -395,13 +395,19 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
 router.get("/:postId/comments", async (req, res) => {
     try {
         const comments = await storage.getComments(parseInt(req.params.postId));
-        const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
-            const author = await storage.getUser(comment.authorId);
+        
+        // SECURITY-FIX [SEC-003]: Batch fetch authors to prevent N+1 queries
+        const authorIds = [...new Set(comments.map(c => c.authorId))];
+        const authors = await storage.getUsersByIds(authorIds);
+        const authorsMap = new Map(authors.map(u => [u.id, u]));
+
+        const commentsWithAuthors = comments.map(comment => {
+            const author = authorsMap.get(comment.authorId);
             return {
                 ...comment,
                 author: { username: author?.username || 'Unknown' }
             };
-        }));
+        });
         res.json(commentsWithAuthors);
     } catch (error) {
         console.error('Error fetching comments:', error);

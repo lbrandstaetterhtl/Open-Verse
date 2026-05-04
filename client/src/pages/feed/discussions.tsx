@@ -36,14 +36,14 @@ export default function DiscussionsFeedPage() {
 
   return (
     <PageTransition>
-      {/* Sticky Top Header – Glass Effect */}
-      <header className="sticky top-14 z-40 w-full glass-premium border-b border-border/40">
+      {/* Sticky Top Header – Glass Effect on Mobile, Subtle on Desktop */}
+      <header className="sticky top-14 md:relative md:top-0 z-40 w-full glass-premium border-b border-border/40 md:border-none">
         <div className="max-w-[680px] mx-auto px-4 h-14 flex items-center justify-between">
-          <h1 className="text-base md:text-lg font-black tracking-tight uppercase">
+          <h1 className="text-base md:hidden font-black tracking-tight uppercase">
             {t("feed.discussions_title")}
           </h1>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
             <Button 
               variant="ghost" 
               size="sm" 

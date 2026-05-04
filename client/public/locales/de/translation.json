@@ -14,7 +14,33 @@
     "content_feeds": "Feeds",
     "personal_tools": "Tools",
     "navigation": "Navigation",
+    "support": "Support Tickets",
     "mobile_footer_hint": "Entdecke Premium-Tools wie den KI-Generator und Support über das Benutzermenü am Desktop."
+  },
+  "navigation": {
+    "home": "Home",
+    "search": "Suche",
+    "create": "Erstellen",
+    "notifications": "Mitteilungen",
+    "profile": "Profil"
+  },
+  "auth": {
+    "login": "Anmelden"
+  },
+  "bans": {
+    "title": "Bans & Sperren"
+  },
+  "autoPunishment": {
+    "title": "Auto-Bestrafung"
+  },
+  "analytics": {
+    "title": "Analysen"
+  },
+  "modPerf": {
+    "nav": "Mod-Leistung"
+  },
+  "security": {
+    "stress_test": "Sicherheitstests"
   },
   "profile": {
     "pro": "Pro",
@@ -128,7 +154,9 @@
     "tabs": {
       "users": "Benutzer",
       "reports": "Meldungen",
-      "monitoring": "Monitoring System"
+      "monitoring": "Monitoring System",
+      "logs": "Protokolle",
+      "settings": "Einstellungen"
     },
     "roles": {
       "owner": "Inhaber",

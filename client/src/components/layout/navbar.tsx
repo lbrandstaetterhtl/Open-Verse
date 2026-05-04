@@ -1,4 +1,4 @@
-import { useTranslation } from "react-i18next";
+import React, { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,13 @@ export function Navbar() {
   const [location] = useLocation();
   const { user } = useAuth();
   const { settings } = useSiteSettings();
+  const [wsStatus, setWsStatus] = import.meta.env.SSR ? [null, null] : React.useState<"connected" | "disconnected">("disconnected");
+
+  React.useEffect(() => {
+    const handleStatus = (e: any) => setWsStatus(e.detail);
+    window.addEventListener("open-verse-ws-status", handleStatus);
+    return () => window.removeEventListener("open-verse-ws-status", handleStatus);
+  }, []);
 
   const primaryLinks = [
     { href: "/feed/media", icon: Newspaper, label: t("navbar.media_feed") },
@@ -120,6 +127,12 @@ export function Navbar() {
               <span className="font-black text-lg tracking-tighter hidden sm:inline-block bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">
                 {settings.site_name.toUpperCase()}
               </span>
+              {user && (
+                <div className={cn(
+                  "h-1.5 w-1.5 rounded-full mt-1 transition-colors duration-500 shadow-[0_0_8px_rgba(var(--primary),0.5)]",
+                  wsStatus === "connected" ? "bg-emerald-500" : "bg-destructive animate-pulse"
+                )} title={wsStatus === "connected" ? "Live Connected" : "Connection Lost - Retrying..."} />
+              )}
             </Link>
           </div>
 

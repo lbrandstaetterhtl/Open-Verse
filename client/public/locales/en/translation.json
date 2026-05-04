@@ -14,7 +14,33 @@
     "content_feeds": "Feeds",
     "personal_tools": "Tools",
     "navigation": "Navigation",
+    "support": "Support Tickets",
     "mobile_footer_hint": "Explore premium tools like AI Generator and Support via the User Menu on Desktop."
+  },
+  "navigation": {
+    "home": "Home",
+    "search": "Search",
+    "create": "Create",
+    "notifications": "Notifications",
+    "profile": "Profile"
+  },
+  "auth": {
+    "login": "Login"
+  },
+  "bans": {
+    "title": "Bans & Restrictions"
+  },
+  "autoPunishment": {
+    "title": "Auto-Punishment"
+  },
+  "analytics": {
+    "title": "Analytics"
+  },
+  "modPerf": {
+    "nav": "Mod Performance"
+  },
+  "security": {
+    "stress_test": "Security Tests"
   },
   "profile": {
     "pro": "Pro",
@@ -133,7 +159,9 @@
     "tabs": {
       "users": "Users",
       "reports": "Reports",
-      "monitoring": "Monitoring System"
+      "monitoring": "Monitoring System",
+      "logs": "Activity Logs",
+      "settings": "Settings"
     },
     "roles": {
       "owner": "Owner",

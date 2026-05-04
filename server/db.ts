@@ -448,6 +448,21 @@ if (useSqlite) {
       created_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
       UNIQUE(user_id, snapshot_date)
     );
+    CREATE TABLE IF NOT EXISTS admin_settings (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      category        TEXT NOT NULL,
+      key             TEXT NOT NULL,
+      label           TEXT NOT NULL,
+      description     TEXT,
+      value           TEXT,
+      value_type      TEXT NOT NULL DEFAULT 'string',
+      default_value   TEXT,
+      is_sensitive    INTEGER DEFAULT 0,
+      is_readonly     INTEGER DEFAULT 0,
+      updated_by      INTEGER,
+      updated_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      UNIQUE(category, key)
+    );
   `);
   console.log("DEBUG: SQLite tables initialized");
 

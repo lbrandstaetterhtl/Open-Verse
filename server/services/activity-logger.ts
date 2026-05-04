@@ -107,9 +107,20 @@ class ActivityLoggerService {
   private queue: LogEntry[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
   private readonly BATCH_SIZE = 50;
+  private readonly MAX_QUEUE_SIZE = 5000; // LEAK-001 FIX: Bounded Queue
   private readonly FLUSH_INTERVAL_MS = 2000;
+  private droppedCount = 0;
 
   async log(entry: LogEntry): Promise<void> {
+    // LEAK-001 FIX: Prevent unbounded growth
+    if (this.queue.length >= this.MAX_QUEUE_SIZE) {
+      this.droppedCount++;
+      if (this.droppedCount % 100 === 1) {
+        console.warn(`[ActivityLogger] Queue full (${this.MAX_QUEUE_SIZE}), dropping entry. Total dropped: ${this.droppedCount}`);
+      }
+      return;
+    }
+
     this.queue.push(entry);
 
     if (entry.severity === 'critical' || entry.severity === 'error') {

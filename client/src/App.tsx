@@ -172,21 +172,46 @@ function WebSocketManager() {
   return null;
 }
 
+function LoadingScreen() {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-background z-[9999]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+        <p className="text-sm font-medium text-muted-foreground animate-pulse">Initializing Osiris...</p>
+      </div>
+    </div>
+  );
+}
+
+function AppContent() {
+  const { isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  return (
+    <>
+      <WebSocketManager />
+      <GlobalThemeApplier />
+      <HeadManager />
+      <MaintenanceGuard>
+        <AppShell>
+          <Router />
+        </AppShell>
+      </MaintenanceGuard>
+      <NewUserDialog />
+      <Toaster />
+    </>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <AuthProvider>
-          <WebSocketManager />
-          <GlobalThemeApplier />
-          <HeadManager />
-          <MaintenanceGuard>
-            <AppShell>
-              <Router />
-            </AppShell>
-          </MaintenanceGuard>
-          <NewUserDialog />
-          <Toaster />
+          <AppContent />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

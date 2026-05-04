@@ -75,17 +75,17 @@ export default function CommunityFeedPage() {
 
   return (
     <PageTransition>
-      {/* Sticky Top Header – Glass Effect */}
-      <header className="sticky top-14 z-40 w-full glass-premium border-b border-border/40">
+      {/* Sticky Top Header – Glass Effect on Mobile, Subtle on Desktop */}
+      <header className="sticky top-14 md:relative md:top-0 z-40 w-full glass-premium border-b border-border/40 md:border-none">
         <div className="max-w-[1280px] mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            <h1 className="text-base md:text-lg font-black tracking-tight uppercase">
+            <Users className="h-5 w-5 text-primary md:hidden" />
+            <h1 className="text-base md:hidden font-black tracking-tight uppercase">
               {t("communities_feed.header_title")}
             </h1>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
              <Link href="/create-community">
                 <Button variant="ghost" size="sm" className="h-8 rounded-full hover:bg-primary/10 hover:text-primary transition-all active:scale-90">
                   <Plus className="h-4 w-4 mr-1" />
