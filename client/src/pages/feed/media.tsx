@@ -87,7 +87,7 @@ export default function MediaFeedPage() {
                 ))}
               </div>
               <div className="flex gap-4 w-full lg:w-auto lg:ml-auto">
-                <Link href="/post/media/new">
+                <Link href="/post/news">
                   <Button className="flex-1 lg:flex-none h-16 px-10 rounded-2xl shadow-xl shadow-primary/20 gap-3 font-black uppercase tracking-widest text-xs transition-all hover:shadow-primary/40 hover:-translate-y-1 active:translate-y-0 active:scale-95">
                     <Plus className="h-5 w-5 stroke-[3px]" />
                     {t("feed.create_story", "Create Story")}
@@ -124,7 +124,7 @@ export default function MediaFeedPage() {
               </div>
               <h3 className="text-3xl font-black tracking-tighter uppercase mb-4">{t("feed.no_media", "Silence in the Verse")}</h3>
               <p className="text-muted-foreground text-lg max-w-sm font-medium">{t("feed.no_media_desc", "Be the spark that ignites this feed. Share your first media post now.")}</p>
-              <Link href="/post/media/new" className="mt-8">
+              <Link href="/post/news" className="mt-8">
                 <Button variant="outline" className="rounded-xl border-2 font-bold uppercase tracking-widest text-[10px]">
                   Ignite Discovery
                 </Button>
@@ -153,7 +153,7 @@ export default function MediaFeedPage() {
                     exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                     className="group"
                   >
-                    <PostCard post={post} />
+                    <PostCard post={post} variant="media" />
                   </motion.div>
                 ))}
               </AnimatePresence>

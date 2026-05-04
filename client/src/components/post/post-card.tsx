@@ -92,18 +92,15 @@ export const PostCard = React.memo(function PostCard({
       {/* Premium Background Light Reflection */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
 
-      <div className={cn("flex gap-4", isMediaVariant && "flex-col")}>
-        {/* Header Section */}
-        <div className={cn("flex items-start justify-between", isMediaVariant ? "order-2 mt-4" : "flex-shrink-0")}>
-          <div className="flex gap-3 min-w-0 flex-1">
+      <div className={cn("flex gap-4", isMediaVariant ? "flex-col" : "flex-row")}>
+        {/* AVATAR SECTION (Conditional for Default Variant) */}
+        {!isMediaVariant && (
+          <div className="flex-shrink-0">
             <Link href={`/users/${author.username}`}>
               <div className="relative group/avatar">
                 <UserAvatar 
                   user={author} 
-                  className={cn(
-                    "rounded-2xl ring-2 ring-background transition-all group-hover/avatar:ring-primary/20 group-hover/avatar:scale-105 shadow-md",
-                    isMediaVariant ? "h-10 w-10" : "h-12 w-12"
-                  )} 
+                  className="h-12 w-12 rounded-2xl ring-2 ring-background transition-all group-hover/avatar:ring-primary/20 group-hover/avatar:scale-105 shadow-md" 
                 />
                 {author.role === 'owner' && (
                   <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5 shadow-lg">
@@ -112,62 +109,74 @@ export const PostCard = React.memo(function PostCard({
                 )}
               </div>
             </Link>
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Link href={`/users/${author.username}`} className="font-black text-[14px] md:text-[15px] hover:text-primary transition-colors truncate tracking-tight">
-                  {author.username || "User"}
+          </div>
+        )}
+
+        {/* CONTENT AREA */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* HEADER (Avatar inside for Media variant) */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              {isMediaVariant && (
+                <Link href={`/users/${author.username}`}>
+                  <UserAvatar user={author} className="h-10 w-10 rounded-xl" />
                 </Link>
-                {author.verified && <BadgeCheck className="h-3.5 w-3.5 text-primary" />}
-              </div>
-              <div className="text-muted-foreground/60 text-[11px] font-medium flex items-center gap-1">
-                <span className="truncate">@{author.username || "user"}</span>
-                <span>·</span>
-                <span>
-                  {(() => {
-                    try {
-                      return post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: de }) : "";
-                    } catch (e) { return ""; }
-                  })()}
-                </span>
+              )}
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <Link href={`/users/${author.username}`} className="font-black text-[14px] md:text-[15px] hover:text-primary transition-colors truncate tracking-tight">
+                    {author.username || "User"}
+                  </Link>
+                  {author.verified && <BadgeCheck className="h-3.5 w-3.5 text-primary" />}
+                </div>
+                <div className="text-muted-foreground/60 text-[11px] font-medium flex items-center gap-1">
+                  <span>@{author.username || "user"}</span>
+                  <span>·</span>
+                  <span className="truncate">
+                    {(() => {
+                      try {
+                        return post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: de }) : "";
+                      } catch (e) { return ""; }
+                    })()}
+                  </span>
+                </div>
               </div>
             </div>
+            <div className="flex-shrink-0">
+               <PostMenu post={post} isOwner={isOwner} onDelete={() => deletePostMutation.mutate(post.id)} reportType={reportType} />
+            </div>
           </div>
-          <div className="flex-shrink-0 -mr-2">
-             <PostMenu post={post} isOwner={isOwner} onDelete={() => deletePostMutation.mutate(post.id)} reportType={reportType} />
+
+          {/* TITLE & TEXT */}
+          <div className="space-y-2 mb-4">
+            {post.title && post.title !== post.content && (
+              <Link href={`/posts/${post.id}`}>
+                <h3 className={cn(
+                  "font-black tracking-tighter hover:text-primary transition-colors line-clamp-2 leading-tight",
+                  isMediaVariant ? "text-xl" : "text-lg md:text-xl"
+                )}>
+                  {post.title}
+                </h3>
+              </Link>
+            )}
+
+            <p className={cn(
+              "text-[15px] md:text-[16px] text-foreground/80 leading-relaxed break-words font-medium tracking-tight",
+              (compact || isMediaVariant) && "line-clamp-3"
+            )}>
+              {post.content}
+            </p>
           </div>
-        </div>
 
-        {/* Content Area */}
-        <div className={cn("flex-1 min-w-0", isMediaVariant ? "order-3" : "")}>
-          {/* Title */}
-          {post.title && post.title !== post.content && (
-            <Link href={`/posts/${post.id}`}>
-              <h3 className={cn(
-                "font-black tracking-tighter hover:text-primary transition-colors line-clamp-2 leading-tight mb-2",
-                isMediaVariant ? "text-xl" : "text-lg md:text-xl"
-              )}>
-                {post.title}
-              </h3>
-            </Link>
-          )}
-
-          {/* Body Content */}
-          <p className={cn(
-            "text-[15px] md:text-[16px] text-foreground/80 leading-relaxed break-words font-medium tracking-tight",
-            (compact || isMediaVariant) && "line-clamp-3"
-          )}>
-            {post.content}
-          </p>
-
-          {/* Media Section */}
+          {/* MEDIA (Immersive) */}
           {post.mediaUrl && !imageLoadError && (
             <motion.div 
               layoutId={`media-${post.id}`}
               className={cn(
-                "overflow-hidden bg-muted/20 relative group/media mt-4",
+                "overflow-hidden bg-muted/20 relative group/media mb-4",
                 "rounded-[2rem] border border-white/10 shadow-inner",
                 isMediaVariant ? "aspect-square" : "aspect-[16/10] md:aspect-auto min-h-[200px] max-h-[600px]",
-                isMediaVariant ? "order-1 -mt-2" : ""
+                isMediaVariant ? "order-first mb-6" : ""
               )}
             >
               {post.mediaType === "image" ? (
@@ -187,7 +196,6 @@ export const PostCard = React.memo(function PostCard({
                 />
               ) : null}
               
-              {/* Media Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/media:opacity-100 transition-opacity duration-500" />
               <div className="absolute top-4 right-4 p-2 rounded-xl bg-black/20 backdrop-blur-md border border-white/20 opacity-0 group-hover/media:opacity-100 transition-all duration-500 translate-y-2 group-hover/media:translate-y-0">
                 {post.mediaType === "video" ? <Play className="h-4 w-4 text-white fill-white" /> : <ImageIcon className="h-4 w-4 text-white" />}
@@ -196,16 +204,16 @@ export const PostCard = React.memo(function PostCard({
           )}
 
           {imageLoadError && (
-            <div className="mt-4 p-8 rounded-[2rem] bg-muted/5 border border-dashed border-border/60 flex flex-col items-center justify-center gap-3 text-muted-foreground/40">
+            <div className="mb-4 p-8 rounded-[2rem] bg-muted/5 border border-dashed border-border/60 flex flex-col items-center justify-center gap-3 text-muted-foreground/40">
               <ImageOff className="h-8 w-8" />
               <span className="text-[10px] uppercase font-black tracking-[0.2em]">{t("media_feed.load_error")}</span>
             </div>
           )}
 
-          {/* Action Bar */}
+          {/* ACTION BAR */}
           <div className={cn(
-            "flex items-center justify-between mt-6 -ml-2",
-            isMediaVariant ? "border-t border-white/5 pt-4" : ""
+            "flex items-center justify-between pt-4 -ml-2",
+            isMediaVariant ? "border-t border-white/5" : "border-t border-transparent"
           )}>
             <div className="flex items-center gap-1">
               <ActionButton 
