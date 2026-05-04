@@ -32,7 +32,11 @@ router.post("/", isAuthenticated, async (req, res) => {
             return res.status(403).send("You need at least 200 reputation to create a community.");
         }
 
-        const result = insertCommunitySchema.safeParse(req.body);
+        const result = insertCommunitySchema.omit({ 
+            creatorId: true, 
+            slug: true 
+        }).safeParse(req.body);
+
         if (!result.success) {
             console.error("[Community] Validation failed:", result.error.flatten());
             return res.status(400).json(result.error);
