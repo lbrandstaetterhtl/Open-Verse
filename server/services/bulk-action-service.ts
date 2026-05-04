@@ -2,6 +2,7 @@ import { db } from "../db";
 import { users, bans, bulkActionLogs } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { activityLogger } from "./activity-logger";
+import { logger } from "../logger";
 
 export interface BulkResult {
   success: number;
@@ -104,7 +105,14 @@ class BulkActionService {
       description: `Bulk-Ban: ${results.success}/${params.userIds.length} User gesperrt`,
       severity: "warning",
       metadata: { action: params.banType, count: results.success, reason: params.reason },
-    }).catch(() => {});
+    }).catch(err => logger.error('system', 'bulk_action activity log failed', err));
+
+    logger.info('admin', `Bulk ban completed`, { 
+      type: params.banType, 
+      success: results.success, 
+      failed: results.failed, 
+      performedBy: params.performedBy 
+    });
 
     return results;
   }
@@ -143,6 +151,13 @@ class BulkActionService {
       failCount: results.failed,
       reason: params.reason,
       createdAt: now,
+    });
+
+    logger.info('admin', `Bulk report close completed`, { 
+      action: params.action, 
+      success: results.success, 
+      failed: results.failed, 
+      performedBy: params.performedBy 
     });
 
     return results;
@@ -185,6 +200,13 @@ class BulkActionService {
       failCount: results.failed,
       reason: params.reason,
       createdAt: now,
+    });
+
+    logger.info('admin', `Bulk post delete completed`, { 
+      action: params.action, 
+      success: results.success, 
+      failed: results.failed, 
+      performedBy: params.performedBy 
     });
 
     return results;

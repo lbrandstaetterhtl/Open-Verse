@@ -14,6 +14,7 @@ import {
 } from "@shared/schema";
 import { eq, and, gte, lte, sql, count, desc, inArray } from "drizzle-orm";
 import { subDays, startOfDay, endOfDay, format } from "date-fns";
+import { logger } from "../logger";
 
 export class AnalyticsService {
   /**
@@ -30,7 +31,7 @@ export class AnalyticsService {
     const dateStr = format(dayStart, "yyyy-MM-dd");
 
     try {
-      console.log(`[Analytics] Computing snapshot for ${dateStr}...`);
+      logger.info('system', `Computing analytics snapshot`, { date: dateStr });
 
       // 1. User Growth
       const [newUsersResult] = await db.select({ count: count() })
@@ -129,9 +130,9 @@ export class AnalyticsService {
       // 7. Creator Analytics
       await this.computeCreatorAnalytics(dayStart, dayEnd, dateStr);
 
-      console.log(`[Analytics] Successfully computed snapshot for ${dateStr}`);
+      logger.info('system', `Successfully computed analytics snapshot`, { date: dateStr });
     } catch (error) {
-      console.error(`[Analytics] Failed to compute snapshot for ${dateStr}:`, error);
+      logger.error('system', `Failed to compute analytics snapshot`, error, { date: dateStr });
       throw error;
     }
   }

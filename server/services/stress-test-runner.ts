@@ -12,6 +12,7 @@ import { ConcurrentUserTest } from './stress-tests/concurrent-user-test';
 import type { TestConfig, TestResult } from '../types/stress';
 import type { Logger } from '../utils/logger';
 import { activityLogger } from './activity-logger';
+import { logger as systemLogger } from '../logger';
 
 export class StressTestRunner extends EventEmitter {
   private tests: Map<string, StressTest>;
@@ -63,7 +64,7 @@ export class StressTestRunner extends EventEmitter {
         }
       });
     } catch (e) {
-      console.error("[StressRunner] Failed to archive test result:", e);
+      systemLogger.error('performance', "Failed to archive stress test result", e, { testName });
     }
 
     logger.log('─'.repeat(50));

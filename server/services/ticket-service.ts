@@ -1,5 +1,6 @@
 import { storage } from "../storage";
 import { notificationService } from "./notification-service";
+import { logger } from "../logger";
 
 export const TicketService = {
   /** GENERATE TICKET NUMBER */
@@ -198,7 +199,7 @@ export const TicketService = {
         title: "New Ticket Reply",
         message: `There is a new reply on your ticket: ${ticket.ticketNumber} - ${ticket.title}`,
         actionUrl: `/tickets/${ticketId}`,
-      }).catch(err => console.error("[TicketService] Failed to notify:", err));
+      }).catch(err => logger.error('business', "Failed to notify ticket reply", err, { ticketId, creatorId: ticket.createdBy }));
     }
     
     return commentId;

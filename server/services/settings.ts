@@ -3,6 +3,7 @@ import { adminSettings } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { activityLogger } from "./activity-logger";
 import { type Request } from "express";
+import { logger } from "../logger";
 
 /* FEATURE [AS-003]: Admin Settings – Implementation of the central settings service. */
 export class SettingsService {
@@ -35,7 +36,7 @@ export class SettingsService {
       this.cache.set(cacheKey, { value: parsedValue, expiry: Date.now() + this.TTL });
       return parsedValue;
     } catch (error) {
-      console.error(`Failed to fetch setting ${cacheKey}:`, error);
+      logger.error('system', `Failed to fetch setting ${cacheKey}`, error);
       return defaultValue ?? null;
     }
   }
@@ -77,7 +78,7 @@ export class SettingsService {
       newValue: setting?.isSensitive ? "********" : value,
       severity: "warning",
       status: "success",
-    }).catch(err => console.error('[Monitor] admin.settings_change failed:', err));
+    }).catch(err => logger.error('system', 'admin.settings_change activity log failed', err));
   }
 
   static async seed() {

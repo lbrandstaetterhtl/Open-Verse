@@ -3,6 +3,8 @@ import { users, bans, autoPunishmentRules, autoPunishmentExecutions, anomalyEven
 import { eq, and, gte, count, sql, isNull } from "drizzle-orm";
 import { notificationService } from "./notification-service";
 import { alertService } from "./alert-service";
+import { apLogger } from "../logger/service-loggers";
+import { logger } from "../logger";
 
 export interface AnomalyContext {
   id?: number;
@@ -24,7 +26,7 @@ class AutoPunishmentEngine {
     
     // APE-FIX [BUG-012]: Whitelist protection
     if (this.WHITELIST.includes(anomaly.userId)) {
-      console.log(`[AutoPunishment] WHITELIST: Skipping protection for user ${anomaly.userId}`);
+      apLogger.ruleEvaluated('WHITELIST', anomaly.userId, 'skip', 'User is whitelisted');
       return;
     }
 
@@ -41,7 +43,7 @@ class AutoPunishmentEngine {
         await this.evaluateRule(rule, anomaly);
       }
     } catch (error) {
-      console.error('[AutoPunishment] Evaluation failed:', error);
+      logger.error('security', 'AutoPunishment evaluation failed', error, { anomalyType: anomaly.anomalyType, userId: anomaly.userId });
     }
   }
 
@@ -64,7 +66,7 @@ class AutoPunishmentEngine {
     const thresholdSeverity = severityOrder[rule.severityThreshold] ?? 2;
 
     if (anomalySeverity < thresholdSeverity) {
-      console.log(`${logPrefix} SKIP - severity ${anomaly.severity} (${anomalySeverity}) < threshold ${rule.severityThreshold} (${thresholdSeverity})`);
+      apLogger.ruleEvaluated(rule.name, anomaly.userId!, 'skip', `Severity ${anomaly.severity} < ${rule.severityThreshold}`);
       return;
     }
 
@@ -81,7 +83,7 @@ class AutoPunishmentEngine {
       .get();
 
     if (recentExecution) {
-      console.log(`${logPrefix} SKIP - cooldown active, last execution ${recentExecution.createdAt}`);
+      apLogger.ruleEvaluated(rule.name, anomaly.userId!, 'skip', `Cooldown active (last: ${recentExecution.createdAt})`);
       return; 
     }
 
@@ -97,14 +99,14 @@ class AutoPunishmentEngine {
 
       const recentAnomalies = result[0]?.count ?? 0;
       if (recentAnomalies < rule.escalateAfterCount) {
-        console.log(`${logPrefix} SKIP - only ${recentAnomalies}/${rule.escalateAfterCount} anomalies in window`);
+        apLogger.ruleEvaluated(rule.name, anomaly.userId!, 'skip', `Only ${recentAnomalies}/${rule.escalateAfterCount} anomalies in window`);
         return;
       }
     }
 
     // APE-FIX [DRY-001]: Dry-Run Mode
     if (this.DRY_RUN) {
-      console.log(`${logPrefix} DRY-RUN: Would execute ${rule.action} for user ${anomaly.userId}`);
+      apLogger.dryRun(rule.name, rule.action, anomaly.userId!);
       return;
     }
 
@@ -112,13 +114,13 @@ class AutoPunishmentEngine {
     if (['freeze', 'temp_ban', 'permanent_ban'].includes(rule.action)) {
       const isMature = await this.isAccountMatureEnough(anomaly.userId!);
       if (!isMature) {
-        console.log(`${logPrefix} MATURITY: Account too new (<24h), downgrading to warn`);
+        apLogger.ruleEvaluated(rule.name, anomaly.userId!, 'skip', 'Account too new (<24h), downgrading to warn');
         await this.executeAction({ ...rule, action: 'warn', actionReason: `[MATURITY-DOWNGRADE] ${rule.actionReason}` }, anomaly);
         return;
       }
     }
 
-    console.log(`${logPrefix} EXECUTING ${rule.action} for user ${anomaly.userId}`);
+    apLogger.ruleEvaluated(rule.name, anomaly.userId!, 'execute', `Action: ${rule.action}`);
     await this.executeAction(rule, anomaly);
   }
 
@@ -220,8 +222,10 @@ class AutoPunishmentEngine {
     } catch (error) {
       success = false;
       errorMessage = String(error);
-      console.error(`[AutoPunishment] Action failed:`, error);
+      logger.error('security', `AutoPunishment action execution failed: ${rule.action}`, error, { userId: anomaly.userId, ruleId: rule.id });
     }
+
+    apLogger.actionExecuted(rule.name, rule.action, anomaly.userId!, success);
 
     await db.insert(autoPunishmentExecutions).values({
       ruleId: rule.id,

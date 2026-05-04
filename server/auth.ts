@@ -13,6 +13,7 @@ import rateLimit from "express-rate-limit";
 import { logSecurityEvent } from "./utils/logger";
 import { insertUserSchema } from "@shared/schema";
 import { activityLogger } from "./services/activity-logger";
+import { logger } from "./logger";
 
 declare global {
   namespace Express {
@@ -76,11 +77,11 @@ export const validateCsrf = (req: any, res: any, next: any) => {
   const sessionToken = (req.session as any)?.csrfToken;
 
   if (!token || !sessionToken || token !== sessionToken) {
-    logSecurityEvent({
+    logger.securityEvent({
       type: "CSRF_FAILURE",
       ip: req.ip || req.socket.remoteAddress,
-      resource: req.path,
-      details: { method: req.method },
+      severity: 'medium',
+      details: { method: req.method, path: req.path },
     });
     return res.status(403).send("Invalid CSRF Token");
   }
@@ -114,10 +115,10 @@ export function setupAuth(app: Express, sessionParser: any) {
       try {
         const user = await storage.getUserByUsername(username);
         if (!user) {
-          // SECURITY FIX [VULN-010]: Removed verbose username logging
-          logSecurityEvent({
-            type: "AUTH_FAILURE",
-            details: { reason: "User not found" },
+          logger.authEvent({
+            event: 'login_failed',
+            username,
+            reason: "User not found",
           });
           activityLogger.log({
             action: 'auth.login_failed',
@@ -132,11 +133,11 @@ export function setupAuth(app: Express, sessionParser: any) {
 
         const { isValid, needsMigration } = await comparePasswords(password, user.password);
         if (!isValid) {
-          // SECURITY FIX [VULN-010]: Removed verbose username logging
-          logSecurityEvent({
-            type: "AUTH_FAILURE",
+          logger.authEvent({
+            event: 'login_failed',
             userId: user.id,
-            details: { reason: "Invalid password" },
+            username: user.username,
+            reason: "Invalid password",
           });
           activityLogger.log({
             userId: user.id,
@@ -155,24 +156,33 @@ export function setupAuth(app: Express, sessionParser: any) {
           try {
             const newHash = await hashPassword(password);
             await storage.updateUserPassword(user.id, newHash);
-            console.log(`[AUTH] Migrated legacy password hash to bcrypt for user: ${username}`);
+            logger.info('auth', `Migrated legacy password hash to bcrypt`, { username: user.username });
           } catch (migrateErr) {
-            console.error(`[AUTH] Failed to migrate password for user ${username}:`, migrateErr);
+            logger.error('auth', `Failed to migrate password hash`, migrateErr, { username: user.username });
           }
         }
 
         // Check if user is banned (negative karma)
         if (user.karma < 0) {
-          logSecurityEvent({ type: "AUTH_BANNED_ATTEMPT", userId: user.id });
+          logger.authEvent({
+            event: 'login_failed',
+            userId: user.id,
+            username: user.username,
+            reason: 'banned_karma',
+          });
           return done(null, false, {
             message: "Your account has been banned. Please contact support.",
           });
         }
 
-        logSecurityEvent({ type: "AUTH_SUCCESS", userId: user.id });
+        logger.authEvent({
+          event: 'login',
+          userId: user.id,
+          username: user.username,
+        });
         return done(null, user);
       } catch (err) {
-        console.error("Login error:", err);
+        logger.error('auth', "Login error", err, { username });
         return done(err);
       }
     }),
@@ -186,19 +196,19 @@ export function setupAuth(app: Express, sessionParser: any) {
     try {
       const user = await storage.getUser(id);
       if (!user) {
-        console.log("Session invalid: User not found:", id);
+        logger.warn('auth', "Session invalid: User not found", { userId: id });
         return done(null, false);
       }
 
       // SEC-003 FIX: Check ban status
       if (user.karma < 0) {
-        console.log("Session invalid: User is banned:", id);
+        logger.warn('auth', "Session invalid: User is banned", { userId: id });
         return done(null, false); // Invalidate session
       }
 
       done(null, sanitizeUser(user));
     } catch (err) {
-      console.error("Session error:", err);
+      logger.error('auth', "Session error", err, { userId: id });
       done(err);
     }
   });
@@ -283,7 +293,7 @@ export function setupAuth(app: Express, sessionParser: any) {
           colors: JSON.stringify(defaultThemeColors),
         });
       } catch (themeError) {
-        console.error("Failed to create default theme for new user:", themeError);
+        logger.error('system', "Failed to create default theme for new user", themeError, { userId: user.id });
         // Don't block registration
       }
 
@@ -293,11 +303,11 @@ export function setupAuth(app: Express, sessionParser: any) {
           const verificationToken = await createVerificationToken(user.id);
           await sendVerificationEmail(user.email, user.username, verificationToken);
         } catch (emailErr) {
-          console.error("Error sending verification email:", emailErr);
+          logger.error('system', "Error sending verification email", emailErr, { userId: user.id });
           // Continue with registration even if email fails
         }
       } else {
-        console.log("SendGrid API key not properly configured - skipping verification email");
+        logger.debug("SendGrid API key not configured - skipping verification email");
       }
 
       // Log the user in
@@ -315,10 +325,10 @@ export function setupAuth(app: Express, sessionParser: any) {
           
           req.session.save((err) => {
             if (err) return res.status(500).send(err.message);
-            logSecurityEvent({
-              type: "AUTH_SUCCESS",
+            logger.authEvent({
+              event: 'register',
               userId: user.id,
-              details: { action: "register" },
+              username: user.username,
             });
             activityLogger.log({
               userId: user.id,
@@ -329,13 +339,13 @@ export function setupAuth(app: Express, sessionParser: any) {
               severity: 'info',
               status: 'success',
               req
-            }).catch(err => console.error('[Monitor] auth.register log failed:', err));
+            }).catch(err => logger.error('system', 'auth.register log failed', err));
             res.status(201).json(user);
           });
         });
       });
     } catch (err) {
-      console.error("Registration error:", err);
+      logger.error('auth', "Registration error", err);
       res.status(500).send("Registration failed");
     }
   });
@@ -359,7 +369,12 @@ export function setupAuth(app: Express, sessionParser: any) {
           
           req.session.save((err) => {
             if (err) return next(err);
-            console.log("User logged in successfully:", user.username);
+            logger.authEvent({
+              event: 'login',
+              userId: user.id,
+              username: user.username,
+              ip: req.ip,
+            });
             activityLogger.log({
               userId: user.id,
               action: 'auth.login',
@@ -387,29 +402,33 @@ export function setupAuth(app: Express, sessionParser: any) {
     const username = req.user?.username;
     req.logout((err) => {
       if (err) return next(err);
-      req.session.destroy((err) => {
-        if (err) return next(err);
-        console.log("User logged out successfully:", username);
-        activityLogger.log({
-          userId: req.user?.id,
-          action: 'auth.logout',
-          category: 'auth',
-          description: `User ${username} hat sich ausgeloggt`,
-          severity: 'info',
-          status: 'success',
-          req
+        req.session.destroy((err) => {
+          if (err) return next(err);
+          logger.authEvent({
+            event: 'logout',
+            userId: req.user?.id,
+            username: username,
+          });
+          activityLogger.log({
+            userId: req.user?.id,
+            action: 'auth.logout',
+            category: 'auth',
+            description: `User ${username} hat sich ausgeloggt`,
+            severity: 'info',
+            status: 'success',
+            req
+          });
+          res.sendStatus(200);
         });
-        res.sendStatus(200);
-      });
     });
   });
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) {
-      console.log("Unauthenticated access attempt to /api/user");
+      logger.debug("Unauthenticated access attempt to /api/user");
       return res.sendStatus(401);
     }
-    console.log("User data requested for:", req.user?.username);
+    logger.trace(`User data requested for: ${req.user?.username}`);
     res.json(req.user);
   });
 

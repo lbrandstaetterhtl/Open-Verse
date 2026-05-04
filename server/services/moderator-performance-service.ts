@@ -9,6 +9,7 @@ import {
   moderatorPerformanceSnapshots 
 } from '@shared/schema';
 import { subDays, startOfDay, endOfDay, format } from 'date-fns';
+import { logger } from '../logger';
 
 export interface ModeratorLeaderboardEntry {
   moderatorId: number;
@@ -66,7 +67,7 @@ class ModeratorPerformanceService {
   // TÄGLICHER SNAPSHOT
   // ════════════════════════════════════════════
   async computeDailySnapshot(dateStr: string = this.getTodayStr()): Promise<void> {
-    console.log(`[ModPerf] Computing snapshot for ${dateStr}...`);
+    logger.info('system', `Computing moderator performance snapshot`, { date: dateStr });
 
     const date = new Date(dateStr);
     const dayStart = startOfDay(date);
@@ -85,7 +86,7 @@ class ModeratorPerformanceService {
       await this.computeModeratorSnapshot(mod, dateStr, dayStart, dayEnd);
     }
 
-    console.log(`[ModPerf] Snapshot for ${dateStr} completed (${moderators.length} moderators)`);
+    logger.info('system', `Moderator performance snapshot completed`, { date: dateStr, moderatorCount: moderators.length });
   }
 
   private async computeModeratorSnapshot(
@@ -237,7 +238,7 @@ class ModeratorPerformanceService {
           set: snapshot
         });
     } catch (dbErr: any) {
-      console.error(`[ModPerf] Database error for ${mod.username}:`, dbErr);
+      logger.error('db', `Database error computing moderator snapshot`, dbErr, { username: mod.username });
     }
   }
 

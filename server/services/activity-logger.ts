@@ -2,6 +2,7 @@ import { db } from "../db";
 import { activityLogs } from "@shared/schema";
 import { anomalyDetector } from "./anomaly-detector";
 import type { Request } from "express";
+import { logger } from "../logger";
 
 /**
  * APE-FIX [LOG-001]: Explicit Unix Timestamps
@@ -36,14 +37,41 @@ class ActivityLoggerService {
   private readonly BATCH_SIZE = 50;
   private readonly MAX_QUEUE_SIZE = 5000;
   private readonly FLUSH_INTERVAL_MS = 2000;
+  // Statistiken für Monitoring
+  private stats = { logged: 0, failed: 0, dropped: 0 };
 
   async log(entry: LogEntry): Promise<void> {
-    if (this.queue.length >= this.MAX_QUEUE_SIZE) return;
+    // In Development: sofort auch als strukturiertes Log ausgeben
+    if (process.env.NODE_ENV === 'development') {
+      logger.businessEvent({
+        action:  entry.action,
+        userId:  entry.userId,
+        details: {
+          category:    entry.category,
+          description: entry.description,
+          severity:    entry.severity,
+          status:      entry.status,
+        },
+      });
+    }
+
+    if (this.queue.length >= this.MAX_QUEUE_SIZE) {
+      this.stats.dropped++;
+      logger.warn('system', 'Activity log queue full – entry dropped', {
+        dropped:    this.stats.dropped,
+        queueSize:  this.queue.length,
+      });
+      return;
+    }
     this.queue.push(entry);
 
+    // Critical Events sofort flushen
     if (entry.severity === 'critical' || entry.severity === 'error' || this.queue.length >= this.BATCH_SIZE) {
       await this.flush();
-    } else if (!this.flushTimer) {
+      return;
+    }
+
+    if (!this.flushTimer) {
       this.flushTimer = setTimeout(() => this.flush(), this.FLUSH_INTERVAL_MS);
     }
   }
@@ -80,11 +108,25 @@ class ActivityLoggerService {
 
       await db.insert(activityLogs).values(recordsToInsert as any[]);
 
+      this.stats.logged += batch.length;
+
+      // In Development: Batch-Statistik loggen
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug(`Activity log batch written: ${batch.length} entries`, {
+          batchSize: batch.length,
+          totalLogged: this.stats.logged,
+        });
+      }
+
       for (const entry of recordsToInsert) {
-        this.runAnomalyDetection(entry).catch(console.error);
+        this.runAnomalyDetection(entry).catch(err => logger.error('security', 'Anomaly detection failed', err));
       }
     } catch (error) {
-      console.error('[ActivityLogger] Flush failed:', error);
+      this.stats.failed += batch.length;
+      logger.error('db', 'Activity log batch write failed', error, {
+        batchSize:   batch.length,
+        totalFailed: this.stats.failed,
+      });
     }
   }
 
@@ -111,6 +153,10 @@ class ActivityLoggerService {
   logFromRequest(req: Request, entry: any) {
     const user = (req as any).user;
     return this.log({ ...entry, userId: user?.id, userEmail: user?.email, userRole: user?.role, userUsername: user?.username, req });
+  }
+
+  getStats() {
+    return { ...this.stats, queueSize: this.queue.length };
   }
 }
 

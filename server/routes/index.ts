@@ -29,6 +29,8 @@ import modPerformanceRoutes from "./mod-performance";
 import securityRoutes from "./security";
 import { SettingsService } from "../services/settings";
 import { monitoringMiddleware, slowQueryMiddleware } from "../middleware/monitoring";
+import { logger } from "../logger";
+import { dbLogger } from "../logger/service-loggers";
 
 
 
@@ -150,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             res.json(settings);
         } catch (error) {
-            console.error("Failed to fetch public settings:", error);
+            logger.error('error', "Failed to fetch public settings", error);
             res.status(500).json({ error: "Failed to fetch settings" });
         }
     });
@@ -208,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             res.json(postsWithDetails);
         } catch (error) {
-            console.error("Error fetching community feed:", error);
+            logger.error('error', "Error fetching community feed", error, { userId });
             res.status(500).send("Failed to fetch community feed");
         }
     });
@@ -245,7 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const matchesHost = host && originUrl.host === host;
 
             if (!matchesHost && !isLocalhost) {
-                console.warn(`[SEC] Blocked WebSocket upgrade from unauthorized origin: ${origin}`);
+                logger.warn('security', `Blocked WebSocket upgrade from unauthorized origin: ${origin}`, { origin, host });
                 socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
                 socket.destroy();
                 return;
@@ -273,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userId = currentSession?.passport?.user;
 
         if (!userId) {
-            console.warn("[WS] Connection attempted without valid session/user");
+            logger.warn('security', "[WS] Connection attempted without valid session/user");
             ws.close(1008, "Unauthorized");
             return;
         }

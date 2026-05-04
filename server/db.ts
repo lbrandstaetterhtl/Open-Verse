@@ -8,19 +8,19 @@ import ws from "ws";
 import * as schema from "@shared/schema";
 import path from "path";
 import fs from "fs";
+import { logger } from "./logger";
+import { dbLogger } from "./logger/service-loggers";
 
-
-console.log("DEBUG: process.env.USE_SQLITE =", process.env.USE_SQLITE);
 
 const useSqlite = process.env.USE_SQLITE === "true";
-console.log("DEBUG: useSqlite =", useSqlite);
+logger.info('db', "Initializing database connection", { useSqlite });
 
 let pool: NeonPool | pg.Pool | null = null;
 let db: any;
 let sqlite: any = null;
 
 if (useSqlite) {
-  console.log("Using SQLite database for local development");
+  logger.info('db', "Using SQLite database for local development");
   // VPS-HOSTING-OPTIMIZATION [PERSISTENCE]: Use absolute path or configurable path from environment
   // Priority: SQLITE_PATH > DATABASE_URL (if starts with sqlite:) > Default local.db
   let dbPath = process.env.SQLITE_PATH;
@@ -35,7 +35,7 @@ if (useSqlite) {
     dbPath = path.resolve(process.cwd(), dbPath);
   }
 
-  console.log("DEBUG: SQLite DB Path:", dbPath);
+  logger.info('db', "SQLite DB Path", { path: dbPath });
 
   sqlite = new Database(dbPath);
 
@@ -470,7 +470,7 @@ if (useSqlite) {
   // Add community_id column to posts if it doesn't exist yet
   try {
     sqlite.exec(`ALTER TABLE posts ADD COLUMN community_id INTEGER`);
-    console.log("DEBUG: Added community_id column to posts");
+    logger.info('db', "Added community_id column to posts");
   } catch {
     // Column already exists, ignore
   }
@@ -484,7 +484,7 @@ if (useSqlite) {
   // Add is_private column to communities if it doesn't exist
   try {
     sqlite.exec(`ALTER TABLE communities ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0`);
-    console.log("DEBUG: Added is_private column to communities");
+    logger.info('db', "Added is_private column to communities");
   } catch {
     // Column already exists, ignore
   }
@@ -534,7 +534,7 @@ if (useSqlite) {
   for (const col of notifColumns) {
     try {
       sqlite.exec(`ALTER TABLE notifications ADD COLUMN ${col.name} ${col.type}`);
-      console.log(`DEBUG: Added ${col.name} column to notifications`);
+      logger.info('db', `Added ${col.name} column to notifications`);
     } catch {
       // Ignore "duplicate column" errors
     }
@@ -551,19 +551,19 @@ if (useSqlite) {
     if (process.env.NODE_ENV === "production") {
       throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
     } else {
-      console.warn("WARNING: DATABASE_URL is missing. Production-mode DB logic will fail if called.");
+      logger.warn('db', "DATABASE_URL is missing. Production-mode DB logic will fail if called.");
       // Fallback pool for analysis tools
       pool = null;
       db = null;
     }
   } else {
     if (process.env.DATABASE_URL.includes("neon.tech")) {
-      console.log("Using Neon PostgreSQL database");
+      logger.info('db', "Using Neon PostgreSQL database");
       neonConfig.webSocketConstructor = ws;
       pool = new NeonPool({ connectionString: process.env.DATABASE_URL });
       db = drizzleNeon({ client: pool, schema });
     } else {
-      console.log("Using standard PostgreSQL database");
+      logger.info('db', "Using standard PostgreSQL database");
       pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
       db = drizzlePg(pool, { schema });
     }
@@ -576,11 +576,11 @@ export function getSqlite() {
 
 export async function closeDb() {
   if (sqlite) {
-    console.log("Closing SQLite database...");
+    logger.info('db', "Closing SQLite database...");
     sqlite.close();
   }
   if (pool) {
-    console.log("Closing Postgres pool...");
+    logger.info('db', "Closing Postgres pool...");
     await pool.end();
   }
 }

@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { bans, users } from "@shared/schema";
-import { eq, and, or, gt } from "drizzle-orm";
+import { eq, and, or, gt, sql } from "drizzle-orm";
 import { activityLogger } from "../services/activity-logger";
 import crypto from "node:crypto";
 

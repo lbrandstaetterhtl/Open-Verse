@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { systemMetrics, activityLogs, anomalyEvents, tickets } from "@shared/schema";
 import { count, eq, and, inArray, sql, isNull } from "drizzle-orm";
+import { logger } from "../logger";
 
 class MetricsService {
   private buffer: any[] = [];
@@ -30,7 +31,7 @@ class MetricsService {
     try {
       await db.insert(systemMetrics).values(batch);
     } catch (error) {
-      console.error('[MetricsService] Failed to write batch:', error);
+      logger.error('performance', 'Metrics batch write failed', error, { batchSize: batch.length });
     }
   }
 
@@ -94,7 +95,7 @@ class MetricsService {
       this.record('open_tickets_count', openTickets?.count ?? 0);
       
     } catch (e) {
-      console.error("[MetricsService] Failed to capture health snapshot", e);
+      logger.error('performance', "Failed to capture health snapshot", e);
     }
   }
 }

@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { logger } from "../logger";
 
 // Initialize Groq client
 // It will automatically look for GROQ_API_KEY in process.env
@@ -17,11 +18,11 @@ export async function generatePostContent({
   imageContext,
   language = "english",
 }: GenerateOptions): Promise<string> {
-  console.log(`[AI] Generating post for topic: "${topic}" in ${language}`);
+  logger.info('business', `Generating post via AI`, { topic, language, hasImage: !!imageContext });
 
   // CHECK FOR API KEY
   if (!process.env.GROQ_API_KEY) {
-    console.warn("[AI] No GROQ_API_KEY found. Using Mock response.");
+    logger.warn('system', "No GROQ_API_KEY found. Using Mock response.");
     return generateMockResponse(topic, imageContext, language);
   }
 
@@ -42,7 +43,7 @@ export async function generatePostContent({
     const model = "llama-3.3-70b-versatile";
 
     if (imageContext) {
-      console.log("[AI] Image provided, but Vision model unavailable. Generating based on topic.");
+      logger.debug("AI Image provided, but Vision model unavailable. Generating based on topic.");
       // We can't send the image to a text model, so we just mention it in the system prompt or user prompt
       messages.push({
         role: "user",
@@ -64,8 +65,8 @@ export async function generatePostContent({
 
     return completion.choices[0]?.message?.content || "Failed to generate content.";
   } catch (error) {
-    console.error("[AI] Groq API Error:", error);
-    console.log("[AI] Falling back to Mock response.");
+    logger.error('business', "Groq API Error", error);
+    logger.info('business', "Falling back to Mock response");
     return generateMockResponse(topic, imageContext, language);
   }
 }

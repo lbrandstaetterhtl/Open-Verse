@@ -2,6 +2,7 @@ import { storage } from "../storage";
 import { sendToUser } from "./websocket";
 import type { Notification} from "@shared/schema";
 import { User } from "@shared/schema";
+import { logger } from "../logger";
 
 export type NotificationType = 
   | "new_follower"
@@ -43,7 +44,7 @@ class NotificationService {
       // 1. Check user preferences
       const preferences = await storage.getNotificationPreferences(payload.userId);
       if (!this.shouldNotify(payload.type, preferences)) {
-        console.log(`[NotificationService] Notification suppressed by user preferences for user ${payload.userId}, type ${payload.type}`);
+        logger.debug(`Notification suppressed by user preferences`, { userId: payload.userId, type: payload.type });
         return null;
       }
 
@@ -59,7 +60,7 @@ class NotificationService {
 
       return notification;
     } catch (error) {
-      console.error("[NotificationService] Error creating notification:", error);
+      logger.error('business', "Error creating notification", error, { payload });
       return null;
     }
   }
@@ -89,7 +90,7 @@ class NotificationService {
           notifiedUserIds.add(user.id);
         }
       } catch (err) {
-        console.error(`[NotificationService] Failed to notify mention for @${username}:`, err);
+        logger.error('business', `Failed to notify mention for @${username}`, err, { actorId });
       }
     }
   }

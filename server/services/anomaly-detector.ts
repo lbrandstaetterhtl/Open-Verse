@@ -3,6 +3,8 @@ import { activityLogs, anomalyEvents, ActivityLog } from "@shared/schema";
 import { count, eq, and, or, gte, desc, inArray, sql, isNull } from "drizzle-orm";
 import { alertService } from "./alert-service";
 import { autoPunishmentEngine } from "./auto-punishment-engine";
+import { anomalyLogger, dbLogger } from "../logger/service-loggers";
+import { logger } from "../logger";
 
 /**
  * APE-FIX [TIME-001]: Unified Unix Timing
@@ -313,7 +315,10 @@ class AnomalyDetector {
           gte(anomalyEvents.createdAt, now - 300) // 5 min dedup
         )).get();
 
-      if (existing) return;
+      if (existing) {
+        anomalyLogger.deduplicated(params.type, params.userId);
+        return;
+      }
 
       const [inserted] = await tx.insert(anomalyEvents).values({
         userId: params.userId,
@@ -330,13 +335,19 @@ class AnomalyDetector {
         updatedAt: now,
       }).returning({ id: anomalyEvents.id });
 
+      anomalyLogger.detected(params.type, params.userId, params.severity, {
+        title: params.title,
+        description: params.description,
+        ...params.evidence,
+      });
+
       autoPunishmentEngine.evaluate({
         id: inserted.id,
         userId: params.userId,
         anomalyType: params.type,
         severity: params.severity,
         evidence: params.evidence || {},
-      }).catch(err => console.error('[AutoPunishment] Error:', err));
+      }).catch(err => logger.error('security', 'AutoPunishment evaluation failed', err, { anomalyId: inserted.id }));
     });
   }
 }

@@ -11,6 +11,10 @@ import fs from "node:fs";
 import path from "node:path";
 import helmet from "helmet";
 import cors from "cors";
+import { logger } from "./logger";
+import { requestLoggerMiddleware } from "./middleware/request-logger";
+import { globalErrorHandler } from "./middleware/error-handler";
+import { dbLogger } from "./logger/service-loggers";
 
 
 const app = express();
@@ -54,7 +58,7 @@ if (process.env.TRUST_PROXY === "true" || process.env.TRUST_PROXY === "1") {
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log("Created uploads directory:", uploadsDir);
+  logger.info('system', "Created uploads directory", { path: uploadsDir });
 }
 
 // SEC-005: Hardened Static Serving for Uploads
@@ -81,36 +85,8 @@ app.get("/api/health", (_req, res) => {
 });
 
 
-// Add request logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
+// Add professional request logging middleware
+app.use(requestLoggerMiddleware);
 
 // Validate required environment variables
 const useSqlite = process.env.USE_SQLITE === "true";
@@ -121,24 +97,28 @@ const requiredEnvVars = useSqlite
 const missingEnvVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
-  console.error("Missing required environment variables:", missingEnvVars.join(", "));
+  logger.critical('system', "Missing required environment variables", { missing: missingEnvVars });
   process.exit(1);
 }
 
 // Check optional SendGrid configuration
 if (!process.env.SENDGRID_API_KEY) {
-  console.warn("SENDGRID_API_KEY not configured - email verification will be skipped");
+  logger.warn('system', "SENDGRID_API_KEY not configured - email verification will be skipped");
 } else if (!process.env.SENDGRID_API_KEY.startsWith("SG.")) {
-  console.warn("SENDGRID_API_KEY is invalid - email verification will be skipped");
+  logger.warn('system', "SENDGRID_API_KEY is invalid - email verification will be skipped");
 }
 
 // Register routes
 (async () => {
   try {
-    console.log("Starting server...");
+    logger.info('system', "Starting server...");
     
     // FEATURE [AS-009]: Initialize system settings
     await SettingsService.seed();
+
+    // MIGRATION [POSTGRES-FIX]: Ensure schema consistency
+    const { ensurePostgresColumns } = await import("./migrations/ensure_postgres_columns");
+    await ensurePostgresColumns();
     
     // TICKET SYSTEM: Initialize Database Tables
     const { addTicketSystem } = await import("./migrations/add_ticket_system");
@@ -155,25 +135,25 @@ if (!process.env.SENDGRID_API_KEY) {
     // ANALYTICS: Run initial bootstrap (compute last 7 days if empty)
     const latestSnapshot = await analyticsService.getLatestSnapshot();
     if (!latestSnapshot) {
-      console.log("[Analytics] No snapshots found, bootstrapping last 7 days...");
+      logger.info('system', "[Analytics] No snapshots found, bootstrapping last 7 days...");
       for (let i = 7; i >= 1; i--) {
         try {
           await analyticsService.computeDailySnapshot(subDays(new Date(), i));
         } catch (e) {
-          console.error(`[Analytics] Failed bootstrap for -${i} days:`, e);
+          logger.error('error', `[Analytics] Failed bootstrap for -${i} days`, e);
         }
       }
     }
     
     // MODERATOR PERFORMANCE: Initial bootstrap
-    console.log("[ModPerf] Bootstrapping initial performance snapshots...");
+    logger.info('system', "[ModPerf] Bootstrapping initial performance snapshots...");
     for (let i = 7; i >= 0; i--) {
       try {
         await moderatorPerformanceService.computeDailySnapshot(
           subDays(new Date(), i).toISOString().slice(0, 10)
         );
       } catch (e) {
-        console.error(`[ModPerf] Bootstrap for -${i} days failed:`, e);
+        logger.error('error', `[ModPerf] Bootstrap for -${i} days failed`, e);
       }
     }
 
@@ -181,32 +161,22 @@ if (!process.env.SENDGRID_API_KEY) {
     setInterval(async () => {
       const now = new Date();
       if (now.getHours() === 0 && now.getMinutes() === 5) {
-        console.log("[Analytics] Running scheduled daily snapshot...");
+        logger.info('system', "[Analytics] Running scheduled daily snapshot...");
         try {
           await analyticsService.computeDailySnapshot(subDays(new Date(), 1));
           await moderatorPerformanceService.computeDailySnapshot(
             subDays(new Date(), 1).toISOString().slice(0, 10)
           );
         } catch (e) {
-          console.error("[Analytics] Scheduled snapshot failed:", e);
+          logger.error('error', "[Analytics] Scheduled snapshot failed", e);
         }
       }
     }, 60 * 1000); // Check every minute
     
     const server = await registerRoutes(app);
 
-    // SECURITY-FIX [SEC-002]: Hardened Error Handler (No Info-Leak in Prod)
-    app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const isDev = app.get("env") === "development";
-      
-      console.error(`[Error] ${req.method} ${req.path} ::`, err);
-
-      res.status(status).json({ 
-        message: isDev ? err.message : "Internal Server Error",
-        ...(isDev && { stack: err.stack })
-      });
-    });
+    // SECURITY-FIX [SEC-002]: Professional Global Error Handler
+    app.use(globalErrorHandler);
 
     if (app.get("env") === "development") {
       await setupVite(app, server);
@@ -218,37 +188,40 @@ if (!process.env.SENDGRID_API_KEY) {
     const host = process.env.HOST || "0.0.0.0";
     
     server.listen(port, host, () => {
-      console.log(`Server started successfully on ${host}:${port} (${app.get("env")} mode)`);
+      logger.info('system', `Server started successfully on ${host}:${port} (${app.get("env")} mode)`, { host, port, env: app.get("env") });
     });
 
     // Handle server errors
     server.on("error", (error: any) => {
-      console.error("Server error:", error);
+      logger.critical('system', "Server error", error);
       process.exit(1);
     });
 
     // STABILITY-FIX [STAB-001]: Graceful Shutdown Handling
     const shutdown = async (signal: string) => {
-      console.log(`\n${signal} received. Starting graceful shutdown...`);
+      logger.info('system', `${signal} received. Starting graceful shutdown...`);
       
       // Stop accepting new connections
       server.close(async () => {
-        console.log("HTTP server closed.");
+        logger.info('system', "HTTP server closed.");
         
         try {
           // Close DB connections
           await closeDb();
-          console.log("Cleanup complete. Exiting.");
+          logger.info('system', "Cleanup complete. Exiting.");
+          logger.shutdown();
           process.exit(0);
         } catch (err) {
-          console.error("Error during DB cleanup:", err);
+          logger.error('system', "Error during DB cleanup", err);
+          logger.shutdown();
           process.exit(1);
         }
       });
 
       // Force exit after 10s if graceful shutdown fails
       setTimeout(() => {
-        console.error("Could not close connections in time, forcefully shutting down.");
+        logger.critical('system', "Could not close connections in time, forcefully shutting down.");
+        logger.shutdown();
         process.exit(1);
       }, 10000);
     };
@@ -256,19 +229,18 @@ if (!process.env.SENDGRID_API_KEY) {
     process.on('SIGTERM', () => shutdown('SIGTERM'));
     process.on('SIGINT', () => shutdown('SIGINT'));
 
-    // STABILITY-FIX [STAB-002]: Unhandled Rejections & Exceptions
+    // STABILITY-FIX [STAB-002]: Professional Process Error Handling
     process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-      // Optional: Send to external monitoring service
+      logger.critical('error', 'Unhandled Rejection', reason, { promise: String(promise) });
+      if (process.env.NODE_ENV === 'development') process.exit(1);
     });
 
     process.on('uncaughtException', (error) => {
-      console.error('Uncaught Exception:', error);
-      // Graceful shutdown after uncaught exception
+      logger.critical('error', 'Uncaught Exception', error);
       shutdown('UncaughtException');
     });
   } catch (error) {
-    console.error("Failed to start server:", error);
+    logger.critical('system', "Failed to start server", error);
     process.exit(1);
   }
 })();

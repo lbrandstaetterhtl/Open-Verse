@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { metricsService } from "../services/metrics-service";
 import { activityLogger } from "../services/activity-logger";
+import { logger } from "../logger";
 
 export function monitoringMiddleware(req: Request, res: Response, next: NextFunction) {
   const startTime = Date.now();
@@ -58,7 +59,12 @@ export function slowQueryMiddleware(req: Request, res: Response, next: NextFunct
   res.on('finish', () => {
     const duration = Date.now() - startTime;
     if (duration > 2000 && req.path.startsWith('/api/')) {
-      console.warn(`[SLOW REQUEST] ${req.method} ${req.path} took ${duration}ms`);
+      logger.warn('performance', `Slow request detected: ${req.method} ${req.path}`, {
+        duration,
+        method: req.method,
+        path: req.path,
+        requestId: (req as any).requestId,
+      });
       activityLogger.log({
         action: 'system.error',
         category: 'system',
