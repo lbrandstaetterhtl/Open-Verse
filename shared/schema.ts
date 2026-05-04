@@ -488,8 +488,6 @@ export const insertCommunitySchema = createInsertSchema(communities).extend({
   slug: z.string().nullable().optional(),
   isPrivate: z.boolean().optional().default(false),
 });
-export const insertCommentSchema = createInsertSchema(comments);
-export const insertReportSchema = createInsertSchema(reports);
 export const insertThemeSchema = createInsertSchema(themes);
 export const insertAutoPunishmentRuleSchema = createInsertSchema(autoPunishmentRules);
 export const adminUpdateUserSchema = createInsertSchema(users).partial();
@@ -502,9 +500,23 @@ export const loginSchema = z.object({ username: z.string().min(1), password: z.s
 // Specialized Post Schemas for the Frontend
 export const insertMediaPostSchema = createInsertSchema(posts).extend({
   mediaFile: z.any().optional(),
+  authorId: z.number().optional(),
+  category: z.string().optional(),
 });
 
-export const insertDiscussionPostSchema = createInsertSchema(posts);
+export const insertDiscussionPostSchema = createInsertSchema(posts).extend({
+  authorId: z.number().optional(),
+  category: z.string().optional(),
+});
+
+export const insertCommentSchema = createInsertSchema(comments).extend({
+  authorId: z.number().optional(),
+  postId: z.number().optional(),
+});
+
+export const insertReportSchema = createInsertSchema(reports).extend({
+  reporterId: z.number().optional(),
+});
 
 // Types
 export type User = typeof users.$inferSelect;
