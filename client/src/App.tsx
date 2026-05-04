@@ -211,7 +211,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <AuthProvider>
-          <AppContent />
+          <Suspense fallback={<LoadingScreen />}>
+            <AppContent />
+          </Suspense>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
