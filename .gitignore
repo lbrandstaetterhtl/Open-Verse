@@ -125,6 +125,8 @@ Thumbs.db
 sqlite.db
 local.db
 *.db
+*.db-wal
+*.db-shm
 uploads/
 server/public/
 

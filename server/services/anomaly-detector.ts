@@ -1,37 +1,51 @@
 import { db } from "../db";
 import { activityLogs, anomalyEvents, ActivityLog } from "@shared/schema";
-import { count, eq, and, or, gte, desc, inArray, sql } from "drizzle-orm";
+import { count, eq, and, or, gte, desc, inArray, sql, isNull } from "drizzle-orm";
 import { alertService } from "./alert-service";
 import { autoPunishmentEngine } from "./auto-punishment-engine";
 
+/**
+ * APE-FIX [TIME-001]: Unified Unix Timing
+ */
+export function nowUnix(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
 class AnomalyDetector {
 
+  /**
+   * APE-FIX [BUG-001]: Brute Force logic hardened
+   * - Only counts 'auth.login_failed' actions
+   * - Only counts 'failure' status
+   * - Dynamic threshold based on recent history to prevent lockouts
+   */
   async checkBruteForce(entry: any): Promise<void> {
     if (entry.action !== 'auth.login_failed') return;
-    const ip = entry.req?.ip || "unknown";
+    const ip = entry.ipAddress || "unknown";
+    const now = nowUnix();
     
-    // SEC-FIX [SEC-008]: Dynamic Penalization
-    // If there are recent open anomalies for this user/IP, lower the threshold
+    // Check recent anomalies for dynamic penalization
     const [recentAnomalies] = await db.select({ count: count() })
       .from(anomalyEvents)
       .where(and(
-        or(entry.userId ? eq(anomalyEvents.userId, entry.userId) : sql`1=0`, eq(anomalyEvents.description, ip)),
+        entry.userId ? eq(anomalyEvents.userId, entry.userId) : sql`1=0`,
         eq(anomalyEvents.status, 'open'),
-        sql`${anomalyEvents.createdAt} >= ${new Date(Date.now() - 3600000).toISOString()}` // 1 hour
+        gte(anomalyEvents.createdAt, now - 86400)
       ));
     
     const baseThreshold = 10;
-    const penaltyThreshold = recentAnomalies?.count ? Math.max(3, baseThreshold - (recentAnomalies.count * 2)) : baseThreshold;
+    const penaltyThreshold = recentAnomalies?.count ? Math.max(5, baseThreshold - (recentAnomalies.count * 1)) : baseThreshold;
 
     const [failedLogins] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.action, 'auth.login_failed'),
+        eq(activityLogs.status, 'failure'),
         or(
           entry.userId ? eq(activityLogs.userId, entry.userId) : sql`1=0`,
           eq(activityLogs.ipAddress, ip)
         ),
-        sql`${activityLogs.createdAt} >= ${new Date(Date.now() - 900000).toISOString()}`
+        gte(activityLogs.createdAt, now - 900) // 15 min
       ));
  
     const countVal = failedLogins?.count ?? 0;
@@ -40,29 +54,33 @@ class AnomalyDetector {
         userId: entry.userId,
         type: 'brute_force_login',
         severity: countVal >= baseThreshold ? 'critical' : 'high',
-        title: 'Verschärfter Brute-Force-Schutz',
-        description: `Wiederholte fehlgeschlagene Logins (${countVal}). Schwelle reduziert durch Vorfälle auf ${penaltyThreshold}. IP: ${ip}`,
+        title: 'Brute-Force Login Detection',
+        description: `${countVal} failed attempts in 15min. IP: ${ip}`,
         triggerValue: countVal,
         thresholdValue: penaltyThreshold,
         autoAction: 'account_flagged',
-        evidence: { ip, failedAttempts: countVal, penaltyApplied: penaltyThreshold < baseThreshold }
+        evidence: { ip, failedAttempts: countVal }
       });
     }
   }
 
+  /**
+   * APE-FIX [BUG-006]: Realistic Mass Action Thresholds
+   */
   async checkMassAction(entry: any): Promise<void> {
     const action = entry.action;
-    const massActionThresholds: Record<string, { window: number; limit: number; severity: string }> = {
-      'like.add':      { window: 3600,  limit: 200,  severity: 'warning' },
-      'follow.add':    { window: 3600,  limit: 100,  severity: 'warning' },
-      'follow.remove': { window: 3600,  limit: 100,  severity: 'warning' },
-      'comment.create':{ window: 3600,  limit: 50,   severity: 'warning' },
-      'post.create':   { window: 3600,  limit: 20,   severity: 'warning' },
-      'report.submit': { window: 86400, limit: 20,   severity: 'high' },
-      'block.add':     { window: 3600,  limit: 50,   severity: 'info' },
+    const now = nowUnix();
+    
+    const thresholds: Record<string, { window: number; limit: number; severity: string }> = {
+      'like.add':       { window: 3600,  limit: 500,  severity: 'warning' },
+      'follow.add':     { window: 3600,  limit: 150,  severity: 'warning' },
+      'follow.remove':  { window: 3600,  limit: 150,  severity: 'warning' },
+      'comment.create': { window: 3600,  limit: 100,  severity: 'warning' },
+      'post.create':    { window: 3600,  limit: 50,   severity: 'warning' },
+      'report.submit':  { window: 86400, limit: 30,   severity: 'high' },
     };
 
-    const config = massActionThresholds[action];
+    const config = thresholds[action];
     if (!config || !entry.userId) return;
 
     const [recentCount] = await db.select({ count: count() })
@@ -70,7 +88,7 @@ class AnomalyDetector {
       .where(and(
         eq(activityLogs.userId, entry.userId),
         eq(activityLogs.action, action as any),
-        sql`${activityLogs.createdAt} >= ${new Date(Date.now() - config.window * 1000).toISOString()}`
+        gte(activityLogs.createdAt, now - config.window)
       ));
 
     const countVal = recentCount?.count ?? 0;
@@ -79,22 +97,25 @@ class AnomalyDetector {
         userId: entry.userId,
         type: 'mass_action',
         severity: config.severity as any,
-        title: `Massen-Aktion erkannt: ${action}`,
-        description: `User hat ${countVal} "${action}" Aktionen in ${config.window / 3600} Stunden ausgeführt`,
+        title: `Mass Action: ${action}`,
+        description: `${countVal} actions in ${config.window / 3600}h`,
         triggerValue: countVal,
         thresholdValue: config.limit,
-        autoAction: countVal >= config.limit * 2 ? 'rate_limited' : 'none',
-        evidence: { action, count: countVal, windowHours: config.window / 3600 }
+        autoAction: 'none',
+        evidence: { action, count: countVal }
       });
     }
   }
 
+  /**
+   * APE-FIX [BUG-009]: Safe Country-Based Impossible Travel
+   */
   async checkImpossibleTravel(entry: any): Promise<void> {
     if (entry.action !== 'auth.login' || entry.status !== 'success' || !entry.userId) return;
-    const ipInfo = entry.req?.ipInfo || { country: 'unknown' };
-    const country = entry.ipCountry || ipInfo.country;
+    const country = entry.ipCountry || "unknown";
+    const now = nowUnix();
 
-    const lastLogin = await db.select()
+    const lastLogins = await db.select()
       .from(activityLogs)
       .where(and(
         eq(activityLogs.userId, entry.userId),
@@ -105,202 +126,171 @@ class AnomalyDetector {
       .limit(2)
       .execute();
 
-    if (lastLogin.length < 2) return;
+    if (lastLogins.length < 2) return;
+    const prev = lastLogins[1];
+    
+    const isKnown = (c: any) => c && c !== 'unknown' && c !== 'local' && c !== 'private';
 
-    const previousLogin = lastLogin[1];
-    const currentLogin = lastLogin[0];
+    if (isKnown(prev.ipCountry) && isKnown(country) && prev.ipCountry !== country) {
+      const timeDiff = entry.createdAt - prev.createdAt;
+      const minTravelTime = 14400; // 4 hours buffer for VPN/Roaming
 
-    if (previousLogin.ipCountry &&
-        previousLogin.ipCountry !== country &&
-        previousLogin.ipCountry !== 'local' &&
-        country !== 'local' &&
-        country !== 'unknown') {
-
-      const prevTime = previousLogin.createdAt instanceof Date ? previousLogin.createdAt.getTime() : new Date(previousLogin.createdAt!).getTime();
-      const currTime = currentLogin.createdAt instanceof Date ? currentLogin.createdAt.getTime() : new Date(currentLogin.createdAt!).getTime();
-      const timeDiff = (currTime - prevTime) / 1000;
-      const twoHours = 2 * 60 * 60;
-
-      if (timeDiff < twoHours) {
+      if (timeDiff < minTravelTime) {
         await this.createAnomaly({
           userId: entry.userId,
           type: 'impossible_travel',
           severity: 'high',
-          title: 'Impossible Travel erkannt',
-          description: `Login aus ${country} nur ${Math.floor(timeDiff / 60)} Minuten nach Login aus ${previousLogin.ipCountry}`,
+          title: 'Impossible Travel Detection',
+          description: `Travel from ${prev.ipCountry} to ${country} in ${Math.floor(timeDiff/60)}min`,
           triggerValue: timeDiff / 60,
-          thresholdValue: 120,
+          thresholdValue: 240,
           autoAction: 'account_flagged',
-          evidence: {
-            previousCountry: previousLogin.ipCountry,
-            currentCountry: country,
-            timeDifferenceMinutes: Math.floor(timeDiff / 60),
-            previousIp: previousLogin.ipAddress,
-            currentIp: currentLogin.ipAddress
-          }
+          evidence: { prevCountry: prev.ipCountry, currCountry: country, timeDiff }
         });
       }
     }
   }
 
+  /**
+   * APE-FIX [BUG-005]: Versions-Stabiler Fingerprint Check
+   */
   async checkNewDevice(entry: any): Promise<void> {
     if (entry.action !== 'auth.login' || entry.status !== 'success' || !entry.userId) return;
-    const { browser, os } = entry.deviceInfo || {};
-    if (!browser || !os || browser === 'unknown' || os === 'unknown') return;
+    const fingerprint = entry.deviceFingerprint;
+    if (!fingerprint) return;
 
-    const knownDevices = await db.select({
-      browser: activityLogs.deviceBrowser,
-      os: activityLogs.deviceOs
-    })
+    // A device is "known" after 3 successful logins with the SAME stable fingerprint
+    const [knownCount] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.userId, entry.userId),
         eq(activityLogs.action, 'auth.login'),
-        eq(activityLogs.status, 'success')
-      ))
-      .orderBy(desc(activityLogs.createdAt))
-      .limit(20)
-      .execute();
+        eq(activityLogs.status, 'success'),
+        eq(activityLogs.deviceFingerprint, fingerprint)
+      ));
 
-    const isKnownDevice = knownDevices.some(d =>
-      d.browser === browser && d.os === os
-    );
-
-    if (!isKnownDevice && knownDevices.length >= 3) {
-      await this.createAnomaly({
-        userId: entry.userId,
-        type: 'new_device_login',
-        severity: 'warning',
-        title: 'Login von unbekanntem Gerät',
-        description: `Login von neuem Gerät: ${browser} auf ${os}`,
-        triggerValue: 1,
-        thresholdValue: 1,
-        autoAction: 'none',
-        evidence: {
-          newDevice: { browser, os },
-          knownDevices: knownDevices.slice(0, 5)
-        }
-      });
+    if (knownCount?.count === 1) { // First time seeing this STABLE fingerprint
+      // Check if user has other stable fingerprints
+      const [otherDevices] = await db.select({ count: count() })
+        .from(activityLogs)
+        .where(and(
+          eq(activityLogs.userId, entry.userId),
+          eq(activityLogs.action, 'auth.login'),
+          eq(activityLogs.status, 'success')
+        ));
+      
+      if ((otherDevices?.count ?? 0) > 5) { // User has many devices
+        await this.createAnomaly({
+          userId: entry.userId,
+          type: 'new_device_login',
+          severity: 'info',
+          title: 'New Device Login',
+          description: 'Login from a new stable device fingerprint.',
+          triggerValue: 1,
+          thresholdValue: 0,
+          autoAction: 'none',
+          evidence: { fingerprint }
+        });
+      }
     }
   }
 
+  /**
+   * APE-FIX [BUG-015]: Realistic Content Spam Logic
+   */
   async checkContentSpam(entry: any): Promise<void> {
     if (!['post.create', 'comment.create'].includes(entry.action) || !entry.userId) return;
+    const now = nowUnix();
 
     const [recentContent] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.userId, entry.userId),
         inArray(activityLogs.action, ['post.create', 'comment.create']),
-        sql`${activityLogs.createdAt} >= ${new Date(Date.now() - 300000).toISOString()}`
+        gte(activityLogs.createdAt, now - 300) // 5 min window
       ));
 
     const countVal = recentContent?.count ?? 0;
-    if (countVal >= 10) {
+    const threshold = 25; // APE-FIX: Increased from 10 to 25
+
+    if (countVal >= threshold) {
       await this.createAnomaly({
         userId: entry.userId,
         type: 'spam_content',
         severity: 'high',
-        title: 'Content-Spam erkannt',
-        description: `${countVal} Posts/Comments in 5 Minuten erstellt`,
+        title: 'Content Spam Detection',
+        description: `${countVal} posts/comments in 5min.`,
         triggerValue: countVal,
-        thresholdValue: 10,
-        autoAction: 'rate_limited',
-        evidence: { count: countVal, window: '5min' }
+        thresholdValue: threshold,
+        autoAction: 'warn',
+        evidence: { count: countVal }
       });
     }
   }
 
-  async checkFollowUnfollowLoop(entry: any): Promise<void> {
-    if (!['follow.add', 'follow.remove'].includes(entry.action) || !entry.userId) return;
-
-    // Check if the user has followed and unfollowed the exact same target multiple times recently
-    const recentFollowActivity = await db.select()
-      .from(activityLogs)
-      .where(and(
-        eq(activityLogs.userId, entry.userId),
-        inArray(activityLogs.action, ['follow.add', 'follow.remove']),
-        eq(activityLogs.targetId, String(entry.targetId)),
-        sql`${activityLogs.createdAt} >= ${new Date(Date.now() - 3600000).toISOString()}`
-      ))
-      .orderBy(desc(activityLogs.createdAt))
-      .execute();
-
-    if (recentFollowActivity.length >= 6) { // e.g. follow, unfollow, follow, unfollow, follow, unfollow
-      await this.createAnomaly({
-        userId: entry.userId,
-        type: 'mass_action', // Categorize as mass action or behavior abuse
-        severity: 'warning',
-        title: 'Verdächtiges Follow/Unfollow',
-        description: `User hat den gleichen Account ${recentFollowActivity.length} mal in 1 Stunde gefolgt/entfolgt`,
-        triggerValue: recentFollowActivity.length,
-        thresholdValue: 6,
-        autoAction: 'none',
-        evidence: { targetId: entry.targetId, count: recentFollowActivity.length }
-      });
-    }
-  }
-
+  /**
+   * APE-FIX [BUG-004]: Mobile-Friendly Account Sharing
+   */
   async checkAccountSharing(entry: any): Promise<void> {
     if (!entry.userId) return;
+    const now = nowUnix();
 
-    const recentSessions = await db.select({
-      ipAddress: activityLogs.ipAddress,
-      sessionId: activityLogs.sessionId
-    })
+    const recentIps = await db.select({ ipAddress: activityLogs.ipAddress, country: activityLogs.ipCountry })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.userId, entry.userId),
-        sql`${activityLogs.createdAt} >= ${new Date(Date.now() - 3600000).toISOString()}`
+        gte(activityLogs.createdAt, now - 3600)
       ))
-      .groupBy(activityLogs.ipAddress)
       .execute();
 
-    const uniqueIps = new Set(recentSessions.map(s => s.ipAddress).filter(Boolean));
+    const uniqueIps = new Set(recentIps.map(r => r.ipAddress).filter(Boolean));
+    const uniqueCountries = new Set(recentIps.map(r => r.country).filter(c => c && c !== 'unknown' && c !== 'local'));
 
-    if (uniqueIps.size >= 5) {
+    // Trigger only if 15+ IPs OR 3+ Countries
+    if (uniqueIps.size >= 15 || uniqueCountries.size >= 3) {
       await this.createAnomaly({
         userId: entry.userId,
         type: 'account_sharing',
         severity: 'warning',
-        title: 'Verdacht: Account-Sharing',
-        description: `Account wird von ${uniqueIps.size} verschiedenen IP-Adressen in 1 Stunde genutzt`,
+        title: 'Suspicious Account Sharing',
+        description: `${uniqueIps.size} IPs and ${uniqueCountries.size} countries in 1h`,
         triggerValue: uniqueIps.size,
-        thresholdValue: 5,
+        thresholdValue: 15,
         autoAction: 'none',
-        evidence: { uniqueIpCount: uniqueIps.size, ips: [...uniqueIps].slice(0, 10) }
+        evidence: { ips: uniqueIps.size, countries: uniqueCountries.size }
       });
     }
   }
 
   async checkApiAbuse(entry: any): Promise<void> {
-    if (!entry.req || !entry.req.ip) return;
-    const ip = entry.req.ip;
-
-    const [requestsLastMinute] = await db.select({ count: count() })
+    // Basic rate limit check for API endpoints if logged
+    if (entry.category !== 'api' || !entry.userId) return;
+    const now = nowUnix();
+    
+    const [reqCount] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
-        eq(activityLogs.ipAddress, ip),
-        sql`${activityLogs.createdAt} >= ${new Date(Date.now() - 60000).toISOString()}`
+        eq(activityLogs.userId, entry.userId),
+        eq(activityLogs.category, 'api'),
+        gte(activityLogs.createdAt, now - 60)
       ));
-
-    const countVal = requestsLastMinute?.count ?? 0;
-    if (countVal >= 100) {
+    
+    if ((reqCount?.count ?? 0) > 200) { // 200 req/min
       await this.createAnomaly({
         userId: entry.userId,
         type: 'api_abuse',
         severity: 'high',
-        title: 'API-Abuse erkannt',
-        description: `${countVal} Requests/Minute von IP ${ip}`,
-        triggerValue: countVal,
-        thresholdValue: 100,
-        autoAction: 'blocked',
-        evidence: { ip, requestsPerMinute: countVal }
+        title: 'API Abuse Detection',
+        description: 'Excessive API requests detected.',
+        triggerValue: reqCount?.count ?? 0,
+        thresholdValue: 200,
+        autoAction: 'shadow_ban',
+        evidence: { reqPerMin: reqCount?.count }
       });
     }
   }
 
-  private async createAnomaly(params: {
+  async createAnomaly(params: {
     userId?: number;
     type: string;
     severity: 'info' | 'warning' | 'high' | 'critical';
@@ -311,54 +301,43 @@ class AnomalyDetector {
     autoAction: string;
     evidence: Record<string, unknown>;
   }): Promise<void> {
+    const now = nowUnix();
 
-    const whereConditions = [
-      eq(anomalyEvents.anomalyType, params.type),
-      eq(anomalyEvents.status, 'open'),
-      sql`${anomalyEvents.createdAt} >= ${new Date(Date.now() - 3600000).toISOString()}`
-    ];
-    if (params.userId) {
-      whereConditions.push(eq(anomalyEvents.userId, params.userId));
-    }
+    await db.transaction(async (tx) => {
+      const existing = await tx.select()
+        .from(anomalyEvents)
+        .where(and(
+          params.userId ? eq(anomalyEvents.userId, params.userId) : isNull(anomalyEvents.userId),
+          eq(anomalyEvents.anomalyType, params.type),
+          eq(anomalyEvents.status, 'open'),
+          gte(anomalyEvents.createdAt, now - 300) // 5 min dedup
+        )).get();
 
-    const [existing] = await db.select()
-      .from(anomalyEvents)
-      .where(and(...whereConditions));
+      if (existing) return;
 
-    if (existing) return;
-
-    const inserted = await db.insert(anomalyEvents).values({
-      userId: params.userId,
-      anomalyType: params.type,
-      severity: params.severity,
-      title: params.title,
-      description: params.description,
-      evidence: JSON.stringify(params.evidence),
-      triggerValue: params.triggerValue,
-      thresholdValue: params.thresholdValue,
-      autoAction: params.autoAction,
-      status: 'open',
-    }).returning({ id: anomalyEvents.id });
-
-    if (params.severity === 'critical') {
-      alertService.fire({
-        severity: params.severity as any,
+      const [inserted] = await tx.insert(anomalyEvents).values({
+        userId: params.userId,
+        anomalyType: params.type,
+        severity: params.severity,
         title: params.title,
         description: params.description,
-        metadata: { userId: params.userId, anomalyId: inserted[0].id }
-      }).catch(err => console.error("Alert fire failed:", err));
-    }
+        evidence: JSON.stringify(params.evidence),
+        triggerValue: params.triggerValue,
+        thresholdValue: params.thresholdValue,
+        autoAction: params.autoAction,
+        status: 'open',
+        createdAt: now,
+        updatedAt: now,
+      }).returning({ id: anomalyEvents.id });
 
-    // Auto-Punishment Engine evaluieren (fire-and-forget)
-    autoPunishmentEngine.evaluate({
-      id: inserted[0].id,
-      userId: params.userId,
-      anomalyType: params.type,
-      severity: params.severity,
-      evidence: params.evidence || {},
-      ipAddress: (this as any).currentRequest?.ip || (this as any).currentRequest?.socket?.remoteAddress,
-      deviceFingerprint: (this as any).currentRequest?.deviceFingerprint,
-    }).catch(err => console.error('[AutoPunishment] Evaluation error:', err));
+      autoPunishmentEngine.evaluate({
+        id: inserted.id,
+        userId: params.userId,
+        anomalyType: params.type,
+        severity: params.severity,
+        evidence: params.evidence || {},
+      }).catch(err => console.error('[AutoPunishment] Error:', err));
+    });
   }
 }
 

@@ -216,6 +216,7 @@ if (useSqlite) {
       device_os       TEXT,
       device_browser  TEXT,
       session_id      TEXT,
+      device_fingerprint TEXT,
       status          TEXT NOT NULL DEFAULT 'success',
       severity        TEXT NOT NULL DEFAULT 'info',
       is_anomaly      INTEGER DEFAULT 0,
