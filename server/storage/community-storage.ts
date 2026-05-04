@@ -55,7 +55,11 @@ export class CommunityStorage {
       };
     }
 
-    const [newCommunity] = await db.insert(communities).values(community).returning();
+    const mappedCommunity = {
+      ...community,
+      isPrivate: community.isPrivate ? 1 : 0
+    };
+    const [newCommunity] = await db.insert(communities).values(mappedCommunity).returning();
     return newCommunity;
   }
 

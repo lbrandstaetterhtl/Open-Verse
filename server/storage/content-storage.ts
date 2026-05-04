@@ -263,7 +263,7 @@ export class ContentStorage {
         .run(userId, postId, isLike ? 1 : 0, Math.floor(Date.now() / 1000));
       return;
     }
-    await db.insert(postLikes).values({ userId, postId, isLike });
+    await db.insert(postLikes).values({ userId, postId, isLike: isLike ? 1 : 0 });
   }
 
   async removePostReaction(userId: number, postId: number): Promise<void> {
@@ -294,8 +294,8 @@ export class ContentStorage {
       const dislikes = sqlite.prepare("SELECT COUNT(*) as count FROM post_likes WHERE post_id = ? AND is_like = 0").get(postId) as { count: number };
       return { likes: likes.count, dislikes: dislikes.count };
     }
-    const likes = await db.select({ count: sql<number>`count(*)` }).from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.isLike, true)));
-    const dislikes = await db.select({ count: sql<number>`count(*)` }).from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.isLike, false)));
+    const likes = await db.select({ count: sql<number>`count(*)` }).from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.isLike, 1)));
+    const dislikes = await db.select({ count: sql<number>`count(*)` }).from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.isLike, 0)));
     return { likes: likes[0].count, dislikes: dislikes[0].count };
   }
 
@@ -425,7 +425,7 @@ export class ContentStorage {
       .select({ post: posts })
       .from(postLikes)
       .innerJoin(posts, eq(postLikes.postId, posts.id))
-      .where(and(eq(postLikes.userId, userId), eq(postLikes.isLike, true)))
+      .where(and(eq(postLikes.userId, userId), eq(postLikes.isLike, 1)))
       .orderBy(desc(postLikes.createdAt));
 
     return result.map((r: { post: Post }) => r.post);

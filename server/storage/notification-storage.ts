@@ -70,9 +70,9 @@ export class NotificationStorage {
       .insert(notifications)
       .values({
         ...notification,
-        read: false,
-        seen: false,
-        archived: false,
+        read: 0,
+        seen: 0,
+        archived: 0,
       })
       .returning();
     return newNotification;
@@ -131,9 +131,9 @@ export class NotificationStorage {
       }));
     }
 
-    let whereClause = and(eq(notifications.userId, userId), eq(notifications.archived, false));
+    let whereClause = and(eq(notifications.userId, userId), eq(notifications.archived, 0));
     if (unreadOnly) {
-      whereClause = and(whereClause, eq(notifications.read, false));
+      whereClause = and(whereClause, eq(notifications.read, 0));
     }
     if (type && type.length > 0) {
       whereClause = and(whereClause, inArray(notifications.type, type));
@@ -165,8 +165,8 @@ export class NotificationStorage {
       return { unread: unread.count, unseen: unseen.count };
     }
 
-    const unreadResult = await db.select({ count: sql<number>`count(*)` }).from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.read, false), eq(notifications.archived, false)));
-    const unseenResult = await db.select({ count: sql<number>`count(*)` }).from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.seen, false), eq(notifications.archived, false)));
+    const unreadResult = await db.select({ count: sql<number>`count(*)` }).from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.read, 0), eq(notifications.archived, 0)));
+    const unseenResult = await db.select({ count: sql<number>`count(*)` }).from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.seen, 0), eq(notifications.archived, 0)));
 
     return {
       unread: Number(unreadResult[0].count),
@@ -180,7 +180,7 @@ export class NotificationStorage {
       sqlite.prepare("UPDATE notifications SET read = 1 WHERE id = ?").run(notificationId);
       return;
     }
-    await db.update(notifications).set({ read: true }).where(eq(notifications.id, notificationId));
+    await db.update(notifications).set({ read: 1 }).where(eq(notifications.id, notificationId));
   }
 
   async markAllNotificationsAsRead(userId: number): Promise<void> {
@@ -189,7 +189,7 @@ export class NotificationStorage {
       sqlite.prepare("UPDATE notifications SET read = 1 WHERE user_id = ? AND archived = 0").run(userId);
       return;
     }
-    await db.update(notifications).set({ read: true }).where(and(eq(notifications.userId, userId), eq(notifications.archived, false)));
+    await db.update(notifications).set({ read: 1 }).where(and(eq(notifications.userId, userId), eq(notifications.archived, 0)));
   }
 
   async markNotificationsAsSeen(userId: number): Promise<void> {
@@ -198,7 +198,7 @@ export class NotificationStorage {
       sqlite.prepare("UPDATE notifications SET seen = 1 WHERE user_id = ? AND archived = 0").run(userId);
       return;
     }
-    await db.update(notifications).set({ seen: true }).where(and(eq(notifications.userId, userId), eq(notifications.archived, false)));
+    await db.update(notifications).set({ seen: 1 }).where(and(eq(notifications.userId, userId), eq(notifications.archived, 0)));
   }
 
   async deleteNotification(notificationId: number): Promise<void> {
@@ -207,7 +207,7 @@ export class NotificationStorage {
       sqlite.prepare("UPDATE notifications SET archived = 1 WHERE id = ?").run(notificationId);
       return;
     }
-    await db.update(notifications).set({ archived: true }).where(eq(notifications.id, notificationId));
+    await db.update(notifications).set({ archived: 1 }).where(eq(notifications.id, notificationId));
   }
 
   async deleteAllNotifications(userId: number): Promise<void> {
@@ -216,7 +216,7 @@ export class NotificationStorage {
       sqlite.prepare("UPDATE notifications SET archived = 1 WHERE user_id = ?").run(userId);
       return;
     }
-    await db.update(notifications).set({ archived: true }).where(eq(notifications.userId, userId));
+    await db.update(notifications).set({ archived: 1 }).where(eq(notifications.userId, userId));
   }
 
   async getNotificationPreferences(userId: number): Promise<NotificationPreferences> {

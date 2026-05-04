@@ -184,9 +184,17 @@ export class UserStorage {
       };
     }
 
+    // Map potential booleans in profile to integers for Postgres compatibility
+    const mappedProfile: any = { ...profile };
+    for (const key of Object.keys(mappedProfile)) {
+      if (typeof mappedProfile[key] === 'boolean') {
+        mappedProfile[key] = mappedProfile[key] ? 1 : 0;
+      }
+    }
+
     const [updatedUser] = await db
       .update(users)
-      .set(profile)
+      .set(mappedProfile)
       .where(eq(users.id, id))
       .returning();
     return updatedUser;
@@ -306,7 +314,7 @@ export class UserStorage {
     }
     await db
       .update(users)
-      .set({ emailVerified: true })
+      .set({ emailVerified: 1 })
       .where(eq(users.id, userId));
   }
 
