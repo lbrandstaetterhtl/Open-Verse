@@ -155,8 +155,9 @@ export function Navbar() {
           </div>
 
           {/* Global Tools & Account (Right) */}
-          <div className="flex items-center gap-2 ml-auto">
-            <div className="hidden lg:flex items-center bg-muted/30 rounded-full px-1 py-0.5 border border-transparent hover:border-border/50 transition-all">
+          <div className="flex items-center gap-1 sm:gap-2 ml-auto">
+            {/* Chat + Notifications: visible on all sizes (bottom nav handles mobile tabs) */}
+            <div className="flex items-center">
               <Link href="/chat">
                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary transition-colors active:scale-90">
                   <MessageCircle className="h-4 w-4" />
@@ -165,7 +166,7 @@ export function Navbar() {
               <NotificationBell />
             </div>
             
-            <Separator orientation="vertical" className="h-5 mx-1 hidden lg:block opacity-30" />
+            <Separator orientation="vertical" className="h-5 mx-1 opacity-30" />
             
             <div className="flex items-center gap-1">
               <LanguageToggle />

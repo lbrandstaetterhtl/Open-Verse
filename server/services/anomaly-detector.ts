@@ -12,19 +12,18 @@ class AnomalyDetector {
     
     // SEC-FIX [SEC-008]: Dynamic Penalization
     // If there are recent open anomalies for this user/IP, lower the threshold
-    const recentAnomalies = await db.select({ count: count() })
+    const [recentAnomalies] = await db.select({ count: count() })
       .from(anomalyEvents)
       .where(and(
         or(entry.userId ? eq(anomalyEvents.userId, entry.userId) : sql`1=0`, eq(anomalyEvents.description, ip)),
         eq(anomalyEvents.status, 'open'),
         sql`${anomalyEvents.createdAt} >= ${new Date(Date.now() - 3600000).toISOString()}` // 1 hour
-      ))
-      .get();
+      ));
     
     const baseThreshold = 10;
     const penaltyThreshold = recentAnomalies?.count ? Math.max(3, baseThreshold - (recentAnomalies.count * 2)) : baseThreshold;
 
-    const failedLogins = await db.select({ count: count() })
+    const [failedLogins] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.action, 'auth.login_failed'),
@@ -33,8 +32,7 @@ class AnomalyDetector {
           eq(activityLogs.ipAddress, ip)
         ),
         sql`${activityLogs.createdAt} >= ${new Date(Date.now() - 900000).toISOString()}`
-      ))
-      .get();
+      ));
  
     const countVal = failedLogins?.count ?? 0;
     if (countVal >= penaltyThreshold) {
@@ -67,14 +65,13 @@ class AnomalyDetector {
     const config = massActionThresholds[action];
     if (!config || !entry.userId) return;
 
-    const recentCount = await db.select({ count: count() })
+    const [recentCount] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.userId, entry.userId),
         eq(activityLogs.action, action as any),
         sql`${activityLogs.createdAt} >= ${new Date(Date.now() - config.window * 1000).toISOString()}`
-      ))
-      .get();
+      ));
 
     const countVal = recentCount?.count ?? 0;
     if (countVal >= config.limit) {
@@ -190,14 +187,13 @@ class AnomalyDetector {
   async checkContentSpam(entry: any): Promise<void> {
     if (!['post.create', 'comment.create'].includes(entry.action) || !entry.userId) return;
 
-    const recentContent = await db.select({ count: count() })
+    const [recentContent] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.userId, entry.userId),
         inArray(activityLogs.action, ['post.create', 'comment.create']),
         sql`${activityLogs.createdAt} >= ${new Date(Date.now() - 300000).toISOString()}`
-      ))
-      .get();
+      ));
 
     const countVal = recentContent?.count ?? 0;
     if (countVal >= 10) {
@@ -281,13 +277,12 @@ class AnomalyDetector {
     if (!entry.req || !entry.req.ip) return;
     const ip = entry.req.ip;
 
-    const requestsLastMinute = await db.select({ count: count() })
+    const [requestsLastMinute] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
         eq(activityLogs.ipAddress, ip),
         sql`${activityLogs.createdAt} >= ${new Date(Date.now() - 60000).toISOString()}`
-      ))
-      .get();
+      ));
 
     const countVal = requestsLastMinute?.count ?? 0;
     if (countVal >= 100) {
@@ -326,10 +321,9 @@ class AnomalyDetector {
       whereConditions.push(eq(anomalyEvents.userId, params.userId));
     }
 
-    const existing = await db.select()
+    const [existing] = await db.select()
       .from(anomalyEvents)
-      .where(and(...whereConditions))
-      .get();
+      .where(and(...whereConditions));
 
     if (existing) return;
 

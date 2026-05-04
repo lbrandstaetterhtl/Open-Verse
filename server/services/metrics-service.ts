@@ -44,60 +44,53 @@ class MetricsService {
     const oneHourAgo = new Date(nowTs - 3600000);
 
     try {
-      const activeUsers = await db.select({ count: count(sql`DISTINCT user_id`) })
+      const [activeUsers] = await db.select({ count: count(sql`DISTINCT user_id`) })
         .from(activityLogs)
-        .where(sql`${activityLogs.createdAt} >= ${fiveMinutesAgo.toISOString()}`)
-        .get();
+        .where(sql`${activityLogs.createdAt} >= ${fiveMinutesAgo.toISOString()}`);
       this.record('active_users', activeUsers?.count ?? 0);
 
-      const recentPosts = await db.select({ count: count() })
+      const [recentPosts] = await db.select({ count: count() })
         .from(activityLogs)
         .where(and(
           eq(activityLogs.action, 'post.create'),
           sql`${activityLogs.createdAt} >= ${oneHourAgo.toISOString()}`
-        ))
-        .get();
+        ));
       this.record('posts_per_hour', recentPosts?.count ?? 0);
 
-      const totalRequests = await db.select({ count: count() })
+      const [totalRequests] = await db.select({ count: count() })
         .from(activityLogs)
-        .where(sql`${activityLogs.createdAt} >= ${fiveMinutesAgo.toISOString()}`)
-        .get();
-      const errorRequests = await db.select({ count: count() })
+        .where(sql`${activityLogs.createdAt} >= ${fiveMinutesAgo.toISOString()}`);
+      const [errorRequests] = await db.select({ count: count() })
         .from(activityLogs)
         .where(and(
           inArray(activityLogs.severity, ['error', 'critical']),
           sql`${activityLogs.createdAt} >= ${fiveMinutesAgo.toISOString()}`
-        ))
-        .get();
+        ));
 
       const errorRate = totalRequests?.count
         ? ((errorRequests?.count ?? 0) / totalRequests.count) * 100
         : 0;
       this.record('error_rate_percent', errorRate);
 
-      const failedLogins = await db.select({ count: count() })
+      const [failedLogins] = await db.select({ count: count() })
         .from(activityLogs)
         .where(and(
           eq(activityLogs.action, 'auth.login_failed'),
           sql`${activityLogs.createdAt} >= ${oneHourAgo.toISOString()}`
-        ))
-        .get();
+        ));
       this.record('failed_logins_per_hour', failedLogins?.count ?? 0);
       
-      const openAnomalies = await db.select({ count: count() })
+      const [openAnomalies] = await db.select({ count: count() })
         .from(anomalyEvents)
-        .where(eq(anomalyEvents.status, 'open'))
-        .get();
+        .where(eq(anomalyEvents.status, 'open'));
       this.record('open_anomalies_count', openAnomalies?.count ?? 0);
       
-      const openTickets = await db.select({ count: count() })
+      const [openTickets] = await db.select({ count: count() })
         .from(tickets)
         .where(and(
             inArray(tickets.status, ['open', 'in_progress']),
             isNull(tickets.deletedAt)
-        ))
-        .get();
+        ));
       this.record('open_tickets_count', openTickets?.count ?? 0);
       
     } catch (e) {

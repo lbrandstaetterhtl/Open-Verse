@@ -79,8 +79,7 @@ class ModeratorPerformanceService {
       role:     users.role,
     })
       .from(users)
-      .where(sql`role IN ('admin', 'owner')`)
-      .all();
+      .where(sql`role IN ('admin', 'owner')`);
 
     for (const mod of moderators) {
       await this.computeModeratorSnapshot(mod, dateStr, dayStart, dayEnd);
@@ -98,14 +97,17 @@ class ModeratorPerformanceService {
 
     // SQLite normalisierte Zeitstempel-Abfrage (wie im AnalyticsService)
     const timestampCondition = (column: any, start: Date, end: Date) => {
-      const s = start.toISOString().replace('T', ' ').slice(0, 19);
-      const e = end.toISOString().replace('T', ' ').slice(0, 19);
-      return sql`(
-        CASE 
-          WHEN typeof(${column}) = 'integer' THEN datetime(${column}, 'unixepoch')
-          ELSE datetime(${column})
-        END
-      ) BETWEEN ${s} AND ${e}`;
+      if (process.env.USE_SQLITE === "true") {
+        const s = start.toISOString().replace('T', ' ').slice(0, 19);
+        const e = end.toISOString().replace('T', ' ').slice(0, 19);
+        return sql`(
+          CASE 
+            WHEN typeof(${column}) = 'integer' THEN datetime(${column}, 'unixepoch')
+            ELSE datetime(${column})
+          END
+        ) BETWEEN ${s} AND ${e}`;
+      }
+      return and(gte(column, start), lte(column, end));
     };
 
     // ── Report-Metriken ────────────────────────────────────
@@ -119,8 +121,7 @@ class ModeratorPerformanceService {
         eq(reports.resolvedBy, mod.id),
         timestampCondition(reports.resolvedAt, dayStart, dayEnd)
       ))
-      .groupBy(reports.status)
-      .all();
+      .groupBy(reports.status);
 
     const reportsResolved  = reportsHandled.find(r => r.status === 'resolved')?.count ?? 0;
     const reportsDismissed = reportsHandled.find(r => r.status === 'rejected')?.count ?? 0;
@@ -132,48 +133,44 @@ class ModeratorPerformanceService {
     // ── Ticket-Metriken ────────────────────────────────────
 
     // Tickets die dieser Mod resolved/closed hat
-    const ticketsResolvedCount = await db.select({ count: count() })
-      .from(tickets)
-      .where(and(
-        eq(tickets.assignedTo, mod.id),
-        sql`status IN ('resolved', 'closed')`,
-        timestampCondition(tickets.updatedAt, dayStart, dayEnd)
-      ))
-      .get();
+      const [ticketsResolvedCount] = await db.select({ count: count() })
+        .from(tickets)
+        .where(and(
+          eq(tickets.assignedTo, mod.id),
+          sql`status IN ('resolved', 'closed')`,
+          timestampCondition(tickets.updatedAt, dayStart, dayEnd)
+        ));
 
     // Kommentare von diesem Mod auf Tickets heute
-    const ticketCommentsCount = await db.select({ count: count() })
-      .from(ticketComments)
-      .where(and(
-        eq(ticketComments.authorId, mod.id),
-        eq(ticketComments.isSystem, 0),
-        timestampCondition(ticketComments.createdAt, dayStart, dayEnd)
-      ))
-      .get();
+      const [ticketCommentsCount] = await db.select({ count: count() })
+        .from(ticketComments)
+        .where(and(
+          eq(ticketComments.authorId, mod.id),
+          eq(ticketComments.isSystem, 0),
+          timestampCondition(ticketComments.createdAt, dayStart, dayEnd)
+        ));
 
     // Ø Antwortzeit
-    const avgResponseTime = await db.select({
-      avg: avg(tickets.responseTimeSeconds),
-    })
-      .from(tickets)
-      .where(and(
-        eq(tickets.assignedTo, mod.id),
-        sql`response_time_seconds IS NOT NULL`,
-        timestampCondition(tickets.firstResponseAt, dayStart, dayEnd)
-      ))
-      .get();
+      const [avgResponseTime] = await db.select({
+        avg: avg(tickets.responseTimeSeconds),
+      })
+        .from(tickets)
+        .where(and(
+          eq(tickets.assignedTo, mod.id),
+          sql`response_time_seconds IS NOT NULL`,
+          timestampCondition(tickets.firstResponseAt, dayStart, dayEnd)
+        ));
 
     // Ø Lösungszeit
-    const avgResolutionTime = await db.select({
-      avg: avg(tickets.resolutionTimeSeconds),
-    })
-      .from(tickets)
-      .where(and(
-        eq(tickets.assignedTo, mod.id),
-        sql`resolution_time_seconds IS NOT NULL`,
-        timestampCondition(tickets.resolvedAt, dayStart, dayEnd) || timestampCondition(tickets.closedAt, dayStart, dayEnd)
-      ))
-      .get();
+      const [avgResolutionTime] = await db.select({
+        avg: avg(tickets.resolutionTimeSeconds),
+      })
+        .from(tickets)
+        .where(and(
+          eq(tickets.assignedTo, mod.id),
+          sql`resolution_time_seconds IS NOT NULL`,
+          timestampCondition(tickets.resolvedAt, dayStart, dayEnd) || timestampCondition(tickets.closedAt, dayStart, dayEnd)
+        ));
 
     // ── Admin-Aktionen aus Activity Logs ───────────────────
     const adminActions = await db.select({
@@ -181,13 +178,12 @@ class ModeratorPerformanceService {
       count: count(),
     })
       .from(activityLogs)
-      .where(and(
-        eq(activityLogs.userId, mod.id),
-        eq(activityLogs.category, 'admin'),
-        timestampCondition(activityLogs.createdAt, dayStart, dayEnd)
-      ))
-      .groupBy(activityLogs.action)
-      .all();
+        .where(and(
+          eq(activityLogs.userId, mod.id),
+          eq(activityLogs.category, 'admin'),
+          timestampCondition(activityLogs.createdAt, dayStart, dayEnd)
+        ))
+        .groupBy(activityLogs.action);
 
     const totalAdminActions = adminActions.reduce((s, a) => s + a.count, 0);
     const userBans    = adminActions.find(a => a.action === 'admin.user_ban')?.count ?? 0;
@@ -281,8 +277,7 @@ class ModeratorPerformanceService {
       .leftJoin(users, eq(users.id, moderatorPerformanceSnapshots.moderatorId))
       .where(gte(moderatorPerformanceSnapshots.snapshotDate, startDate))
       .groupBy(moderatorPerformanceSnapshots.moderatorId)
-      .orderBy(sql`${orderCol}`)
-      .all() as any;
+      .orderBy(sql`${orderCol}`) as any;
   }
 
   async getTeamOverview(): Promise<TeamOverview> {
@@ -296,29 +291,25 @@ class ModeratorPerformanceService {
       this.getTeamStatsForDateRange(sevenDaysAgo, today),
     ]);
 
-    const openReports = await db.select({ count: count() })
+    const [openReports] = await db.select({ count: count() })
       .from(reports)
-      .where(eq(reports.status, 'pending'))
-      .get();
+      .where(eq(reports.status, 'pending'));
 
-    const openTickets = await db.select({ count: count() })
+    const [openTickets] = await db.select({ count: count() })
       .from(tickets)
-      .where(sql`status IN ('open', 'in_progress', 'on_hold')`)
-      .get();
+      .where(sql`status IN ('open', 'in_progress', 'on_hold')`);
 
-    const globalAvgResponse = await db.select({
+    const [globalAvgResponse] = await db.select({
       avg: avg(tickets.responseTimeSeconds),
     })
       .from(tickets)
-      .where(sql`response_time_seconds IS NOT NULL`)
-      .get();
+      .where(sql`response_time_seconds IS NOT NULL`);
 
-    const globalAvgResolution = await db.select({
+    const [globalAvgResolution] = await db.select({
       avg: avg(tickets.resolutionTimeSeconds),
     })
       .from(tickets)
-      .where(sql`resolution_time_seconds IS NOT NULL`)
-      .get();
+      .where(sql`resolution_time_seconds IS NOT NULL`);
 
     const calcTrend = (current: number, previous: number) =>
       previous > 0 ? (((current - previous) / previous) * 100).toFixed(1) : '0';
@@ -348,8 +339,7 @@ class ModeratorPerformanceService {
       .where(and(
         eq(moderatorPerformanceSnapshots.snapshotDate, date),
         eq(moderatorPerformanceSnapshots.period, 'day')
-      ))
-      .get();
+      ));
 
     return {
       reportsHandled:  Number(result?.reportsHandled ?? 0),
@@ -368,8 +358,7 @@ class ModeratorPerformanceService {
         gte(moderatorPerformanceSnapshots.snapshotDate, startDate),
         lte(moderatorPerformanceSnapshots.snapshotDate, endDate),
         eq(moderatorPerformanceSnapshots.period, 'day')
-      ))
-      .get();
+      ));
 
     return {
       reportsHandled:  Number(result?.reportsHandled ?? 0),
@@ -392,8 +381,7 @@ class ModeratorPerformanceService {
         gte(moderatorPerformanceSnapshots.snapshotDate, startDate),
         eq(moderatorPerformanceSnapshots.period, 'day')
       ))
-      .orderBy(moderatorPerformanceSnapshots.snapshotDate)
-      .all();
+      .orderBy(moderatorPerformanceSnapshots.snapshotDate);
 
     const timeline = snapshots.map(s => ({
       date:             s.snapshotDate,

@@ -33,55 +33,46 @@ export class AnalyticsService {
       console.log(`[Analytics] Computing snapshot for ${dateStr}...`);
 
       // 1. User Growth
-      const newUsersResult = await db.select({ count: count() })
+      const [newUsersResult] = await db.select({ count: count() })
         .from(users)
-        .where(this.timestampCondition(users.createdAt, dayStart, dayEnd))
-        .get();
-      const totalUsersResult = await db.select({ count: count() }).from(users).get();
+        .where(this.timestampCondition(users.createdAt, dayStart, dayEnd));
+      const [totalUsersResult] = await db.select({ count: count() }).from(users);
 
       // 2. Active Users (DAU/WAU/MAU)
-      const dauResult = await db.select({ count: sql<number>`count(distinct user_id)` })
+      const [dauResult] = await db.select({ count: sql<number>`count(distinct user_id)` })
         .from(activityLogs)
-        .where(this.timestampCondition(activityLogs.createdAt, dayStart, dayEnd))
-        .get();
+        .where(this.timestampCondition(activityLogs.createdAt, dayStart, dayEnd));
       
       const wauStart = subDays(dayEnd, 7);
-      const wauResult = await db.select({ count: sql<number>`count(distinct user_id)` })
+      const [wauResult] = await db.select({ count: sql<number>`count(distinct user_id)` })
         .from(activityLogs)
-        .where(this.timestampCondition(activityLogs.createdAt, wauStart, dayEnd))
-        .get();
+        .where(this.timestampCondition(activityLogs.createdAt, wauStart, dayEnd));
 
       const mauStart = subDays(dayEnd, 30);
-      const mauResult = await db.select({ count: sql<number>`count(distinct user_id)` })
+      const [mauResult] = await db.select({ count: sql<number>`count(distinct user_id)` })
         .from(activityLogs)
-        .where(this.timestampCondition(activityLogs.createdAt, mauStart, dayEnd))
-        .get();
+        .where(this.timestampCondition(activityLogs.createdAt, mauStart, dayEnd));
 
       // 3. Content Metrics
-      const newPostsResult = await db.select({ count: count() })
+      const [newPostsResult] = await db.select({ count: count() })
         .from(posts)
-        .where(this.timestampCondition(posts.createdAt, dayStart, dayEnd))
-        .get();
+        .where(this.timestampCondition(posts.createdAt, dayStart, dayEnd));
       
-      const newCommentsResult = await db.select({ count: count() })
+      const [newCommentsResult] = await db.select({ count: count() })
         .from(comments)
-        .where(this.timestampCondition(comments.createdAt, dayStart, dayEnd))
-        .get();
+        .where(this.timestampCondition(comments.createdAt, dayStart, dayEnd));
 
-      const newLikesResult = await db.select({ count: count() })
+      const [newLikesResult] = await db.select({ count: count() })
         .from(postLikes)
-        .where(this.timestampCondition(postLikes.createdAt, dayStart, dayEnd))
-        .get();
+        .where(this.timestampCondition(postLikes.createdAt, dayStart, dayEnd));
       
-      const newFollowsResult = await db.select({ count: count() })
+      const [newFollowsResult] = await db.select({ count: count() })
         .from(followers)
-        .where(this.timestampCondition(followers.createdAt, dayStart, dayEnd))
-        .get();
+        .where(this.timestampCondition(followers.createdAt, dayStart, dayEnd));
 
-      const newCommunitiesResult = await db.select({ count: count() })
+      const [newCommunitiesResult] = await db.select({ count: count() })
         .from(communities)
-        .where(this.timestampCondition(communities.createdAt, dayStart, dayEnd))
-        .get();
+        .where(this.timestampCondition(communities.createdAt, dayStart, dayEnd));
 
       // 4. Retention (D1)
       const d1Start = subDays(dayStart, 1);
@@ -89,19 +80,15 @@ export class AnalyticsService {
       
       const cohortUsers = await db.select({ id: users.id })
         .from(users)
-        .where(this.timestampCondition(users.createdAt, d1Start, d1End))
-        .all();
+        .where(this.timestampCondition(users.createdAt, d1Start, d1End));
       
       let d1Retention = 0;
       if (cohortUsers.length > 0) {
         const cohortIds = cohortUsers.map(u => u.id);
-        const activeFromCohort = await db.select({ count: sql<number>`count(distinct user_id)` })
-            .from(activityLogs)
             .where(and(
                 this.timestampCondition(activityLogs.createdAt, dayStart, dayEnd),
                 inArray(activityLogs.userId, cohortIds as number[])
-            ))
-            .get();
+            ));
         d1Retention = (activeFromCohort?.count ?? 0) / cohortUsers.length;
       }
 
@@ -148,22 +135,22 @@ export class AnalyticsService {
   }
 
   private async computeCommunityAnalytics(start: Date, end: Date, dateStr: string) {
-    const allCommunities = await db.select().from(communities).all();
+    const allCommunities = await db.select().from(communities);
     
     for (const community of allCommunities) {
-      const newPosts = await db.select({ count: count() })
+      const [newPosts] = await db.select({ count: count() })
         .from(posts)
-        .where(and(eq(posts.communityId, community.id), this.timestampCondition(posts.createdAt, start, end)))
-        .get();
+        .where(and(eq(posts.communityId, community.id), this.timestampCondition(posts.createdAt, start, end)));
       
-      const activeMembers = await db.select({ count: sql<number>`count(distinct user_id)` })
+      const [activeMembers] = await db.select({ count: sql<number>`count(distinct user_id)` })
         .from(activityLogs)
         .where(and(
             eq(activityLogs.category, 'content'),
-            sql`json_extract(${activityLogs.metadata}, '$.community_id') = ${community.id}`,
+            process.env.USE_SQLITE === "true" 
+              ? sql`json_extract(${activityLogs.metadata}, '$.community_id') = ${community.id}`
+              : sql`${activityLogs.metadata}::jsonb->>'community_id' = ${community.id.toString()}`,
             this.timestampCondition(activityLogs.createdAt, start, end)
-        ))
-        .get();
+        ));
 
       const stats = {
         communityId: community.id,
@@ -191,19 +178,16 @@ export class AnalyticsService {
     const activeCreators = await db.select({ userId: posts.authorId })
         .from(posts)
         .where(this.timestampCondition(posts.createdAt, start, end))
-        .groupBy(posts.authorId)
-        .all();
+        .groupBy(posts.authorId);
 
     for (const { userId } of activeCreators) {
-        const newPosts = await db.select({ count: count() })
+        const [newPosts] = await db.select({ count: count() })
             .from(posts)
-            .where(and(eq(posts.authorId, userId as number), this.timestampCondition(posts.createdAt, start, end)))
-            .get();
+            .where(and(eq(posts.authorId, userId as number), this.timestampCondition(posts.createdAt, start, end)));
         
-        const newFollowers = await db.select({ count: count() })
+        const [newFollowers] = await db.select({ count: count() })
             .from(followers)
-            .where(and(eq(followers.followingId, userId as number), this.timestampCondition(followers.createdAt, start, end)))
-            .get();
+            .where(and(eq(followers.followingId, userId as number), this.timestampCondition(followers.createdAt, start, end)));
 
         const stats = {
             userId: userId as number,
@@ -224,14 +208,17 @@ export class AnalyticsService {
   }
 
   private timestampCondition(column: any, start: Date, end: Date) {
-    const s = start.toISOString().replace('T', ' ').slice(0, 19);
-    const e = end.toISOString().replace('T', ' ').slice(0, 19);
-    return sql`(
-      CASE 
-        WHEN typeof(${column}) = 'integer' THEN datetime(${column}, 'unixepoch')
-        ELSE datetime(${column})
-      END
-    ) BETWEEN ${s} AND ${e}`;
+    if (process.env.USE_SQLITE === "true") {
+      const s = start.toISOString().replace('T', ' ').slice(0, 19);
+      const e = end.toISOString().replace('T', ' ').slice(0, 19);
+      return sql`(
+        CASE 
+          WHEN typeof(${column}) = 'integer' THEN datetime(${column}, 'unixepoch')
+          ELSE datetime(${column})
+        END
+      ) BETWEEN ${s} AND ${e}`;
+    }
+    return and(gte(column, start), lte(column, end));
   }
 
   async getGrowthOverview(days: number = 30) {
@@ -239,8 +226,7 @@ export class AnalyticsService {
     return await db.select()
         .from(analyticsSnapshots)
         .where(gte(analyticsSnapshots.createdAt, limitDate))
-        .orderBy(desc(analyticsSnapshots.snapshotDate))
-        .all();
+        .orderBy(desc(analyticsSnapshots.snapshotDate));
   }
 
   async getLatestSnapshot(): Promise<AnalyticsSnapshot | null> {

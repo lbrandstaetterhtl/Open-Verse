@@ -27,9 +27,9 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
         or(
           eq(bans.isPermanent, 1),
           gt(bans.expiresAt, now)
-        )
       ))
-      .all();
+      // .all() removed since Drizzle Postgres returns an array directly
+      ;
 
     if (activeBans.length > 0) {
       // 1. IP Ban check
@@ -67,10 +67,11 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
 
     // 4. Account Freeze check (separate because it's on the users table)
     if (userId) {
-      const user = await db.select({ isFrozen: users.isFrozen, frozenUntil: users.frozenUntil })
+      const usersList = await db.select({ isFrozen: users.isFrozen, frozenUntil: users.frozenUntil })
         .from(users)
         .where(eq(users.id, userId))
-        .get();
+        .limit(1);
+      const user = usersList[0];
 
       if (user?.isFrozen) {
         if (!user.frozenUntil || user.frozenUntil > now) {

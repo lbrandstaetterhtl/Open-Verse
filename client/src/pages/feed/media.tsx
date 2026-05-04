@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { Plus, ImageIcon } from "lucide-react";
+import { Plus, ImageIcon, Pencil } from "lucide-react";
 import { useLocation } from "wouter";
 import { PostCard } from "@/components/post/post-card";
 import { PageTransition } from "@/components/ui/page-transition";
 import type { PostWithAuthor } from "@shared/types";
+import { motion } from "framer-motion";
 
 export default function MediaFeedPage() {
   const [, setLocation] = useLocation();
@@ -43,7 +44,7 @@ export default function MediaFeedPage() {
 
   return (
     <PageTransition>
-      <main className="container mx-auto px-4 pt-20 pb-8">
+      <main className="container mx-auto px-4 pt-6 md:pt-20 pb-8">
         <div className="max-w-4xl mx-auto">
           {/* Mobile Header with Smooth Entry */}
           <div className="lg:hidden mb-6 animate-slide-down">
@@ -128,6 +129,22 @@ export default function MediaFeedPage() {
           </div>
         </div>
       </main>
+
+      {/* Mobile FAB – Create Post */}
+      <motion.div
+        className="fixed bottom-24 right-4 z-50 md:hidden"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.3 }}
+      >
+        <Button
+          onClick={() => setLocation("/post/news")}
+          className="h-14 w-14 rounded-2xl shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all active:scale-90 bg-primary hover:bg-primary/90"
+          aria-label={t("feed.post_news")}
+        >
+          <Pencil className="h-6 w-6" />
+        </Button>
+      </motion.div>
     </PageTransition>
   );
 }

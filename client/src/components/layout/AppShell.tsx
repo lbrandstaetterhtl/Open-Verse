@@ -2,6 +2,7 @@ import React, { Suspense } from "react";
 import { useLocation, Link } from "wouter";
 import { Navbar } from "./navbar";
 import { Footer } from "./footer";
+import { MobileBottomNav } from "./mobile-bottom-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { 
@@ -125,7 +126,9 @@ export function AppShell({ children }: AppShellProps) {
           }>
             <div className={cn(
               "flex-1 w-full",
-              isAdminArea ? "p-4 md:p-8" : "container mx-auto"
+              isAdminArea ? "p-4 md:p-8" : "container mx-auto",
+              // Mobile: extra bottom padding so content clears the bottom nav
+              !isAdminArea && "pb-24 md:pb-0"
             )}>
               {children}
             </div>
@@ -134,6 +137,9 @@ export function AppShell({ children }: AppShellProps) {
           <Footer />
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 }

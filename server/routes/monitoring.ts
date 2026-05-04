@@ -57,9 +57,9 @@ router.get("/activity-logs", async (req, res) => {
       .execute();
 
     const countQuery = db.select({ total: count() }).from(activityLogs);
-    const totalResult = conditions.length > 0 
-      ? await countQuery.where(and(...conditions)).get()
-      : await countQuery.get();
+    const [totalResult] = conditions.length > 0 
+      ? await countQuery.where(and(...conditions))
+      : await countQuery;
 
     res.json({ logs: items, total: totalResult?.total ?? 0, page });
   } catch (error: any) {
@@ -98,35 +98,35 @@ router.get("/metrics/overview", async (req, res) => {
     const twentyFourHoursAgo = new Date(now - 86400000);
     const oneHourAgo = new Date(now - 3600000);
     
-    const eventsToday = await db.select({ count: count() })
+    const [eventsToday] = await db.select({ count: count() })
       .from(activityLogs)
-      .where(sql`${activityLogs.createdAt} >= ${twentyFourHoursAgo.toISOString()}`).get();
+      .where(sql`${activityLogs.createdAt} >= ${twentyFourHoursAgo.toISOString()}`);
 
-    const openAnomalies = await db.select({ count: count() })
+    const [openAnomalies] = await db.select({ count: count() })
       .from(anomalyEvents)
-      .where(eq(anomalyEvents.status, 'open')).get();
+      .where(eq(anomalyEvents.status, 'open'));
       
-    const criticalAnomalies = await db.select({ count: count() })
+    const [criticalAnomalies] = await db.select({ count: count() })
       .from(anomalyEvents)
-      .where(and(eq(anomalyEvents.status, 'open'), eq(anomalyEvents.severity, 'critical'))).get();
+      .where(and(eq(anomalyEvents.status, 'open'), eq(anomalyEvents.severity, 'critical')));
 
-    const totalHourRequests = await db.select({ count: count() })
+    const [totalHourRequests] = await db.select({ count: count() })
       .from(activityLogs)
-      .where(sql`${activityLogs.createdAt} >= ${oneHourAgo.toISOString()}`).get();
+      .where(sql`${activityLogs.createdAt} >= ${oneHourAgo.toISOString()}`);
       
-    const errorHourRequests = await db.select({ count: count() })
+    const [errorHourRequests] = await db.select({ count: count() })
       .from(activityLogs)
       .where(and(
          inArray(activityLogs.severity, ['error', 'critical']),
          sql`${activityLogs.createdAt} >= ${oneHourAgo.toISOString()}`
-      )).get();
+      ));
       
     const errorRate = totalHourRequests?.count ? 
       ((errorHourRequests?.count ?? 0) / totalHourRequests.count) * 100 : 0;
       
-    const activeUsersNow = await db.select({ count: count(sql`DISTINCT user_id`) })
+    const [activeUsersNow] = await db.select({ count: count(sql`DISTINCT user_id`) })
       .from(activityLogs)
-      .where(sql`${activityLogs.createdAt} >= ${new Date(now - 300000).toISOString()}`).get();
+      .where(sql`${activityLogs.createdAt} >= ${new Date(now - 300000).toISOString()}`);
 
     res.json({
       events_today: eventsToday?.count ?? 0,
