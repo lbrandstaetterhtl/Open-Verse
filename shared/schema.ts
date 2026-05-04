@@ -483,7 +483,10 @@ export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snap
 
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users).pick({ username: true, email: true, password: true });
-export const insertCommunitySchema = createInsertSchema(communities);
+export const insertCommunitySchema = createInsertSchema(communities).extend({
+  creatorId: z.number().optional(),
+  slug: z.string().optional(),
+});
 export const insertCommentSchema = createInsertSchema(comments);
 export const insertReportSchema = createInsertSchema(reports);
 export const insertThemeSchema = createInsertSchema(themes);
