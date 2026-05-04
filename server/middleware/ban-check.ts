@@ -29,7 +29,7 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
         ),
         or(
           eq(bans.isPermanent, 1),
-          gt(bans.expiresAt, now)
+          gt(bans.expiresAt, new Date())
         )
       ));
 
