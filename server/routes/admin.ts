@@ -213,26 +213,51 @@ router.patch("/users/:id", async (req, res) => {
 router.delete("/users/:id", async (req, res) => {
     try {
         const userId = parseInt(req.params.id);
-        const [targetUser] = await db.select().from(users).where(eq(users.id, userId));
-        
-        await db.delete(users).where(eq(users.id, userId));
+        if (isNaN(userId)) return res.status(400).send("Invalid user ID");
 
-        if (targetUser) {
-            activityLogger.logFromRequest(req, {
-                action: "user.delete_account",
-                category: "users",
-                targetType: "User",
-                targetId: String(userId),
-                targetLabel: targetUser.username,
-                description: `Admin deleted user ${targetUser.username}`,
-                severity: "critical",
-                status: "success",
-            }).catch(err => console.error('[Monitor] admin.user_delete failed:', err));
+        const [targetUser] = await db.select().from(users).where(eq(users.id, userId));
+        if (!targetUser) return res.status(404).send("User not found");
+
+        // SECURITY: Prevent deleting owners via this endpoint
+        if (targetUser.role === "owner") {
+            return res.status(403).send("System owners cannot be deleted through the dashboard.");
         }
+
+        // Handle dependencies to prevent Foreign Key violations
+        await db.transaction(async (tx) => {
+            // 1. Delete notifications and messages
+            await tx.delete(sql`notifications` as any).where(sql`user_id = ${userId}`);
+            await tx.delete(sql`messages` as any).where(or(sql`sender_id = ${userId}`, sql`recipient_id = ${userId}`));
+            
+            // 2. Nullify posts and comments
+            await tx.update(posts).set({ authorId: 0 as any }).where(eq(posts.authorId, userId));
+            await tx.update(comments).set({ authorId: 0 as any }).where(eq(comments.authorId, userId));
+            
+            // 3. Delete reports made by user
+            await tx.delete(reports).where(eq(reports.reporterId, userId));
+            
+            // 4. Finally delete the user
+            await tx.delete(users).where(eq(users.id, userId));
+        });
+
+        activityLogger.logFromRequest(req, {
+            action: "user.delete_account",
+            category: "users",
+            targetType: "User",
+            targetId: String(userId),
+            targetLabel: targetUser.username,
+            description: `Admin deleted user ${targetUser.username} and handled dependencies`,
+            severity: "critical",
+            status: "success",
+        }).catch(err => console.error('[Monitor] admin.user_delete failed:', err));
+
         res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to delete user:", error);
-        res.status(500).send("Internal Server Error");
+        res.status(500).json({ 
+            error: "Failed to delete user due to database dependencies.",
+            details: error.message 
+        });
     }
 });
 
