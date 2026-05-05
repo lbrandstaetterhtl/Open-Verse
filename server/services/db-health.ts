@@ -45,11 +45,11 @@ export class DbHealthService {
             const isSqlite = process.env.USE_SQLITE === "true";
 
             if (isSqlite) {
-                const rows = await db.execute(sql`SELECT name FROM sqlite_master WHERE type='table'`) as any;
-                actualTables = rows.map((r: any) => r.name);
+                const result = await db.execute(sql`SELECT name FROM sqlite_master WHERE type='table'`) as any;
+                actualTables = result.map((r: any) => r.name);
             } else {
-                const rows = await db.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`) as any;
-                actualTables = rows.map((r: any) => r.table_name);
+                const result = await db.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`) as any;
+                actualTables = result.rows.map((r: any) => r.table_name);
             }
 
             status.missingTables = expectedTables.filter(t => !actualTables.includes(t));
