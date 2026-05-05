@@ -4,7 +4,7 @@ import {
   tickets,
 } from "@shared/schema";
 import { db, getSqlite } from "../db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 
 export class SupportStorage {
   async createTicket(ticket: any): Promise<Ticket> {
