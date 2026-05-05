@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../db";
 import { users, posts, reports, comments, activityLogs, adminSettings } from "@shared/schema";
 import { adminUpdateUserSchema, adminUpdateReportSchema } from "@shared/schema";
-import { eq, desc, count, sql, and } from "drizzle-orm";
+import { eq, desc, count, sql, and, or } from "drizzle-orm";
 import { activityLogger } from "../services/activity-logger";
 import rateLimit from "express-rate-limit";
 import { SettingsService } from "../services/settings";
