@@ -49,7 +49,7 @@ if (useSqlite) {
   sqlite.pragma('optimize');
 
   // Register 'now' function for compatibility with defaultNow()
-  sqlite.function("now", () => new Date().toISOString());
+  sqlite.function("now", () => Math.floor(Date.now() / 1000));
 
   db = drizzleSqlite(sqlite, { schema });
 
@@ -187,6 +187,95 @@ if (useSqlite) {
       community_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS tickets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_number TEXT NOT NULL UNIQUE,
+      created_by INTEGER NOT NULL,
+      assigned_to INTEGER,
+      type TEXT,
+      priority TEXT,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      related_user_id INTEGER,
+      related_post_id INTEGER,
+      related_url TEXT,
+      tags TEXT,
+      attachments TEXT,
+      status TEXT NOT NULL DEFAULT 'open',
+      response_time_seconds INTEGER,
+      resolution_time_seconds INTEGER,
+      first_response_at INTEGER,
+      resolved_at INTEGER,
+      closed_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ticket_comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id INTEGER NOT NULL,
+      author_id INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      is_system INTEGER NOT NULL DEFAULT 0,
+      is_internal INTEGER NOT NULL DEFAULT 0,
+      change_type TEXT,
+      change_from TEXT,
+      change_to TEXT,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ticket_status_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id INTEGER NOT NULL,
+      changed_by INTEGER NOT NULL,
+      from_status TEXT,
+      to_status TEXT,
+      reason TEXT,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS notification_preferences (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      community_post INTEGER NOT NULL DEFAULT 1,
+      post_milestone INTEGER NOT NULL DEFAULT 1,
+      system_announcement INTEGER NOT NULL DEFAULT 1,
+      browser_notifications INTEGER NOT NULL DEFAULT 1,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS themes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      colors TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS moderator_performance_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      moderator_id INTEGER NOT NULL,
+      moderator_username TEXT NOT NULL,
+      moderator_role TEXT NOT NULL,
+      snapshot_date TEXT NOT NULL,
+      period TEXT NOT NULL DEFAULT 'day',
+      reports_resolved INTEGER DEFAULT 0,
+      reports_dismissed INTEGER DEFAULT 0,
+      reports_total_handled INTEGER DEFAULT 0,
+      avg_report_resolution_s INTEGER DEFAULT 0,
+      tickets_resolved INTEGER DEFAULT 0,
+      tickets_commented INTEGER DEFAULT 0,
+      avg_ticket_response_s INTEGER DEFAULT 0,
+      avg_ticket_resolution_s INTEGER DEFAULT 0,
+      total_admin_actions INTEGER DEFAULT 0,
+      user_bans INTEGER DEFAULT 0,
+      user_unbans INTEGER DEFAULT 0,
+      content_removals INTEGER DEFAULT 0,
+      performance_score REAL DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
     CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
