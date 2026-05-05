@@ -34,9 +34,55 @@ import { dbLogger } from "../logger/service-loggers";
 
 
 
+import { DbHealthService } from "../services/db-health";
+
 export async function registerRoutes(app: Express): Promise<Server> {
     // 0. Performance: Compression
     app.use(compression());
+
+    // 0.5. DB Health Check Middleware
+    app.use(async (req, res, next) => {
+        // Skip health check for public assets
+        if (!req.path.startsWith("/api") && !req.path.includes(".")) {
+            // But we still want to check for the main page if it's not a static file
+            if (req.path !== "/") return next();
+        }
+
+        const health = await DbHealthService.checkHealth();
+        if (!health.isHealthy) {
+            // We need to check if user is admin, but req.user might not be populated yet
+            // However, we can check the session later or just show a friendly error first
+            // and a detailed one if they are on an admin route
+            const isAdminRoute = req.path.startsWith("/api/admin") || req.path.startsWith("/admin");
+            
+            // At this stage req.user is NOT yet available (setupAuth runs later)
+            // So we show the friendly error, but for the /api/admin paths we could try to be more detailed
+            // if we really wanted to. For now, let's keep it simple:
+            
+            if (req.path.startsWith("/api")) {
+                return res.status(503).json({
+                    error: "Database Unavailable",
+                    message: "The system is currently unable to communicate with the database.",
+                    details: isAdminRoute ? health.details : undefined
+                });
+            } else {
+                // Return a simple HTML error page if it's a direct browser request
+                return res.status(503).send(`
+                    <html>
+                        <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white; text-align: center;">
+                            <div>
+                                <h1 style="font-size: 3rem; margin-bottom: 1rem;">🗄️ Database Issue</h1>
+                                <p style="font-size: 1.2rem; opacity: 0.8;">The platform is temporarily unavailable due to a database connection issue.</p>
+                                ${isAdminRoute ? `<div style="margin-top: 2rem; padding: 1rem; background: #ef444420; border: 1px solid #ef444440; border-radius: 8px; color: #ef4444; font-family: monospace;">${health.details}</div>` : ""}
+                                <p style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.5;">Our engineers have been notified.</p>
+                            </div>
+                        </body>
+                    </html>
+                `);
+            }
+        }
+        next();
+    });
 
     // 1. Security Headers (Helmet)
     const scriptSrcDirective = process.env.NODE_ENV === 'production'
