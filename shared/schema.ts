@@ -297,6 +297,7 @@ export const tickets = pgTable("tickets", {
   closedAt: timestamp("closed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const ticketComments = pgTable("ticket_comments", {
@@ -311,6 +312,7 @@ export const ticketComments = pgTable("ticket_comments", {
   changeTo: text("change_to"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const ticketStatusHistory = pgTable("ticket_status_history", {
