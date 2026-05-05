@@ -11,13 +11,19 @@ async function syncDatabase() {
   const useSqlite = process.env.USE_SQLITE === "true";
   console.log(`--- Database Sync (${useSqlite ? "SQLite" : "PostgreSQL"}) ---`);
 
+  let success = false;
   if (useSqlite) {
-    await syncSqlite();
+    success = await syncSqlite();
   } else {
-    await syncPostgres();
+    success = await syncPostgres();
   }
 
-  console.log("\n✅ Database sync completed!");
+  if (success) {
+    console.log("\n✅ Database sync completed!");
+  } else {
+    console.log("\n❌ Database sync failed.");
+    process.exit(1);
+  }
   process.exit(0);
 }
 
@@ -563,17 +569,26 @@ async function syncSqlite() {
       }
     } catch (e) {}
   }
+  return true;
 }
 
 async function syncPostgres() {
   console.log("PostgreSQL synchronization relies on 'npm run db:push' (Drizzle Kit).");
+  
+  if (!db) {
+    console.error("❌ PostgreSQL connection failed: Database connection (db) is not initialized. Is DATABASE_URL missing?");
+    return false;
+  }
+
   console.log("Checking connection...");
   try {
     await db.execute(sql`SELECT 1`);
     console.log("✅ PostgreSQL connection successful.");
     console.log("Please run 'npm run db:push' to sync your schema with Postgres.");
+    return true;
   } catch (error) {
     console.error("❌ PostgreSQL connection failed:", error);
+    return false;
   }
 }
 
