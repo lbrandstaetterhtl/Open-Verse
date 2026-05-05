@@ -576,7 +576,8 @@ async function syncPostgres() {
   console.log("PostgreSQL synchronization relies on 'npm run db:push' (Drizzle Kit).");
   
   if (!db) {
-    console.error("❌ PostgreSQL connection failed: Database connection (db) is not initialized. Is DATABASE_URL missing?");
+    console.error("❌ PostgreSQL connection failed: Database connection (db) is not initialized.");
+    console.error("   Ensure DATABASE_URL is set and --env-file=.env is used if running via tsx.");
     return false;
   }
 
