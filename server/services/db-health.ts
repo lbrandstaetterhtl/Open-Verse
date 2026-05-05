@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { sql, getTableConfig } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { logger } from "../logger";
 import * as schema from "@shared/schema";
 
@@ -37,16 +37,17 @@ export class DbHealthService {
             const expectedTables: string[] = [];
             for (const key of Object.keys(schema)) {
                 const exported = (schema as any)[key];
-                // Check if it's a Drizzle table
-                if (exported && typeof exported === 'object' && ('id' in exported || '_' in exported)) {
-                    try {
-                        const config = getTableConfig(exported);
-                        if (config && config.name) {
-                            expectedTables.push(config.name);
-                        }
-                    } catch (e) {
-                        // Not a table, skip
-                    }
+                
+                // Extract table name safely without getTableConfig
+                let tableName: string | null = null;
+                
+                if (exported && typeof exported === 'object') {
+                    // Drizzle tables have the name in these properties depending on version/dialect
+                    tableName = exported.tableName || (exported as any)[Symbol.for('drizzle:Name')];
+                }
+
+                if (tableName) {
+                    expectedTables.push(tableName);
                 }
             }
 

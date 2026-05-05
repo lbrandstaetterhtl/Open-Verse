@@ -173,8 +173,8 @@ router.patch("/users/:id", async (req, res) => {
             Object.entries(updateData)
                 .filter(([_, v]) => v !== undefined)
                 .map(([k, v]) => {
-                    // SQLite3 cannot bind booleans directly, must be 0/1
-                    if (isSqlite && typeof v === "boolean") {
+                    // DB columns are integers (0/1), so we must convert booleans
+                    if (typeof v === "boolean") {
                         return [k, v ? 1 : 0];
                     }
                     return [k, v];
