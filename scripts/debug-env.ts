@@ -13,7 +13,12 @@ if (fs.existsSync(envPath)) {
   console.log('✅ .env file EXISTS');
   try {
     const content = fs.readFileSync(envPath, 'utf8');
-    console.log('.env first 20 chars:', content.substring(0, 20).replace(/\n/g, '\\n'));
+    console.log('.env Content Preview (first 500 chars):');
+    console.log('----------------------------------------');
+    // Mask sensitive looking values just in case
+    const safeContent = content.substring(0, 500).replace(/=[^ \n]{4,}/g, '=********');
+    console.log(safeContent);
+    console.log('----------------------------------------');
     console.log('.env total length:', content.length);
   } catch (err) {
     console.log('❌ Error reading .env:', (err as any).message);
@@ -22,9 +27,10 @@ if (fs.existsSync(envPath)) {
   console.log('❌ .env file NOT FOUND');
 }
 
-console.log('--- Variables ---');
-console.log('USE_SQLITE:', process.env.USE_SQLITE);
-console.log('DATABASE_URL defined:', !!process.env.DATABASE_URL);
-if (process.env.DATABASE_URL) {
-  console.log('DATABASE_URL preview:', process.env.DATABASE_URL.substring(0, 10) + '...');
-}
+console.log('--- Process Environment Keys ---');
+const keys = Object.keys(process.env).filter(k => k.startsWith('USE_') || k.startsWith('DATABASE_') || k.includes('SECRET'));
+keys.forEach(k => {
+  const val = process.env[k];
+  console.log(`${k}: ${val ? (val.length > 5 ? val.substring(0, 5) + '...' : val) : 'undefined'}`);
+});
+
