@@ -236,6 +236,21 @@ export default function AdminDashboard() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/users/${userId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({ title: t("common.success"), description: "User permanently deleted." });
+    },
+    onError: (error: Error) => {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    },
+  });
+
   const updateReportMutation = useMutation({
     mutationFn: async ({ reportId, status }: { reportId: number; status: string }) => {
       const res = await apiRequest("PATCH", `/api/admin/reports/${reportId}`, { status });
