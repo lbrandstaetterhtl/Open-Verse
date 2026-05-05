@@ -1,5 +1,5 @@
 import { db, getSqlite } from "../server/db";
-import * as schema from "../shared/schema";
+import * as schema from "@shared/schema";
 import { sql } from "drizzle-orm";
 
 /**
