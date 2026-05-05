@@ -225,18 +225,30 @@ router.delete("/users/:id", async (req, res) => {
 
         // Handle dependencies to prevent Foreign Key violations
         await db.transaction(async (tx) => {
-            // 1. Delete notifications and messages
+            // 1. Delete notifications and messages (Fix: receiver_id instead of recipient_id)
             await tx.delete(sql`notifications` as any).where(sql`user_id = ${userId}`);
-            await tx.delete(sql`messages` as any).where(or(sql`sender_id = ${userId}`, sql`recipient_id = ${userId}`));
+            await tx.delete(sql`messages` as any).where(or(sql`sender_id = ${userId}`, sql`receiver_id = ${userId}`));
             
-            // 2. Nullify posts and comments
+            // 2. Delete likes and reactions
+            await tx.delete(sql`post_likes` as any).where(sql`user_id = ${userId}`);
+            await tx.delete(sql`comment_likes` as any).where(sql`user_id = ${userId}`);
+            
+            // 3. Delete community memberships and requests
+            await tx.delete(sql`community_members` as any).where(sql`user_id = ${userId}`);
+            await tx.delete(sql`community_join_requests` as any).where(sql`user_id = ${userId}`);
+            await tx.delete(sql`community_bans` as any).where(sql`user_id = ${userId}`);
+
+            // 4. Delete followers/following data
+            await tx.delete(sql`followers` as any).where(or(sql`follower_id = ${userId}`, sql`following_id = ${userId}`));
+            
+            // 5. Nullify posts and comments
             await tx.update(posts).set({ authorId: 0 as any }).where(eq(posts.authorId, userId));
             await tx.update(comments).set({ authorId: 0 as any }).where(eq(comments.authorId, userId));
             
-            // 3. Delete reports made by user
+            // 6. Delete reports made by user
             await tx.delete(reports).where(eq(reports.reporterId, userId));
             
-            // 4. Finally delete the user
+            // 7. Finally delete the user
             await tx.delete(users).where(eq(users.id, userId));
         });
 
