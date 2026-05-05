@@ -42,12 +42,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // 0.5. DB Health Check Middleware
     app.use(async (req, res, next) => {
-        // Skip health check for public assets
-        if (!req.path.startsWith("/api") && !req.path.includes(".")) {
-            // But we still want to check for the main page if it's not a static file
-            if (req.path !== "/") return next();
+        // Skip health check for public assets (files with extensions) and non-API routes
+        // EXCEPT for the root "/" which we want to check
+        const isStaticFile = req.path.includes(".");
+        const isApiRoute = req.path.startsWith("/api");
+
+        if (!isApiRoute && isStaticFile) {
+            return next();
         }
 
+        // We only check health for API routes and the main entry points
         const health = await DbHealthService.checkHealth();
         if (!health.isHealthy) {
             // We need to check if user is admin, but req.user might not be populated yet
