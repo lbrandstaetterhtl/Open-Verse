@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   Globe,
   Search,
-  Clock
+  Clock,
+  MessageSquare
 } from "lucide-react";
 import { format } from "date-fns";
 import { AdminLayout } from "@/components/admin/admin-layout";
