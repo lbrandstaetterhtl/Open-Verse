@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, getTableConfig } from "drizzle-orm";
 import { logger } from "../logger";
 import * as schema from "@shared/schema";
 
@@ -34,11 +34,21 @@ export class DbHealthService {
             await db.execute(sql`SELECT 1`);
 
             // 2. Check Tables
-            // We get a list of all tables defined in our schema
-            const expectedTables = Object.keys(schema).filter(key => {
+            const expectedTables: string[] = [];
+            for (const key of Object.keys(schema)) {
                 const exported = (schema as any)[key];
-                return exported && typeof exported === 'object' && 'id' in exported;
-            }).map(key => (schema as any)[key].tableName || key);
+                // Check if it's a Drizzle table
+                if (exported && typeof exported === 'object' && ('id' in exported || '_' in exported)) {
+                    try {
+                        const config = getTableConfig(exported);
+                        if (config && config.name) {
+                            expectedTables.push(config.name);
+                        }
+                    } catch (e) {
+                        // Not a table, skip
+                    }
+                }
+            }
 
             // Fetch actual tables from DB
             let actualTables: string[] = [];
