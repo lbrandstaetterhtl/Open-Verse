@@ -179,14 +179,16 @@ export function Navbar() {
           {/* Global Tools & Account (Right) */}
           <div className="flex items-center gap-1 sm:gap-2 ml-auto">
             {/* Chat + Notifications: visible on all sizes (bottom nav handles mobile tabs) */}
-            <div className="flex items-center">
-              <Link href="/chat">
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary transition-colors active:scale-90">
-                  <MessageCircle className="h-4 w-4" />
-                </Button>
-              </Link>
-              <NotificationBell />
-            </div>
+            {user && (
+              <div className="flex items-center">
+                <Link href="/chat">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary transition-colors active:scale-90">
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <NotificationBell />
+              </div>
+            )}
             
             <div className="hidden sm:flex items-center gap-1">
               <LanguageToggle />

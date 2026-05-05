@@ -26,6 +26,8 @@ import {
   Heart,
   BadgeCheck,
   ImageOff,
+  ImageIcon,
+  Play,
   MoreHorizontal,
   Share2,
   Bookmark,
