@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 console.log('--- Environment Debug ---');
 console.log('CWD:', process.cwd());
-console.log('__dirname:', __dirname);
+console.log('__filename:', import.meta.url);
 
 const envPath = path.join(process.cwd(), '.env');
 console.log('Checking .env at:', envPath);
