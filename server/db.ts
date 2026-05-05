@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-serverless";
 import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
@@ -638,8 +639,15 @@ if (useSqlite) {
 } else {
   if (!process.env.DATABASE_URL) {
     if (process.env.NODE_ENV === "production") {
+      logger.error('db', "CRITICAL: DATABASE_URL is missing in production!");
       throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
     } else {
+      const urlPreview = process.env.DATABASE_URL ? `${process.env.DATABASE_URL.substring(0, 10)}...` : "undefined";
+      logger.warn('db', "DATABASE_URL status", { 
+        missing: !process.env.DATABASE_URL,
+        preview: urlPreview,
+        envFile: ".env"
+      });
       logger.warn('db', "DATABASE_URL is missing. Production-mode DB logic will fail if called.");
       // Fallback pool for analysis tools
       pool = null;
