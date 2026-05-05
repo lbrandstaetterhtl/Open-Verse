@@ -102,21 +102,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // 5. Maintenance Mode Middleware
     // MUST be after setupAuth so req.user is available for staff bypass
     app.use(async (req, res, next) => {
-        // Skip maintenance check for assets, auth, and public settings
-        const isAuthRoute = req.path === "/api/login" || 
-                           req.path === "/api/register" || 
-                           req.path === "/api/logout" || 
-                           req.path === "/api/user" || 
-                           req.path === "/api/csrf-token";
-
-        if (isAuthRoute || 
-            req.path.startsWith("/api/public/settings") ||
-            !req.path.startsWith("/api")) {
+        const maintenanceMode = await SettingsService.get("general", "maintenance_mode", false);
+        
+        // Skip maintenance check for assets and public settings
+        if (req.path.startsWith("/api/public/settings") || !req.path.startsWith("/api")) {
             return next();
         }
 
-        const maintenanceMode = await SettingsService.get("general", "maintenance_mode", false);
         if (maintenanceMode) {
+            // Block registration entirely during maintenance
+            if (req.path === "/api/register") {
+                return res.status(503).json({ 
+                    message: "Registration is temporarily disabled during maintenance.",
+                    maintenance: true 
+                });
+            }
+
+            // Allow other auth routes (login, logout, user) to proceed to auth logic
+            const isAuthRoute = req.path === "/api/login" || 
+                               req.path === "/api/logout" || 
+                               req.path === "/api/user" || 
+                               req.path === "/api/csrf-token";
+
+            if (isAuthRoute) {
+                return next();
+            }
+
             const user = req.user as any;
             const isAdmin = user && (user.isAdmin || user.role === "admin" || user.role === "owner");
             

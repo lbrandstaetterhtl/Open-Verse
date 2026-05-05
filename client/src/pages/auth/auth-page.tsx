@@ -25,6 +25,7 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
+  ShieldCheck
 } from "lucide-react";
 import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
 import type { InsertUser, LoginCredentials } from "@shared/schema";
@@ -69,19 +70,29 @@ export default function AuthPage() {
 
           {/* REDESIGN [UX-002]: Tab toggle replaces stacked dual forms */}
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className={cn("grid w-full", settings.registration_enabled ? "grid-cols-2" : "grid-cols-1")}>
+            <TabsList className={cn("grid w-full", (settings.registration_enabled && !settings.maintenance_mode) ? "grid-cols-2" : "grid-cols-1")}>
               <TabsTrigger value="login">Login</TabsTrigger>
-              {settings.registration_enabled && <TabsTrigger value="register">Register</TabsTrigger>}
+              {(settings.registration_enabled && !settings.maintenance_mode) && <TabsTrigger value="register">Register</TabsTrigger>}
             </TabsList>
             <TabsContent value="login" className="mt-4">
+              {settings.maintenance_mode && (
+                <Alert className="mb-4 bg-primary/5 border-primary/20">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <AlertDescription className="text-xs font-bold text-primary uppercase tracking-wider">
+                    Maintenance Mode Active: Only Staff Login Allowed
+                  </AlertDescription>
+                </Alert>
+              )}
               <LoginForm />
-              {!settings.registration_enabled && (
-                <p className="text-center text-xs text-muted-foreground mt-4">
-                  Registration is currently disabled by the administrator.
+              {(!settings.registration_enabled || settings.maintenance_mode) && (
+                <p className="text-center text-xs text-muted-foreground mt-4 italic">
+                  {settings.maintenance_mode 
+                    ? "Site is currently under maintenance. Registration is disabled."
+                    : "Registration is currently disabled by the administrator."}
                 </p>
               )}
             </TabsContent>
-            {settings.registration_enabled && (
+            {(settings.registration_enabled && !settings.maintenance_mode) && (
               <TabsContent value="register" className="mt-4">
                 <RegisterForm />
               </TabsContent>
