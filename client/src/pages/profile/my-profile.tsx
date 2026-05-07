@@ -68,16 +68,17 @@ export default function MyProfilePage() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background pb-20">
-        <ProfileCover 
-          coverUrl={enrichedUser.coverUrl}
-          avatarUrl={enrichedUser.avatarUrl}
-          username={enrichedUser.username}
-          isOwnProfile={true}
-          onEditCover={() => setIsEditModalOpen(true)}
-          onEditAvatar={() => setIsEditModalOpen(true)}
-        />
+    <div className="w-full min-h-screen pb-20">
+      <ProfileCover 
+        coverUrl={enrichedUser.coverUrl}
+        avatarUrl={enrichedUser.avatarUrl}
+        username={enrichedUser.username}
+        isOwnProfile={true}
+        onEditCover={() => setIsEditModalOpen(true)}
+        onEditAvatar={() => setIsEditModalOpen(true)}
+      />
 
+      <div className="max-w-4xl mx-auto">
         <ProfileHeader 
           user={enrichedUser}
           isOwnProfile={true}
@@ -90,13 +91,13 @@ export default function MyProfilePage() {
           isOwnProfile={true}
         />
 
-        <main className="container mx-auto px-4 max-w-4xl">
+        <main className="px-4 md:px-6 py-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
               <ProfileTabContent 
@@ -107,15 +108,16 @@ export default function MyProfilePage() {
             </motion.div>
           </AnimatePresence>
         </main>
-
-        <EditProfileModal 
-          user={user}
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          onSubmit={(data) => updateProfileMutation.mutate(data)}
-          isSubmitting={updateProfileMutation.isPending}
-        />
       </div>
+
+      <EditProfileModal 
+        user={user}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={(data) => updateProfileMutation.mutate(data)}
+        isSubmitting={updateProfileMutation.isPending}
+      />
+    </div>
     </PageTransition>
   );
 }

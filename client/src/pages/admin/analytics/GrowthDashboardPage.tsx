@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export default function GrowthDashboardPage() {
     const { t } = useTranslation();
@@ -47,146 +48,151 @@ export default function GrowthDashboardPage() {
     };
 
     return (
-        <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">{t("analytics.title", "Growth & Product Analytics")}</h1>
-                        <p className="text-muted-foreground">{t("analytics.subtitle", "Monitor platform health, user retention, and viral growth.")}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Button variant="outline" size="sm" onClick={handleManualCompute} disabled={computeMutation.isPending}>
-                            <RefreshCcw className={computeMutation.isPending ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"} />
-                            {t("analytics.recompute", "Recompute Metrics")}
-                        </Button>
-                    </div>
+        <div className="w-full space-y-8 animate-in fade-in duration-700">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tight uppercase italic italic-primary">
+                        {t("analytics.title", "Growth & Product Analytics")}
+                    </h1>
+                    <p className="text-muted-foreground font-medium">{t("analytics.subtitle", "Monitor platform health, user retention, and viral growth.")}</p>
                 </div>
-
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <KPICard 
-                        title={t("analytics.total_users", "Total Users")} 
-                        value={latest?.totalUsers?.toLocaleString() || "0"} 
-                        icon={Users}
-                        loading={loadingOverview}
-                        trend={{ value: 12, isPositive: true }} // Mock trend for UX polish
-                    />
-                    <KPICard 
-                        title={t("analytics.daily_active", "Daily Active")} 
-                        value={latest?.activeUsersDay?.toLocaleString() || "0"} 
-                        icon={UserCheck}
-                        description={t("analytics.active_today", "Active in last 24h")}
-                        loading={loadingOverview}
-                    />
-                    <KPICard 
-                        title={t("analytics.new_posts", "New Posts")} 
-                        value={latest?.newPosts?.toLocaleString() || "0"} 
-                        icon={FileText}
-                        loading={loadingOverview}
-                    />
-                    <KPICard 
-                        title={t("analytics.retention", "D1 Retention")} 
-                        value={latest?.d1Retention ? `${(latest.d1Retention * 100).toFixed(1)}%` : "0%"} 
-                        icon={Zap}
-                        loading={loadingOverview}
-                    />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                    <Card className="lg:col-span-4">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle>{t("analytics.growth_trends", "Growth Trends")}</CardTitle>
-                            <Tabs defaultValue="30" onValueChange={(v) => setDays(parseInt(v))}>
-                                <TabsList>
-                                    <TabsTrigger value="7">7d</TabsTrigger>
-                                    <TabsTrigger value="30">30d</TabsTrigger>
-                                    <TabsTrigger value="90">90d</TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-                        </CardHeader>
-                        <CardContent>
-                            <Tabs defaultValue="users">
-                                <TabsList className="mb-4">
-                                    <TabsTrigger value="users">{t("analytics.tab_users", "User Growth")}</TabsTrigger>
-                                    <TabsTrigger value="engagement">{t("analytics.tab_engagement", "Engagement")}</TabsTrigger>
-                                    <TabsTrigger value="content">{t("analytics.tab_content", "Content Flow")}</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="users">
-                                    <TrendChart 
-                                        data={history} 
-                                        dataKey="newUsers" 
-                                        label={t("analytics.new_users", "New Users")} 
-                                        color="#10b981"
-                                        loading={loadingOverview}
-                                    />
-                                </TabsContent>
-                                <TabsContent value="engagement">
-                                    <TrendChart 
-                                        data={history} 
-                                        dataKey="activeUsersDay" 
-                                        label={t("analytics.dau", "DAU")} 
-                                        color="#3b82f6"
-                                        loading={loadingOverview}
-                                    />
-                                </TabsContent>
-                                <TabsContent value="content">
-                                    <TrendChart 
-                                        data={history} 
-                                        dataKey="newPosts" 
-                                        label={t("analytics.new_posts", "New Posts")} 
-                                        color="#8b5cf6"
-                                        loading={loadingOverview}
-                                    />
-                                </TabsContent>
-                            </Tabs>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="lg:col-span-3">
-                        <CardHeader>
-                            <CardTitle>{t("analytics.active_ratio", "Retention & Activity")}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <p className="text-sm font-medium leading-none">{t("analytics.wau_mau", "WAU / MAU Ratio")}</p>
-                                    <p className="text-xs text-muted-foreground">{t("analytics.stickiness", "Platform stickiness index")}</p>
-                                </div>
-                                <div className="text-2xl font-bold">
-                                    {latest?.activeUsersMonth ? `${((latest.activeUsersWeek / latest.activeUsersMonth) * 100).toFixed(1)}%` : "0%"}
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <p className="text-sm font-medium leading-none">{t("analytics.engagement_rate", "Engagement Rate")}</p>
-                                    <p className="text-xs text-muted-foreground">{t("analytics.actions_per_dau", "Avg actions per active user")}</p>
-                                </div>
-                                <div className="text-2xl font-bold">
-                                    {(latest?.engagementRate || 0).toFixed(2)}
-                                </div>
-                            </div>
-                            <div className="border-t pt-4">
-                                <h4 className="text-sm font-semibold mb-3 flex items-center">
-                                    <BarChart3 className="mr-2 h-4 w-4" />
-                                    {t("analytics.summary", "Daily Summary")}
-                                </h4>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-[10px] text-muted-foreground uppercase">{t("analytics.period_follows", "Follows")}</p>
-                                        <p className="text-lg font-semibold">+{latest?.newFollows || 0}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] text-muted-foreground uppercase">{t("analytics.period_communities", "Communities")}</p>
-                                        <p className="text-lg font-semibold">+{latest?.newCommunities || 0}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                    <HotCommunitiesSection data={hotCommunities} loading={loadingCommunities} />
-                    <TopCreatorsSection data={topCreators} loading={loadingCreators} />
-                </div>
+                <Button 
+                    variant="outline" 
+                    className="h-12 px-6 rounded-xl font-bold uppercase tracking-widest text-[10px] border-2 shadow-lg shadow-black/5" 
+                    onClick={handleManualCompute} 
+                    disabled={computeMutation.isPending}
+                >
+                    <RefreshCcw className={cn("mr-2 h-4 w-4", computeMutation.isPending && "animate-spin")} />
+                    {t("analytics.recompute", "Recompute Metrics")}
+                </Button>
             </div>
+
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                <KPICard 
+                    title={t("analytics.total_users", "Total Users")} 
+                    value={latest?.totalUsers?.toLocaleString() || "0"} 
+                    icon={Users}
+                    loading={loadingOverview}
+                    trend={{ value: 12, isPositive: true }} 
+                />
+                <KPICard 
+                    title={t("analytics.daily_active", "Daily Active")} 
+                    value={latest?.activeUsersDay?.toLocaleString() || "0"} 
+                    icon={UserCheck}
+                    description={t("analytics.active_today", "Active in last 24h")}
+                    loading={loadingOverview}
+                />
+                <KPICard 
+                    title={t("analytics.new_posts", "New Posts")} 
+                    value={latest?.newPosts?.toLocaleString() || "0"} 
+                    icon={FileText}
+                    loading={loadingOverview}
+                />
+                <KPICard 
+                    title={t("analytics.retention", "D1 Retention")} 
+                    value={latest?.d1Retention ? `${(latest.d1Retention * 100).toFixed(1)}%` : "0%"} 
+                    icon={Zap}
+                    loading={loadingOverview}
+                />
+            </div>
+
+            <div className="grid gap-6 grid-cols-1 xl:grid-cols-7">
+                <Card className="xl:col-span-4 border-white/5 bg-card/30 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-black/5 overflow-hidden">
+                    <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/5 pb-6 gap-4">
+                        <CardTitle className="text-xl font-black uppercase tracking-tight italic">{t("analytics.growth_trends", "Growth Trends")}</CardTitle>
+                        <Tabs defaultValue="30" onValueChange={(v) => setDays(parseInt(v))} className="w-full sm:w-auto">
+                            <TabsList className="w-full h-10 bg-muted/50 p-1 rounded-xl">
+                                <TabsTrigger value="7" className="flex-1 px-4 text-[10px] font-bold uppercase tracking-widest">7d</TabsTrigger>
+                                <TabsTrigger value="30" className="flex-1 px-4 text-[10px] font-bold uppercase tracking-widest">30d</TabsTrigger>
+                                <TabsTrigger value="90" className="flex-1 px-4 text-[10px] font-bold uppercase tracking-widest">90d</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <Tabs defaultValue="users" className="space-y-6">
+                            <TabsList className="inline-flex h-10 items-center justify-center rounded-xl bg-muted/30 p-1 text-muted-foreground w-full sm:w-auto">
+                                <TabsTrigger value="users" className="flex-1 sm:flex-none px-6 text-[10px] font-bold uppercase tracking-widest">{t("analytics.tab_users", "User Growth")}</TabsTrigger>
+                                <TabsTrigger value="engagement" className="flex-1 sm:flex-none px-6 text-[10px] font-bold uppercase tracking-widest">{t("analytics.tab_engagement", "Engagement")}</TabsTrigger>
+                                <TabsTrigger value="content" className="flex-1 sm:flex-none px-6 text-[10px] font-bold uppercase tracking-widest">{t("analytics.tab_content", "Content Flow")}</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="users" className="mt-0">
+                                <TrendChart 
+                                    data={history} 
+                                    dataKey="newUsers" 
+                                    label={t("analytics.new_users", "New Users")} 
+                                    color="hsl(var(--primary))"
+                                    loading={loadingOverview}
+                                />
+                            </TabsContent>
+                            <TabsContent value="engagement" className="mt-0">
+                                <TrendChart 
+                                    data={history} 
+                                    dataKey="activeUsersDay" 
+                                    label={t("analytics.dau", "DAU")} 
+                                    color="#3b82f6"
+                                    loading={loadingOverview}
+                                />
+                            </TabsContent>
+                            <TabsContent value="content" className="mt-0">
+                                <TrendChart 
+                                    data={history} 
+                                    dataKey="newPosts" 
+                                    label={t("analytics.new_posts", "New Posts")} 
+                                    color="#8b5cf6"
+                                    loading={loadingOverview}
+                                />
+                            </TabsContent>
+                        </Tabs>
+                    </CardContent>
+                </Card>
+
+                <Card className="xl:col-span-3 border-white/5 bg-card/30 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-black/5 overflow-hidden">
+                    <CardHeader className="border-b border-white/5 pb-6">
+                        <CardTitle className="text-xl font-black uppercase tracking-tight italic">{t("analytics.active_ratio", "Retention & Activity")}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-8 pt-8">
+                        <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-white/5">
+                            <div className="space-y-1">
+                                <p className="text-xs font-black uppercase tracking-widest">{t("analytics.wau_mau", "WAU / MAU Ratio")}</p>
+                                <p className="text-[10px] text-muted-foreground font-medium">{t("analytics.stickiness", "Platform stickiness index")}</p>
+                            </div>
+                            <div className="text-3xl font-black tracking-tighter text-primary">
+                                {latest?.activeUsersMonth ? `${((latest.activeUsersWeek / latest.activeUsersMonth) * 100).toFixed(1)}%` : "0%"}
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-white/5">
+                            <div className="space-y-1">
+                                <p className="text-xs font-black uppercase tracking-widest">{t("analytics.engagement_rate", "Engagement Rate")}</p>
+                                <p className="text-[10px] text-muted-foreground font-medium">{t("analytics.actions_per_dau", "Avg actions per active user")}</p>
+                            </div>
+                            <div className="text-3xl font-black tracking-tighter text-primary">
+                                {(latest?.engagementRate || 0).toFixed(2)}
+                            </div>
+                        </div>
+                        <div className="pt-6 border-t border-white/5">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 flex items-center text-muted-foreground">
+                                <BarChart3 className="mr-2 h-4 w-4" />
+                                {t("analytics.summary", "Daily Summary")}
+                            </h4>
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-1">
+                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-50">{t("analytics.period_follows", "Follows")}</p>
+                                    <p className="text-2xl font-black tracking-tighter text-emerald-500">+{latest?.newFollows || 0}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-50">{t("analytics.period_communities", "Communities")}</p>
+                                    <p className="text-2xl font-black tracking-tighter text-primary">+{latest?.newCommunities || 0}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid gap-8 grid-cols-1 lg:grid-cols-2">
+                <HotCommunitiesSection data={hotCommunities} loading={loadingCommunities} />
+                <TopCreatorsSection data={topCreators} loading={loadingCreators} />
+            </div>
+        </div>
     );
 }

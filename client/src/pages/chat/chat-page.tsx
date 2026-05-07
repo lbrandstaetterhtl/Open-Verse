@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/layout/navbar";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +8,12 @@ import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef, useEffect } from "react";
-import { Loader2, Info, Menu } from "lucide-react";
+import { Loader2, Info, Menu, MessageSquare } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BackButton } from "@/components/ui/back-button";
+import { cn } from "@/lib/utils";
 
 type Message = {
   id: number;
@@ -127,146 +127,174 @@ export default function ChatPage() {
   };
 
   return (
-    <>
-      <Navbar />
-      <main className="container mx-auto px-4 pt-20 pb-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Mobile Header */}
-          <div className="flex items-center justify-between mb-4 lg:mb-8">
-            <div className="flex items-center gap-4">
-              <BackButton fallback="/feed" className="-ml-3" />
-              <h1 className="text-xl lg:text-3xl font-bold">Messages</h1>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              onClick={() => setShowUserList(!showUserList)}
-              aria-label="Toggle user list"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
+  return (
+    <div className="w-full flex flex-col h-[calc(100vh-theme(spacing.14))] md:h-screen overflow-hidden">
+      <main className="flex-1 flex flex-col min-h-0 bg-background">
+        <div className="w-full flex items-center justify-between px-4 h-16 border-b bg-background/80 backdrop-blur-md">
+          <div className="flex items-center gap-4">
+            <BackButton fallback="/feed" className="h-10 w-10 rounded-full" />
+            <h1 className="text-xl md:text-2xl font-black tracking-tight uppercase">Messages</h1>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden h-10 w-10 rounded-full hover:bg-muted"
+            onClick={() => setShowUserList(!showUserList)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
 
-          {/* REDESIGN [UX-007]: Changed from 4-col to 5-col grid for better sidebar proportions */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
-            {/* Users List - Collapsible on mobile */}
-            <Card className={`lg:col-span-2 lg:block ${showUserList ? "block" : "hidden"}`}>
-              <CardHeader>
-                <CardTitle className="text-lg">Mutual Followers</CardTitle>
-              </CardHeader>
-              <CardContent className="p-2">
-                {mutualFollowers?.length === 0 && (
-                  <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertDescription className="text-sm">
-                      You can only chat with users who follow you back.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                <div className="space-y-1">
-                  {mutualFollowers?.map((followedUser) => (
-                    <div
-                      key={followedUser.id}
-                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${selectedUserId === followedUser.id ? "bg-muted" : ""
-                        }`}
-                      onClick={() => {
-                        setSelectedUserId(followedUser.id);
-                        setShowUserList(false); // Hide user list on mobile after selection
-                      }}
-                    >
-                      <UserAvatar user={followedUser} size="sm" />
-                      <span className="text-sm">{followedUser.username}</span>
-                    </div>
-                  ))}
+        <div className="flex-1 flex min-h-0">
+          {/* Users List Sidebar */}
+          <aside className={cn(
+            "w-full lg:w-80 flex-shrink-0 border-r bg-card/30 flex flex-col transition-all duration-300",
+            !showUserList && "hidden lg:flex"
+          )}>
+            <div className="p-4 border-b">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Mutual Connections</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {mutualFollowers?.length === 0 && (
+                <div className="p-6 text-center">
+                  <Info className="h-10 w-10 mx-auto text-muted-foreground/20 mb-3" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Chat is exclusive to mutual followers. Follow more users to start conversations!
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Chat Area */}
-            <Card className={`lg:col-span-3 ${showUserList ? "hidden" : "block"} lg:block`}>
-              <CardHeader className="border-b">
-                <CardTitle className="text-lg">
-                  {selectedUserId
-                    ? mutualFollowers?.find((u) => u.id === selectedUserId)?.username
-                    : "Select a user to start chatting"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {/* Messages */}
+              )}
+              {mutualFollowers?.map((followedUser) => (
                 <div
+                  key={followedUser.id}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all active:scale-95 group",
+                    selectedUserId === followedUser.id ? "bg-primary/10 text-primary" : "hover:bg-accent/50"
+                  )}
+                  onClick={() => {
+                    setSelectedUserId(followedUser.id);
+                    setShowUserList(false);
+                  }}
+                >
+                  <UserAvatar user={followedUser} size="sm" className="h-10 w-10 border-2 border-transparent group-hover:border-primary/20" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate">{followedUser.username}</p>
+                    <p className="text-[10px] opacity-70 uppercase font-black">Active now</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          {/* Chat Content Area */}
+          <section className={cn(
+            "flex-1 flex flex-col min-h-0 bg-background/50",
+            showUserList && "hidden lg:flex"
+          )}>
+            {selectedUserId ? (
+              <>
+                {/* Chat Header */}
+                <div className="px-6 h-16 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm">
+                   <div className="flex items-center gap-3">
+                      <UserAvatar 
+                        user={mutualFollowers?.find(u => u.id === selectedUserId)!} 
+                        size="sm" 
+                        className="h-9 w-9"
+                      />
+                      <span className="font-bold text-sm">
+                        {mutualFollowers?.find(u => u.id === selectedUserId)?.username}
+                      </span>
+                   </div>
+                </div>
+
+                {/* Messages Feed */}
+                <div 
                   ref={scrollRef}
-                  className="h-[calc(100vh-400px)] lg:h-[400px] overflow-y-auto p-4 space-y-4"
+                  className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth"
                 >
                   {messagesLoading ? (
-                    <div className="flex justify-center py-4">
-                      <Spinner size="lg" />
-                    </div>
+                    <div className="flex justify-center py-20"><Spinner size="lg" /></div>
                   ) : messages?.length ? (
-                    messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex items-start gap-2 ${message.senderId === user?.id ? "flex-row-reverse" : ""
-                          }`}
-                      >
-                        <UserAvatar
-                          user={message.senderId === user?.id ? message.sender : message.receiver}
-                          size="sm"
-                        />
+                    messages.map((message) => {
+                      const isMe = message.senderId === user?.id;
+                      return (
                         <div
-                          className={`rounded-lg p-3 max-w-[70%] ${message.senderId === user?.id
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
-                            }`}
+                          key={message.id}
+                          className={cn(
+                            "flex items-end gap-3",
+                            isMe ? "flex-row-reverse" : "flex-row"
+                          )}
                         >
-                          <p className="text-sm break-words">{message.content}</p>
-                          <p className="text-[10px] mt-1 opacity-70">
-                            {format(new Date(message.createdAt), "PPp")}
-                          </p>
+                          <UserAvatar
+                            user={isMe ? message.sender : message.receiver}
+                            size="xs"
+                            className="h-6 w-6 mb-1 opacity-40"
+                          />
+                          <div
+                            className={cn(
+                              "rounded-2xl p-4 max-w-[85%] md:max-w-[70%] shadow-lg transition-all hover:scale-[1.02]",
+                              isMe
+                                ? "bg-primary text-primary-foreground rounded-br-none shadow-primary/10"
+                                : "bg-card border border-border/40 rounded-bl-none shadow-black/5"
+                            )}
+                          >
+                            <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                            <p className="text-[9px] mt-2 opacity-50 font-bold uppercase tracking-widest tabular-nums">
+                              {format(new Date(message.createdAt), "HH:mm")}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))
-                  ) : selectedUserId ? (
-                    <EmptyState title="No messages yet" description="Start the conversation!" className="p-4" />
+                      );
+                    })
                   ) : (
-                    <EmptyState title="No user selected" description="Select a user to view messages" className="p-4" />
+                    <div className="flex flex-col items-center justify-center h-full opacity-30 italic">
+                      <p className="text-sm">Start of conversation</p>
+                    </div>
                   )}
                 </div>
 
-                {/* Message Input */}
-                {selectedUserId && (
-                  <div className="border-t p-4">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Type a message..."
-                        value={messageInput}
-                        onChange={(e) => setMessageInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && messageInput.trim()) {
-                            handleSendMessage();
-                          }
-                        }}
-                        className="text-sm"
-                      />
-                      <Button
-                        onClick={handleSendMessage}
-                        disabled={!messageInput.trim() || sendMessageMutation.isPending}
-                        size="sm"
-                      >
-                        {sendMessageMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          "Send"
-                        )}
-                      </Button>
-                    </div>
+                {/* Input Field */}
+                <div className="p-4 md:p-6 bg-background/80 backdrop-blur-xl border-t">
+                  <div className="flex gap-3 max-w-4xl mx-auto">
+                    <Input
+                      placeholder="Share your thoughts..."
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && messageInput.trim()) handleSendMessage();
+                      }}
+                      className="h-12 px-6 rounded-2xl bg-muted/30 border-transparent focus:bg-background transition-all shadow-inner"
+                    />
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={!messageInput.trim() || sendMessageMutation.isPending}
+                      className="h-12 w-12 md:w-auto md:px-8 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                    >
+                      {sendMessageMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                 <div className="p-8 rounded-[3rem] bg-muted/20 border-2 border-dashed border-white/10">
+                    <MessageSquare className="h-20 w-20 mx-auto text-muted-foreground/10 mb-6" />
+                    <h2 className="text-2xl font-black uppercase tracking-tighter mb-2">No Chat Selected</h2>
+                    <p className="text-sm text-muted-foreground font-medium max-w-xs">
+                      Pick a friend from the list and start vibing.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-8 lg:hidden rounded-xl font-bold uppercase text-[10px]"
+                      onClick={() => setShowUserList(true)}
+                    >
+                      View Connections
+                    </Button>
+                 </div>
+              </div>
+            )}
+          </section>
         </div>
       </main>
-    </>
+    </div>
   );
 }

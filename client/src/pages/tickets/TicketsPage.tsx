@@ -31,52 +31,54 @@ export default function TicketsPage() {
   };
 
   return (
-    <div className="container max-w-5xl mx-auto py-8 px-4 h-full flex flex-col">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <BackButton fallback="/feed" className="mb-2 -ml-4" />
-          <h1 className="text-3xl font-bold tracking-tight">{isOwner ? t("allTickets") : t("myTickets")}</h1>
-          <p className="text-muted-foreground mt-1">Manage and track support issues</p>
+  return (
+    <div className="w-full px-4 md:px-8 py-6 md:py-10 flex flex-col h-full min-h-screen">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
+        <div className="space-y-1">
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase italic italic">
+            {isOwner ? t("allTickets") : t("myTickets")}
+          </h1>
+          <p className="text-muted-foreground font-medium">{t("subtitle", "Manage and track support issues across the platform")}</p>
         </div>
-        <Link href="/tickets/new">
-          <Button className="font-bold">
-            <Plus className="w-4 h-4 mr-2" />
+        <Link href="/tickets/new" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 gap-3 font-black uppercase tracking-widest text-[10px] md:text-xs">
+            <Plus className="h-5 w-5 stroke-[3px]" />
             {t("createTicket")}
           </Button>
         </Link>
       </div>
 
-      <div className="bg-card border rounded-lg p-3 mb-6 shadow-sm flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row justify-between gap-3">
-          <Tabs defaultValue="all" className="w-full sm:w-auto overflow-x-auto" onValueChange={handleStatusChange}>
-            <TabsList className="bg-transparent space-x-1 p-0 h-9">
-              <TabsTrigger value="all" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary font-medium">{t("filters.allStatus")}</TabsTrigger>
-              <TabsTrigger value="open" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary font-medium">{t("status.open")}</TabsTrigger>
-              <TabsTrigger value="in_progress" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary font-medium">{t("status.in_progress")}</TabsTrigger>
-              <TabsTrigger value="resolved" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary font-medium">{t("status.resolved")}</TabsTrigger>
+      <div className="bg-card/50 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 md:p-6 mb-8 shadow-2xl shadow-black/5 flex flex-col gap-4">
+        <div className="flex flex-col xl:flex-row justify-between gap-4">
+          <Tabs defaultValue="all" className="w-full xl:w-auto" onValueChange={handleStatusChange}>
+            <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:flex bg-muted/20 p-1 rounded-xl h-auto sm:h-11">
+              <TabsTrigger value="all" className="rounded-lg font-bold text-[10px] uppercase tracking-wider h-9 sm:h-auto">{t("filters.allStatus")}</TabsTrigger>
+              <TabsTrigger value="open" className="rounded-lg font-bold text-[10px] uppercase tracking-wider h-9 sm:h-auto">{t("status.open")}</TabsTrigger>
+              <TabsTrigger value="in_progress" className="rounded-lg font-bold text-[10px] uppercase tracking-wider h-9 sm:h-auto">{t("status.in_progress")}</TabsTrigger>
+              <TabsTrigger value="resolved" className="rounded-lg font-bold text-[10px] uppercase tracking-wider h-9 sm:h-auto">{t("status.resolved")}</TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <form onSubmit={handleSearch} className="relative w-full sm:w-64 flex-shrink-0">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <form onSubmit={handleSearch} className="relative w-full xl:w-80 flex-shrink-0">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               type="search" 
               placeholder={t("filters.search")} 
-              className="pl-9 h-9" 
+              className="pl-11 h-12 rounded-xl bg-muted/30 border-transparent focus:bg-background transition-all text-sm shadow-inner" 
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </form>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/50">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mr-2">
-            <Filter className="w-4 h-4" />
-            <span>Filters:</span>
+        <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-white/5">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-2">
+            <Filter className="w-3 h-3" />
+            <span>Refine Feed:</span>
           </div>
 
           <Select value={filters.sortBy || "newest"} onValueChange={(val) => setFilters(f => ({ ...f, sortBy: val, page: 1 }))}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
+            <SelectTrigger className="w-[160px] h-10 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-muted/20 border-transparent">
               <SelectValue placeholder="Sort By" />
             </SelectTrigger>
             <SelectContent>
@@ -93,7 +95,7 @@ export default function TicketsPage() {
               if (val === "me") setFilters(f => ({ ...f, assignedTo: user?.id, createdBy: undefined, page: 1 }));
               if (val === "created") setFilters(f => ({ ...f, assignedTo: undefined, createdBy: user?.id, page: 1 }));
             }}>
-              <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectTrigger className="w-[180px] h-10 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-muted/20 border-transparent">
                 <SelectValue placeholder="Ownership" />
               </SelectTrigger>
               <SelectContent>
@@ -106,24 +108,24 @@ export default function TicketsPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto rounded-lg">
+      <div className="flex-1">
         {isLoading ? (
-          <div className="flex items-center justify-center p-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {[1,2,3,4].map(i => <div key={i} className="h-48 rounded-[2rem] bg-muted/20 animate-pulse" />)}
           </div>
         ) : isError ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center">
-            <p className="text-red-500 mb-2">{(error as any)?.message || "Failed to load"}</p>
-            <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
+          <div className="flex flex-col items-center justify-center p-12 text-center rounded-[2rem] bg-red-500/5 border border-red-500/10">
+            <p className="text-red-500 font-bold mb-4">{(error as any)?.message || "Failed to load"}</p>
+            <Button variant="outline" onClick={() => refetch()} className="rounded-xl font-black uppercase text-[10px]">Try Again</Button>
           </div>
         ) : data?.tickets?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center bg-card border rounded-lg border-dashed">
-            <RefreshCcw className="w-12 h-12 text-muted-foreground/30 mb-4" />
-            <h3 className="font-semibold text-lg">{t("noTickets")}</h3>
-            <p className="text-muted-foreground">{t("noTicketsDescription")}</p>
+          <div className="flex flex-col items-center justify-center p-20 text-center bg-card/20 border border-dashed border-white/10 rounded-[3rem]">
+            <RefreshCcw className="w-16 h-16 text-muted-foreground/10 mb-6" />
+            <h3 className="font-black text-2xl uppercase tracking-tight">{t("noTickets")}</h3>
+            <p className="text-muted-foreground mt-2 max-w-xs">{t("noTicketsDescription")}</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
             {data?.tickets.map(ticket => (
               <TicketCard key={ticket.id} ticket={ticket} showOwnerFeatures={isOwner} />
             ))}
@@ -131,5 +133,7 @@ export default function TicketsPage() {
         )}
       </div>
     </div>
+  );
+}
   );
 }

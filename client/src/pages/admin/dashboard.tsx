@@ -176,6 +176,8 @@ import {
   TabsTrigger 
 } from "@/components/ui/tabs";
 
+import { ResponsiveTable } from "@/components/ui/responsive-table";
+
 type AdminReport = Report & {
   reporter?: { username: string };
   content?: {
@@ -358,7 +360,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Statistics Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {statsLoading ? [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />) : (
               <>
                 <MetricCard title={t("admin.stats.total_users")} value={stats?.totalUsers || 0} icon={Users} description="Cumulative registered users across the platform." />
@@ -430,217 +432,104 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="overflow-auto max-h-[calc(100vh-25rem)] scrollbar-thin scrollbar-thumb-muted-foreground/10">
-                    <Table>
-                      <TableHeader className="sticky top-0 bg-card/95 z-20 backdrop-blur-md shadow-sm border-b">
-                        <TableRow className="hover:bg-transparent border-none">
-                          <TableHead className="w-[40px] px-6">
-                            <Checkbox 
-                              checked={selectedUsers.size === filteredUsers?.length && filteredUsers.length > 0}
-                              onCheckedChange={(checked) => {
-                                if (checked) setSelectedUsers(new Set(filteredUsers?.map(u => u.id)));
-                                else setSelectedUsers(new Set());
-                              }}
-                            />
-                          </TableHead>
-                          <TableHead className="cursor-pointer group px-4 py-3" onClick={() => handleSort("username")}>
-                            <div className="flex items-center gap-1 group-hover:text-foreground transition-colors font-bold uppercase tracking-widest text-[10px]">
-                              User
-                              <TrendingUp className={cn("h-3 w-3 opacity-0 group-hover:opacity-100 transition-all", sortConfig?.key === "username" ? "opacity-100" : "")} />
+                  <ResponsiveTable<User>
+                    keyField="id"
+                    columns={[
+                      { 
+                        key: "selection", 
+                        label: "", 
+                        render: (u) => (
+                          <Checkbox 
+                            checked={selectedUsers.has(u.id)}
+                            onCheckedChange={() => toggleUserSelection(u.id)}
+                          />
+                        )
+                      },
+                      { 
+                        key: "username", 
+                        label: "User", 
+                        render: (u) => (
+                          <div className="flex items-center gap-3 py-1">
+                            <UserAvatar user={{ username: u.username }} size="sm" />
+                            <div className="flex flex-col min-w-0">
+                              <Link href={`/users/${u.username}`} className="hover:text-primary transition-colors text-sm font-bold truncate leading-tight">{u.username}</Link>
+                              <span className="text-[9px] font-mono text-muted-foreground">ID: {u.id}</span>
                             </div>
-                          </TableHead>
-                          <TableHead className="font-bold uppercase tracking-widest text-[10px]">Contact Info</TableHead>
-                          <TableHead className="font-bold uppercase tracking-widest text-[10px]">Verification States</TableHead>
-                          <TableHead className="cursor-pointer group font-bold uppercase tracking-widest text-[10px]" onClick={() => handleSort("role")}>
-                            <div className="flex items-center gap-1">
-                              System Role <TrendingUp className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                          </div>
+                        )
+                      },
+                      { key: "email", label: "Contact", render: (u) => <span className="text-[11px] font-mono">{u.email}</span> },
+                      { 
+                        key: "role", 
+                        label: "Role", 
+                        render: (u) => (
+                          <Badge variant={u.role === "owner" ? "destructive" : u.role === "admin" ? "default" : "secondary"} className="text-[9px] py-0 font-bold tracking-wider">
+                            {u.role.toUpperCase()}
+                          </Badge>
+                        )
+                      },
+                      { 
+                        key: "karma", 
+                        label: "Rep", 
+                        render: (u) => (
+                          <div className={cn("inline-flex items-center gap-1 text-xs font-black px-1.5 py-0.5 rounded border shadow-sm", 
+                            u.karma >= 0 ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/20" : "bg-red-500/5 text-red-500 border-red-500/20")}>
+                            {u.karma >= 0 ? "+" : ""}{u.karma}
+                          </div>
+                        )
+                      },
+                      { 
+                        key: "actions", 
+                        label: "Operations", 
+                        render: (u) => (
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleVerificationToggle(u.id, u.verified)}>
+                              <BadgeCheck className={cn("h-4 w-4", u.verified ? "text-primary" : "")} />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteUserMutation.mutate(u.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )
+                      }
+                    ]}
+                    data={filteredUsers || []}
+                    renderMobileCard={(u) => (
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <UserAvatar user={{ username: u.username }} size="sm" />
+                            <div>
+                              <p className="font-bold text-sm">{u.username}</p>
+                              <p className="text-[10px] text-muted-foreground font-mono">{u.email}</p>
                             </div>
-                          </TableHead>
-                          <TableHead className="cursor-pointer group font-bold uppercase tracking-widest text-[10px]" onClick={() => handleSort("karma")}>
-                            <div className="flex items-center gap-1">
-                              Reputation <TrendingUp className="h-3 w-3 opacity-0 group-hover:opacity-100" />
-                            </div>
-                          </TableHead>
-                          <TableHead className="font-bold uppercase tracking-widest text-[10px]">Onboarded</TableHead>
-                          <TableHead className="sticky right-0 bg-card/95 backdrop-blur-md border-l text-center w-[150px] font-bold uppercase tracking-widest text-[10px]">Operations</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {usersLoading ? [...Array(10)].map((_, i) => <UserRowSkeleton key={i} />) : 
-                         filteredUsers?.map((u) => (
-                          <TableRow key={u.id} className="hover:bg-muted/40 transition-colors group border-b/50">
-                            <TableCell className="px-6">
-                              <Checkbox 
-                                checked={selectedUsers.has(u.id)}
-                                onCheckedChange={() => toggleUserSelection(u.id)}
-                              />
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              <div className="flex items-center gap-3 py-1">
-                                <UserAvatar user={{ username: u.username }} size="sm" />
-                                <div className="flex flex-col min-w-0">
-                                  <Link href={`/users/${u.username}`} className="hover:text-primary transition-colors text-sm font-bold truncate leading-tight">{u.username}</Link>
-                                  <span className="text-[9px] font-mono text-muted-foreground">ID: {u.id}</span>
-                                  {Boolean(u.verified) && <span className="text-[9px] text-primary font-black uppercase tracking-tighter mt-0.5">Verified Partner</span>}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-[11px] text-muted-foreground font-mono">{u.email}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                {u.emailVerified ? (
-                                  <Badge variant="outline" className="text-[8px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20 py-0 font-bold">EMAIL_ACTIVE</Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-[8px] bg-muted/20 text-muted-foreground py-0 font-bold border-muted/30">PENDING_EMAIL</Badge>
-                                )}
-                                {u.karma < 0 && <Badge variant="destructive" className="text-[8px] py-0 px-1 font-black animate-pulse">RESTRICTED</Badge>}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                               <Badge variant={u.role === "owner" ? "destructive" : u.role === "admin" ? "default" : "secondary"} className="text-[9px] py-0 font-bold tracking-wider flex items-center gap-1">
-                                 {u.role === "owner" && <Crown className="h-2 w-2" />}
-                                 {u.role.toUpperCase()}
-                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className={cn("inline-flex items-center gap-1 text-xs font-black px-1.5 py-0.5 rounded border shadow-sm", 
-                                u.karma >= 0 ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/20" : "bg-red-500/5 text-red-500 border-red-500/20")}>
-                                {u.karma >= 0 ? "+" : ""}{u.karma}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-[10px] text-muted-foreground font-bold whitespace-nowrap">
-                              {u.createdAt ? format(new Date(u.createdAt), "MMM d, yyyy") : "—"}
-                            </TableCell>
-                            <TableCell className="sticky right-0 bg-card group-hover:bg-muted/60 transition-colors border-l shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
-                              <div className="flex items-center justify-center gap-0.5 px-2">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary transition-all hover:bg-background" 
-                                            onClick={() => handleVerificationToggle(u.id, u.verified)}>
-                                      <BadgeCheck className={cn("h-4 w-4", u.verified ? "text-primary" : "")} />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">Toggle Verification</TooltipContent>
-                                </Tooltip>
-
-                                <DropdownMenu>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary transition-all hover:bg-background">
-                                          <Shield className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">Manage Role</TooltipContent>
-                                  </Tooltip>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      disabled={u.role === "user"}
-                                      onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "user" } })}
-                                    >
-                                      <UserMinus className="mr-2 h-4 w-4" />
-                                      Demote to User
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      disabled={u.role === "admin"}
-                                      onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "admin" } })}
-                                    >
-                                      <Shield className="mr-2 h-4 w-4" />
-                                      Make Admin
-                                    </DropdownMenuItem>
-                                    {user.role === "owner" && (
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <DropdownMenuItem disabled={u.role === "owner"} onSelect={(e) => e.preventDefault()}>
-                                            <Trophy className="mr-2 h-4 w-4" />
-                                            Promote to Owner
-                                          </DropdownMenuItem>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Make {u.username} an Owner?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              This user will receive full system access and can manage other owners. This is a critical security privilege.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction
-                                              className="bg-red-600 hover:bg-red-700"
-                                              onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "owner" } })}
-                                            >
-                                              Confirm Promotion
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-
-                                <AlertDialog>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-500 transition-all hover:bg-background">
-                                          <Ban className={cn("h-4 w-4", u.karma < 0 ? "text-red-600" : "")} />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">Access Control</TooltipContent>
-                                  </Tooltip>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle className="font-bold">{u.karma < 0 ? "Restore" : "Ban"} {u.username}?</AlertDialogTitle>
-                                      <AlertDialogDescription className="text-sm">
-                                        {u.karma < 0 ? `This will restore regular platform access for ${u.username}.` : `This will restrict access for ${u.username} indefinitely. Reputation reset to -100.`}
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => {
-                                        const newKarma = u.karma < 0 ? 5 : -100;
-                                        updateUserMutation.mutate({ userId: u.id, data: { karma: newKarma } });
-                                      }} className={cn("font-bold shadow-sm", u.karma < 0 ? "" : "bg-red-600 hover:bg-red-700")}>
-                                        {u.karma < 0 ? "Restore Access" : "Confirm Sanction"}
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                                
-                                <AlertDialog>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-600 transition-all hover:bg-background">
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">Permanent Delete</TooltipContent>
-                                  </Tooltip>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle className="font-bold text-red-600">CRITICAL: Data Purge</AlertDialogTitle>
-                                      <AlertDialogDescription className="text-sm font-medium">
-                                        Permanently delete {u.username} and all associated data metadata? This action is IRREVERSIBLE.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => deleteUserMutation.mutate(u.id)} className="bg-red-600 hover:bg-red-700 font-bold shadow-sm">Execute Purge</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                          </div>
+                          <Checkbox 
+                            checked={selectedUsers.has(u.id)}
+                            onCheckedChange={() => toggleUserSelection(u.id)}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-2">
+                             <Badge variant={u.role === "owner" ? "destructive" : "secondary"} className="text-[9px]">{u.role.toUpperCase()}</Badge>
+                             <div className={cn("text-[10px] font-black px-1.5 rounded border", u.karma >= 0 ? "text-emerald-600" : "text-red-500")}>
+                               {u.karma >= 0 ? "+" : ""}{u.karma}
+                             </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => handleVerificationToggle(u.id, u.verified)}>
+                              {u.verified ? "Verified" : "Verify"}
+                            </Button>
+                            <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-red-500 hover:text-red-600" onClick={() => deleteUserMutation.mutate(u.id)}>
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  />
                 </CardContent>
+
               </Card>
             </TabsContent>
 
@@ -658,80 +547,87 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="overflow-auto max-h-[calc(100vh-25rem)] scrollbar-thin scrollbar-thumb-muted-foreground/10">
-                    <Table>
-                      <TableHeader className="sticky top-0 bg-card/95 z-20 backdrop-blur-md shadow-sm border-b">
-                        <TableRow className="hover:bg-transparent border-none">
-                          <TableHead className="w-[140px] px-6 font-bold uppercase tracking-widest text-[10px]">Source</TableHead>
-                          <TableHead className="w-[100px] font-bold uppercase tracking-widest text-[10px]">Entity</TableHead>
-                          <TableHead className="font-bold uppercase tracking-widest text-[10px]">Observation</TableHead>
-                          <TableHead className="font-bold uppercase tracking-widest text-[10px]">Justification</TableHead>
-                          <TableHead className="w-[100px] font-bold uppercase tracking-widest text-[10px]">Status</TableHead>
-                          <TableHead className="w-[150px] font-bold uppercase tracking-widest text-[10px]">Timestamp</TableHead>
-                          <TableHead className="sticky right-0 bg-card/95 backdrop-blur-md border-l text-center w-[120px] font-bold uppercase tracking-widest text-[10px]">Decisions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {reportsLoading ? [...Array(5)].map((_, i) => <ReportRowSkeleton key={i} />) : 
-                         filteredReports?.map((r) => (
-                           <TableRow key={r.id} className={cn(
-                             "hover:bg-muted/40 transition-colors group border-b/50",
-                             r.status === "pending" ? "font-bold bg-primary/5" : "text-muted-foreground opacity-60"
-                           )} onClick={() => r.postId && setLocation(`/posts/${r.postId}?from=admin`)}>
-                             <TableCell className="px-6">
-                               <div className="flex flex-col">
-                                 <span className="text-xs font-bold text-foreground">{(r as any).reporter?.username}</span>
-                                 <span className="text-[9px] font-mono text-muted-foreground bg-muted p-0.5 rounded w-fit mt-1">{r.ipAddress || "INTERNAL"}</span>
-                               </div>
-                             </TableCell>
-                             <TableCell>
-                               <Badge variant="outline" className="text-[8px] py-0 font-black tracking-tighter border-primary/20 bg-primary/5">
-                                 {(r as any).content?.type?.toUpperCase()}
-                               </Badge>
-                             </TableCell>
-                             <TableCell className="max-w-[250px]">
-                               <p className="text-xs font-bold truncate leading-none mb-1 text-foreground">{(r as any).content?.title || (r as any).content?.content}</p>
-                               <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-black">Author: {(r as any).content?.author?.username}</span>
-                             </TableCell>
-                             <TableCell className="text-xs italic border-l pl-3">"{r.reason}"</TableCell>
-                             <TableCell>
-                               <Badge variant={r.status === "resolved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"} className="text-[9px] font-bold tracking-wider">
-                                 {r.status.toUpperCase()}
-                               </Badge>
-                             </TableCell>
-                             <TableCell className="text-[10px] font-bold text-muted-foreground font-mono">
-                               {format(new Date(r.createdAt), "MMM d, HH:mm")}
-                             </TableCell>
-                             <TableCell className="sticky right-0 bg-card group-hover:bg-muted/60 transition-colors border-l shadow-[-4px_0_12px_rgba(0,0,0,0.02)]" onClick={(e) => e.stopPropagation()}>
-                               <div className="flex items-center justify-center gap-1">
-                                 <Tooltip>
-                                   <TooltipTrigger asChild>
-                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-emerald-600 transition-all hover:bg-background" 
-                                             disabled={r.status !== "pending"}
-                                             onClick={() => updateReportMutation.mutate({ reportId: r.id, status: "resolved" })}>
-                                       <CheckCircle className="h-4 w-4" />
-                                     </Button>
-                                   </TooltipTrigger>
-                                   <TooltipContent side="top">Resolve Flag</TooltipContent>
-                                 </Tooltip>
-
-                                 <Tooltip>
-                                   <TooltipTrigger asChild>
-                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500 transition-all hover:bg-background" 
-                                             disabled={r.status !== "pending"}
-                                             onClick={() => updateReportMutation.mutate({ reportId: r.id, status: "rejected" })}>
-                                       <XCircle className="h-4 w-4" />
-                                     </Button>
-                                   </TooltipTrigger>
-                                   <TooltipContent side="top">Dismiss Flag</TooltipContent>
-                                 </Tooltip>
-                               </div>
-                             </TableCell>
-                           </TableRow>
-                         ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                  <ResponsiveTable<AdminReport>
+                    keyField="id"
+                    columns={[
+                      { 
+                        key: "source", 
+                        label: "Source", 
+                        render: (r) => (
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold">{(r as any).reporter?.username}</span>
+                            <span className="text-[9px] font-mono text-muted-foreground">{r.ipAddress || "INTERNAL"}</span>
+                          </div>
+                        )
+                      },
+                      { 
+                        key: "entity", 
+                        label: "Entity", 
+                        render: (r) => (
+                          <Badge variant="outline" className="text-[8px] py-0 font-black tracking-tighter border-primary/20 bg-primary/5">
+                            {(r as any).content?.type?.toUpperCase()}
+                          </Badge>
+                        )
+                      },
+                      { 
+                        key: "observation", 
+                        label: "Observation", 
+                        render: (r) => (
+                          <p className="text-xs font-bold truncate max-w-[200px]">{(r as any).content?.title || (r as any).content?.content}</p>
+                        )
+                      },
+                      { 
+                        key: "status", 
+                        label: "Status", 
+                        render: (r) => (
+                          <Badge variant={r.status === "resolved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"} className="text-[9px] font-bold">
+                            {r.status.toUpperCase()}
+                          </Badge>
+                        )
+                      },
+                      { 
+                        key: "actions", 
+                        label: "Decisions", 
+                        render: (r) => (
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" disabled={r.status !== "pending"} onClick={() => updateReportMutation.mutate({ reportId: r.id, status: "resolved" })}>
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" disabled={r.status !== "pending"} onClick={() => updateReportMutation.mutate({ reportId: r.id, status: "rejected" })}>
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )
+                      }
+                    ]}
+                    data={filteredReports || []}
+                    onRowClick={(r) => r.postId && setLocation(`/posts/${r.postId}?from=admin`)}
+                    renderMobileCard={(r) => (
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold">{(r as any).reporter?.username}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase font-black">{(r as any).content?.type} Flag</span>
+                          </div>
+                          <Badge variant={r.status === "resolved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"} className="text-[9px]">
+                            {r.status.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <p className="text-xs italic text-muted-foreground line-clamp-2">"{r.reason}"</p>
+                        <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                          <span className="text-[10px] font-mono text-muted-foreground">{format(new Date(r.createdAt), "MMM d, HH:mm")}</span>
+                          <div className="flex gap-2">
+                             <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-emerald-600" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "resolved" }); }}>
+                               Resolve
+                             </Button>
+                             <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-red-500" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "rejected" }); }}>
+                               Dismiss
+                             </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

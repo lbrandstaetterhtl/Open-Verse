@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { 
   Select, 
   SelectContent, 
@@ -81,61 +81,61 @@ export default function ActivityLogsPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-12">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="w-full space-y-8 animate-in fade-in duration-500 pb-12">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
           <div className="flex flex-col gap-1">
-            <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
-              <Activity className="h-8 w-8 text-primary" />
+            <h2 className="text-4xl font-black tracking-tight uppercase italic italic-primary flex items-center gap-3">
+              <Activity className="h-10 w-10 text-primary" />
               Activity Logs
             </h2>
-            <p className="text-muted-foreground font-medium">Complete immutable audit trail of all administration actions.</p>
+            <p className="text-muted-foreground font-medium">Immutable audit trail of all administrative operations.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => handleExport("json")} className="font-bold uppercase tracking-widest text-[10px] gap-2">
-              <Download className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => handleExport("json")} className="h-12 px-6 rounded-xl font-bold uppercase tracking-widest text-[10px] gap-2 border-2">
+              <Download className="h-4 w-4" />
               Export JSON
             </Button>
-            <Button variant="outline" size="sm" onClick={() => handleExport("csv")} className="font-bold uppercase tracking-widest text-[10px] gap-2">
-              <Download className="h-3.5 w-3.5" />
+            <Button variant="outline" size="sm" onClick={() => handleExport("csv")} className="h-12 px-6 rounded-xl font-bold uppercase tracking-widest text-[10px] gap-2 border-2">
+              <Download className="h-4 w-4" />
               Export CSV
             </Button>
           </div>
         </div>
 
         {/* Stats Summary */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card className="bg-card/50 backdrop-blur-sm border-none shadow-sm">
-            <CardContent className="p-6">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Total Events</p>
-              <p className="text-2xl font-black">{isLoading ? "..." : logs?.length || 0}</p>
+        <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
+          <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl shadow-black/5 rounded-[2rem]">
+            <CardContent className="p-8">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2">Total Events</p>
+              <p className="text-4xl font-black tracking-tighter">{isLoading ? "..." : logs?.length || 0}</p>
             </CardContent>
           </Card>
-          <Card className="bg-card/50 backdrop-blur-sm border-none shadow-sm">
-            <CardContent className="p-6 text-orange-500">
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">High Severity</p>
-              <p className="text-2xl font-black">{logs?.filter(l => l.severity === "high" || l.severity === "critical").length || 0}</p>
+          <Card className="bg-red-500/5 backdrop-blur-xl border-red-500/10 shadow-2xl shadow-red-500/5 rounded-[2rem]">
+            <CardContent className="p-8">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/70 mb-2">High Severity</p>
+              <p className="text-4xl font-black tracking-tighter text-red-500">{logs?.filter(l => l.severity === "high" || l.severity === "critical").length || 0}</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-          <CardContent className="p-4 flex flex-col md:flex-row gap-4">
+        <Card className="border-white/5 shadow-2xl shadow-black/5 bg-card/30 backdrop-blur-xl rounded-[2.5rem] overflow-hidden">
+          <CardContent className="p-4 flex flex-col lg:flex-row gap-4">
             <div className="relative flex-1 group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-all" />
               <Input 
                 placeholder="Search description, target or admin..." 
-                className="pl-10 h-10 bg-muted/50 border-none transition-all focus-visible:ring-1 focus-visible:ring-primary"
+                className="pl-12 h-14 bg-background/50 border-transparent rounded-[1.5rem] focus-visible:ring-primary focus-visible:bg-background transition-all shadow-inner"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-3 overflow-x-auto no-scrollbar">
                <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="w-[140px] h-10 border-none bg-muted/50">
+                <SelectTrigger className="w-[180px] h-14 rounded-[1.5rem] bg-background/50 border-transparent font-black uppercase text-[10px] tracking-widest px-6 shadow-inner">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl">
                   <SelectItem value="all">All Categories</SelectItem>
                   <SelectItem value="users">Users</SelectItem>
                   <SelectItem value="content">Content</SelectItem>
@@ -144,10 +144,10 @@ export default function ActivityLogsPage() {
                 </SelectContent>
               </Select>
               <Select value={severity} onValueChange={setSeverity}>
-                <SelectTrigger className="w-[140px] h-10 border-none bg-muted/50">
+                <SelectTrigger className="w-[180px] h-14 rounded-[1.5rem] bg-background/50 border-transparent font-black uppercase text-[10px] tracking-widest px-6 shadow-inner">
                   <SelectValue placeholder="Severity" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl">
                   <SelectItem value="all">All Severity</SelectItem>
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
@@ -160,176 +160,208 @@ export default function ActivityLogsPage() {
         </Card>
 
         {/* Logs Table */}
-        <div className="rounded-xl border bg-card/50 overflow-hidden shadow-sm backdrop-blur-sm">
-          <Table>
-            <TableHeader className="bg-muted/30">
-              <TableRow className="hover:bg-transparent border-none">
-                <TableHead className="w-[180px] font-black uppercase tracking-widest text-[10px] text-muted-foreground px-6 py-4">Timestamp</TableHead>
-                <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4">Admin</TableHead>
-                <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4">Action</TableHead>
-                <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4">Target</TableHead>
-                <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 text-center">Severity</TableHead>
-                <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 text-right pr-6">Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [...Array(5)].map((_, i) => (
-                  <TableRow key={i} className="border-muted/50">
-                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-16 mx-auto rounded-full" /></TableCell>
-                    <TableCell className="text-right pr-6"><Skeleton className="h-8 w-8 ml-auto rounded" /></TableCell>
-                  </TableRow>
-                ))
-              ) : logs?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground font-medium italic">No activity logs found matching the current filters.</TableCell>
-                </TableRow>
-              ) : (
-                logs?.map((log) => (
-                  <TableRow key={log.id} className="group hover:bg-muted/30 transition-colors border-muted/50">
-                    <TableCell className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold font-mono tracking-tighter">
-                          {format(new Date(log.createdAt), "yyyy-MM-dd")}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {format(new Date(log.createdAt), "HH:mm:ss")}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                         <div className="h-7 w-7 rounded-sm bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
-                            <span className="text-[10px] font-black text-primary">{(log.userEmail || "S").charAt(0).toUpperCase()}</span>
-                         </div>
-                         <div className="flex flex-col">
-                            <span className="text-xs font-bold leading-tight">{log.userEmail || "System"}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{log.userRole || "Admin"}</span>
-                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <code className="text-[10px] font-black bg-muted px-1.5 py-0.5 rounded border text-muted-foreground group-hover:text-foreground transition-colors">
-                        {log.action}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                       <div className="flex flex-col">
-                          <span className="text-xs font-semibold">{log.targetLabel || "—"}</span>
-                          <span className="text-[10px] text-muted-foreground font-mono">{log.targetType} {log.targetId && `ID:${log.targetId}`}</span>
-                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge className={cn("text-[10px] font-black uppercase tracking-widest px-2 py-0.5", severityColors[log.severity as keyof typeof severityColors])}>
-                        {log.severity}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      <Sheet>
-                        <SheetTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </SheetTrigger>
-                        <SheetContent className="sm:max-w-xl w-full border-l-0 overflow-auto bg-card">
-                          <SheetHeader className="mb-8 border-b pb-6">
-                            <div className="flex items-center gap-4 mb-4">
-                              <div className={cn("p-2 rounded-xl", severityColors[log.severity as keyof typeof severityColors])}>
-                                <Shield className="h-6 w-6" />
-                              </div>
-                              <div className="flex flex-col items-start text-left">
-                                <SheetTitle className="text-2xl font-black tracking-tight">{log.action}</SheetTitle>
-                                <SheetDescription className="text-sm font-medium">Log Entry Details • ID #{log.id}</SheetDescription>
-                              </div>
+        <div className="rounded-[2.5rem] border border-white/5 bg-card/30 backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/5">
+          <ResponsiveTable<ActivityLog>
+            keyField="id"
+            data={logs || []}
+            isLoading={isLoading}
+            columns={[
+              {
+                key: "timestamp",
+                label: "Timestamp",
+                render: (log) => (
+                  <div className="flex flex-col py-2">
+                    <span className="text-[10px] font-black font-mono tracking-widest uppercase opacity-60">
+                      {format(new Date(log.createdAt), "yyyy-MM-dd")}
+                    </span>
+                    <span className="text-sm font-bold tabular-nums">
+                      {format(new Date(log.createdAt), "HH:mm:ss")}
+                    </span>
+                  </div>
+                )
+              },
+              {
+                key: "admin",
+                label: "Administrator",
+                render: (log) => (
+                  <div className="flex items-center gap-3">
+                     <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-xl shadow-primary/5">
+                        <span className="text-sm font-black text-primary">{(log.userEmail || "S").charAt(0).toUpperCase()}</span>
+                     </div>
+                     <div className="flex flex-col">
+                        <span className="text-sm font-bold leading-tight">{log.userEmail || "System"}</span>
+                        <Badge variant="outline" className="w-fit text-[8px] font-black uppercase tracking-widest mt-1 border-primary/20 text-primary px-1.5 h-4">
+                           {log.userRole || "Admin"}
+                        </Badge>
+                     </div>
+                  </div>
+                )
+              },
+              {
+                key: "action",
+                label: "Action",
+                render: (log) => (
+                  <code className="text-[10px] font-black bg-primary/5 px-3 py-1 rounded-xl border border-primary/10 text-primary">
+                    {log.action}
+                  </code>
+                )
+              },
+              {
+                key: "severity",
+                label: "Severity",
+                render: (log) => (
+                  <Badge className={cn("text-[10px] font-black uppercase tracking-widest px-3 h-7 rounded-xl", severityColors[log.severity as keyof typeof severityColors])}>
+                    {log.severity}
+                  </Badge>
+                )
+              },
+              {
+                key: "details",
+                label: "Analysis",
+                render: (log) => (
+                  <div className="flex justify-end">
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-primary hover:text-primary-foreground transition-all">
+                          <ChevronRight className="h-5 w-5" />
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent className="sm:max-w-xl w-full bg-card/95 backdrop-blur-2xl border-l-white/5">
+                        <SheetHeader className="mb-10 border-b border-white/5 pb-8">
+                          <div className="flex items-center gap-6 mb-6">
+                            <div className={cn("p-4 rounded-3xl shadow-2xl shadow-black/20", severityColors[log.severity as keyof typeof severityColors])}>
+                              <Shield className="h-8 w-8" />
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                               <Badge variant="outline" className="gap-1.5 font-bold uppercase tracking-widest text-[10px]"><Calendar className="h-3 w-3" /> {format(new Date(log.createdAt), "PPpp")}</Badge>
-                               <Badge variant="outline" className="gap-1.5 font-bold uppercase tracking-widest text-[10px]"><User className="h-3 w-3" /> {log.userEmail || "System"}</Badge>
-                               <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase tracking-widest bg-muted/50">
-                                 {statusIcons[log.status as keyof typeof statusIcons]}
-                                 {log.status}
-                               </div>
-                            </div>
-                          </SheetHeader>
-
-                          <div className="space-y-8">
-                            <div>
-                              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-                                <div className="h-1 w-1 rounded-full bg-primary" />
-                                Description
-                              </h4>
-                              <p className="text-lg font-bold leading-tight">{log.description}</p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-6">
-                               <div>
-                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Target Type</h4>
-                                  <p className="font-bold">{log.targetType || "N/A"}</p>
-                               </div>
-                               <div>
-                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Target ID</h4>
-                                  <p className="font-bold font-mono text-sm">{log.targetId || "—"}</p>
-                               </div>
-                               <div>
-                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">IP Address</h4>
-                                  <p className="font-bold font-mono text-xs text-blue-500">{log.ipAddress || "::1"}</p>
-                               </div>
-                            </div>
-
-                            <div className="space-y-4">
-                              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                <div className="h-1 w-1 rounded-full bg-primary" />
-                                Data Changes
-                              </h4>
-                              
-                              <div className="grid gap-4">
-                                {log.oldValue && (
-                                  <div className="rounded-lg border bg-muted/30 p-4">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Previous State</p>
-                                    <pre className="text-[11px] font-mono whitespace-pre-wrap leading-relaxed opacity-70">
-                                      {JSON.stringify(JSON.parse(log.oldValue), null, 2)}
-                                    </pre>
-                                  </div>
-                                )}
-                                {log.newValue && (
-                                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">New State</p>
-                                    <pre className="text-[11px] font-mono whitespace-pre-wrap leading-relaxed">
-                                      {JSON.stringify(JSON.parse(log.newValue), null, 2)}
-                                    </pre>
-                                  </div>
-                                )}
-                                {!log.oldValue && !log.newValue && (
-                                   <div className="h-20 flex items-center justify-center border border-dashed rounded-lg text-xs text-muted-foreground italic">
-                                     No data changes recorded for this action.
-                                   </div>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-3">
-                               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                <div className="h-1 w-1 rounded-full bg-primary" />
-                                Browser / Agent
-                              </h4>
-                              <p className="text-[10px] font-mono bg-muted p-2 rounded leading-tight text-muted-foreground italic">
-                                {log.userAgent || "Unknown User Agent"}
-                              </p>
+                            <div className="flex flex-col items-start text-left space-y-1">
+                              <SheetTitle className="text-3xl font-black tracking-tighter uppercase italic">{log.action}</SheetTitle>
+                              <SheetDescription className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60">Audit Entry • Event #{log.id}</SheetDescription>
                             </div>
                           </div>
+                          <div className="flex flex-wrap gap-2">
+                             <Badge variant="outline" className="gap-2 font-bold uppercase tracking-widest text-[9px] h-8 px-4 rounded-xl border-white/10"><Calendar className="h-3.5 w-3.5" /> {format(new Date(log.createdAt), "PPpp")}</Badge>
+                             <Badge variant="outline" className="gap-2 font-bold uppercase tracking-widest text-[9px] h-8 px-4 rounded-xl border-white/10"><User className="h-3.5 w-3.5" /> {log.userEmail || "System"}</Badge>
+                             <div className="flex items-center gap-2 px-4 py-1 rounded-xl border border-white/10 text-[9px] font-black uppercase tracking-widest bg-muted/30">
+                               {statusIcons[log.status as keyof typeof statusIcons]}
+                               {log.status}
+                             </div>
+                          </div>
+                        </SheetHeader>
+
+                        <div className="space-y-10">
+                          <div className="p-6 rounded-[2rem] bg-muted/20 border border-white/5">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Description</h4>
+                            <p className="text-xl font-bold leading-snug">{log.description}</p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-8 px-2">
+                             <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2">Target Type</h4>
+                                <p className="font-black text-sm text-primary uppercase">{log.targetType || "N/A"}</p>
+                             </div>
+                             <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2">Target Identifier</h4>
+                                <p className="font-bold font-mono text-sm opacity-60">{log.targetId ? `#${log.targetId}` : "—"}</p>
+                             </div>
+                             <div className="col-span-2">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2">Origin IP</h4>
+                                <p className="font-black font-mono text-sm tracking-widest">{log.ipAddress || "::1"}</p>
+                             </div>
+                          </div>
+
+                          <div className="space-y-6">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground px-2">Payload Delta</h4>
+                            <div className="grid gap-6">
+                              {log.oldValue && (
+                                <div className="rounded-[2rem] border border-white/5 bg-muted/30 p-6 shadow-inner">
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 mb-4 italic">Previous State</p>
+                                  <pre className="text-[11px] font-mono whitespace-pre-wrap leading-relaxed opacity-60 max-h-40 overflow-y-auto thin-scrollbar">
+                                    {JSON.stringify(JSON.parse(log.oldValue), null, 2)}
+                                  </pre>
+                                </div>
+                              )}
+                              {log.newValue && (
+                                <div className="rounded-[2rem] border border-primary/20 bg-primary/5 p-6 shadow-2xl shadow-primary/5">
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-4 italic">New State</p>
+                                  <pre className="text-[11px] font-mono whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto thin-scrollbar">
+                                    {JSON.stringify(JSON.parse(log.newValue), null, 2)}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  </div>
+                )
+              }
+            ]}
+            renderMobileCard={(log) => (
+               <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                        <Badge className={cn("text-[8px] h-5 font-black uppercase", severityColors[log.severity as keyof typeof severityColors])}>
+                           {log.severity}
+                        </Badge>
+                        <span className="text-[10px] font-mono opacity-50">{format(new Date(log.createdAt), "HH:mm:ss")}</span>
+                     </div>
+                     <code className="text-[10px] text-primary font-bold">{log.action}</code>
+                  </div>
+                  <div>
+                     <p className="text-xs font-black mb-1">{log.userEmail || "System"}</p>
+                     <p className="text-sm font-medium leading-relaxed italic opacity-80">"{log.description}"</p>
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                     <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">{log.targetType}</span>
+                     <Sheet>
+                        <SheetTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 rounded-xl text-[10px] font-black uppercase tracking-widest border-white/10">Details</Button>
+                        </SheetTrigger>
+                        {/* Mobile Sheet Content (Same as Desktop for consistency) */}
+                        <SheetContent side="bottom" className="h-[90vh] rounded-t-[3rem] bg-card/95 backdrop-blur-2xl border-t-white/10 overflow-y-auto px-6">
+                           <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-10 opacity-20" />
+                           {/* Simplified details for mobile */}
+                           <div className="space-y-8 pb-12">
+                              <div className="flex items-center gap-4">
+                                 <div className={cn("p-4 rounded-2xl", severityColors[log.severity as keyof typeof severityColors])}>
+                                    <Shield className="h-6 w-6" />
+                                 </div>
+                                 <h2 className="text-2xl font-black uppercase italic leading-none">{log.action}</h2>
+                              </div>
+                              <div className="space-y-1">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Admin</p>
+                                 <p className="font-bold">{log.userEmail || "System"}</p>
+                              </div>
+                              <div className="space-y-2">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Log Entry</p>
+                                 <p className="text-lg font-bold italic">"{log.description}"</p>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div className="p-4 rounded-2xl bg-muted/20">
+                                    <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1">Target</p>
+                                    <p className="text-xs font-bold truncate">{log.targetLabel || log.targetType || "—"}</p>
+                                 </div>
+                                 <div className="p-4 rounded-2xl bg-muted/20">
+                                    <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1">IP Address</p>
+                                    <p className="text-xs font-bold font-mono truncate">{log.ipAddress || "::1"}</p>
+                                 </div>
+                              </div>
+                              {log.newValue && (
+                                 <div className="space-y-3">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary">New State Delta</p>
+                                    <pre className="text-[10px] font-mono bg-primary/5 p-4 rounded-2xl border border-primary/10 overflow-x-auto">
+                                       {JSON.stringify(JSON.parse(log.newValue), null, 2)}
+                                    </pre>
+                                 </div>
+                              )}
+                           </div>
                         </SheetContent>
-                      </Sheet>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                     </Sheet>
+                  </div>
+               </div>
+            )}
+          />
         </div>
-      </div>
+    </div>
   );
 }

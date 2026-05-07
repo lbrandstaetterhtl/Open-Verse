@@ -116,14 +116,15 @@ export default function UserProfilePage() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background pb-20">
-        <ProfileCover 
-          coverUrl={profile.coverUrl}
-          avatarUrl={profile.avatarUrl}
-          username={profile.username}
-          isOwnProfile={isOwnProfile}
-        />
+    <div className="w-full min-h-screen pb-20">
+      <ProfileCover 
+        coverUrl={profile.coverUrl}
+        avatarUrl={profile.avatarUrl}
+        username={profile.username}
+        isOwnProfile={isOwnProfile}
+      />
 
+      <div className="max-w-4xl mx-auto">
         <ProfileHeader 
           user={profile}
           isOwnProfile={isOwnProfile}
@@ -139,13 +140,13 @@ export default function UserProfilePage() {
           isOwnProfile={isOwnProfile}
         />
 
-        <main className="container mx-auto px-4 max-w-4xl">
+        <main className="px-4 md:px-6 py-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
               <ProfileTabContent 
@@ -157,6 +158,7 @@ export default function UserProfilePage() {
           </AnimatePresence>
         </main>
       </div>
+    </div>
     </PageTransition>
   );
 }

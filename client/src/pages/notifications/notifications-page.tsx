@@ -30,68 +30,66 @@ export default function NotificationsPage() {
   };
 
   return (
-    <PageTransition>
-      {/* Sticky Top Header – Glass Effect */}
-      <header className="sticky top-14 z-40 w-full glass-premium border-b border-border/40">
-        <div className="max-w-[680px] mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-             <BackButton fallback="/feed" className="-ml-2 h-9 w-9 rounded-full" />
-             <h1 className="text-base md:text-lg font-black tracking-tight uppercase">
-                {t("notifications.title")}
-             </h1>
+    <div className="w-full min-h-screen">
+      <main className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+          <div className="space-y-1">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase italic italic">
+              {t("notifications.title")}
+            </h1>
+            <p className="text-muted-foreground font-medium">Stay updated with your latest activities</p>
           </div>
           
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
               onClick={() => markAllAsRead.mutate()}
               disabled={!notifications?.some(n => !n.read)}
-              className="h-9 w-9 p-0 rounded-full hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
-              title={t("notifications.mark_all_read")}
+              className="h-10 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest gap-2"
             >
               <CheckCircle2 className="h-4 w-4" />
+              {t("notifications.mark_all_read", "All Read")}
             </Button>
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
               onClick={() => deleteAllNotifications.mutate()}
-              className="h-9 w-9 p-0 rounded-full hover:bg-destructive/10 hover:text-destructive transition-all active:scale-90"
-              title={t("notifications.clear_all")}
+              className="h-10 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest gap-2 text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4" />
+              {t("notifications.clear_all", "Clear")}
             </Button>
           </div>
         </div>
-      </header>
 
-      <main className="w-full">
-        <div className="max-w-[680px] mx-auto border-x border-border/40 min-h-screen bg-card/5 md:bg-background">
+        <div className="bg-card/50 backdrop-blur-xl border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl shadow-black/5">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="border-b border-border/40 bg-background/50">
-               <TabsList className="w-full justify-start h-12 bg-transparent p-0 rounded-none overflow-x-auto no-scrollbar">
+            <div className="border-b border-white/5 bg-muted/20">
+               <TabsList className="w-full justify-start h-14 bg-transparent p-1 gap-1">
                   <TabsTrigger 
                     value="all" 
-                    className="flex-1 h-12 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none font-bold text-xs uppercase tracking-widest"
+                    className="flex-1 h-12 rounded-xl bg-transparent data-[state=active]:bg-background data-[state=active]:shadow-sm font-black text-[10px] uppercase tracking-widest"
                   >
-                    {t("notifications.tabs.all", "Alle")}
+                    {t("notifications.tabs.all", "All")}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="unread" 
-                    className="flex-1 h-12 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none font-bold text-xs uppercase tracking-widest"
+                    className="flex-1 h-12 rounded-xl bg-transparent data-[state=active]:bg-background data-[state=active]:shadow-sm font-black text-[10px] uppercase tracking-widest"
                   >
-                    {t("notifications.tabs.unread", "Ungelesen")}
+                    {t("notifications.tabs.unread", "Unread")}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="settings" 
-                    className="flex-1 h-12 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none font-bold text-xs uppercase tracking-widest"
+                    className="flex-1 h-12 rounded-xl bg-transparent data-[state=active]:bg-background data-[state=active]:shadow-sm font-black text-[10px] uppercase tracking-widest"
                   >
-                    <Settings2 className="h-4 w-4" />
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    {t("notifications.tabs.settings", "Settings")}
                   </TabsTrigger>
                </TabsList>
             </div>
 
-            <div className="relative min-h-[400px]">
+            <div className="relative min-h-[500px]">
               <TabsContent value="all" className="m-0 border-none">
                  <NotificationList notifications={notifications} isLoading={isLoading} error={error} refetch={refetch} />
               </TabsContent>
@@ -100,14 +98,14 @@ export default function NotificationsPage() {
                  <NotificationList notifications={notifications} isLoading={isLoading} error={error} refetch={refetch} />
               </TabsContent>
 
-              <TabsContent value="settings" className="m-0 p-4 animate-scale-in">
-                <div className="space-y-6">
-                  <div className="p-4 rounded-2xl bg-muted/20 border border-border/40 space-y-4">
-                    <h3 className="text-sm font-bold flex items-center gap-2">
-                       <Bell className="h-4 w-4 text-primary" />
-                       {t("notifications.pref.social_header")}
+              <TabsContent value="settings" className="m-0 p-6 md:p-8 animate-scale-in">
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                       <Bell className="h-4 w-4" />
+                       {t("notifications.pref.social_header", "Social Alerts")}
                     </h3>
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <PreferenceToggle 
                         id="likePost" 
                         label={t("notifications.pref.likes")} 
@@ -122,13 +120,21 @@ export default function NotificationsPage() {
                       />
                     </div>
                   </div>
+                  
+                  <Separator className="bg-white/5" />
+                  
+                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                     <p className="text-xs text-muted-foreground leading-relaxed italic">
+                        "Your privacy is our priority. We only send notifications for the actions you choose to follow."
+                     </p>
+                  </div>
                 </div>
               </TabsContent>
             </div>
           </Tabs>
         </div>
       </main>
-    </PageTransition>
+    </div>
   );
 }
 

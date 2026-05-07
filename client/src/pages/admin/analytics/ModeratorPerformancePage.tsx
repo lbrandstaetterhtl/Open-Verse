@@ -19,6 +19,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
+
 export default function ModeratorPerformancePage() {
     const { t } = useTranslation();
     const { toast } = useToast();
@@ -124,59 +126,61 @@ export default function ModeratorPerformancePage() {
                                 </Select>
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]">{t("modPerf.rank", "Rank")}</TableHead>
-                                        <TableHead>{t("modPerf.moderator", "Moderator")}</TableHead>
-                                        <TableHead className="text-right">{t("modPerf.reports", "Reports")}</TableHead>
-                                        <TableHead className="text-right">{t("modPerf.tickets", "Tickets")}</TableHead>
-                                        <TableHead className="text-right">{t("modPerf.avg_response_short", "Avg Resp.")}</TableHead>
-                                        <TableHead className="text-right font-bold">{t("modPerf.score", "Score")}</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loadingLeaderboard ? (
-                                        Array.from({ length: 5 }).map((_, i) => (
-                                            <TableRow key={i}>
-                                                <TableCell colSpan={6} className="h-12 animate-pulse bg-muted/50" />
-                                            </TableRow>
-                                        ))
-                                    ) : leaderboard?.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                                                {t("modPerf.no_data", "No activity recorded for this period.")}
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : leaderboard?.map((entry: any, index: number) => (
-                                        <TableRow key={entry.moderatorId}>
-                                            <TableCell className="font-medium">
+                        <CardContent className="p-0">
+                            <ResponsiveTable<any>
+                                keyField="moderatorId"
+                                columns={[
+                                    { 
+                                        key: "rank", 
+                                        label: t("modPerf.rank", "Rank"), 
+                                        render: (_, index) => (
+                                            <div className="font-medium">
                                                 {index === 0 ? <Award className="h-5 w-5 text-yellow-500" /> : index + 1}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar className="h-8 w-8">
-                                                        <AvatarFallback>{entry.moderatorUsername.slice(0, 2).toUpperCase()}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-semibold text-sm">{entry.moderatorUsername}</span>
-                                                        <Badge variant="outline" className="text-[10px] h-4 w-fit px-1 uppercase leading-none">
-                                                            {entry.moderatorRole}
-                                                        </Badge>
-                                                    </div>
+                                            </div>
+                                        )
+                                    },
+                                    { 
+                                        key: "moderator", 
+                                        label: t("modPerf.moderator", "Moderator"), 
+                                        render: (entry) => (
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarFallback>{entry.moderatorUsername.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex flex-col">
+                                                    <span className="font-semibold text-sm">{entry.moderatorUsername}</span>
+                                                    <Badge variant="outline" className="text-[10px] h-4 w-fit px-1 uppercase leading-none">
+                                                        {entry.moderatorRole}
+                                                    </Badge>
                                                 </div>
-                                            </TableCell>
-                                            <TableCell className="text-right">{entry.totalReportsHandled}</TableCell>
-                                            <TableCell className="text-right">{entry.totalTicketsResolved}</TableCell>
-                                            <TableCell className="text-right">{formatTime(entry.avgTicketResponseS)}</TableCell>
-                                            <TableCell className="text-right font-mono font-bold text-primary">
-                                                {Math.round(entry.totalScore)}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                            </div>
+                                        )
+                                    },
+                                    { key: "totalReportsHandled", label: t("modPerf.reports", "Reports"), render: (e) => e.totalReportsHandled },
+                                    { key: "totalTicketsResolved", label: t("modPerf.tickets", "Tickets"), render: (e) => e.totalTicketsResolved },
+                                    { key: "avgResponse", label: t("modPerf.avg_response_short", "Avg Resp."), render: (e) => formatTime(e.avgTicketResponseS) },
+                                    { key: "score", label: t("modPerf.score", "Score"), render: (e) => <span className="font-mono font-bold text-primary">{Math.round(e.totalScore)}</span> }
+                                ]}
+                                data={leaderboard || []}
+                                loading={loadingLeaderboard}
+                                renderMobileCard={(entry) => (
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarFallback>{entry.moderatorUsername.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-bold text-sm">{entry.moderatorUsername}</p>
+                                                <p className="text-[10px] text-muted-foreground uppercase">{entry.moderatorRole}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-lg font-black text-primary">{Math.round(entry.totalScore)}</p>
+                                            <p className="text-[9px] text-muted-foreground uppercase">Points</p>
+                                        </div>
+                                    </div>
+                                )}
+                            />
                         </CardContent>
                     </Card>
 

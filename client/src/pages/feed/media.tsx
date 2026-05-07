@@ -38,21 +38,19 @@ export default function MediaFeedPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
-      
-      <main className="container mx-auto px-4 pt-28 pb-12 max-w-7xl">
+      <main className="w-full px-4 md:px-8 py-6 md:py-12">
         {/* Cinematic Premium Header */}
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative mb-16 overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary/10 via-card/40 to-accent/5 border border-white/10 backdrop-blur-3xl p-8 lg:p-16 shadow-2xl shadow-primary/5"
+          className="relative mb-12 overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-gradient-to-br from-primary/10 via-card/40 to-accent/5 border border-white/10 backdrop-blur-3xl p-6 md:p-12 lg:p-16 shadow-2xl shadow-primary/5"
         >
           {/* Abstract background blobs */}
           <div className="absolute -top-32 -left-32 w-80 h-80 bg-primary/20 rounded-full blur-[100px] animate-pulse pointer-events-none" />
           <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-accent/20 rounded-full blur-[100px] animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} />
 
-          <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8 md:gap-12">
+            <div className="space-y-4 md:space-y-6">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -62,21 +60,21 @@ export default function MediaFeedPage() {
                 <Sparkles className="h-3 w-3" />
                 {t("feed.curated", "Curated Feed")}
               </motion.div>
-              <h1 className="text-4xl sm:text-5xl lg:text-8xl font-black tracking-tighter leading-[0.85] uppercase italic flex flex-col sm:block">
+              <h1 className="text-4xl md:text-6xl lg:text-8xl font-black tracking-tighter leading-[0.85] uppercase italic flex flex-col sm:block">
                 Media <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/60 to-accent whitespace-nowrap">Verse</span>
               </h1>
-              <p className="text-lg lg:text-xl text-muted-foreground/80 font-medium max-w-lg leading-relaxed">
+              <p className="text-base md:text-xl text-muted-foreground/80 font-medium max-w-lg leading-relaxed">
                 {t("feed.media_description", "The most visual and engaging stories curated for your exploration.")}
               </p>
             </div>
 
-            <div className="flex flex-col gap-6 lg:items-end">
-              <div className="p-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl flex flex-wrap gap-2 w-fit lg:ml-auto">
+            <div className="flex flex-col gap-4 md:gap-6 lg:items-end">
+              <div className="p-1.5 md:p-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl flex flex-wrap gap-1.5 md:gap-2 w-full sm:w-fit lg:ml-auto">
                 {["all", "news", "entertainment"].map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
-                    className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-500 ${
+                    className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-wider transition-all duration-500 ${
                       activeCategory === cat 
                         ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105" 
                         : "text-muted-foreground hover:bg-white/5"
@@ -86,9 +84,9 @@ export default function MediaFeedPage() {
                   </button>
                 ))}
               </div>
-              <div className="flex gap-4 w-full lg:w-auto lg:ml-auto">
-                <Link href="/post/news">
-                  <Button className="flex-1 lg:flex-none h-16 px-10 rounded-2xl shadow-xl shadow-primary/20 gap-3 font-black uppercase tracking-widest text-xs transition-all hover:shadow-primary/40 hover:-translate-y-1 active:translate-y-0 active:scale-95">
+              <div className="flex gap-4 w-full sm:w-auto lg:ml-auto">
+                <Link href="/post/news" className="w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto h-14 md:h-16 px-8 md:px-10 rounded-2xl shadow-xl shadow-primary/20 gap-3 font-black uppercase tracking-widest text-[10px] md:text-xs transition-all hover:shadow-primary/40 hover:-translate-y-1 active:translate-y-0 active:scale-95">
                     <Plus className="h-5 w-5 stroke-[3px]" />
                     {t("feed.create_story", "Create Story")}
                   </Button>
@@ -101,9 +99,9 @@ export default function MediaFeedPage() {
         {/* Content Section */}
         <div className="relative">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="aspect-[4/5] rounded-[2.5rem] bg-white/5 animate-pulse border border-white/10 shadow-inner" />
+                <div key={i} className="aspect-[4/5] rounded-[2rem] bg-white/5 animate-pulse border border-white/10 shadow-inner" />
               ))}
             </div>
           ) : error ? (
@@ -117,13 +115,13 @@ export default function MediaFeedPage() {
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-40 text-center rounded-[3rem] bg-white/5 border border-dashed border-white/10"
+              className="flex flex-col items-center justify-center py-20 md:py-40 text-center rounded-[2rem] md:rounded-[3rem] bg-white/5 border border-dashed border-white/10"
             >
-              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-8 border border-primary/20">
-                <Camera className="h-10 w-10 text-primary" />
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6 md:mb-8 border border-primary/20">
+                <Camera className="h-8 w-8 md:h-10 md:h-10 text-primary" />
               </div>
-              <h3 className="text-3xl font-black tracking-tighter uppercase mb-4">{t("feed.no_media", "Silence in the Verse")}</h3>
-              <p className="text-muted-foreground text-lg max-w-sm font-medium">{t("feed.no_media_desc", "Be the spark that ignites this feed. Share your first media post now.")}</p>
+              <h3 className="text-2xl md:text-3xl font-black tracking-tighter uppercase mb-2 md:mb-4">{t("feed.no_media", "Silence in the Verse")}</h3>
+              <p className="text-muted-foreground text-sm md:text-lg max-w-sm font-medium px-4">{t("feed.no_media_desc", "Be the spark that ignites this feed. Share your first media post now.")}</p>
               <Link href="/post/news" className="mt-8">
                 <Button variant="outline" className="rounded-xl border-2 font-bold uppercase tracking-widest text-[10px]">
                   Ignite Discovery
@@ -141,7 +139,7 @@ export default function MediaFeedPage() {
                   transition: { staggerChildren: 0.15 }
                 }
               }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10"
             >
               <AnimatePresence mode="popLayout">
                 {posts?.map((post) => (

@@ -75,33 +75,12 @@ export default function CommunityFeedPage() {
 
   return (
     <PageTransition>
-      {/* Sticky Top Header – Glass Effect on Mobile, Subtle on Desktop */}
-      <header className="sticky top-14 md:relative md:top-0 z-40 w-full glass-premium border-b border-border/40 md:border-none">
-        <div className="max-w-[1280px] mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary md:hidden" />
-            <h1 className="text-base md:hidden font-black tracking-tight uppercase">
-              {t("communities_feed.header_title")}
-            </h1>
-          </div>
-          
-          <div className="flex items-center gap-2 ml-auto">
-             <Link href="/create-community">
-                <Button variant="ghost" size="sm" className="h-8 rounded-full hover:bg-primary/10 hover:text-primary transition-all active:scale-90">
-                  <Plus className="h-4 w-4 mr-1" />
-                  <span className="hidden sm:inline text-xs font-bold">{t("communities_feed.create_button")}</span>
-                </Button>
-              </Link>
-          </div>
-        </div>
-      </header>
-
       <main className="w-full">
-        <div className="max-w-[1280px] mx-auto flex flex-col lg:flex-row min-h-screen bg-card/5 md:bg-background border-x border-border/40">
+        <div className="flex flex-col lg:flex-row min-h-screen">
           
           {/* Left Sidebar - Communities & Search */}
-          <aside className="w-full lg:w-72 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-border/40 p-4">
-             <div className="lg:sticky lg:top-28 space-y-6">
+          <aside className="w-full lg:w-80 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-border/40 p-4 md:p-6">
+             <div className="lg:sticky lg:top-6 space-y-8">
                 {/* Search */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -109,59 +88,64 @@ export default function CommunityFeedPage() {
                     placeholder={t("communities_feed.search_placeholder")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-10 rounded-full bg-muted/50 border-transparent focus:bg-background focus:ring-primary/20 transition-all text-sm"
+                    className="pl-10 h-12 rounded-2xl bg-muted/30 border-transparent focus:bg-background focus:ring-primary/20 transition-all text-sm shadow-sm"
                   />
                 </div>
 
                 {/* My Communities */}
                 <div>
-                   <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-3 px-2">
+                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4 px-2">
                      {t("communities_feed.my_communities")}
                    </h3>
-                   <div className="space-y-1">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
                       {communitiesLoading ? (
-                        Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-xl" />)
+                        Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-2xl" />)
                       ) : myCommunities?.map((c) => (
                         <Link key={c.id} href={`/c/${c.slug}`}>
-                          <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-accent/50 cursor-pointer transition-all active:scale-95 group">
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary font-bold text-xs">
+                          <div className="flex items-center gap-3 p-3 rounded-2xl hover:bg-accent/50 cursor-pointer transition-all active:scale-95 group border border-transparent hover:border-border/40">
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary font-bold text-sm shadow-inner">
                               {c.name.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
                                <p className="text-sm font-bold truncate">{c.name}</p>
-                               <p className="text-[10px] text-muted-foreground uppercase font-black">{c.role || "member"}</p>
+                               <p className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">{c.role || "member"}</p>
                             </div>
                           </div>
                         </Link>
                       ))}
+                      
+                      <Link href="/create-community">
+                        <Button variant="outline" className="w-full h-14 rounded-2xl border-dashed border-2 gap-2 font-bold text-xs uppercase tracking-widest mt-2">
+                          <Plus className="h-4 w-4" />
+                          {t("communities_feed.create_button")}
+                        </Button>
+                      </Link>
                    </div>
                 </div>
              </div>
           </aside>
 
           {/* Main Feed */}
-          <div className="flex-1 min-w-0">
-            <div className="max-w-[680px] mx-auto">
-              <div className="relative min-h-[400px]">
+          <div className="flex-1 min-w-0 bg-card/5 md:bg-transparent">
+            <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
+              <div className="relative min-h-[400px] space-y-6">
                 {postsLoading ? (
-                  <div className="p-4 space-y-4">
-                    <SkeletonFeed />
-                  </div>
+                  <SkeletonFeed />
                 ) : postsError ? (
-                  <div className="p-8 animate-scale-in">
+                  <div className="p-8">
                     <ErrorState 
                       message={(postsError as Error).message} 
                       retry={() => queryClient.invalidateQueries({ queryKey: ["/api/feed/communities"] })}
                     />
                   </div>
                 ) : posts?.length === 0 ? (
-                  <div className="p-20 text-center animate-scale-in">
+                  <div className="p-20 text-center rounded-[2rem] bg-white/5 border border-dashed border-white/10">
                     <Users className="h-16 w-16 mx-auto text-muted-foreground/20 mb-4" />
-                    <h2 className="text-xl font-bold tracking-tight">{t("communities_feed.no_posts")}</h2>
-                    <p className="text-sm text-muted-foreground mt-2">{t("communities_feed.no_posts_desc")}</p>
+                    <h2 className="text-xl font-bold tracking-tight uppercase">{t("communities_feed.no_posts")}</h2>
+                    <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">{t("communities_feed.no_posts_desc")}</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-border/40">
+                  <div className="space-y-6">
                     {posts?.map((post) => (
                       <PostCard key={post.id} post={post} />
                     ))}
@@ -171,14 +155,17 @@ export default function CommunityFeedPage() {
             </div>
           </div>
 
-          {/* Right Sidebar - Suggestions (Placeholder) */}
-          <aside className="hidden xl:block w-80 flex-shrink-0 border-l border-border/40 p-6">
-             <div className="sticky top-28">
-                <div className="p-4 rounded-2xl bg-muted/20 border border-border/40">
-                   <h3 className="font-bold text-sm mb-2">Entdecke Communities</h3>
-                   <p className="text-xs text-muted-foreground leading-relaxed">
-                     Finde Gleichgesinnte in über 1.000 Themenbereichen.
+          {/* Right Sidebar - Suggestions (Responsive visibility) */}
+          <aside className="hidden xl:block w-80 flex-shrink-0 border-l border-border/40 p-8">
+             <div className="sticky top-6">
+                <div className="p-6 rounded-[2rem] bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10 shadow-xl shadow-primary/5">
+                   <h3 className="font-black text-xs uppercase tracking-[0.2em] mb-4 text-primary">Discover Communities</h3>
+                   <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                     Find people with similar interests in over 1,000 topic areas. Join the conversation and share your passion.
                    </p>
+                   <Button variant="secondary" className="w-full rounded-xl font-bold text-[10px] uppercase tracking-widest h-10">
+                      Explore All
+                   </Button>
                 </div>
              </div>
           </aside>

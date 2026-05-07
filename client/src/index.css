@@ -3,6 +3,29 @@
 @tailwind utilities;
 
 @layer base {
+  /* Kein horizontales Scrollen auf dem Body */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Alle Bilder responsive */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Touch-freundlich */
+  * { 
+    touch-action: manipulation; 
+  }
+
+  /* Kein Text-Zoom bei Input-Focus auf iOS */
+  input, textarea, select { 
+    font-size: max(16px, 1rem) !important; 
+  }
+
   :root {
     --font-family: "Inter", system-ui, -apple-system, sans-serif;
     --background: 0 0% 100%;
@@ -142,13 +165,7 @@
   }
 
   .nav-blur {
-    background: linear-gradient(
-      to bottom,
-      hsl(var(--background) / 0.85),
-      hsl(var(--background) / 0.7)
-    );
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    @apply backdrop-blur-xl backdrop-saturate-150;
   }
 
   .safe-area-pb {
@@ -157,6 +174,15 @@
 
   .safe-area-pt {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Safe Areas */
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+
+  /* Mobile: Tab-Bar Abstand */
+  @media (max-width: 768px) {
+    .has-tab-bar { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
   }
 
   .scrollbar-none::-webkit-scrollbar { display: none; }
