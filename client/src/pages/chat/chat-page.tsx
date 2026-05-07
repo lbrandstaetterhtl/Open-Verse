@@ -127,7 +127,6 @@ export default function ChatPage() {
   };
 
   return (
-  return (
     <div className="w-full flex flex-col h-[calc(100vh-theme(spacing.14))] md:h-screen overflow-hidden">
       <main className="flex-1 flex flex-col min-h-0 bg-background">
         <div className="w-full flex items-center justify-between px-4 h-16 border-b bg-background/80 backdrop-blur-md">

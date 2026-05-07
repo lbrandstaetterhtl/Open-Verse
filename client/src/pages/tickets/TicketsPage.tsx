@@ -31,7 +31,6 @@ export default function TicketsPage() {
   };
 
   return (
-  return (
     <div className="w-full px-4 md:px-8 py-6 md:py-10 flex flex-col h-full min-h-screen">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
         <div className="space-y-1">
