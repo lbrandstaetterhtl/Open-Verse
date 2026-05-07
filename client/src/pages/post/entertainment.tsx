@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/layout/navbar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertMediaPostSchema } from "@shared/schema";
@@ -98,8 +97,7 @@ export default function CreateEntertainmentPage() {
 
   return (
     <>
-      <Navbar />
-      <main className="container mx-auto px-4 pt-24">
+            <main className="container mx-auto px-4 pt-24">
         <div className="max-w-3xl mx-auto">
           <Card>
             <CardHeader>

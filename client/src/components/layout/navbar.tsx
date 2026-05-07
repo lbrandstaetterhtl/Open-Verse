@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   MessageSquare,
-  Newspaper,
+  Home,
   MessageCircle,
   Users,
   Menu,
@@ -40,7 +40,7 @@ export function Navbar() {
   }, []);
 
   const primaryLinks = [
-    { href: "/feed/media", icon: Newspaper, label: t("navbar.media_feed") },
+    { href: "/feed/media", icon: Home, label: t("navbar.media_feed") },
     { href: "/feed/discussions", icon: MessageSquare, label: t("navbar.discussions_feed") },
     { href: "/feed/communities", icon: Users, label: t("navbar.communities") },
   ];
@@ -126,7 +126,7 @@ export function Navbar() {
               </Sheet>
             </div>
 
-            <Link href="/" className="flex items-center gap-3 group">
+            <Link href="/" className="flex items-center gap-3 group floating-element">
               <motion.div 
                 whileHover={{ scale: 1.05, rotate: [0, -5, 5, 0] }}
                 className="h-9 w-9 bg-primary rounded-xl flex items-center justify-center shadow-md shadow-primary/20 group-hover:shadow-primary/40 transition-shadow"

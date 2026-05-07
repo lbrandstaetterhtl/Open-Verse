@@ -1,6 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Community, User, Report, CommunityBan } from "@shared/schema";
-import { Navbar } from "@/components/layout/navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -86,8 +85,7 @@ export default function ModPanel() {
 
   return (
     <>
-      <Navbar />
-      <main className="container mx-auto px-4 pt-24 pb-12">
+            <main className="container mx-auto px-4 pt-24 pb-12">
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
           <ShieldAlert className="h-8 w-8 text-primary" />
           {t("mod_panel.title")}

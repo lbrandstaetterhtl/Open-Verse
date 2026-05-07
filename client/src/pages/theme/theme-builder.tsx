@@ -48,7 +48,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Navbar } from "@/components/layout/navbar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
@@ -352,8 +351,7 @@ export default function ThemeBuilderPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* THEME-REDESIGN [TB-011]: Use normal Navbar */}
-      <Navbar />
-
+      
       <main className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-3.5rem)] mt-14 overflow-hidden">
         {/* THEME-REDESIGN [TB-001]: Left Column - Settings Panel */}
         <div className={`w-full lg:w-[45%] xl:w-[40%] flex flex-col border-r bg-muted/30 ${mobileActiveTab === "preview" ? "hidden lg:flex" : "flex"}`}>

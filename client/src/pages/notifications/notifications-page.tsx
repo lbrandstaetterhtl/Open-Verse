@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Navbar } from "@/components/layout/navbar";
 import { useNotifications, useNotificationCounts, useNotificationMutations, useNotificationPreferences } from "@/hooks/use-notifications";
 import { NotificationItem } from "@/components/notifications/notification-item";
 import { Button } from "@/components/ui/button";

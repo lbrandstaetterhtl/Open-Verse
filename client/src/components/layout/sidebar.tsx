@@ -59,7 +59,7 @@ export function Sidebar({ isAdmin, user, onNavigate, iconOnly }: SidebarProps) {
     { href: "/feed/media", icon: Home, label: t("navbar.media_feed"), exact: true },
     { href: "/feed/discussions", icon: MessageSquare, label: t("navbar.discussions_feed") },
     { href: "/feed/communities", icon: Users, label: t("navbar.communities") },
-    { href: "/notifications", icon: Bell, label: t("navbar.notifications") },
+    { href: "/notifications", icon: Bell, label: t("navigation.notifications") },
     { href: "/chat", icon: MessageSquare, label: t("navbar.messages", "Messages") },
     { href: "/profile", icon: User, label: t("navbar.profile") },
   ];

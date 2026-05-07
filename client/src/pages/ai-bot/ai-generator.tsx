@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-import { Navbar } from "@/components/layout/navbar";
 
 export default function AIGeneratorPage() {
   const { t } = useTranslation();
@@ -126,8 +125,7 @@ export default function AIGeneratorPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container max-w-2xl mx-auto py-8 pt-24 px-4">
+            <div className="container max-w-2xl mx-auto py-8 pt-24 px-4">
         <Card className="w-full">
           <CardHeader>
             <div className="flex flex-col items-center mb-6">

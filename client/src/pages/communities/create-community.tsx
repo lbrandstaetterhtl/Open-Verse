@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Navbar } from "@/components/layout/navbar";
 import { useLocation } from "wouter";
 import { Users, Loader2 } from "lucide-react";
 import { BackButton } from "@/components/ui/back-button";
@@ -65,8 +64,7 @@ export default function CreateCommunityPage() {
   if (!isPrivileged && user.karma < 200) {
     return (
       <>
-        <Navbar />
-        <main className="container mx-auto px-4 pt-24 flex justify-center">
+                <main className="container mx-auto px-4 pt-24 flex justify-center">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
               <CardTitle className="flex flex-col items-center gap-2">
@@ -87,8 +85,7 @@ export default function CreateCommunityPage() {
 
   return (
     <>
-      <Navbar />
-      <main className="container mx-auto px-4 pt-24">
+            <main className="container mx-auto px-4 pt-24">
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>

@@ -54,18 +54,18 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     
-    /* REDESIGN [UX-008]: Standardize transition timings */
-    --duration-fast: 150ms;
-    --duration-normal: 300ms;
-    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    /* REDESIGN [UX-008]: Standardize transition timings for Zero-Gravity feel */
+    --duration-fast: 300ms;
+    --duration-normal: 600ms;
+    --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .dark {
-    --background: 222 47% 11%;
+    --background: 230 40% 4%;
     --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
+    --card: 230 40% 6%;
     --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
+    --popover: 230 40% 6%;
     --popover-foreground: 210 40% 98%;
     --primary: 217 91% 60%;
     --primary-foreground: 222 47% 11%;
@@ -77,9 +77,17 @@
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62% 30%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
+    --border: 230 30% 12%;
+    --input: 230 30% 12%;
     --ring: 217 91% 60%;
+  }
+
+  .dark body {
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 50% 80%, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
+    background-attachment: fixed;
   }
 }
 
@@ -202,11 +210,22 @@ main {
 @keyframes pageEnter {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0px); }
+}
+
+.floating-element {
+  animation: float 6s ease-in-out infinite;
+}
+
 

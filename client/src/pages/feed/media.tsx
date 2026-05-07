@@ -7,7 +7,6 @@ import { ErrorState } from "@/components/ui/error-state";
 import { Plus, ImageIcon, Camera, Play, Sparkles, Filter } from "lucide-react";
 import { Link } from "wouter";
 import { PostCard } from "@/components/post/post-card";
-import { Navbar } from "@/components/layout/navbar";
 import type { PostWithAuthor } from "@shared/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
