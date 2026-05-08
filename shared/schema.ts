@@ -492,7 +492,19 @@ export const insertCommunitySchema = createInsertSchema(communities).extend({
 });
 export const insertThemeSchema = createInsertSchema(themes);
 export const insertAutoPunishmentRuleSchema = createInsertSchema(autoPunishmentRules);
-export const adminUpdateUserSchema = createInsertSchema(users).partial();
+// Helper: accept boolean OR number for SQLite-style integer-boolean columns
+const boolOrInt = z.union([z.boolean(), z.number()])
+  .transform(v => (typeof v === "boolean" ? (v ? 1 : 0) : v))
+  .optional();
+
+export const adminUpdateUserSchema = createInsertSchema(users).partial().extend({
+  verified:      boolOrInt,
+  emailVerified: boolOrInt,
+  isAdmin:       boolOrInt,
+  isPrivate:     boolOrInt,
+  isFrozen:      boolOrInt,
+  isShadowBanned: boolOrInt,
+});
 export const adminUpdateReportSchema = createInsertSchema(reports).partial();
 export const updateProfileSchema = createInsertSchema(users).partial();
 export const updatePasswordSchema = z.object({ password: z.string().min(1) });
