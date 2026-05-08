@@ -67,7 +67,7 @@ export function Sidebar({ isAdmin, user, onNavigate, iconOnly }: SidebarProps) {
   const filteredNav = nav.filter(item => !item.ownerOnly || user?.role === "owner");
 
   return (
-    <div className="flex flex-col h-full bg-card">
+    <div className="flex flex-col h-full bg-transparent">
       {/* Brand Logo Area */}
       <div className={cn(
         "flex items-center h-16 border-b border-border/40 flex-shrink-0 transition-all",

@@ -27,6 +27,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const { user } = useAuth();
   const isAdminArea = location.startsWith('/admin') || location.startsWith('/tickets');
 
   return (
@@ -34,8 +35,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Global Top Navbar */}
       <Navbar />
 
-      {/* Main Content Area */}
-      <div className="flex flex-col min-h-screen transition-all duration-700 ease-in-out w-full pt-14">
+      {/* Main Layout Area */}
+      <div className="flex flex-1 pt-14 w-full">
+        {/* Desktop Sidebar (Only visible on lg screens) */}
+        {isAdminArea && (
+          <aside className="hidden lg:flex w-64 flex-col z-30 shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] border-r border-white/10 bg-background/50 backdrop-blur-xl shadow-[4px_0_24px_rgba(0,0,0,0.3)] animate-in fade-in slide-in-from-left-4 duration-500">
+            <Sidebar isAdmin={isAdminArea} user={user} />
+          </aside>
+        )}
+
         <main className={cn(
           "flex-1 relative",
           // Mobile padding for Bottom Tab Bar
