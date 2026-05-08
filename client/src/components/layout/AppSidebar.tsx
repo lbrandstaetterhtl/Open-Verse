@@ -45,6 +45,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { QuickThemeSwitcher } from "@/components/theme/quick-theme-switcher";
 
 interface NavItem {
   href: string;
@@ -303,7 +304,10 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
       </nav>
 
       {/* ── USER FOOTER ── */}
-      <div className="border-t border-border/40 p-2 flex-shrink-0">
+      <div className="border-t border-border/40 p-2 flex-shrink-0 space-y-0.5">
+        {/* Quick Theme Switcher — always visible, ≤2 clicks */}
+        <QuickThemeSwitcher collapsed={collapsed} />
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
