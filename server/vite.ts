@@ -2,13 +2,9 @@ import express, { type Express } from "express";
 import fs from "node:fs";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createServer as createViteServer, createLogger } from "vite";
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 import { type Server } from "node:http";
-import viteConfig from "../vite.config";
-
-const viteLogger = createLogger();
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -22,6 +18,11 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  // Dynamic import — vite is a devDependency, never loaded in production
+  const { createServer: createViteServer, createLogger } = await import("vite");
+  const { default: viteConfig } = await import("../vite.config");
+
+  const viteLogger = createLogger();
   const port = parseInt(process.env.PORT || "5000");
   const serverOptions = {
     middlewareMode: true,
