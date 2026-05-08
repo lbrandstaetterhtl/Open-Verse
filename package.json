@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "tsx watch --env-file=.env server/index.ts",
-    "build": "powershell -ExecutionPolicy Bypass -File scripts/compliance-audit.ps1 -Fix",
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:quick": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "compliance:check": "powershell -ExecutionPolicy Bypass -File scripts/compliance-audit.ps1 -SkipBuild",
     "compliance:fix": "powershell -ExecutionPolicy Bypass -File scripts/compliance-audit.ps1 -Fix -SkipBuild",
