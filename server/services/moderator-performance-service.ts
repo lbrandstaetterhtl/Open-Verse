@@ -280,7 +280,12 @@ class ModeratorPerformanceService {
       .from(moderatorPerformanceSnapshots)
       .leftJoin(users, eq(users.id, moderatorPerformanceSnapshots.moderatorId))
       .where(gte(moderatorPerformanceSnapshots.snapshotDate, startDate))
-      .groupBy(moderatorPerformanceSnapshots.moderatorId)
+      .groupBy(
+        moderatorPerformanceSnapshots.moderatorId,
+        moderatorPerformanceSnapshots.moderatorUsername,
+        moderatorPerformanceSnapshots.moderatorRole,
+        users.bio,
+      )
       .orderBy(sql`${orderCol}`) as any;
   }
 
