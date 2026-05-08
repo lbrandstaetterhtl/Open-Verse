@@ -45,10 +45,9 @@ COPY drizzle.config.ts ./
 COPY shared ./shared
 COPY server/migrations ./server/migrations
 
-# Create uploads dir and set permissions ONLY on what appuser needs to access/write
-# Avoid chown -R /app (would recursively chown node_modules = very slow)
-RUN mkdir -p /app/uploads \
-    && chown appuser:appgroup /app/uploads \
+# Create required runtime dirs and set permissions
+RUN mkdir -p /app/uploads /app/logs \
+    && chown appuser:appgroup /app/uploads /app/logs \
     && chown -R appuser:appgroup /app/dist
 
 USER appuser
