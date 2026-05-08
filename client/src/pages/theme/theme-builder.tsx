@@ -349,7 +349,7 @@ export default function ThemeBuilderPage() {
   const defaultColors = defaultTheme[activeMode];
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-transparent">
       {/* THEME-REDESIGN [TB-011]: Use normal Navbar */}
       
       <main className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-3.5rem)] mt-14 overflow-hidden">

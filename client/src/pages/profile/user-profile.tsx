@@ -88,7 +88,7 @@ export default function UserProfilePage() {
 
   if (profileError || !profile) {
     return (
-      <div className="min-h-screen bg-background pt-24">
+      <div className="min-h-screen bg-transparent pt-24">
         <main className="container mx-auto px-4">
           <Alert variant="destructive" className="rounded-2xl shadow-lg border-none bg-destructive/10">
             <AlertDescription className="text-destructive font-medium">

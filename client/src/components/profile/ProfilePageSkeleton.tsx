@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function ProfilePageSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       {/* Cover Skeleton */}
       <div className="h-48 md:h-64 lg:h-80 w-full bg-muted animate-pulse rounded-b-3xl" />
       

@@ -55,10 +55,10 @@ export interface BackgroundConfig {
 }
 
 export const defaultBackground: BackgroundConfig = {
-  mode: "solid",
-  gradient: "",
+  mode: "gradient",
+  gradient: "linear-gradient(160deg, hsl(230 60% 6%), hsl(270 50% 10%), hsl(200 70% 8%))",
   image: undefined,
-  overlay: { opacity: 0, blur: 0, tint: "0 0% 0%" },
+  overlay: { opacity: 0.1, blur: 0, tint: "0 0% 0%" },
 };
 
 // Galaxy gradient presets
@@ -160,25 +160,25 @@ export const defaultTheme: CustomTheme = {
     ring: "260 80% 60%",
   },
   dark: {
-    background: "230 35% 7%",
+    background: "230 60% 6%",
     foreground: "210 20% 98%",
-    card: "230 25% 10%",
+    card: "230 50% 10%",
     cardForeground: "210 20% 98%",
-    popover: "230 25% 10%",
+    popover: "230 50% 10%",
     popoverForeground: "210 20% 98%",
-    primary: "260 100% 70%",
+    primary: "270 90% 70%",
     primaryForeground: "230 35% 7%",
-    secondary: "230 20% 15%",
+    secondary: "230 30% 15%",
     secondaryForeground: "210 20% 98%",
-    muted: "230 20% 15%",
+    muted: "230 30% 15%",
     mutedForeground: "215 20% 65%",
-    accent: "260 50% 20%",
+    accent: "270 50% 20%",
     accentForeground: "210 20% 98%",
-    destructive: "0 62% 30%",
+    destructive: "0 80% 50%",
     destructiveForeground: "210 40% 98%",
-    border: "230 20% 15%",
-    input: "230 20% 15%",
-    ring: "260 100% 70%",
+    border: "230 30% 20%",
+    input: "230 30% 15%",
+    ring: "270 90% 70%",
   },
 };
 

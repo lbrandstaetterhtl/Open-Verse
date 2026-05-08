@@ -30,7 +30,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isAdminArea = location.startsWith('/admin') || location.startsWith('/tickets');
 
   return (
-    <div className="min-h-screen bg-background selection:bg-primary/20 flex flex-col">
+    <div className="min-h-screen selection:bg-primary/20 flex flex-col">
       {/* Global Top Navbar */}
       <Navbar />
 

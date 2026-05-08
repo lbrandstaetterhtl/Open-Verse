@@ -124,7 +124,7 @@ export default function AIGeneratorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
             <div className="container max-w-2xl mx-auto py-8 pt-24 px-4">
         <Card className="w-full">
           <CardHeader>

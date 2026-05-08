@@ -35,7 +35,7 @@ export default function DiscussionsFeedPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-transparent text-foreground">
       <main className="w-full px-4 md:px-8 py-6 md:py-12">
         {/* Cinematic Premium Header (Matched to Media Feed) */}
         <motion.div 
