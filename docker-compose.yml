@@ -28,7 +28,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: open-verse-app
-    command: sh -c "npx --yes drizzle-kit push && node dist/index.js"
+    command: sh -c "node dist/index.js"
     restart: unless-stopped
     depends_on:
       db:
