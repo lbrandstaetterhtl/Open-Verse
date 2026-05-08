@@ -19,20 +19,16 @@ export function log(message: string, source = "express") {
 
 export async function setupVite(app: Express, server: Server) {
   // Dynamic import — vite is a devDependency, never loaded in production
+  // NOTE: Do NOT import ../vite.config here — esbuild would bundle it and
+  // its 'import from vite' would become a static top-level import in dist/index.js.
+  // Instead, pass configFile as a string path so vite loads it itself at runtime.
   const { createServer: createViteServer, createLogger } = await import("vite");
-  const { default: viteConfig } = await import("../vite.config");
 
   const viteLogger = createLogger();
   const port = parseInt(process.env.PORT || "5000");
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server, clientPort: port },
-    allowedHosts: true as true,
-  };
 
   const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
+    configFile: path.resolve(process.cwd(), "vite.config.ts"),
     customLogger: {
       ...viteLogger,
       error: (msg, options) => {
@@ -40,7 +36,11 @@ export async function setupVite(app: Express, server: Server) {
         process.exit(1);
       },
     },
-    server: serverOptions,
+    server: {
+      middlewareMode: true,
+      hmr: { server, clientPort: port },
+      allowedHosts: true as true,
+    },
     appType: "custom",
   });
 
