@@ -96,23 +96,23 @@ function Router() {
         <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} />
         <ProtectedRoute path="/admin/tickets" component={AdminTicketsOverview} />
 
-        {/* Admin Routes */}
-        <ProtectedRoute path="/admin" component={AdminDashboard} />
-        <ProtectedRoute path="/admin/users" component={AdminDashboard} />
-        <ProtectedRoute path="/admin/reports" component={AdminDashboard} />
-        <ProtectedRoute path="/admin/logs" component={ActivityLogsPageOld} />
-        <ProtectedRoute path="/admin/settings" component={AdminSettingsPage} />
-        <ProtectedRoute path="/admin/bans" component={BansPage} />
-        <ProtectedRoute path="/admin/auto-punishments" component={AutoPunishmentPage} />
+        {/* Admin Routes — require admin or owner role */}
+        <ProtectedRoute path="/admin" component={AdminDashboard} requiredRole="admin" />
+        <ProtectedRoute path="/admin/users" component={AdminDashboard} requiredRole="admin" />
+        <ProtectedRoute path="/admin/reports" component={AdminDashboard} requiredRole="admin" />
+        <ProtectedRoute path="/admin/logs" component={ActivityLogsPageOld} requiredRole="admin" />
+        <ProtectedRoute path="/admin/settings" component={AdminSettingsPage} requiredRole="admin" />
+        <ProtectedRoute path="/admin/bans" component={BansPage} requiredRole="admin" />
+        <ProtectedRoute path="/admin/auto-punishments" component={AutoPunishmentPage} requiredRole="admin" />
         
-        {/* Monitoring Routes */}
-        <ProtectedRoute path="/admin/monitoring" component={MonitoringOverview} />
-        <ProtectedRoute path="/admin/monitoring/activity" component={ActivityLogsPage} />
-        <ProtectedRoute path="/admin/monitoring/anomalies" component={AnomaliesPage} />
-        <ProtectedRoute path="/admin/analytics" component={GrowthDashboardPage} />
-        <ProtectedRoute path="/admin/performance" component={ModeratorPerformancePage} />
-        <ProtectedRoute path="/admin/security/stress-test" component={StressTestPage} />
-        <ProtectedRoute path="/security/stress-test" component={StressTestPage} />
+        {/* Monitoring Routes — owner only */}
+        <ProtectedRoute path="/admin/monitoring" component={MonitoringOverview} requiredRole="owner" />
+        <ProtectedRoute path="/admin/monitoring/activity" component={ActivityLogsPage} requiredRole="owner" />
+        <ProtectedRoute path="/admin/monitoring/anomalies" component={AnomaliesPage} requiredRole="owner" />
+        <ProtectedRoute path="/admin/analytics" component={GrowthDashboardPage} requiredRole="owner" />
+        <ProtectedRoute path="/admin/performance" component={ModeratorPerformancePage} requiredRole="owner" />
+        <ProtectedRoute path="/admin/security/stress-test" component={StressTestPage} requiredRole="owner" />
+        <ProtectedRoute path="/security/stress-test" component={StressTestPage} requiredRole="owner" />
 
         {/* Community Routes */}
         <ProtectedRoute path="/create-community" component={CreateCommunityPage} />
@@ -125,7 +125,7 @@ function Router() {
         {/* Notifications Route */}
         <ProtectedRoute path="/notifications" component={NotificationsPage} />
 
-        {/* Other Routes */}
+        {/* Root: redirect to feed */}
         <ProtectedRoute path="/" component={MediaFeedPage} />
         <Route component={NotFound} />
       </Switch>

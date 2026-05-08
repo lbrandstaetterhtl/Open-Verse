@@ -3,13 +3,18 @@ import { useAuth } from "@/hooks/use-auth";
 import { Route, Redirect } from "wouter";
 import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 
+interface ProtectedRouteProps {
+  path: string;
+  component: React.ComponentType<any>;
+  /** 'admin' = admin or owner; 'owner' = owner only */
+  requiredRole?: "admin" | "owner";
+}
+
 export function ProtectedRoute({
   path,
   component: Component,
-}: {
-  path: string;
-  component: React.ComponentType<any>;
-}) {
+  requiredRole,
+}: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -26,6 +31,25 @@ export function ProtectedRoute({
     return (
       <Route path={path}>
         <Redirect to="/auth" />
+      </Route>
+    );
+  }
+
+  if (requiredRole === "owner" && user.role !== "owner") {
+    return (
+      <Route path={path}>
+        <Redirect to="/" />
+      </Route>
+    );
+  }
+
+  if (
+    requiredRole === "admin" &&
+    !["admin", "owner"].includes(user.role ?? "")
+  ) {
+    return (
+      <Route path={path}>
+        <Redirect to="/" />
       </Route>
     );
   }
