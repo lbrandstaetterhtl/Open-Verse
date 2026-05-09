@@ -454,6 +454,11 @@
       "change_role": "Change Role",
       "confirm_owner_title": "Promote to Owner?",
       "confirm_owner_desc": "This user will have full control over the community. Are you sure?",
+      "invite_button": "Invite User",
+      "invite_dialog": {
+        "title": "Invite User",
+        "desc": "Search for a user to add them directly to the community."
+      },
       "table": {
         "user": "User",
         "role": "Role",

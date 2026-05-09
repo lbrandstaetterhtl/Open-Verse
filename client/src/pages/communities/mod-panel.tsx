@@ -436,13 +436,13 @@ function MembersManager({ communityId }: { communityId: number }) {
         <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <UserPlus className="mr-2 h-4 w-4" /> {t("mod_panel.staff.add_button")}
+              <UserPlus className="mr-2 h-4 w-4" /> {t("mod_panel.members.invite_button")}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{t("mod_panel.staff.add_dialog.title")}</DialogTitle>
-              <DialogDescription>{t("mod_panel.staff.add_dialog.desc")}</DialogDescription>
+              <DialogTitle>{t("mod_panel.members.invite_dialog.title")}</DialogTitle>
+              <DialogDescription>{t("mod_panel.members.invite_dialog.desc")}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">

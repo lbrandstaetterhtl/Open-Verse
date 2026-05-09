@@ -449,6 +449,11 @@
       "change_role": "Rolle ändern",
       "confirm_owner_title": "Zum Inhaber befördern?",
       "confirm_owner_desc": "Dieser Nutzer erhält volle Kontrolle über die Community. Bist du sicher?",
+      "invite_button": "Benutzer einladen",
+      "invite_dialog": {
+        "title": "Benutzer einladen",
+        "desc": "Suche nach einem Benutzer, um ihn direkt zur Community hinzuzufügen."
+      },
       "table": {
         "user": "Benutzer",
         "role": "Rolle",
