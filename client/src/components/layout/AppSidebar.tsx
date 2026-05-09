@@ -107,14 +107,14 @@ function NavItemRow({
         )}
       />
       {!collapsed && (
-        <span className="text-[13px] font-medium flex-1 truncate">
+        <span className="text-[13px] font-medium flex-1 truncate sidebar-label">
           {item.label}
         </span>
       )}
       {!collapsed && hasSubItems && (
         <ChevronRight
           className={cn(
-            "h-3.5 w-3.5 transition-transform duration-200",
+            "h-3.5 w-3.5 transition-transform duration-200 sidebar-label",
             subOpen && "rotate-90"
           )}
         />
@@ -220,7 +220,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
             <span className="text-primary-foreground text-sm font-black">O</span>
           </div>
           {!collapsed && (
-            <span className="font-black text-[15px] tracking-tight truncate">Osiris</span>
+            <span className="font-black text-[15px] tracking-tight truncate sidebar-label">Osiris</span>
           )}
         </Link>
 
@@ -230,7 +230,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
             <TooltipTrigger asChild>
               <button
                 onClick={onToggleCollapse}
-                className="hidden lg:flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground flex-shrink-0"
+                className="hidden lg:flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground flex-shrink-0 sidebar-toggle"
               >
                 {collapsed ? (
                   <ChevronRight className="h-4 w-4" />
@@ -268,7 +268,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
                       collapsed && "justify-center px-2"
                     )}>
                       <ArrowLeft className="h-[18px] w-[18px] flex-shrink-0 stroke-2" />
-                      {!collapsed && <span className="text-[13px] font-medium">Back to App</span>}
+                      {!collapsed && <span className="text-[13px] font-medium sidebar-label">Back to App</span>}
                     </div>
                   </Link>
                 </TooltipTrigger>
@@ -277,7 +277,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
                 )}
               </Tooltip>
             </TooltipProvider>
-            <div className="my-2 mx-1 border-t border-border/40" />
+            <div className="my-2 mx-1 border-t border-border/40 sidebar-label" />
           </>
         )}
 
@@ -319,7 +319,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
               <UserAvatar user={user} size="sm" className="flex-shrink-0" />
               {!collapsed && (
                 <>
-                  <div className="flex-1 min-w-0 text-left">
+                  <div className="flex-1 min-w-0 text-left sidebar-label">
                     <p className="text-[12px] font-semibold truncate leading-tight">
                       {user?.username}
                     </p>
@@ -327,7 +327,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
                       {user?.role}
                     </p>
                   </div>
-                  <MoreHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <MoreHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 sidebar-label" />
                 </>
               )}
             </button>
