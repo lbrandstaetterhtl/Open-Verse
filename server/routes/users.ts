@@ -3,6 +3,9 @@ import { storage } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
 import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
+import { profileUpload, checkFileSignature, sanitizeImage } from "../utils/file-upload";
+import fs from "node:fs";
+import path from "node:path";
 
 const router = Router();
 
@@ -291,6 +294,68 @@ router.get("/search", isAuthenticated, async (req, res) => {
     } catch (error) {
         console.error("Error searching users:", error);
         res.status(500).send("Failed to search users");
+    }
+});
+
+router.post("/profile-upload", isAuthenticated, profileUpload.single("image"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded or invalid file type" });
+        }
+
+        const type = req.body.type as "avatar" | "cover";
+        if (!type || !["avatar", "cover"].includes(type)) {
+            // Remove the uploaded file if type is invalid
+            fs.unlinkSync(req.file.path);
+            return res.status(400).json({ error: "Invalid upload type. Must be 'avatar' or 'cover'." });
+        }
+
+        // SEC-002: Verify file signature
+        const isValidSignature = await checkFileSignature(req.file.path, req.file.mimetype);
+        if (!isValidSignature) {
+            fs.unlinkSync(req.file.path);
+            activityLogger.logFromRequest(req, {
+                action: 'user.upload_rejected',
+                category: 'security',
+                description: `Upload rejected: Invalid file signature for ${type}`,
+                severity: 'warning'
+            }).catch(e => console.error(e));
+            return res.status(400).json({ error: "Invalid file signature" });
+        }
+
+        // SEC-003: Sanitize image (strip metadata)
+        await sanitizeImage(req.file.path);
+
+        const userId = (req.user as any).id;
+        const imageUrl = `/uploads/${req.file.filename}`;
+
+        // Update user profile in database
+        const updateData: any = {};
+        if (type === "avatar") {
+            updateData.avatarUrl = imageUrl;
+            updateData.profilePictureUrl = imageUrl; // Update both for consistency
+        } else {
+            updateData.coverUrl = imageUrl;
+        }
+
+        await storage.updateUserProfile(userId, updateData);
+
+        activityLogger.logFromRequest(req, {
+            action: `user.update_${type}`,
+            category: 'profile',
+            description: `Hat ein neues ${type}-Bild hochgeladen`,
+            targetType: 'User',
+            targetId: String(userId),
+            severity: 'info'
+        }).catch(err => console.error('[Monitor] profile-upload failed:', err));
+
+        res.json({ url: imageUrl });
+    } catch (error) {
+        console.error("Error uploading profile image:", error);
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ error: "Failed to upload profile image" });
     }
 });
 

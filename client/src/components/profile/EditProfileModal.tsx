@@ -208,7 +208,7 @@ export function EditProfileModal({
 
                     <TabsContent value="appearance" className="mt-0 space-y-8 outline-none">
                       <motion.div variants={fadeIn} initial="initial" animate="animate" className="space-y-8">
-                        {/* Avatar URL */}
+                        {/* Avatar Upload */}
                         <FormField
                           control={form.control}
                           name="avatarUrl"
@@ -216,27 +216,77 @@ export function EditProfileModal({
                             <FormItem>
                               <FormLabel className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">
                                 <Camera className="h-3 w-3" />
-                                Avatar Image URL
+                                Profile Picture
                               </FormLabel>
-                              <div className="flex gap-4">
-                                <FormControl className="flex-1">
-                                  <Input placeholder="https://..." {...field} className="glass-input h-14 rounded-2xl px-6 font-bold text-sm border-white/10" />
-                                </FormControl>
-                                {field.value && (
-                                  <div className="h-14 w-14 rounded-2xl border border-white/10 overflow-hidden bg-white/5">
-                                    <img src={field.value} alt="Preview" className="w-full h-full object-cover" />
+                              <div className="flex items-center gap-6 p-6 rounded-[2rem] border border-white/5 bg-white/5">
+                                <div className="h-24 w-24 rounded-3xl border-2 border-white/10 overflow-hidden bg-white/5 shadow-2xl relative group">
+                                  {field.value ? (
+                                    <img src={field.value} alt="Avatar Preview" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
+                                      <UserIcon className="h-10 w-10" />
+                                    </div>
+                                  )}
+                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
+                                    <Camera className="h-6 w-6 text-white" />
                                   </div>
-                                )}
+                                </div>
+                                <div className="flex-1 space-y-3">
+                                  <div className="flex gap-3">
+                                    <Button 
+                                      type="button" 
+                                      variant="outline" 
+                                      className="rounded-xl h-10 px-4 text-[10px] font-black uppercase tracking-widest border-white/10"
+                                      onClick={() => document.getElementById('avatar-upload')?.click()}
+                                    >
+                                      Change Avatar
+                                    </Button>
+                                    {field.value && (
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        className="rounded-xl h-10 px-4 text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300"
+                                        onClick={() => field.onChange("")}
+                                      >
+                                        Remove
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">JPG, PNG or WebP. Max 2MB.</p>
+                                </div>
+                                <input 
+                                  id="avatar-upload" 
+                                  type="file" 
+                                  accept="image/jpeg,image/png,image/webp" 
+                                  className="hidden" 
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    
+                                    const formData = new FormData();
+                                    formData.append("image", file);
+                                    formData.append("type", "avatar");
+                                    
+                                    try {
+                                      const res = await fetch("/api/profile-upload", {
+                                        method: "POST",
+                                        body: formData
+                                      });
+                                      if (!res.ok) throw new Error("Upload failed");
+                                      const data = await res.json();
+                                      field.onChange(data.url);
+                                    } catch (err) {
+                                      console.error("Avatar upload error:", err);
+                                    }
+                                  }}
+                                />
                               </div>
-                              <FormDescription className="text-[10px] font-bold opacity-40 uppercase tracking-widest pl-2">
-                                Direct image URL for your profile picture.
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
 
-                        {/* Cover URL */}
+                        {/* Cover Upload */}
                         <FormField
                           control={form.control}
                           name="coverUrl"
@@ -244,19 +294,69 @@ export function EditProfileModal({
                             <FormItem>
                               <FormLabel className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">
                                 <ImageIcon className="h-3 w-3" />
-                                Cover Image URL
+                                Cover Image
                               </FormLabel>
-                              <FormControl>
-                                <Input placeholder="https://..." {...field} className="glass-input h-14 rounded-2xl px-6 font-bold text-sm border-white/10" />
-                              </FormControl>
-                              {field.value && (
-                                <div className="mt-4 rounded-3xl border border-white/10 overflow-hidden bg-white/5 aspect-[3/1]">
-                                  <img src={field.value} alt="Preview" className="w-full h-full object-cover" />
+                              <div className="space-y-4">
+                                <div 
+                                  className="relative rounded-[2rem] border border-white/5 bg-white/5 overflow-hidden aspect-[3/1] group cursor-pointer"
+                                  onClick={() => document.getElementById('cover-upload')?.click()}
+                                >
+                                  {field.value ? (
+                                    <img src={field.value} alt="Cover Preview" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/20 gap-2">
+                                      <ImageIcon className="h-12 w-12" />
+                                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Upload Banner</span>
+                                    </div>
+                                  )}
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 flex items-center gap-3">
+                                      <Camera className="h-4 w-4" />
+                                      <span className="text-xs font-black uppercase tracking-widest">Update Banner</span>
+                                    </div>
+                                  </div>
                                 </div>
-                              )}
-                              <FormDescription className="text-[10px] font-bold opacity-40 uppercase tracking-widest pl-2">
-                                Background image for your profile header.
-                              </FormDescription>
+                                <div className="flex justify-between items-center px-4">
+                                  <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">Recommended: 1500x500px</p>
+                                  {field.value && (
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm"
+                                      className="h-8 text-[10px] font-black uppercase tracking-widest text-red-400"
+                                      onClick={(e) => { e.stopPropagation(); field.onChange(""); }}
+                                    >
+                                      Remove Banner
+                                    </Button>
+                                  )}
+                                </div>
+                                <input 
+                                  id="cover-upload" 
+                                  type="file" 
+                                  accept="image/jpeg,image/png,image/webp" 
+                                  className="hidden" 
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    
+                                    const formData = new FormData();
+                                    formData.append("image", file);
+                                    formData.append("type", "cover");
+                                    
+                                    try {
+                                      const res = await fetch("/api/profile-upload", {
+                                        method: "POST",
+                                        body: formData
+                                      });
+                                      if (!res.ok) throw new Error("Upload failed");
+                                      const data = await res.json();
+                                      field.onChange(data.url);
+                                    } catch (err) {
+                                      console.error("Cover upload error:", err);
+                                    }
+                                  }}
+                                />
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}

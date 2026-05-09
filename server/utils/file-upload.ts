@@ -139,4 +139,34 @@ export const themeBackgroundUpload = multer({
     },
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB max for theme backgrounds
 });
+// Dedicated multer config for user profile images (avatars, cover images)
+export const profileUpload = multer({
+    storage: multer.diskStorage({
+        destination: "./uploads",
+        filename: function (req, file, cb) {
+            const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
 
+            let ext = '.bin';
+            if (file.mimetype === 'image/jpeg') ext = '.jpg';
+            else if (file.mimetype === 'image/png') ext = '.png';
+            else if (file.mimetype === 'image/webp') ext = '.webp';
+
+            if (ext === '.bin') {
+                const err = new Error("Invalid file type for profile image");
+                logSecurityEvent({ type: 'FILE_UPLOAD_REJECTED', details: { reason: 'Invalid type (Profile)', originalName: file.originalname, mime: file.mimetype } });
+                return cb(err, "");
+            }
+
+            cb(null, `profile-${uniqueSuffix}${ext}`);
+        }
+    }),
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(null, false);
+        }
+    },
+    limits: { fileSize: 2 * 1024 * 1024 } // 2MB max for profile images
+});
