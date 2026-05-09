@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationCounts } from "@/hooks/use-notifications";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
+import { CreatePostSelectorDialog } from "@/components/post/create-post-selector-dialog";
 
 /**
  * MOBILE-NAV [UI-M-002]: iOS-style Tab Bar
@@ -14,6 +16,7 @@ export function MobileBottomNav() {
   const [location] = useLocation();
   const { user } = useAuth();
   const { data: counts } = useNotificationCounts();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   if (!user) return null;
 
@@ -97,17 +100,24 @@ export function MobileBottomNav() {
                   <img src={tab.avatar} alt="" className="w-full h-full object-cover" />
                 </div>
               ) : tab.isPrimary ? (
-                // Primary Action: larger icon or distinct styling
-                <div className={cn(
-                  "h-8 w-8 rounded-xl",
-                  "bg-primary text-primary-foreground",
-                  "flex items-center justify-center",
-                  "shadow-sm",
-                  "transition-transform duration-150 active:scale-90",
-                  "animate-scale-in"
-                )}>
-                  <tab.icon className="h-5 w-5" />
-                </div>
+                // Primary Action: open selector instead of navigation
+                <button
+                  key={tab.label}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsCreateDialogOpen(true);
+                  }}
+                  className={cn(
+                    "flex flex-col items-center justify-center flex-1 min-h-[44px] gap-0.5 relative"
+                  )}
+                >
+                  <div className={cn(
+                    "h-10 w-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 -mt-8 border-4 border-background transition-transform active:scale-90"
+                  )}>
+                    <tab.icon className="h-6 w-6" />
+                  </div>
+                  <span className="text-[10px] font-bold mt-1 uppercase tracking-widest text-primary">{tab.label}</span>
+                </button>
               ) : (
                 // Standard Icon
                 <div className="relative">
@@ -150,6 +160,11 @@ export function MobileBottomNav() {
           );
         })}
       </div>
+
+      <CreatePostSelectorDialog 
+        open={isCreateDialogOpen} 
+        onOpenChange={setIsCreateDialogOpen} 
+      />
     </nav>
   );
 }

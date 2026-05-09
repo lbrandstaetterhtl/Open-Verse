@@ -11,11 +11,13 @@ import type { PostWithAuthor } from "@shared/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { CreatePostSelectorDialog } from "@/components/post/create-post-selector-dialog";
 
 export default function MediaFeedPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const {
     data: posts,
@@ -94,12 +96,13 @@ export default function MediaFeedPage() {
                 ))}
               </div>
               <div className="flex gap-4 w-full sm:w-auto lg:ml-auto pt-4">
-                <Link href="/post/news" className="w-full sm:w-auto">
-                  <Button className="w-full sm:w-auto h-16 md:h-20 px-10 md:px-14 rounded-full shadow-2xl shadow-primary/30 gap-4 font-black uppercase tracking-widest text-[11px] md:text-xs transition-all hover:shadow-primary/50 hover:-translate-y-2 active:translate-y-0 active:scale-95 nebula-glow">
-                    <Plus className="h-6 w-6 stroke-[4px]" />
-                    {t("feed.create_story", "Create Story")}
-                  </Button>
-                </Link>
+                <Button 
+                  onClick={() => setIsCreateDialogOpen(true)}
+                  className="w-full sm:w-auto h-16 md:h-20 px-10 md:px-14 rounded-full shadow-2xl shadow-primary/30 gap-4 font-black uppercase tracking-widest text-[11px] md:text-xs transition-all hover:shadow-primary/50 hover:-translate-y-2 active:translate-y-0 active:scale-95 nebula-glow"
+                >
+                  <Plus className="h-6 w-6 stroke-[4px]" />
+                  {t("feed.create_story", "Create Story")}
+                </Button>
               </div>
             </div>
           </div>
@@ -168,6 +171,11 @@ export default function MediaFeedPage() {
           )}
         </div>
       </main>
+      <CreatePostSelectorDialog 
+        open={isCreateDialogOpen} 
+        onOpenChange={setIsCreateDialogOpen} 
+        defaultType="media"
+      />
     </div>
   );
 }
