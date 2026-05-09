@@ -383,6 +383,41 @@ function MembersManager({ communityId }: { communityId: number }) {
   const currentUserMember = members?.find((m) => m.user.id === currentUser?.id);
   const isOwner = currentUserMember?.role === "owner" || currentUser?.role === "admin" || currentUser?.role === "owner";
 
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteSearchQuery, setInviteSearchQuery] = useState("");
+  const [inviteUserId, setInviteUserId] = useState("");
+
+  const { data: inviteSearchResults, isLoading: invitingSearch } = useQuery<User[]>({
+    queryKey: ["/api/users/search", inviteSearchQuery],
+    queryFn: async () => {
+      if (!inviteSearchQuery || inviteSearchQuery.length < 2) return [];
+      const res = await apiRequest("GET", `/api/users/search?q=${inviteSearchQuery}`);
+      return res.json();
+    },
+    enabled: inviteSearchQuery.length >= 2,
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      await apiRequest("POST", `/api/communities/${communityId}/invite`, {
+        userId,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
+      setInviteSearchQuery("");
+      setInviteUserId("");
+      setInviteDialogOpen(false);
+      toast({
+        title: t("mod_panel.requests.approved_title"),
+        description: t("mod_panel.requests.approved_desc"),
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    },
+  });
+
   const filteredMembers =
     members?.filter((m) => m.user.username.toLowerCase().includes(searchTerm.toLowerCase())) || [];
 
@@ -398,6 +433,106 @@ function MembersManager({ communityId }: { communityId: number }) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <UserPlus className="mr-2 h-4 w-4" /> {t("mod_panel.staff.add_button")}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t("mod_panel.staff.add_dialog.title")}</DialogTitle>
+              <DialogDescription>{t("mod_panel.staff.add_dialog.desc")}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>{t("mod_panel.staff.add_dialog.user_id_label")}</Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={t("admin.users_table.search_placeholder")}
+                    className="pl-9"
+                    value={inviteSearchQuery}
+                    onChange={(e) => setInviteSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {invitingSearch && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+
+              {inviteSearchResults && inviteSearchResults.length > 0 && (
+                <div className="rounded-md border divide-y max-h-48 overflow-y-auto">
+                  {inviteSearchResults.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xs">
+                          {user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{user.username}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">ID: {user.id}</p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => inviteMutation.mutate(user.id)}
+                        disabled={inviteMutation.isPending}
+                      >
+                        {t("common.confirm")}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {inviteSearchQuery.length >= 2 && inviteSearchResults?.length === 0 && !invitingSearch && (
+                <p className="text-sm text-center text-muted-foreground py-4">
+                  {t("communities_feed.no_results")}
+                </p>
+              )}
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    {t("mod_panel.staff.add_dialog.or_by_id")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Input
+                  placeholder={t("mod_panel.staff.add_dialog.manual_id")}
+                  value={inviteUserId}
+                  onChange={(e) => setInviteUserId(e.target.value)}
+                />
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  disabled={!inviteUserId || inviteMutation.isPending}
+                  onClick={() => inviteMutation.mutate(parseInt(inviteUserId))}
+                >
+                  {t("common.confirm")}
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setInviteDialogOpen(false)}>
+                {t("mod_panel.staff.add_dialog.cancel")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="rounded-md border">

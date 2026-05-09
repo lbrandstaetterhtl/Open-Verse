@@ -363,6 +363,54 @@ router.post("/:id/moderators", isAuthenticated, async (req, res) => {
     }
 });
 
+// Invite a member
+router.post("/:id/invite", isAuthenticated, async (req, res) => {
+    try {
+        const communityId = parseInt(req.params.id);
+        const targetUserId = parseInt(req.body.userId);
+        const currentUserId = (req.user as any).id;
+
+        if (isNaN(targetUserId)) {
+            return res.status(400).send("Invalid target User ID");
+        }
+
+        const currentMember = await storage.getCommunityMember(communityId, currentUserId);
+        const isGlobalAdmin = (req.user as any).role === "admin" || (req.user as any).role === "owner";
+
+        // Mods and Owners can invite members
+        if (!isGlobalAdmin && (!currentMember || (currentMember.role !== "owner" && currentMember.role !== "moderator"))) {
+            return res.status(403).send("Only moderators, owners or global admins can invite members");
+        }
+
+        const targetUser = await storage.getUser(targetUserId);
+        if (!targetUser) {
+            return res.status(404).send("User not found on the platform");
+        }
+
+        const targetMember = await storage.getCommunityMember(communityId, targetUserId);
+        if (targetMember) {
+            return res.status(400).send("User is already a member");
+        }
+
+        await storage.addCommunityMember(communityId, targetUserId, "member");
+
+        // Notify user
+        const community = await storage.getCommunity(communityId);
+        await notificationService.notify({
+            userId: targetUserId,
+            actorId: currentUserId,
+            type: "community_join_approved",
+            communityId: communityId,
+            actionUrl: `/community/${community?.slug}`
+        });
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.error("Error inviting member:", error);
+        res.status(500).send("Failed to invite member");
+    }
+});
+
 router.patch("/:id/members/:userId/role", isAuthenticated, async (req, res) => {
     try {
         const communityId = parseInt(req.params.id);
