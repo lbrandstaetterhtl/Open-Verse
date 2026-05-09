@@ -84,10 +84,10 @@ export class SettingsService {
   static async seed() {
     const defaults = [
       // General
-      { category: "general", key: "site_name", label: "Site Name", value: "Open-Verse", valueType: "string", description: "The global name of the platform displayed in the navigation bar and document titles." },
+      { category: "general", key: "site_name", label: "Site Name", value: "Osiris", valueType: "string", description: "The global name of the platform displayed in the navigation bar and document titles." },
       { category: "general", key: "site_description", label: "Site Description", value: "The next generation social platform.", valueType: "text", description: "A short slogan or description used for SEO meta tags and social media sharing." },
       { category: "general", key: "maintenance_mode", label: "Maintenance Mode", value: "false", valueType: "boolean", description: "If enabled, blocks all non-admin users from accessing the site and displays a maintenance page." },
-      { category: "general", key: "support_email", label: "Support Email", value: "support@open-verse.com", valueType: "string", description: "The email address users can contact for help, shown in the footer and error pages." },
+      { category: "general", key: "support_email", label: "Support Email", value: "support@osiris.com", valueType: "string", description: "The email address users can contact for help, shown in the footer and error pages." },
       
       // Users
       { category: "users", key: "registration_enabled", label: "Allow Registration", value: "true", valueType: "boolean", description: "Toggle whether new users can create accounts on the platform." },
@@ -114,7 +114,7 @@ export class SettingsService {
       
       // Appearance
       { category: "appearance", key: "theme", label: "Default Site Theme", value: "dark", valueType: "string", description: "The default visual theme applied for guests and new registrations." },
-      { category: "appearance", key: "custom_footer_text", label: "Custom Footer Text", value: "© 2024 Open-Verse. All rights reserved.", valueType: "string", description: "Text displayed at the very bottom of every public page on the site." },
+      { category: "appearance", key: "custom_footer_text", label: "Custom Footer Text", value: "© 2024 Osiris. All rights reserved.", valueType: "string", description: "Text displayed at the very bottom of every public page on the site." },
     ];
 
     for (const d of defaults) {
