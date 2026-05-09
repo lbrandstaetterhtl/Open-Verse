@@ -137,6 +137,10 @@ export default function CommunityPage() {
     }
   });
 
+  const isMember = !!community?.memberInfo;
+  const isOwner = community?.memberInfo?.role === "owner";
+  const postLinkCategory = community?.type === "discussion" ? "discussion" : "news";
+
   if (isLoadingCommunity) {
     return (
       <div className="w-full px-4 md:px-8 py-6 md:py-10">
