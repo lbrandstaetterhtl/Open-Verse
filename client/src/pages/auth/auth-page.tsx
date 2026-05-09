@@ -70,10 +70,12 @@ export default function AuthPage() {
 
           {/* REDESIGN [UX-002]: Tab toggle replaces stacked dual forms */}
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className={cn("grid w-full", (settings.registration_enabled && !settings.maintenance_mode) ? "grid-cols-2" : "grid-cols-1")}>
-              <TabsTrigger value="login">Login</TabsTrigger>
-              {(settings.registration_enabled && !settings.maintenance_mode) && <TabsTrigger value="register">Register</TabsTrigger>}
-            </TabsList>
+            {(settings.registration_enabled && !settings.maintenance_mode) && (
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="register">Register</TabsTrigger>
+              </TabsList>
+            )}
             <TabsContent value="login" className="mt-4">
               {settings.maintenance_mode && (
                 <Alert className="mb-4 bg-primary/5 border-primary/20">
