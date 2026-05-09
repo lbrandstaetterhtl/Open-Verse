@@ -192,10 +192,10 @@ export default function AuthPage() {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>✨ New in Version 0.2.0:</p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>AI Content Generator v2.0</li>
-                  <li>User Communities & Feeds</li>
-                  <li>Advanced Moderation Tools</li>
-                  <li>Kick Notifications</li>
+                  <li>Advanced Custom Theme Builder</li>
+                  <li>Interactive Dynamic Cursor Particles</li>
+                  <li>Light & Dark Mode Overhaul</li>
+                  <li>Global Role & Permission System</li>
                   <li>Global Language Support (6 Languages)</li>
                 </ul>
               </div>
