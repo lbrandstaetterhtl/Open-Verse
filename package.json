@@ -75,8 +75,8 @@
     "cors": "^2.8.6",
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
-    "drizzle-orm": "^0.45.2",
     "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.7.0",
     "embla-carousel-react": "^8.3.0",
     "express": "^4.21.2",
@@ -113,7 +113,10 @@
     "ws": "^8.18.0",
     "xss": "^1.0.15",
     "zod": "^3.23.8",
-    "zod-validation-error": "^3.4.0"
+    "zod-validation-error": "^3.4.0",
+    "bufferutil": "^4.0.8",
+    "@emnapi/runtime": "^1.1.0",
+    "@emnapi/core": "^1.1.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",
@@ -145,8 +148,5 @@
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
     "vite": "^6.4.2"
-  },
-  "optionalDependencies": {
-    "bufferutil": "^4.0.8"
   }
 }
