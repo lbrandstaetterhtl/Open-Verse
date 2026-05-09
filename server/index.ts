@@ -122,6 +122,18 @@ if (!process.env.SENDGRID_API_KEY) {
     // FEATURE [AS-009]: Initialize system settings
     await SettingsService.seed();
     
+    // One-time fix: Ensure site name is Osiris if it's currently Open-Verse
+    const currentSiteName = await SettingsService.get("general", "site_name");
+    if (currentSiteName === "Open-Verse") {
+      logger.info('system', "Auto-correcting site name to Osiris in database...");
+      // Use a mock request object for logging
+      const systemReq = { user: { id: 0, username: 'system' } } as any;
+      await SettingsService.set(systemReq, "general", "site_name", "Osiris");
+      await SettingsService.set(systemReq, "appearance", "custom_footer_text", "© 2024 Osiris. All rights reserved.");
+      await SettingsService.set(systemReq, "general", "support_email", "support@osiris.com");
+      SettingsService.clearCache();
+    }
+    
     // TICKET SYSTEM: Initialize Database Tables
     const { addTicketSystem } = await import("./migrations/add_ticket_system");
     await addTicketSystem();
