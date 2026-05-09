@@ -549,13 +549,31 @@ export default function AdminDashboard() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56 glass-premium border-white/10 rounded-2xl shadow-2xl p-2">
-                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleRoleChange(u.id, u.role)}>
-                                  <Shield className="h-4 w-4 text-primary" />
-                                  <div className="flex flex-col">
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Change Role</span>
-                                    <span className="text-[9px] text-muted-foreground">Current: {u.role.toUpperCase()}</span>
-                                  </div>
-                                </DropdownMenuItem>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                                      <Shield className="h-4 w-4 text-primary" />
+                                      <div className="flex flex-col flex-1">
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Assign Role</span>
+                                        <span className="text-[9px] text-muted-foreground">Currently: {u.role.toUpperCase()}</span>
+                                      </div>
+                                      <ArrowRight className="h-3 w-3 opacity-30" />
+                                    </DropdownMenuItem>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent side="right" className="glass-premium border-white/10 rounded-xl p-2 shadow-2xl">
+                                    <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "user" } })}>
+                                      <Users className="h-3 w-3" /> User
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "admin" } })}>
+                                      <Shield className="h-3 w-3 text-primary" /> Admin
+                                    </DropdownMenuItem>
+                                    {user?.role === "owner" && (
+                                      <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2 text-primary" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "owner" } })}>
+                                        <Crown className="h-3 w-3" /> Owner
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                                 
                                 <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
                                   <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-amber-500" : "text-muted-foreground")} />
@@ -623,10 +641,28 @@ export default function AdminDashboard() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56 glass-premium border-white/10 rounded-2xl shadow-2xl p-2">
-                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleRoleChange(u.id, u.role)}>
-                                  <Shield className="h-4 w-4 text-primary" />
-                                  <span className="text-[10px] font-black uppercase tracking-widest">Cycle Role</span>
-                                </DropdownMenuItem>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                                      <Shield className="h-4 w-4 text-primary" />
+                                      <span className="text-[10px] font-black uppercase tracking-widest flex-1">Assign Role</span>
+                                      <ArrowRight className="h-3 w-3 opacity-30" />
+                                    </DropdownMenuItem>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent side="right" className="glass-premium border-white/10 rounded-xl p-2 shadow-2xl">
+                                    <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "user" } })}>
+                                      <Users className="h-3 w-3" /> User
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "admin" } })}>
+                                      <Shield className="h-3 w-3 text-primary" /> Admin
+                                    </DropdownMenuItem>
+                                    {user?.role === "owner" && (
+                                      <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2 text-primary" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "owner" } })}>
+                                        <Crown className="h-3 w-3" /> Owner
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                                 <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
                                   <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-amber-500" : "text-muted-foreground")} />
                                   <span className="text-[10px] font-black uppercase tracking-widest">Toggle Shadowban</span>
