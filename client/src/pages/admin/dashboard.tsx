@@ -110,7 +110,7 @@ function MetricCard({
           </div>
         </div>
         <div className="flex items-baseline gap-3">
-          <div className="text-4xl font-black tracking-tighter italic italic-primary leading-none pl-1">{value}</div>
+          <div className="text-4xl font-black tracking-tight italic italic-primary leading-none px-2 -ml-2">{value}</div>
           {trend !== undefined && (
             <span className={cn(
               "text-[10px] font-black px-2 py-1 rounded-full flex items-center gap-1 shadow-sm border border-white/5",
