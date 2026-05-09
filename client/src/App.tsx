@@ -139,7 +139,7 @@ import type { BackgroundConfig } from "@/lib/theme-utils";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 
 function GlobalThemeApplier() {
-  const { background } = useCustomTheme();
+  const { background, isDark } = useCustomTheme();
   const [previewBg, setPreviewBg] = useState<BackgroundConfig | null>(null);
 
   useEffect(() => {
@@ -148,7 +148,7 @@ function GlobalThemeApplier() {
     return () => window.removeEventListener("open-verse-preview-bg", handlePreview);
   }, []);
 
-  return <ThemeBackground background={previewBg || background} />;
+  return <ThemeBackground background={previewBg || background} isDark={isDark} />;
 }
 
 function HeadManager() {

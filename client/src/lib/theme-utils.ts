@@ -63,6 +63,12 @@ export const defaultBackground: BackgroundConfig = {
   overlay: { opacity: 0.1, blur: 0, tint: "0 0% 0%", brightness: 1, contrast: 1 },
 };
 
+export const defaultLightBackground: BackgroundConfig = {
+  mode: "solid",
+  image: undefined,
+  overlay: { opacity: 0, blur: 0, tint: "0 0% 100%", brightness: 1, contrast: 1 },
+};
+
 // Galaxy gradient presets
 export const galaxyGradients = [
   { name: "Nebula", value: "linear-gradient(135deg, hsl(260 80% 10%), hsl(280 60% 20%), hsl(220 70% 15%))" },

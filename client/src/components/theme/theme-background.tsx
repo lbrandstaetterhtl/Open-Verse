@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { getBgBlobUrl } from "@/lib/theme-bg-store";
 import type { BackgroundConfig } from "@/lib/theme-utils";
-import { defaultBackground } from "@/lib/theme-utils";
+import { defaultBackground, defaultLightBackground } from "@/lib/theme-utils";
 
 interface ThemeBackgroundProps {
     background?: BackgroundConfig;
+    isDark?: boolean;
 }
 
 /**
@@ -12,8 +13,8 @@ interface ThemeBackgroundProps {
  * Reads background config and renders gradient/image with overlay.
  * Must be placed early in the component tree (App.tsx).
  */
-export function ThemeBackground({ background }: ThemeBackgroundProps) {
-    const bg = background || defaultBackground;
+export function ThemeBackground({ background, isDark = true }: ThemeBackgroundProps) {
+    const bg = background || (isDark ? defaultBackground : defaultLightBackground);
     const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null);
 
     // Resolve image URL based on type
@@ -97,7 +98,7 @@ export function ThemeBackground({ background }: ThemeBackgroundProps) {
             )}
 
             {/* Stardust Texture Layer (Global Space Theme) */}
-            <div className="absolute inset-0 starfield opacity-40 mix-blend-overlay pointer-events-none" />
+            <div className="absolute inset-0 starfield opacity-40 mix-blend-overlay pointer-events-none dark:block hidden" />
 
             {/* Overlay layer (tint + blur) */}
             {(bg.overlay.opacity > 0 || bg.overlay.blur > 0) && (
