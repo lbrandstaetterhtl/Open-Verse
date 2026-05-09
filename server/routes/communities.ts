@@ -209,7 +209,6 @@ router.get("/:id/requests", isAuthenticated, async (req, res) => {
         }
 
         const requests = await storage.getCommunityJoinRequests(communityId);
-        console.log(`[Communities] Fetched ${requests.length} requests for community ${communityId}`);
         res.json(requests);
     } catch (error) {
         console.error("Error fetching requests:", error);
@@ -223,7 +222,6 @@ router.post("/:id/requests/:userId/approve", isAuthenticated, async (req, res) =
         const targetUserId = parseInt(req.params.userId);
         const currentUserId = (req.user as any).id;
 
-        console.log(`[Communities] Approving request: cId=${communityId}, targetUId=${targetUserId}, actorUId=${currentUserId}`);
 
         const member = await storage.getCommunityMember(communityId, currentUserId);
         if (!member || (member.role !== "owner" && member.role !== "moderator")) {
@@ -259,7 +257,6 @@ router.post("/:id/requests/:userId/decline", isAuthenticated, async (req, res) =
         const targetUserId = parseInt(req.params.userId);
         const currentUserId = (req.user as any).id;
 
-        console.log(`[Communities] Declining request: cId=${communityId}, targetUId=${targetUserId}, actorUId=${currentUserId}`);
 
         const member = await storage.getCommunityMember(communityId, currentUserId);
         if (!member || (member.role !== "owner" && member.role !== "moderator")) {

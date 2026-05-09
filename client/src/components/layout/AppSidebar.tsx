@@ -304,7 +304,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
       </nav>
 
       {/* ── USER FOOTER ── */}
-      <div className="border-t border-border/40 p-2 flex-shrink-0 space-y-0.5">
+      <div className="border-t border-border/40 p-2 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-4 flex-shrink-0 space-y-0.5">
         {/* Quick Theme Switcher — always visible, ≤2 clicks */}
         <QuickThemeSwitcher collapsed={collapsed} />
 

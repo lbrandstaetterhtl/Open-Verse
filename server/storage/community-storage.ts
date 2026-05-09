@@ -462,7 +462,6 @@ export class CommunityStorage {
   }
 
   async getCommunityJoinRequests(communityId: number): Promise<any[]> {
-    console.log(`[Storage] Getting join requests for community ${communityId}`);
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const rows = sqlite.prepare(`
