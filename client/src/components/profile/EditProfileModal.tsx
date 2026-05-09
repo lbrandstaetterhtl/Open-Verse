@@ -63,12 +63,20 @@ export function EditProfileModal({
   });
 
   const handleFormSubmit = (data: UpdateProfile) => {
+    console.log("Submitting Profile Data:", data);
     // Ensure isPrivate is sent as number (0 or 1) for the DB
     const processedData = {
       ...data,
       isPrivate: data.isPrivate ? 1 : 0
     };
-    onSubmit(processedData as any);
+    
+    try {
+      onSubmit(processedData as any);
+      // Close immediately for better UX as the user requested
+      onClose();
+    } catch (err) {
+      console.error("Submission Error:", err);
+    }
   };
 
   return (
