@@ -62,7 +62,7 @@ export default function DiscussionsFeedPage() {
                 <Sparkles className="h-4 w-4" />
                 {t("feed.community_voices", "Community Voices")}
               </motion.div>
-              <h1 className="text-[clamp(2.5rem,8vw,8rem)] font-black tracking-tighter leading-[0.8] uppercase italic flex flex-col sm:block overflow-hidden">
+              <h1 className="text-[clamp(2.5rem,6vw,7rem)] font-black tracking-tighter leading-[0.8] uppercase italic flex flex-col sm:block overflow-hidden">
                 Discussion <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/60 to-accent whitespace-nowrap drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">Verse</span>
               </h1>
               <p className="text-lg md:text-2xl text-muted-foreground font-medium max-w-xl leading-relaxed opacity-80">
