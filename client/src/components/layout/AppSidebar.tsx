@@ -40,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { QuickThemeSwitcher } from "@/components/theme/quick-theme-switcher";
+import { LanguageToggle } from "@/components/theme/language-toggle";
 
 interface NavItem {
   href: string;
@@ -273,7 +274,10 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
       {/* ── USER FOOTER ── */}
       <div className="border-t border-border/40 p-2 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-4 flex-shrink-0 space-y-0.5">
         {/* Quick Theme Switcher — always visible, ≤2 clicks */}
-        <QuickThemeSwitcher collapsed={collapsed} />
+        <div className="flex flex-col gap-0.5">
+          <QuickThemeSwitcher collapsed={collapsed} />
+          <LanguageToggle collapsed={collapsed} />
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
