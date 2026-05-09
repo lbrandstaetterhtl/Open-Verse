@@ -60,10 +60,7 @@ export function ThemeBackground({ background, isDark = true }: ThemeBackgroundPr
         };
     }, [bg.mode, bg.image?.type, bg.image?.value]);
 
-    // Don't render anything for solid mode with no overlay
-    if (bg.mode === "solid" && bg.overlay.opacity === 0) {
-        return null;
-    }
+
 
     const showGradient = bg.mode === "gradient" && bg.gradient;
     const showImage = bg.mode === "image" && resolvedImageUrl;
@@ -75,6 +72,13 @@ export function ThemeBackground({ background, isDark = true }: ThemeBackgroundPr
             className="fixed inset-0 pointer-events-none -z-10"
             aria-hidden="true"
         >
+            {/* Solid layer */}
+            {bg.mode === "solid" && (
+                <div
+                    className="absolute inset-0"
+                    style={{ backgroundColor: `hsl(${bg.overlay.tint})` }}
+                />
+            )}
             {/* Gradient layer */}
             {showGradient && (
                 <div

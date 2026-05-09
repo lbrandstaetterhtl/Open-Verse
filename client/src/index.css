@@ -146,7 +146,6 @@
 
   body {
     @apply text-foreground selection:bg-primary/20;
-    background-color: transparent;
     font-family: var(--font-family);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
