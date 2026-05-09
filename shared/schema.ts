@@ -490,7 +490,9 @@ export const insertCommunitySchema = createInsertSchema(communities).extend({
   slug: z.string().nullable().optional(),
   isPrivate: z.boolean().optional().default(false),
 });
-export const insertThemeSchema = createInsertSchema(themes);
+export const insertThemeSchema = createInsertSchema(themes).extend({
+  userId: z.number().optional(),
+});
 export const insertAutoPunishmentRuleSchema = createInsertSchema(autoPunishmentRules);
 // Helper: accept boolean OR number for SQLite-style integer-boolean columns
 const boolOrInt = z.union([z.boolean(), z.number()])

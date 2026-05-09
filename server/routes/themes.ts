@@ -20,8 +20,11 @@ router.get("/", isAuthenticated, async (req, res) => {
 
 router.post("/", isAuthenticated, async (req, res) => {
     try {
-        const result = insertThemeSchema.safeParse(req.body);
-        if (!result.success) return res.status(400).json(result.error);
+        const result = insertThemeSchema.omit({ userId: true }).safeParse(req.body);
+        if (!result.success) {
+            console.error("[Themes] Validation failed:", result.error.flatten());
+            return res.status(400).json(result.error);
+        }
 
         const userThemes = await storage.getThemes((req.user as any).id);
         const existingTheme = userThemes.find((t) => t.name.trim() === result.data.name.trim());
@@ -49,8 +52,11 @@ router.patch("/:id", isAuthenticated, async (req, res) => {
             return res.status(404).json({ error: "Theme not found or unauthorized" });
         }
 
-        const result = insertThemeSchema.partial().safeParse(req.body);
-        if (!result.success) return res.status(400).json(result.error);
+        const result = insertThemeSchema.partial().omit({ userId: true }).safeParse(req.body);
+        if (!result.success) {
+            console.error("[Themes] PATCH Validation failed:", result.error.flatten());
+            return res.status(400).json(result.error);
+        }
 
         const updatedTheme = await storage.updateTheme(themeId, result.data);
         res.json(updatedTheme);
