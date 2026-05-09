@@ -217,7 +217,7 @@ class Logger {
   private writeStartupBanner() {
     const banner = `
 ${'═'.repeat(60)}
-  Open-Verse / Osiris – Logger gestartet
+  Osiris – Logger gestartet
   Umgebung: ${this.isDev ? 'DEVELOPMENT' : 'PRODUCTION'}
   Log-Level: ${this.minLevel.toUpperCase()}
   Log-Verzeichnis: ${this.logDir}

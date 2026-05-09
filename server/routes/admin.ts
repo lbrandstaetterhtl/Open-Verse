@@ -412,6 +412,16 @@ router.patch("/settings/:id", async (req, res) => {
     }
 });
 
+router.post("/settings/clear-cache", async (req, res) => {
+    try {
+        SettingsService.clearCache();
+        res.json({ success: true, message: "Settings cache cleared" });
+    } catch (error) {
+        console.error("Failed to clear settings cache:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
 router.post("/settings/seed", async (req, res) => {
     try {
         await SettingsService.seed();

@@ -10,6 +10,11 @@ export class SettingsService {
   private static cache: Map<string, { value: any; expiry: number }> = new Map();
   private static TTL = 5 * 60 * 1000; // 5 minutes
 
+  static clearCache(): void {
+    this.cache.clear();
+    logger.info('system', 'Settings cache cleared');
+  }
+
   static async get(category: string, key: string, defaultValue?: any): Promise<any> {
     const cacheKey = `${category}:${key}`;
     const cached = this.cache.get(cacheKey);
