@@ -40,11 +40,29 @@ export class SecurityStorage {
       } as any;
     }
 
-    const [newReport] = await db
-      .insert(reports)
-      .values({ ...report, status: "pending" })
-      .returning();
-    return newReport;
+    try {
+      console.log("[Storage] Attempting to insert report into Postgres:", { ...report, status: "pending" });
+      const [newReport] = await db
+        .insert(reports)
+        .values({
+          reason: report.reason,
+          reporterId: report.reporterId,
+          postId: report.postId || null,
+          commentId: report.commentId || null,
+          discussionId: report.discussionId || null,
+          ipAddress: report.ipAddress || null,
+          status: "pending",
+        })
+        .returning();
+      console.log("[Storage] Successfully inserted report, ID:", newReport.id);
+      return newReport;
+    } catch (err: any) {
+      console.error("[Storage] CRITICAL DATABASE ERROR in createReport:", err);
+      // Log more details if available
+      if (err.code) console.error("[Storage] DB Error Code:", err.code);
+      if (err.detail) console.error("[Storage] DB Error Detail:", err.detail);
+      throw err;
+    }
   }
 
   async getReports(options: { status?: string; limit?: number; offset?: number } = {}): Promise<Report[]> {
