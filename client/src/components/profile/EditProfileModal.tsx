@@ -48,6 +48,8 @@ export function EditProfileModal({
   isSubmitting,
 }: EditProfileModalProps) {
   const { t } = useTranslation();
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   
   // Create a form-specific schema that allows boolean for the switch
   const formSchema = updateProfileSchema.extend({
@@ -221,7 +223,11 @@ export function EditProfileModal({
                               </FormLabel>
                               <div className="flex items-center gap-6 p-6 rounded-[2rem] border border-white/5 bg-white/5">
                                 <div className="h-24 w-24 rounded-3xl border-2 border-white/10 overflow-hidden bg-white/5 shadow-2xl relative group">
-                                  {field.value ? (
+                                  {isUploadingAvatar ? (
+                                    <div className="w-full h-full flex items-center justify-center bg-black/40">
+                                      <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                                    </div>
+                                  ) : field.value ? (
                                     <img src={field.value} alt="Avatar Preview" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
@@ -268,12 +274,15 @@ export function EditProfileModal({
                                     formData.append("image", file);
                                     formData.append("type", "avatar");
                                     
+                                    setIsUploadingAvatar(true);
                                     try {
                                       const res = await apiRequest("POST", "/api/profile-upload", formData);
                                       const data = await res.json();
                                       field.onChange(data.url);
                                     } catch (err) {
                                       console.error("Avatar upload error:", err);
+                                    } finally {
+                                      setIsUploadingAvatar(false);
                                     }
                                   }}
                                 />
@@ -298,7 +307,12 @@ export function EditProfileModal({
                                   className="relative rounded-[2rem] border border-white/5 bg-white/5 overflow-hidden aspect-[3/1] group cursor-pointer"
                                   onClick={() => document.getElementById('cover-upload')?.click()}
                                 >
-                                  {field.value ? (
+                                  {isUploadingCover ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-black/40 gap-3">
+                                      <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Uploading...</span>
+                                    </div>
+                                  ) : field.value ? (
                                     <img src={field.value} alt="Cover Preview" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/20 gap-2">
@@ -340,12 +354,15 @@ export function EditProfileModal({
                                     formData.append("image", file);
                                     formData.append("type", "cover");
                                     
+                                    setIsUploadingCover(true);
                                     try {
                                       const res = await apiRequest("POST", "/api/profile-upload", formData);
                                       const data = await res.json();
                                       field.onChange(data.url);
                                     } catch (err) {
                                       console.error("Cover upload error:", err);
+                                    } finally {
+                                      setIsUploadingCover(false);
                                     }
                                   }}
                                 />

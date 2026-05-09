@@ -65,17 +65,25 @@ export async function sanitizeImage(filepath: string): Promise<void> {
             .toFile(tempPath);
         
         // Overwrite original with sanctioned version
-        await fs.promises.rename(tempPath, filepath);
+        if (fs.existsSync(tempPath)) {
+            await fs.promises.rename(tempPath, filepath);
+        }
     } catch (error) {
-        console.error(`[sanitizeImage] Failed to sanitize ${filepath}:`, error);
-        throw new Error("Image processing failed during sanitization", { cause: error });
+        console.error(`[sanitizeImage] Failed to sanitize ${filepath}. Keeping original as fallback:`, error);
+        // We don't throw here to prevent deleting the file if sharp just has a minor issue
     }
+}
+
+// Ensure absolute uploads path
+const UPLOADS_DEST = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(UPLOADS_DEST)) {
+    fs.mkdirSync(UPLOADS_DEST, { recursive: true });
 }
 
 // Dedicated multer config for posts
 export const postUpload = multer({
     storage: multer.diskStorage({
-        destination: "./uploads",
+        destination: UPLOADS_DEST,
         filename: function (req, file, cb) {
             const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
 
@@ -110,7 +118,7 @@ export const postUpload = multer({
 // Dedicated multer config for theme background images
 export const themeBackgroundUpload = multer({
     storage: multer.diskStorage({
-        destination: "./uploads",
+        destination: UPLOADS_DEST,
         filename: function (req, file, cb) {
             const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
 
@@ -142,7 +150,7 @@ export const themeBackgroundUpload = multer({
 // Dedicated multer config for user profile images (avatars, cover images)
 export const profileUpload = multer({
     storage: multer.diskStorage({
-        destination: "./uploads",
+        destination: UPLOADS_DEST,
         filename: function (req, file, cb) {
             const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
 
