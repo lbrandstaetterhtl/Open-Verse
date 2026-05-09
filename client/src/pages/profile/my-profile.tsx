@@ -114,7 +114,10 @@ export default function MyProfilePage() {
         user={user}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSubmit={(data) => updateProfileMutation.mutate(data)}
+        onSubmit={(data) => {
+          updateProfileMutation.mutate(data);
+          setIsEditModalOpen(false);
+        }}
         isSubmitting={updateProfileMutation.isPending}
       />
     </div>
