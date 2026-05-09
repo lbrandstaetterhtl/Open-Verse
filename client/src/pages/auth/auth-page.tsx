@@ -137,7 +137,7 @@ export default function AuthPage() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Desktop Features Section - Hidden on mobile */}
       <div className="hidden lg:flex flex-col justify-center p-8 bg-primary/5">
@@ -218,7 +218,6 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
 
