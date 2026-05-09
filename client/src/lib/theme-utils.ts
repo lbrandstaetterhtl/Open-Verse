@@ -415,9 +415,14 @@ export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string, 
 export function applyParticleConfig(particles?: ParticleConfig): void {
   const p = particles || defaultParticles;
   const root = document.documentElement;
-  root.style.setProperty("--particle-core", p.coreColor);
-  root.style.setProperty("--particle-glow", p.glowColor);
-  root.style.setProperty("--particle-enabled", p.enabled ? "1" : "0");
+  root.style.setProperty("--particle-core",         p.coreColor);
+  root.style.setProperty("--particle-glow",         p.glowColor);
+  root.style.setProperty("--particle-enabled",      p.enabled      ? "1" : "0");
+  root.style.setProperty("--particle-speed",        String(p.speed         ?? 1));
+  root.style.setProperty("--particle-attraction",   String(p.attraction    ?? 0.008));
+  root.style.setProperty("--particle-size",         String(p.size          ?? 1));
+  root.style.setProperty("--particle-glow-strength",String(p.glowStrength  ?? 1));
+  root.style.setProperty("--particle-twinkle",      (p.twinkle ?? true) ? "1" : "0");
 }
 
 // Saved Theme Interface

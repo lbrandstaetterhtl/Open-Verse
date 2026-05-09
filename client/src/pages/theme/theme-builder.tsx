@@ -742,6 +742,133 @@ export default function ThemeBuilderPage() {
                     </div>
                   </div>
 
+                  <Separator />
+
+                  {/* Particle Settings */}
+                  <div className="space-y-4 pt-2">
+                    {/* Twinkle Toggle */}
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-medium">Twinkle Effect</Label>
+                      <Checkbox
+                        checked={workingTheme.particles?.twinkle ?? defaultParticles.twinkle}
+                        onCheckedChange={(val) => {
+                          const updated = {
+                            ...workingTheme,
+                            particles: { ...(workingTheme.particles || defaultParticles), twinkle: !!val },
+                          };
+                          setWorkingTheme(updated);
+                          applyParticleConfig(updated.particles);
+                          setHasUnsavedChanges(true);
+                          pushToHistory(updated);
+                        }}
+                      />
+                    </div>
+
+                    {/* Speed Slider */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold flex items-center gap-2">Speed</Label>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {Math.round((workingTheme.particles?.speed ?? defaultParticles.speed) * 100)}%
+                        </span>
+                      </div>
+                      <Slider
+                        value={[workingTheme.particles?.speed ?? defaultParticles.speed]}
+                        min={0.1}
+                        max={3}
+                        step={0.1}
+                        onValueChange={([val]) => {
+                          const updated = {
+                            ...workingTheme,
+                            particles: { ...(workingTheme.particles || defaultParticles), speed: val },
+                          };
+                          setWorkingTheme(updated);
+                          applyParticleConfig(updated.particles);
+                          setHasUnsavedChanges(true);
+                        }}
+                        onValueCommit={() => pushToHistory(workingTheme)}
+                      />
+                    </div>
+
+                    {/* Attraction Slider */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold flex items-center gap-2">Cursor Pull</Label>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {Math.round(((workingTheme.particles?.attraction ?? defaultParticles.attraction) / 0.008) * 100)}%
+                        </span>
+                      </div>
+                      <Slider
+                        value={[workingTheme.particles?.attraction ?? defaultParticles.attraction]}
+                        min={0}
+                        max={0.03}
+                        step={0.001}
+                        onValueChange={([val]) => {
+                          const updated = {
+                            ...workingTheme,
+                            particles: { ...(workingTheme.particles || defaultParticles), attraction: val },
+                          };
+                          setWorkingTheme(updated);
+                          applyParticleConfig(updated.particles);
+                          setHasUnsavedChanges(true);
+                        }}
+                        onValueCommit={() => pushToHistory(workingTheme)}
+                      />
+                    </div>
+
+                    {/* Size Slider */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold flex items-center gap-2">Size</Label>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {Math.round((workingTheme.particles?.size ?? defaultParticles.size) * 100)}%
+                        </span>
+                      </div>
+                      <Slider
+                        value={[workingTheme.particles?.size ?? defaultParticles.size]}
+                        min={0.5}
+                        max={4}
+                        step={0.1}
+                        onValueChange={([val]) => {
+                          const updated = {
+                            ...workingTheme,
+                            particles: { ...(workingTheme.particles || defaultParticles), size: val },
+                          };
+                          setWorkingTheme(updated);
+                          applyParticleConfig(updated.particles);
+                          setHasUnsavedChanges(true);
+                        }}
+                        onValueCommit={() => pushToHistory(workingTheme)}
+                      />
+                    </div>
+
+                    {/* Glow Strength Slider */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold flex items-center gap-2">Glow Strength</Label>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {Math.round((workingTheme.particles?.glowStrength ?? defaultParticles.glowStrength) * 100)}%
+                        </span>
+                      </div>
+                      <Slider
+                        value={[workingTheme.particles?.glowStrength ?? defaultParticles.glowStrength]}
+                        min={0}
+                        max={5}
+                        step={0.1}
+                        onValueChange={([val]) => {
+                          const updated = {
+                            ...workingTheme,
+                            particles: { ...(workingTheme.particles || defaultParticles), glowStrength: val },
+                          };
+                          setWorkingTheme(updated);
+                          applyParticleConfig(updated.particles);
+                          setHasUnsavedChanges(true);
+                        }}
+                        onValueCommit={() => pushToHistory(workingTheme)}
+                      />
+                    </div>
+                  </div>
+
                   {/* Reset to default */}
                   <Button
                     variant="outline"

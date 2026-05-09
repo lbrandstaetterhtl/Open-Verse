@@ -40,6 +40,25 @@ function readEnabled(): boolean {
   return v !== "0";
 }
 
+interface ParticleSettings {
+  speed: number;
+  attraction: number;
+  size: number;
+  glowStrength: number;
+  twinkle: boolean;
+}
+
+function readSettings(): ParticleSettings {
+  const style = getComputedStyle(document.documentElement);
+  return {
+    speed: parseFloat(style.getPropertyValue("--particle-speed").trim()) || 1,
+    attraction: parseFloat(style.getPropertyValue("--particle-attraction").trim()) || 0.008,
+    size: parseFloat(style.getPropertyValue("--particle-size").trim()) || 1,
+    glowStrength: parseFloat(style.getPropertyValue("--particle-glow-strength").trim()) || 1,
+    twinkle: style.getPropertyValue("--particle-twinkle").trim() !== "0",
+  };
+}
+
 /**
  * CursorParticles — Canvas particle system.
  * Colors are driven by --particle-core and --particle-glow CSS variables,
@@ -52,6 +71,7 @@ export function CursorParticles() {
   const frameRef     = useRef<number>(0);
   const colorsRef    = useRef<ResolvedColors>(readParticleColors());
   const enabledRef   = useRef<boolean>(readEnabled());
+  const settingsRef  = useRef<ParticleSettings>(readSettings());
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -74,6 +94,7 @@ export function CursorParticles() {
     const refreshColors = () => {
       colorsRef.current = readParticleColors();
       enabledRef.current = readEnabled();
+      settingsRef.current = readSettings();
     };
     const classObserver = new MutationObserver(refreshColors);
     classObserver.observe(document.documentElement, {
@@ -107,45 +128,52 @@ export function CursorParticles() {
       if (enabledRef.current) {
         const mouse  = mouseRef.current;
         const colors = colorsRef.current;
+        const settings = settingsRef.current;
 
         particlesRef.current.forEach((p, i) => {
-          p.life++;
+          p.life += settings.speed;
 
           // Attract toward cursor
           const dx   = mouse.x - p.x;
           const dy   = mouse.y - p.y;
           const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          p.vx += (dx / dist) * 0.008;
-          p.vy += (dy / dist) * 0.008;
+          p.vx += (dx / dist) * settings.attraction * settings.speed;
+          p.vy += (dy / dist) * settings.attraction * settings.speed;
           p.vx *= 0.97;
           p.vy *= 0.97;
-          p.x  += p.vx;
-          p.y  += p.vy;
+          p.x  += p.vx * settings.speed;
+          p.y  += p.vy * settings.speed;
 
           // Fade + twinkle
           const lifeRatio = p.life / p.maxLife;
           let alpha = p.opacity;
           if (lifeRatio < 0.15) alpha *= lifeRatio / 0.15;
           if (lifeRatio > 0.75) alpha *= (1 - (lifeRatio - 0.75) / 0.25);
-          alpha *= 0.7 + 0.3 * Math.sin(p.life * 0.07 + i);
+          
+          if (settings.twinkle) {
+            alpha *= 0.7 + 0.3 * Math.sin(p.life * 0.07 + i);
+          }
           alpha = Math.max(0, alpha);
 
           ctx.save();
           ctx.globalAlpha = alpha;
 
+          const renderSize = p.size * settings.size;
+          const renderGlow = renderSize * 3.5 * settings.glowStrength;
+
           // Glow halo using custom glow color
-          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3.5);
+          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(renderGlow, 0.1));
           g.addColorStop(0,   colors.glowInner);
           g.addColorStop(0.4, colors.glowMid);
           g.addColorStop(1,   colors.glowOuter);
           ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 3.5, 0, Math.PI * 2);
+          ctx.arc(p.x, p.y, Math.max(renderGlow, 0.1), 0, Math.PI * 2);
           ctx.fillStyle = g;
           ctx.fill();
 
           // Core dot using custom core color
           ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 0.6, 0, Math.PI * 2);
+          ctx.arc(p.x, p.y, Math.max(renderSize * 0.6, 0.1), 0, Math.PI * 2);
           ctx.fillStyle = colors.core;
           ctx.fill();
 
