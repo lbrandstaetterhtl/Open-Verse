@@ -375,7 +375,7 @@ export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string, 
   });
 
   // Apply background CSS variables
-  const bg = background || defaultBackground;
+  const bg = background || (isDark ? defaultBackground : defaultLightBackground);
   root.style.setProperty("--bg-mode", bg.mode);
   root.style.setProperty("--bg-gradient", bg.gradient || "none");
   root.style.setProperty("--bg-overlay-opacity", String(bg.overlay.opacity));
