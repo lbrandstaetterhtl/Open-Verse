@@ -194,30 +194,6 @@ function LoadingScreen() {
 
 function AppContent() {
   const { isLoading } = useAuth();
-  
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
-  return (
-    <>
-      <WebSocketManager />
-      <GlobalThemeApplier />
-      <CursorParticles />
-      <HeadManager />
-      <MaintenanceGuard>
-        <AppShell>
-          <Router />
-        </AppShell>
-      </MaintenanceGuard>
-      <NewUserDialog />
-      <Toaster />
-    </>
-  );
-}
-
-function App() {
-  useWebSocket();
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
@@ -225,38 +201,54 @@ function App() {
     restDelta: 0.001
   });
 
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  return (
+    <div className="relative min-h-screen selection:bg-primary/30 overflow-x-hidden">
+      <WebSocketManager />
+      <GlobalThemeApplier />
+      <CursorParticles />
+      <HeadManager />
+      
+      {/* Scroll Progress Indicator */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-[2px] bg-primary z-[200] origin-left"
+        style={{ scaleX }}
+      />
+
+      <MaintenanceGuard>
+        <AppShell>
+          <Suspense fallback={<SkeletonFeed />}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={window.location.pathname}
+                variants={fadeIn}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="w-full h-full"
+              >
+                <Router />
+              </motion.div>
+            </AnimatePresence>
+          </Suspense>
+        </AppShell>
+      </MaintenanceGuard>
+      
+      <NewUserDialog />
+      <Toaster />
+    </div>
+  );
+}
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="osiris-theme">
         <AuthProvider>
-          <div className="relative min-h-screen selection:bg-primary/30">
-            <ThemeBackground />
-            <CursorParticles />
-            
-            {/* Scroll Progress Indicator */}
-            <motion.div
-              className="fixed top-0 left-0 right-0 h-[2px] bg-primary z-[200] origin-left"
-              style={{ scaleX }}
-            />
-
-            <Suspense fallback={<SkeletonFeed />}>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={window.location.pathname}
-                  variants={fadeIn}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="w-full h-full"
-                >
-                  <Router />
-                </motion.div>
-              </AnimatePresence>
-            </Suspense>
-            
-            <NewUserDialog />
-            <Toaster />
-          </div>
+          <AppContent />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
