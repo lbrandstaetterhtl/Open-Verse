@@ -33,12 +33,6 @@ import {
 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -124,24 +118,13 @@ function NavItemRow({
 
   return (
     <div>
-      <TooltipProvider delayDuration={0}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {hasSubItems ? (
-              rowContent
-            ) : (
-              <Link href={item.href} onClick={onNavigate}>
-                {rowContent}
-              </Link>
-            )}
-          </TooltipTrigger>
-          {collapsed && (
-            <TooltipContent side="right" className="font-medium">
-              {item.label}
-            </TooltipContent>
-          )}
-        </Tooltip>
-      </TooltipProvider>
+      {hasSubItems ? (
+        rowContent
+      ) : (
+        <Link href={item.href} onClick={onNavigate}>
+          {rowContent}
+        </Link>
+      )}
 
       {/* Sub-items (desktop only, when not collapsed) */}
       {hasSubItems && subOpen && !collapsed && (
@@ -224,26 +207,19 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
           )}
         </Link>
 
+
+
         {/* Desktop Collapse Toggle */}
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={onToggleCollapse}
-                className="hidden lg:flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground flex-shrink-0 sidebar-toggle"
-              >
-                {collapsed ? (
-                  <ChevronRight className="h-4 w-4" />
-                ) : (
-                  <ChevronLeft className="h-4 w-4" />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <button
+          onClick={onToggleCollapse}
+          className="hidden lg:flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground flex-shrink-0 sidebar-toggle"
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
 
         {/* Mobile Close */}
         <button
@@ -259,24 +235,15 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
         {/* Back to App (Admin mode) */}
         {isAdmin && (
           <>
-            <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link href="/feed/media" onClick={onClose}>
-                    <div className={cn(
-                      "flex items-center rounded-lg h-9 transition-all cursor-pointer gap-3 px-3 text-muted-foreground hover:bg-accent hover:text-foreground",
-                      collapsed && "justify-center px-2"
-                    )}>
-                      <ArrowLeft className="h-[18px] w-[18px] flex-shrink-0 stroke-2" />
-                      {!collapsed && <span className="text-[13px] font-medium sidebar-label">Back to App</span>}
-                    </div>
-                  </Link>
-                </TooltipTrigger>
-                {collapsed && (
-                  <TooltipContent side="right">Back to App</TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
+            <Link href="/feed/media" onClick={onClose}>
+              <div className={cn(
+                "flex items-center rounded-lg h-9 transition-all cursor-pointer gap-3 px-3 text-muted-foreground hover:bg-accent hover:text-foreground",
+                collapsed && "justify-center px-2"
+              )}>
+                <ArrowLeft className="h-[18px] w-[18px] flex-shrink-0 stroke-2" />
+                {!collapsed && <span className="text-[13px] font-medium sidebar-label">Back to App</span>}
+              </div>
+            </Link>
             <div className="my-2 mx-1 border-t border-border/40 sidebar-label" />
           </>
         )}
