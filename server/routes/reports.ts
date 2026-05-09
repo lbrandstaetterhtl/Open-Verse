@@ -39,33 +39,31 @@ router.post("/", isAuthenticated, async (req, res) => {
         const report = await storage.createReport(reportData);
         console.log("[Report] Successfully created in DB with ID:", report.id);
 
-        // Notify admins
-        const adminSockets = Array.from(connections.entries()).filter(async ([userId]) => {
-            const user = await storage.getUser(userId);
-            return user?.role === 'admin' || user?.role === 'owner';
-        });
+        // Notify admins (non-blocking)
+        try {
+            const message = JSON.stringify({
+                type: "new_report",
+                data: {
+                    ...report,
+                    reporter: { username: (req.user as any).username },
+                },
+            });
 
-        const message = JSON.stringify({
-            type: "new_report",
-            data: {
-                ...report,
-                reporter: { username: (req.user as any).username },
-            },
-        });
+            connections.forEach(async (ws, userId) => {
+                try {
+                    const user = await storage.getUser(userId);
+                    if (user && (user.role === 'admin' || user.role === 'owner') && ws.readyState === WebSocket.OPEN) {
+                        ws.send(message);
+                    }
+                } catch (wsErr) {
+                    console.error("[Report] Failed to notify admin via WS:", userId, wsErr);
+                }
+            });
+        } catch (notifErr) {
+            console.error("[Report] Error in admin notification loop:", notifErr);
+        }
 
-        // We can't await filter so we loop manually or accept potential lag.
-        // For now simple loop over all connections and check role is inefficient but okay for small scale.
-        // Better: connections map should store user role or we fetch it.
-
-        // Optimisation: just broadcast to everyone? No, admin only.
-        // Let's iterate all connections.
-        connections.forEach(async (ws, userId) => {
-            const user = await storage.getUser(userId);
-            if (user && (user.role === 'admin' || user.role === 'owner') && ws.readyState === WebSocket.OPEN) {
-                ws.send(message);
-            }
-        });
-
+        // Log activity (non-blocking)
         activityLogger.logFromRequest(req, {
             action: 'report.submit',
             category: 'moderation',
@@ -73,12 +71,15 @@ router.post("/", isAuthenticated, async (req, res) => {
             targetType: 'Report',
             targetId: String(report.id),
             severity: 'warning'
-        }).catch(err => console.error('[Monitor] report.submit failed:', err));
+        }).catch(err => console.error('[Monitor] report.submit activity log failed:', err));
 
-        res.status(201).json(report);
-    } catch (error) {
-        console.error("Error creating report:", error);
-        res.status(500).send("Failed to create report");
+        return res.status(201).json(report);
+    } catch (error: any) {
+        console.error("[Report] CRITICAL ERROR IN ROUTE:", error);
+        res.status(500).json({ 
+            message: "Failed to create report", 
+            error: error.message || String(error) 
+        });
     }
 });
 
