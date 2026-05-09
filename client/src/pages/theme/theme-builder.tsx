@@ -238,7 +238,9 @@ export default function ThemeBuilderPage() {
       document.documentElement.classList.remove("dark");
     }
     
-    window.dispatchEvent(new CustomEvent("open-verse-preview-bg", { detail: workingTheme.background }));
+    window.dispatchEvent(new CustomEvent("open-verse-preview-bg", { 
+      detail: workingTheme.background ?? null 
+    }));
     
     // Cleanup: restore global theme when leaving component
     return () => {
@@ -747,11 +749,11 @@ export default function ThemeBuilderPage() {
             <div className={`mx-auto relative transition-all duration-300 ${previewSize === "mobile" ? "max-w-[375px] border-[8px] border-border rounded-[2.5rem] shadow-2xl h-[700px] overflow-hidden bg-background" : "max-w-4xl"}`}>
               {/* THEME-REDESIGN [TB-001]: Background preview inside the mockup frame */}
               <div className="absolute inset-0 -z-10 overflow-hidden rounded-[1.8rem]">
-                <ThemeBackground background={workingTheme.background} />
+                <ThemeBackground background={workingTheme.background} isDark={activeMode === "dark"} />
               </div>
 
               {/* THEME-REDESIGN [TB-002]: Realistic UI Preview */}
-              <div className="relative space-y-8 p-4 bg-background/50 backdrop-blur-sm min-h-full">
+              <div className="relative space-y-8 p-4 min-h-full">
                 {/* Mock Navbar */}
                 <Card className="rounded-xl overflow-hidden border-0 shadow-lg">
                   <div className="h-14 bg-background border-b px-4 flex items-center justify-between">

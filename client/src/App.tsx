@@ -143,12 +143,17 @@ function GlobalThemeApplier() {
   const [previewBg, setPreviewBg] = useState<BackgroundConfig | null>(null);
 
   useEffect(() => {
-    const handlePreview = (e: any) => setPreviewBg(e.detail);
+    const handlePreview = (e: any) => {
+      // e.detail can be a BackgroundConfig or null (reset signal)
+      setPreviewBg(e.detail ?? null);
+    };
     window.addEventListener("open-verse-preview-bg", handlePreview);
     return () => window.removeEventListener("open-verse-preview-bg", handlePreview);
   }, []);
 
-  return <ThemeBackground background={previewBg || background} isDark={isDark} />;
+  // previewBg overrides the saved background during ThemeBuilder preview
+  const effectiveBg = previewBg !== null ? (previewBg || background) : (background ?? null);
+  return <ThemeBackground background={effectiveBg ?? undefined} isDark={isDark} />;
 }
 
 function HeadManager() {
