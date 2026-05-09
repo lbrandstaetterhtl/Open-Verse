@@ -326,8 +326,16 @@ router.post("/profile-upload", isAuthenticated, profileUpload.single("image"), a
         // SEC-003: Sanitize image (strip metadata)
         await sanitizeImage(req.file.path);
 
+        // Verify file exists after sanitization
+        if (!fs.existsSync(req.file.path)) {
+            console.error(`[Upload] File missing after sanitization: ${req.file.path}`);
+            return res.status(500).json({ error: "File processing error" });
+        }
+
         const userId = (req.user as any).id;
         const imageUrl = `/uploads/${req.file.filename}`;
+
+        console.log(`[Upload] Success! URL: ${imageUrl}, Path: ${req.file.path}, Size: ${fs.statSync(req.file.path).size} bytes`);
 
         // Update user profile in database
         const updateData: any = {};

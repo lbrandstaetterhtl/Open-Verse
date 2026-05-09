@@ -59,14 +59,16 @@ const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   logger.info('system', "Created uploads directory", { path: uploadsDir });
+} else {
+  logger.info('system', "Uploads directory already exists", { path: uploadsDir });
 }
 
 // SEC-005: Hardened Static Serving for Uploads
 app.use(
   "/uploads",
   (req, res, next) => {
-    // Set restrictive security headers for uploaded content
-    res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline';");
+    // Set slightly less restrictive security headers for debugging
+    res.setHeader("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; media-src 'self';");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     next();
