@@ -141,6 +141,12 @@ export default function CommunityPage() {
   const isOwner = community?.memberInfo?.role === "owner";
   const postLinkCategory = community?.type === "discussion" ? "discussion" : "news";
 
+  const sortButtons = [
+    { mode: "hot", icon: Flame, label: t("community.page.sort.hot") },
+    { mode: "new", icon: Clock, label: t("community.page.sort.new") },
+    { mode: "top", icon: TrendingUp, label: t("community.page.sort.top") },
+  ] as const;
+
   if (isLoadingCommunity) {
     return (
       <div className="w-full px-4 md:px-8 py-6 md:py-10">
