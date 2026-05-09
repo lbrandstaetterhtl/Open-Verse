@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useTickets, type TicketFilters } from "@/hooks/use-tickets";
 import { TicketCard } from "@/components/tickets/TicketCard";
 import { Button } from "@/components/ui/button";
