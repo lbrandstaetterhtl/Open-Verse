@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { apiRequest } from "@/lib/queryClient";
 import { z } from "zod";
 import { 
   Dialog, 
@@ -268,11 +269,7 @@ export function EditProfileModal({
                                     formData.append("type", "avatar");
                                     
                                     try {
-                                      const res = await fetch("/api/profile-upload", {
-                                        method: "POST",
-                                        body: formData
-                                      });
-                                      if (!res.ok) throw new Error("Upload failed");
+                                      const res = await apiRequest("POST", "/api/profile-upload", formData);
                                       const data = await res.json();
                                       field.onChange(data.url);
                                     } catch (err) {
@@ -344,11 +341,7 @@ export function EditProfileModal({
                                     formData.append("type", "cover");
                                     
                                     try {
-                                      const res = await fetch("/api/profile-upload", {
-                                        method: "POST",
-                                        body: formData
-                                      });
-                                      if (!res.ok) throw new Error("Upload failed");
+                                      const res = await apiRequest("POST", "/api/profile-upload", formData);
                                       const data = await res.json();
                                       field.onChange(data.url);
                                     } catch (err) {
