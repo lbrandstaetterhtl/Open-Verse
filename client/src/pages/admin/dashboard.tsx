@@ -26,6 +26,7 @@ import {
   ArrowRight,
   Crown,
   Trophy,
+  X,
 } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
