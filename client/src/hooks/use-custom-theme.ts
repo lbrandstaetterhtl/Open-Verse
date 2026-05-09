@@ -304,7 +304,7 @@ export function useCustomTheme() {
 
   // --- Background helpers ---
 
-  const background = customTheme.background || defaultBackground;
+  const background = customTheme.background;
 
   const updateBackground = (partial: Partial<BackgroundConfig>) => {
     setCustomTheme((prev) => {
