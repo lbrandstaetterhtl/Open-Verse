@@ -205,13 +205,15 @@
 @layer utilities {
   .glass-premium {
     @apply bg-background/60 backdrop-blur-2xl border border-border;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03);
+    @apply dark:shadow-2xl dark:shadow-black/50;
   }
 
   .glass-card {
     @apply bg-card/40 backdrop-blur-3xl border border-border;
     transition: all 700ms cubic-bezier(0.22, 1, 0.36, 1);
-    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.04);
+    @apply dark:shadow-2xl dark:shadow-black/60;
   }
 
   .glass-card:hover {
@@ -219,8 +221,9 @@
   }
 
   .nebula-banner {
-    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsla(var(--primary), 0.2) 50%, hsla(var(--accent), 0.15) 100%);
-    @apply border border-border;
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsla(var(--primary), 0.1) 50%, hsla(var(--accent), 0.05) 100%);
+    @apply border border-border shadow-sm;
+    @apply dark:bg-gradient-to-br dark:from-card dark:via-primary/10 dark:to-accent/5 dark:shadow-2xl dark:shadow-black/40;
     position: relative;
     overflow: hidden;
   }
