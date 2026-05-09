@@ -172,36 +172,42 @@ export default function CommunityPage() {
   }
 
   return (
+  return (
     <div className="w-full min-h-screen">
       <main className="w-full px-4 md:px-8 py-6 md:py-10">
         {/* Community Hero Section */}
-        <div className="relative group rounded-[2.5rem] overflow-hidden mb-10 shadow-2xl shadow-black/10 border border-white/5 bg-card/50 backdrop-blur-xl">
-          {community.imageUrl && (
+        <div className={cn(
+          "relative group rounded-[3rem] overflow-hidden mb-12 shadow-2xl shadow-black/20 border border-white/10",
+          !community.imageUrl && "nebula-banner min-h-[320px]"
+        )}>
+          {community.imageUrl ? (
             <div className="absolute inset-0 h-full w-full">
               <img
                 src={community.imageUrl}
                 alt={community.name}
-                className="w-full h-full object-cover opacity-30 group-hover:scale-105 transition-transform duration-700"
+                className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
             </div>
+          ) : (
+            <div className="absolute inset-0 starfield opacity-30" />
           )}
           
-          <div className="relative p-6 md:p-12">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8">
-              <div className="flex-1 space-y-6">
-                <div className="flex items-center gap-6">
-                  <div className="h-20 w-20 md:h-24 md:w-24 rounded-[2rem] bg-primary/20 backdrop-blur-2xl flex items-center justify-center border border-primary/20 shadow-xl shadow-primary/10 group-hover:rotate-3 transition-transform">
-                    <span className="text-4xl font-black text-primary italic italic-primary">
+          <div className="relative p-8 md:p-14 lg:p-20">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
+              <div className="flex-1 space-y-8">
+                <div className="flex items-center gap-8">
+                  <div className="h-24 w-24 md:h-32 md:w-32 rounded-[2.5rem] bg-primary/10 backdrop-blur-3xl flex items-center justify-center border border-primary/20 shadow-2xl shadow-primary/20 group-hover:rotate-3 group-hover:scale-105 transition-all duration-500 nebula-glow">
+                    <span className="text-5xl font-black text-primary italic leading-none">
                       {community.name.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <div>
-                    <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic italic-primary leading-tight">
+                  <div className="space-y-2">
+                    <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/40 leading-[0.9]">
                       {community.name}
                     </h1>
                     {community.memberInfo?.role && (
-                      <Badge className="mt-2 bg-primary/20 text-primary hover:bg-primary/30 border-none font-black text-[10px] uppercase tracking-widest px-3 h-6">
+                      <Badge className="bg-primary text-primary-foreground font-black text-[10px] uppercase tracking-[0.2em] px-4 h-7 rounded-full shadow-lg shadow-primary/20">
                         {community.memberInfo.role}
                       </Badge>
                     )}
@@ -209,16 +215,16 @@ export default function CommunityPage() {
                 </div>
                 
                 {community.description && (
-                  <p className="text-base md:text-lg text-muted-foreground font-medium leading-relaxed max-w-2xl">
+                  <p className="text-lg md:text-xl text-muted-foreground/80 font-medium leading-relaxed max-w-3xl glass-premium p-6 rounded-3xl border border-white/5">
                     {community.description}
                   </p>
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-4">
                 {isMember && (
                   <Link href={`/post/${postLinkCategory}?communityId=${community.id}`}>
-                    <Button className="h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 gap-3 font-black uppercase tracking-widest text-xs">
+                    <Button className="h-14 px-10 rounded-full shadow-2xl shadow-primary/20 gap-3 font-black uppercase tracking-widest text-[11px] transition-all hover:-translate-y-1 active:scale-95 nebula-glow">
                       <PlusCircle className="h-5 w-5 stroke-[3px]" />
                       {t("community.page.create_post")}
                     </Button>
@@ -226,7 +232,7 @@ export default function CommunityPage() {
                 )}
                 {(community?.memberInfo?.role === "owner" || community?.memberInfo?.role === "moderator") && (
                   <Link href="/mod-panel">
-                    <Button variant="outline" className="h-14 px-8 rounded-2xl border-2 gap-3 font-black uppercase tracking-widest text-xs">
+                    <Button variant="outline" className="h-14 px-10 rounded-full glass-card border-border/40 gap-3 font-black uppercase tracking-widest text-[11px] transition-all hover:bg-primary/10">
                       <ShieldAlert className="h-5 w-5" />
                       {t("community.page.manage_button")}
                     </Button>
@@ -237,7 +243,7 @@ export default function CommunityPage() {
                     variant={isOwner ? "secondary" : "destructive"}
                     onClick={() => leaveMutation.mutate()}
                     disabled={leaveMutation.isPending || isOwner}
-                    className="h-14 px-8 rounded-2xl gap-3 font-black uppercase tracking-widest text-xs"
+                    className="h-14 px-10 rounded-full gap-3 font-black uppercase tracking-widest text-[11px] glass-card border-destructive/20 text-destructive hover:bg-destructive/10"
                   >
                     {leaveMutation.isPending ? (
                       <Loader2 className="animate-spin h-5 w-5" />
@@ -250,7 +256,7 @@ export default function CommunityPage() {
                   <Button 
                     onClick={() => joinMutation.mutate()} 
                     disabled={joinMutation.isPending}
-                    className="h-14 px-10 rounded-2xl shadow-xl shadow-primary/20 gap-3 font-black uppercase tracking-widest text-xs"
+                    className="h-14 px-12 rounded-full shadow-2xl shadow-primary/20 gap-4 font-black uppercase tracking-widest text-[11px] transition-all hover:-translate-y-1 active:scale-95 nebula-glow"
                   >
                     {joinMutation.isPending ? (
                       <Loader2 className="animate-spin h-5 w-5" />
@@ -340,46 +346,49 @@ export default function CommunityPage() {
 
           {/* Sidebar */}
           <div className="xl:col-span-4 space-y-6">
-            <Card className="rounded-[2.5rem] bg-card/50 backdrop-blur-xl border-white/10 shadow-2xl shadow-black/5 overflow-hidden">
-              <CardHeader className="bg-muted/20 p-8">
-                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary">{t("community.page.about")}</CardTitle>
+            <Card className="rounded-[3rem] glass-premium border-white/5 shadow-2xl shadow-black/10 overflow-hidden group">
+              <CardHeader className="bg-primary/5 p-8 border-b border-white/5">
+                <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-primary/80">{t("community.page.about")}</CardTitle>
               </CardHeader>
-              <CardContent className="p-8 space-y-6">
+              <CardContent className="p-10 space-y-8">
                 {community.description && (
-                  <p className="text-sm font-medium leading-relaxed text-muted-foreground italic">
+                  <p className="text-sm font-medium leading-relaxed text-muted-foreground italic opacity-80 group-hover:opacity-100 transition-opacity">
                     "{community.description}"
                   </p>
                 )}
                 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                    <span className="text-muted-foreground">Established</span>
-                    <span>{new Date(community.createdAt).toLocaleDateString()}</span>
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em]">
+                    <span className="text-muted-foreground/60">Established</span>
+                    <span className="text-primary/70">{new Date(community.createdAt).toLocaleDateString()}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                    <span className="text-muted-foreground">Privacy</span>
-                    <span>{community.isPrivate ? "Private" : "Public"}</span>
+                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em]">
+                    <span className="text-muted-foreground/60">Privacy Mode</span>
+                    <span className={cn(community.isPrivate ? "text-amber-500" : "text-emerald-500")}>
+                      {community.isPrivate ? "Restricted" : "Open Access"}
+                    </span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {!isMember && (
-              <Card className="rounded-[2.5rem] bg-primary/5 border-primary/10 shadow-xl shadow-primary/5 overflow-hidden">
-                <CardContent className="p-8 text-center space-y-6">
-                  <div className="p-4 rounded-2xl bg-primary/10 w-fit mx-auto">
-                    <UserPlus className="h-8 w-8 text-primary" />
+              <Card className="rounded-[3rem] bg-gradient-to-br from-primary/10 via-accent/5 to-transparent border-primary/20 shadow-2xl shadow-primary/10 overflow-hidden relative group">
+                <div className="absolute inset-0 starfield opacity-10" />
+                <CardContent className="p-10 text-center space-y-8 relative z-10">
+                  <div className="h-20 w-20 rounded-[2rem] bg-primary/20 mx-auto flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-500">
+                    <UserPlus className="h-10 w-10 text-primary" />
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="font-black uppercase tracking-tighter text-lg">Join the Circle</h4>
-                    <p className="text-xs font-medium text-muted-foreground leading-relaxed">
+                  <div className="space-y-3">
+                    <h4 className="font-black uppercase tracking-tighter text-2xl">Join the Circle</h4>
+                    <p className="text-sm font-medium text-muted-foreground leading-relaxed">
                       {t("community.page.join_prompt")}
                     </p>
                   </div>
                   <Button
                     onClick={() => joinMutation.mutate()}
                     disabled={joinMutation.isPending}
-                    className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20"
+                    className="w-full h-14 rounded-full font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/30 nebula-glow"
                   >
                     {t("community.page.join_button")}
                   </Button>

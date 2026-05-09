@@ -93,42 +93,43 @@ function MetricCard({
   priority?: "default" | "critical" | "success";
 }) {
   return (
-    <Card className="overflow-hidden border-none shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group bg-card/50 backdrop-blur-sm relative">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between space-y-0 pb-2">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">
+    <Card className="overflow-hidden border border-white/5 shadow-2xl transition-all hover:-translate-y-1 group glass-premium relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+      <CardContent className="p-8 relative z-10">
+        <div className="flex items-center justify-between space-y-0 pb-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-hover:text-primary transition-colors duration-500">
             {title}
           </p>
           <div className={cn(
-            "p-2 rounded-xl transition-colors",
-            priority === "critical" ? "bg-red-500/10 text-red-500" : 
-            priority === "success" ? "bg-emerald-500/10 text-emerald-600" : 
-            "bg-primary/10 text-primary"
+            "h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-500 shadow-lg",
+            priority === "critical" ? "bg-red-500/10 text-red-500 shadow-red-500/10" : 
+            priority === "success" ? "bg-emerald-500/10 text-emerald-500 shadow-emerald-500/10" : 
+            "bg-primary/10 text-primary shadow-primary/10 group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-110"
           )}>
-            <Icon className="h-4 w-4" />
+            <Icon className="h-5 w-5 stroke-[2.5px]" />
           </div>
         </div>
-        <div className="flex items-baseline gap-2">
-          <div className="text-2xl font-black tracking-tighter">{value}</div>
-          {trend && (
+        <div className="flex items-baseline gap-3">
+          <div className="text-4xl font-black tracking-tighter italic italic-primary leading-none">{value}</div>
+          {trend !== undefined && (
             <span className={cn(
-              "text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5",
-              trend > 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500"
+              "text-[10px] font-black px-2 py-1 rounded-full flex items-center gap-1 shadow-sm border border-white/5",
+              trend > 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
             )}>
               <TrendingUp className={cn("h-3 w-3", trend < 0 && "rotate-180")} />
               {Math.abs(trend)}%
             </span>
           )}
         </div>
-        <p className="text-[10px] text-muted-foreground mt-1 font-medium leading-tight">
+        <p className="text-[11px] text-muted-foreground mt-4 font-medium leading-relaxed opacity-60">
           {description}
         </p>
       </CardContent>
       <div className={cn(
-        "h-1 w-full absolute bottom-0 left-0 opacity-20",
-        priority === "critical" ? "bg-red-500" : 
-        priority === "success" ? "bg-emerald-500" : 
-        "bg-primary"
+        "h-1.5 w-full absolute bottom-0 left-0 opacity-40 transition-all duration-500",
+        priority === "critical" ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" : 
+        priority === "success" ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : 
+        "bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)] group-hover:h-2"
       )} />
     </Card>
   );
@@ -353,14 +354,28 @@ export default function AdminDashboard() {
 
   return (
     <TooltipProvider>
-        <div className="space-y-8 animate-in fade-in duration-500 pb-12">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-3xl font-bold tracking-tight">{t("admin.title")}</h2>
-            <p className="text-muted-foreground font-medium">Monitor platform health and manage operations.</p>
+        <div className="space-y-12 animate-in fade-in duration-700 pb-20 pt-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 text-primary">
+                <Shield className="h-5 w-5 stroke-[2.5px]" />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em]">{t("admin.title")}</span>
+              </div>
+              <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-none">
+                Command <span className="text-transparent bg-clip-text bg-gradient-to-br from-primary to-accent">Center</span>
+              </h2>
+              <p className="text-lg text-muted-foreground/60 font-medium max-w-md">Monitor platform health and manage operations in zero-gravity.</p>
+            </div>
+            
+            <div className="flex items-center gap-4">
+               <div className="h-14 w-14 rounded-2xl glass-premium border-white/5 flex items-center justify-center shadow-xl">
+                 <Activity className="h-6 w-6 text-primary animate-pulse" />
+               </div>
+            </div>
           </div>
 
           {/* Statistics Grid */}
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {statsLoading ? [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />) : (
               <>
                 <MetricCard title={t("admin.stats.total_users")} value={stats?.totalUsers || 0} icon={Users} description="Cumulative registered users across the platform." />
@@ -380,37 +395,43 @@ export default function AdminDashboard() {
 
           <Tabs
             value={currentTab}
-            className="space-y-6"
+            className="space-y-10"
             onValueChange={(value) => {
               setLocation(value === "users" ? "/admin/users" : "/admin/reports");
               if (value === "users") queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
               else if (value === "reports") queryClient.invalidateQueries({ queryKey: ["/api/admin/reports"] });
             }}
           >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <TabsList className="bg-muted/50 p-1 border">
-                <TabsTrigger value="users" className="flex items-center gap-2 px-6 data-[state=active]:bg-card data-[state=active]:shadow-sm transition-all text-xs font-bold uppercase tracking-widest">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 border-b border-white/5 pb-8">
+              <TabsList className="bg-background/40 backdrop-blur-3xl p-1.5 rounded-full border border-white/10 h-14">
+                <TabsTrigger value="users" className="relative flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10">
                   <Users className="h-4 w-4" />
                   {t("admin.tabs.users")}
-                  <Badge variant="secondary" className="ml-1 px-1.5 py-0 h-4 text-[10px] bg-primary/10 text-primary border-none font-black">{users?.length || 0}</Badge>
+                  <span className={cn("ml-2 px-2 py-0.5 rounded-full text-[9px] font-black transition-colors", currentTab === "users" ? "bg-white/20" : "bg-primary/10 text-primary")}>
+                    {users?.length || 0}
+                  </span>
                 </TabsTrigger>
-                <TabsTrigger value="reports" className="flex items-center gap-2 px-6 data-[state=active]:bg-card data-[state=active]:shadow-sm transition-all text-xs font-bold uppercase tracking-widest">
+                <TabsTrigger value="reports" className="relative flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10">
                   <Flag className="h-4 w-4" />
                   {t("admin.tabs.reports")}
                   {stats?.pendingReports && stats.pendingReports > 0 ? (
-                    <Badge variant="destructive" className="ml-1 px-1.5 py-0 h-4 text-[10px] animate-pulse font-black">{stats.pendingReports}</Badge>
+                    <span className="ml-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-500 text-[9px] font-black animate-pulse">
+                      {stats.pendingReports}
+                    </span>
                   ) : (
-                    <Badge variant="secondary" className="ml-1 px-1.5 py-0 h-4 text-[10px] font-black">{reports?.length || 0}</Badge>
+                    <span className={cn("ml-2 px-2 py-0.5 rounded-full text-[9px] font-black transition-colors", currentTab === "reports" ? "bg-white/20" : "bg-primary/10 text-primary")}>
+                      {reports?.length || 0}
+                    </span>
                   )}
                 </TabsTrigger>
               </TabsList>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-64 group">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <div className="flex items-center gap-4 w-full lg:w-auto">
+                <div className="relative flex-1 lg:w-80 group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-all duration-300" />
                   <Input
-                    placeholder="Filter current view..."
-                    className="pl-9 h-10 bg-card border-muted-foreground/20 focus-visible:ring-primary shadow-sm"
+                    placeholder="Search the Verse..."
+                    className="glass-input pl-11 h-14 rounded-full border-white/10 focus-visible:ring-primary shadow-2xl shadow-black/10 font-bold text-xs"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />

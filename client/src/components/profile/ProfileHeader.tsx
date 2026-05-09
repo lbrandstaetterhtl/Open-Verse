@@ -46,28 +46,28 @@ export function ProfileHeader({
 
   return (
     <div className="w-full px-4 pt-4 md:pt-6">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-5">
         {/* Actions Row */}
         <div className="flex items-center justify-end relative z-10">
           <div className="flex items-center gap-2 pt-12">
             {isOwnProfile ? (
-              <Button onClick={onEditProfile} variant="outline" className="rounded-full font-bold px-4 h-9 text-sm active:scale-95 transition-all">
+              <Button onClick={onEditProfile} variant="outline" className="rounded-full font-bold px-6 h-10 text-sm glass-card hover:bg-primary/10 hover:border-primary/30 active:scale-95 transition-all shadow-xl">
                 Profil bearbeiten
               </Button>
             ) : (
               <>
                 <Button 
-                  onClick={onMessage} 
-                  variant="outline" 
-                  className="rounded-full h-9 w-9 p-0 border-border/60 hover:bg-muted active:scale-90 transition-all"
+                   onClick={onMessage} 
+                   variant="outline" 
+                   className="rounded-full h-10 w-10 p-0 glass-card border-border/40 hover:bg-muted active:scale-90 transition-all"
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  <MessageCircle className="h-5 w-5" />
                 </Button>
                 
                 {user.isFollowing ? (
                   <Button 
                     variant="outline" 
-                    className="rounded-full px-4 h-9 font-bold text-sm border-border/60 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all active:scale-95"
+                    className="rounded-full px-6 h-10 font-bold text-sm glass-card border-border/40 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all active:scale-95"
                     onClick={onUnfollow}
                     disabled={isFollowingLoading}
                   >
@@ -75,7 +75,7 @@ export function ProfileHeader({
                   </Button>
                 ) : (
                   <Button 
-                    className="rounded-full px-4 h-9 font-bold text-sm active:scale-95 transition-all shadow-md"
+                    className="rounded-full px-6 h-10 font-bold text-sm active:scale-95 transition-all shadow-lg shadow-primary/20 nebula-glow"
                     onClick={onFollow}
                     disabled={isFollowingLoading}
                   >
@@ -87,28 +87,28 @@ export function ProfileHeader({
           </div>
         </div>
 
-        {/* Info Block */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <h1 className="text-xl md:text-2xl font-black tracking-tight">
+        {/* Info Block - Wrapped in glass-card if needed, but here we'll keep it clean with cosmic accents */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">
               {user.displayName || user.username}
             </h1>
-            {user.verified && <BadgeCheck className="h-5 w-5 text-primary fill-primary/5" />}
+            {user.verified && <BadgeCheck className="h-6 w-6 text-primary fill-primary/5" />}
           </div>
-          <p className="text-sm text-muted-foreground">@{user.username}</p>
+          <p className="text-sm font-medium text-primary/80 tracking-tight">@{user.username}</p>
         </div>
 
         {user.bio && (
-          <p className="text-sm md:text-base text-foreground/90 leading-relaxed max-w-xl">
+          <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-xl font-medium">
             {user.bio}
           </p>
         )}
 
         {/* Metadata */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground font-medium">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-semibold text-muted-foreground/80 uppercase tracking-widest">
           {user.location && (
-            <div className="flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-4 w-4 opacity-50" />
               <span>{user.location}</span>
             </div>
           )}
@@ -116,30 +116,37 @@ export function ProfileHeader({
             <a 
               href={user.website.startsWith('http') ? user.website : `https://${user.website}`} 
               target="_blank" 
-              className="flex items-center gap-1 text-primary hover:underline"
+              className="flex items-center gap-1.5 text-primary hover:text-primary/70 transition-colors"
             >
-              <LinkIcon className="h-3.5 w-3.5" />
+              <LinkIcon className="h-4 w-4 opacity-70" />
               <span className="truncate max-w-[150px]">{user.website.replace(/^https?:\/\/(www\.)?/, '')}</span>
             </a>
           )}
-          <div className="flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-4 w-4 opacity-50" />
             <span>Seit {joinedDate}</span>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-5 pt-1 border-b border-border/40 pb-4">
-          <button className="flex items-center gap-1 hover:underline active:scale-95 transition-transform">
-            <span className="font-bold text-sm">{user.stats?.following || 0}</span>
-            <span className="text-muted-foreground text-sm">Gefolgt</span>
-          </button>
-          <button className="flex items-center gap-1 hover:underline active:scale-95 transition-transform">
-            <span className="font-bold text-sm">{user.stats?.followers || 0}</span>
-            <span className="text-muted-foreground text-sm">Follower</span>
-          </button>
+        {/* Stats - Weightless Float applied to buttons */}
+        <div className="flex items-center gap-8 pt-2 border-b border-border/20 pb-6">
+          <motion.button 
+            whileHover={{ y: -2 }}
+            className="flex items-center gap-1.5 active:scale-95 transition-transform"
+          >
+            <span className="font-black text-lg tracking-tight">{user.stats?.following || 0}</span>
+            <span className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">{t("profile.following", "Gefolgt")}</span>
+          </motion.button>
+          <motion.button 
+            whileHover={{ y: -2 }}
+            className="flex items-center gap-1.5 active:scale-95 transition-transform"
+          >
+            <span className="font-black text-lg tracking-tight">{user.stats?.followers || 0}</span>
+            <span className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">{t("profile.followers", "Follower")}</span>
+          </motion.button>
         </div>
       </div>
     </div>
+  );
   );
 }

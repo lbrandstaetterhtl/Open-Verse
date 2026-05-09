@@ -40,33 +40,41 @@ export function ProfileTabContent({ type, data, isLoading }: ProfileTabContentPr
   }
 
   return (
-    <div className="space-y-6 pt-6 pb-20">
+    <div className="space-y-6 pt-8 pb-20">
       {data.map((item, index) => (
         <motion.div
           key={item.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.05, duration: 0.3 }}
+          initial={{ opacity: 0, scale: 0.98, translateY: 10 }}
+          animate={{ opacity: 1, scale: 1, translateY: 0 }}
+          transition={{ 
+            delay: index * 0.05, 
+            duration: 0.5,
+            ease: [0.22, 1, 0.36, 1]
+          }}
         >
-          {type === "posts" || type === "liked" ? (
+          {type === "posts" || type === "liked" || type === "saved" ? (
             <PostCard post={item} />
           ) : (
-            <Card className="hover:bg-muted/30 transition-all rounded-2xl border-muted/50 bg-card/50 backdrop-blur-sm overflow-hidden">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/50 rounded-lg">
-                    <Calendar className="h-3 w-3" />
+            <Card className="glass-card hover:bg-card/60 transition-all rounded-3xl border-border/40 overflow-hidden relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <CardContent className="pt-8 relative z-10">
+                <div className="flex items-center justify-between mb-6 text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-background/40 rounded-full border border-border/20">
+                    <Calendar className="h-3 w-3 opacity-50" />
                     {item.createdAt ? format(new Date(item.createdAt), "PPp") : ""}
                   </div>
                   {item.post && (
-                    <Link href={`/posts/${item.post.id}`} className="text-primary hover:underline font-bold transition-all hover:translate-x-1 inline-flex items-center gap-1">
-                      {t('profile.on_post')}: {item.post.title}
+                    <Link href={`/post/${item.post.id}`} className="text-primary hover:text-primary/80 transition-all hover:translate-x-1 inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 rounded-full border border-primary/10">
+                      <span className="opacity-50">{t('profile.on_post')}</span>
+                      <span>{item.post.title}</span>
                     </Link>
                   )}
                 </div>
-                <p className="text-base text-foreground/90 leading-relaxed pl-2 border-l-2 border-primary/20">
-                  {item.content}
-                </p>
+                <div className="pl-4 border-l-2 border-primary/20 group-hover:border-primary/40 transition-colors">
+                  <p className="text-base text-foreground/80 leading-relaxed font-medium">
+                    {item.content}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}

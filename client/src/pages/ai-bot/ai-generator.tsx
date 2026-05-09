@@ -124,181 +124,214 @@ export default function AIGeneratorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent">
-            <div className="container max-w-2xl mx-auto py-8 pt-24 px-4">
-        <Card className="w-full">
-          <CardHeader>
-            <div className="flex flex-col items-center mb-6">
-              <img
-                src="/ai-mascot.png"
-                alt="Mecha Osiris"
-                className="w-64 h-64 object-contain hover:scale-105 transition-transform duration-300 drop-shadow-lg"
-              />
-              <h2 className="text-xl font-bold mt-2 text-primary tracking-wide">
-                {t("ai_gen_errors.mascot_name")}
-              </h2>
-              <Badge variant="outline" className="mt-1">
-                {t("ai_gen_errors.mascot_version")}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-primary" />
-              <CardTitle>{t("ai_generator.title")}</CardTitle>
-            </div>
-            <CardDescription>{t("ai_generator.description")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {/* Feed Selection */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    {t("ai_generator.select_feed")}
-                  </label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("ai_generator.select_feed")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="news">{t("ai_generator.feeds.news")}</SelectItem>
-                      <SelectItem value="entertainment">
-                        {t("ai_generator.feeds.entertainment")}
-                      </SelectItem>
-                      <SelectItem value="discussion">
-                        {t("ai_generator.feeds.discussion")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Language Selection */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <Languages className="w-4 h-4" />
-                    {t("ai_generator.select_language")}
-                  </label>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("ai_generator.select_language")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="english">{t("ai_generator.languages.english")}</SelectItem>
-                      <SelectItem value="german">{t("ai_generator.languages.german")}</SelectItem>
-                      <SelectItem value="spanish">{t("ai_generator.languages.spanish")}</SelectItem>
-                      <SelectItem value="french">{t("ai_generator.languages.french")}</SelectItem>
-                    </SelectContent>
-                  </Select>
+    <div className="min-h-screen bg-transparent pt-20 pb-20">
+      <div className="container max-w-2xl mx-auto px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        >
+          <Card className="w-full glass-premium border-white/10 shadow-2xl overflow-hidden relative group">
+            <div className="absolute inset-0 nebula-banner opacity-20 group-hover:opacity-30 transition-opacity duration-1000" />
+            <div className="absolute inset-0 starfield opacity-10" />
+            
+            <CardHeader className="relative z-10 p-8 md:p-12 pb-4">
+              <div className="flex flex-col items-center mb-10">
+                <motion.div 
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="relative"
+                >
+                  <img
+                    src="/ai-mascot.png"
+                    alt="Mecha Osiris"
+                    className="w-48 h-48 md:w-64 md:h-64 object-contain transition-all duration-700 drop-shadow-[0_0_30px_rgba(var(--primary),0.3)] group-hover:drop-shadow-[0_0_50px_rgba(var(--primary),0.5)]"
+                  />
+                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-32 h-4 bg-primary/20 blur-xl rounded-full opacity-50" />
+                </motion.div>
+                <div className="mt-8 text-center space-y-2">
+                  <h2 className="text-2xl font-black text-primary tracking-tighter uppercase italic">
+                    {t("ai_gen_errors.mascot_name")}
+                  </h2>
+                  <Badge className="bg-primary/20 text-primary hover:bg-primary/30 border-none font-black text-[10px] uppercase tracking-widest px-4 h-7 rounded-full">
+                    {t("ai_gen_errors.mascot_version")}
+                  </Badge>
                 </div>
               </div>
 
-              {/* Image Upload - Hidden for Discussion */}
-              {category !== "discussion" && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t("ai_generator.upload_image")}</label>
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-full">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="cursor-pointer"
-                      />
-                    </div>
+              <div className="flex items-center gap-4 pt-6 border-t border-white/5">
+                <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                  <Sparkles className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <div className="space-y-1">
+                  <CardTitle className="text-2xl font-black tracking-tighter uppercase italic italic-primary">{t("ai_generator.title")}</CardTitle>
+                  <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-60">{t("ai_generator.description")}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="relative z-10 p-8 md:p-12 pt-4 space-y-8">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Feed Selection */}
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">
+                      {t("ai_generator.select_feed")}
+                    </label>
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger className="glass-input h-12 rounded-2xl border-white/10 font-bold text-xs uppercase tracking-widest">
+                        <SelectValue placeholder={t("ai_generator.select_feed")} />
+                      </SelectTrigger>
+                      <SelectContent className="glass-premium border-white/10">
+                        <SelectItem value="news" className="font-bold text-xs uppercase tracking-widest">{t("ai_generator.feeds.news")}</SelectItem>
+                        <SelectItem value="entertainment" className="font-bold text-xs uppercase tracking-widest">
+                          {t("ai_generator.feeds.entertainment")}
+                        </SelectItem>
+                        <SelectItem value="discussion" className="font-bold text-xs uppercase tracking-widest">
+                          {t("ai_generator.feeds.discussion")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  {imagePreview && (
-                    <div className="mt-4 relative rounded-lg overflow-hidden border aspect-video w-full">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="object-cover w-full h-full"
-                      />
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => {
-                          setImagePreview(null);
-                          setSelectedFile(null);
-                        }}
+
+                  {/* Language Selection */}
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2 flex items-center gap-2">
+                      <Languages className="w-3 h-3" />
+                      {t("ai_generator.select_language")}
+                    </label>
+                    <Select value={language} onValueChange={setLanguage}>
+                      <SelectTrigger className="glass-input h-12 rounded-2xl border-white/10 font-bold text-xs uppercase tracking-widest">
+                        <SelectValue placeholder={t("ai_generator.select_language")} />
+                      </SelectTrigger>
+                      <SelectContent className="glass-premium border-white/10">
+                        <SelectItem value="english" className="font-bold text-xs uppercase tracking-widest">{t("ai_generator.languages.english")}</SelectItem>
+                        <SelectItem value="german" className="font-bold text-xs uppercase tracking-widest">{t("ai_generator.languages.german")}</SelectItem>
+                        <SelectItem value="spanish" className="font-bold text-xs uppercase tracking-widest">{t("ai_generator.languages.spanish")}</SelectItem>
+                        <SelectItem value="french" className="font-bold text-xs uppercase tracking-widest">{t("ai_generator.languages.french")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Image Upload - Hidden for Discussion */}
+                {category !== "discussion" && (
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">{t("ai_generator.upload_image")}</label>
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-full">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="glass-input cursor-pointer h-14 rounded-3xl file:bg-primary/20 file:text-primary file:border-none file:rounded-full file:px-4 file:h-8 file:mt-2 file:mr-4 file:font-black file:text-[10px] file:uppercase file:tracking-widest"
+                        />
+                      </div>
+                    </div>
+                    {imagePreview && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="mt-6 relative rounded-3xl overflow-hidden border border-white/10 aspect-video w-full shadow-2xl"
                       >
-                        {t("ai_generator.remove_image")}
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="object-cover w-full h-full"
+                        />
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="absolute top-4 right-4 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 font-black text-[10px] uppercase tracking-widest hover:bg-black/70"
+                          onClick={() => {
+                            setImagePreview(null);
+                            setSelectedFile(null);
+                          }}
+                        >
+                          {t("ai_generator.remove_image")}
+                        </Button>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">{t("ai_generator.enter_topic")}</label>
+                <Input
+                  placeholder={t("ai_generator.topic_placeholder")}
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  className="glass-input h-14 rounded-3xl px-6 font-bold"
+                />
+              </div>
+
+              <Button
+                className="w-full h-16 rounded-3xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 nebula-glow"
+                onClick={handleGenerate}
+                disabled={generateMutation.isPending || !topic}
+              >
+                {generateMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                    {t("ai_generator.generating")}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-3 h-5 w-5 stroke-[3px]" />
+                    {t("ai_generator.generate_button")}
+                  </>
+                )}
+              </Button>
+
+              {generatedContent && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-12 space-y-6 pt-12 border-t border-white/5"
+                >
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 pl-2">{t("ai_generator.generated_label")}</label>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={copyToClipboard} className="rounded-full font-black text-[10px] uppercase tracking-widest h-9 px-5 bg-white/5 hover:bg-white/10">
+                        <Copy className="h-3.5 w-3.5 mr-2" />
+                        {t("ai_generator.copy")}
                       </Button>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("ai_generator.enter_topic")}</label>
-              <Input
-                placeholder={t("ai_generator.topic_placeholder")}
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-              />
-            </div>
+                  <Textarea
+                    value={generatedContent}
+                    onChange={(e) => setGeneratedContent(e.target.value)}
+                    className="glass-input min-h-[200px] rounded-[2rem] p-8 font-medium leading-relaxed border-primary/10"
+                    placeholder={t("ai_generator.edit_placeholder")}
+                  />
 
-            <Button
-              className="w-full"
-              onClick={handleGenerate}
-              disabled={generateMutation.isPending || !topic}
-            >
-              {generateMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("ai_generator.generating")}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {t("ai_generator.generate_button")}
-                </>
-              )}
-            </Button>
-
-            {generatedContent && (
-              <div className="mt-8 space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">{t("ai_generator.generated_label")}</label>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={copyToClipboard}>
-                      <Copy className="h-4 w-4 mr-2" />
-                      {t("ai_generator.copy")}
+                  <div className="flex gap-4 pt-4">
+                    <Button
+                      className="w-full h-16 rounded-full font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 nebula-glow"
+                      variant="default"
+                      onClick={() => postMutation.mutate()}
+                      disabled={postMutation.isPending}
+                    >
+                      {postMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                          {t("ai_generator.posting")}
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-3 h-5 w-5 stroke-[3px]" />
+                          {t("ai_generator.post_button")}
+                        </>
+                      )}
                     </Button>
                   </div>
-                </div>
-
-                <Textarea
-                  value={generatedContent}
-                  onChange={(e) => setGeneratedContent(e.target.value)}
-                  className="min-h-[150px] font-medium"
-                  placeholder={t("ai_generator.edit_placeholder")}
-                />
-
-                <div className="flex gap-4 pt-4">
-                  <Button
-                    className="w-full"
-                    variant="default"
-                    onClick={() => postMutation.mutate()}
-                    disabled={postMutation.isPending}
-                  >
-                    {postMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t("ai_generator.posting")}
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        {t("ai_generator.post_button")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                </motion.div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );

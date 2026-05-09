@@ -27,7 +27,10 @@ export function ProfileCover({
   return (
     <div className="relative w-full">
       {/* Cover Image Container */}
-      <div className="relative h-32 md:h-48 lg:h-64 w-full overflow-hidden bg-muted">
+      <div className={cn(
+        "relative h-32 md:h-48 lg:h-64 w-full overflow-hidden",
+        !coverUrl && "nebula-banner"
+      )}>
         {coverUrl ? (
           <img
             src={coverUrl}
@@ -35,15 +38,16 @@ export function ProfileCover({
             className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
           />
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-primary/20 via-primary/5 to-muted" />
+          <div className="starfield opacity-20" />
         )}
 
         {isOwnProfile && (
           <button
             onClick={onEditCover}
-            className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-black/30 p-2 text-white backdrop-blur-md transition-all hover:bg-black/50 active:scale-95 border border-white/10"
+            className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full bg-black/40 px-4 py-2 text-xs font-bold text-white backdrop-blur-xl transition-all hover:bg-black/60 active:scale-95 border border-white/10 shadow-lg"
           >
             <Camera className="h-4 w-4" />
+            <span className="hidden sm:inline">Header anpassen</span>
           </button>
         )}
       </div>
@@ -52,14 +56,14 @@ export function ProfileCover({
       <div className="px-4 relative h-10 md:h-12">
         <div className="absolute -top-12 md:-top-16 left-4 md:left-6">
            <div 
-             className="relative"
+             className="relative group"
              onMouseEnter={() => setIsHoveringAvatar(true)}
              onMouseLeave={() => setIsHoveringAvatar(false)}
            >
-             <div className="rounded-full border-4 border-background bg-background shadow-xl overflow-hidden">
+             <div className="rounded-full border-4 border-background bg-background shadow-2xl overflow-hidden relative nebula-glow">
                <UserAvatar 
                  user={{ username, avatarUrl }} 
-                 className="h-20 w-20 md:h-32 md:w-32 rounded-full object-cover ring-2 ring-transparent" 
+                 className="h-20 w-20 md:h-32 md:w-32 rounded-full object-cover ring-2 ring-transparent transition-transform duration-500 group-hover:scale-105" 
                />
              </div>
 

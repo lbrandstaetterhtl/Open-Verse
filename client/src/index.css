@@ -196,39 +196,72 @@
 
 @layer utilities {
   .glass-premium {
-    @apply bg-background/60 backdrop-blur-2xl border-b border-border/40 shadow-[0_4px_30px_rgba(0,0,0,0.1)];
+    @apply bg-background/60 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.15)];
   }
 
   .glass-card {
-    @apply bg-card/40 backdrop-blur-xl border border-border/50 shadow-lg hover:shadow-primary/5 transition-all duration-500;
+    @apply bg-card/30 backdrop-blur-3xl border border-white/5 shadow-2xl hover:shadow-primary/10 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)];
+  }
+
+  .nebula-banner {
+    background: linear-gradient(135deg, hsla(230, 50%, 5%, 1) 0%, hsla(280, 80%, 20%, 0.4) 50%, hsla(217, 91%, 20%, 0.3) 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nebula-banner::before {
+    content: '';
+    position: absolute;
+    inset: -50%;
+    background: radial-gradient(circle at 30% 40%, hsla(280, 80%, 60%, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 60%, hsla(217, 91%, 60%, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, hsla(190, 80%, 50%, 0.05) 0%, transparent 40%);
+    filter: blur(60px);
+    animation: nebula-shift 30s ease-in-out infinite alternate;
+  }
+
+  @keyframes nebula-shift {
+    from { transform: scale(1) rotate(0deg) translate(0, 0); }
+    to { transform: scale(1.15) rotate(8deg) translate(2%, 2%); }
+  }
+
+  .glass-input {
+    @apply bg-background/10 backdrop-blur-3xl border border-white/5 focus:border-primary/40 focus:bg-background/20 transition-all duration-500 shadow-inner;
+  }
+
+  .italic-primary {
+    font-style: italic;
+    @apply text-transparent bg-clip-text bg-gradient-to-br from-primary via-primary/80 to-accent;
+    filter: drop-shadow(0 0 20px hsla(var(--primary), 0.3));
   }
 
   .nav-blur {
-    @apply backdrop-blur-xl backdrop-saturate-150;
+    @apply backdrop-blur-3xl backdrop-saturate-[1.8] bg-background/70 border-b border-white/5;
   }
-
-  .safe-area-pb {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  .safe-area-pt {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-
-  /* Safe Areas */
-  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-  .pt-safe { padding-top: env(safe-area-inset-top); }
-
-  /* Mobile: Tab-Bar Abstand */
-  @media (max-width: 768px) {
-    .has-tab-bar { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
-  }
-
-  .scrollbar-none::-webkit-scrollbar { display: none; }
-  .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
   .active-glow {
-    box-shadow: 0 0 20px -1px hsl(var(--primary) / 0.3);
+    box-shadow: 0 0 30px -5px hsla(var(--primary), 0.4);
+  }
+
+  .nebula-glow {
+    position: relative;
+    z-index: 1;
+  }
+
+  .nebula-glow::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(135deg, hsla(var(--primary), 0.5), hsla(var(--accent), 0.5));
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    filter: blur(10px);
+  }
+
+  .nebula-glow:hover::before {
+    opacity: 1;
   }
 }
 
@@ -236,37 +269,24 @@
 
 @keyframes drift {
   0% { transform: translate(0, 0) rotate(0deg); }
-  33% { transform: translate(2px, 3px) rotate(0.5deg); }
-  66% { transform: translate(-1px, 2px) rotate(-0.5deg); }
+  33% { transform: translate(4px, 6px) rotate(0.8deg); }
+  66% { transform: translate(-2px, 4px) rotate(-0.8deg); }
   100% { transform: translate(0, 0) rotate(0deg); }
 }
 
 .weightless-float {
-  animation: drift 8s ease-in-out infinite;
-}
-
-.nebula-glow {
-  position: relative;
-}
-
-.nebula-glow::after {
-  content: '';
-  position: absolute;
-  inset: -20px;
-  background: radial-gradient(circle, hsla(var(--primary), 0.15) 0%, transparent 70%);
-  z-index: -1;
-  pointer-events: none;
+  animation: drift 12s ease-in-out infinite;
 }
 
 main {
-  animation: spaceEnter 800ms var(--ease-standard);
+  animation: spaceEnter 1.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes spaceEnter {
   from {
     opacity: 0;
-    transform: scale(0.98) translateY(20px);
-    filter: blur(10px);
+    transform: scale(0.96) translateY(30px);
+    filter: blur(15px);
   }
   to {
     opacity: 1;

@@ -85,19 +85,25 @@ export default function CreateCommunityPage() {
 
   return (
     <>
-            <main className="container mx-auto px-4 pt-24">
-        <div className="max-w-2xl mx-auto">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-4">
-                <BackButton fallback="/feed" className="-ml-2" />
-                <div>
-                  <CardTitle>{t("community.create.title")}</CardTitle>
-                  <CardDescription>{t("community.create.subtitle")}</CardDescription>
+            <main className="container mx-auto px-4 pt-32 pb-24">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-2xl mx-auto"
+        >
+          <Card className="glass-premium border-white/10 shadow-2xl overflow-hidden relative group">
+            <div className="absolute inset-0 nebula-banner opacity-5 group-hover:opacity-10 transition-opacity duration-1000" />
+            <CardHeader className="relative z-10 p-10 pb-6 border-b border-white/5">
+              <div className="flex items-center gap-6">
+                <BackButton fallback="/feed" className="-ml-4 font-black uppercase tracking-widest text-[10px] opacity-60 hover:opacity-100 hover:-translate-x-2 transition-all" />
+                <div className="space-y-2">
+                  <CardTitle className="text-4xl font-black tracking-tighter uppercase italic italic-primary leading-none">{t("community.create.title")}</CardTitle>
+                  <CardDescription className="text-sm font-medium opacity-60">{t("community.create.subtitle")}</CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10 p-10">
               <form
                 onSubmit={form.handleSubmit(
                   (data) => {
@@ -108,50 +114,52 @@ export default function CreateCommunityPage() {
                     console.error("[CreateCommunity] Validation errors:", errors);
                   }
                 )}
-                className="space-y-6"
+                className="space-y-10"
               >
-                <div className="space-y-2">
-                  <Label htmlFor="name">{t("community.create.name_label")}</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-2">{t("community.create.name_label")}</Label>
                   <Input
                     id="name"
                     placeholder={t("community.create.name_placeholder")}
+                    className="glass-input h-14 rounded-3xl px-6 font-bold"
                     {...form.register("name")}
                   />
                   {form.formState.errors.name && (
-                    <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+                    <p className="text-xs font-bold text-destructive pl-2">{form.formState.errors.name.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">{t("community.create.desc_label")}</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="description" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-2">{t("community.create.desc_label")}</Label>
                   <Textarea
                     id="description"
                     placeholder={t("community.create.desc_placeholder")}
-                    rows={4}
+                    rows={6}
+                    className="glass-input rounded-[2rem] p-8 font-medium leading-relaxed"
                     {...form.register("description")}
                   />
                   {form.formState.errors.description && (
-                    <p className="text-sm text-destructive">
+                    <p className="text-xs font-bold text-destructive pl-2">
                       {form.formState.errors.description.message}
                     </p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="imageUrl">{t("community.create.image_label")}</Label>
-                  <Input id="imageUrl" placeholder="https://..." {...form.register("imageUrl")} />
+                <div className="space-y-3">
+                  <Label htmlFor="imageUrl" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-2">{t("community.create.image_label")}</Label>
+                  <Input id="imageUrl" placeholder="https://..." className="glass-input h-14 rounded-3xl px-6 font-bold" {...form.register("imageUrl")} />
                 </div>
 
-                <div className="space-y-3">
-                  <Label>{t("community.create.allowed_feeds_label")}</Label>
-                  <div className="flex gap-4">
-                    <div className="flex items-center space-x-2">
+                <div className="space-y-6 bg-white/5 p-8 rounded-[2rem] border border-white/5">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{t("community.create.allowed_feeds_label")}</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="flex items-center space-x-3 group">
                       <input
                         type="checkbox"
                         id="cat-news"
                         value="news"
                         defaultChecked
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        className="h-5 w-5 rounded-full border-white/20 bg-white/5 text-primary focus:ring-primary/40 transition-all checked:scale-110"
                         onChange={(e) => {
                           const current = form.getValues("allowedCategories")?.split(",") || [
                             "news",
@@ -167,17 +175,17 @@ export default function CreateCommunityPage() {
                           form.setValue("allowedCategories", newCats.join(","));
                         }}
                       />
-                      <Label htmlFor="cat-news" className="font-normal">
+                      <Label htmlFor="cat-news" className="text-xs font-black uppercase tracking-widest cursor-pointer opacity-60 group-hover:opacity-100 transition-opacity">
                         {t("feed.news")}
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-3 group">
                       <input
                         type="checkbox"
                         id="cat-entertainment"
                         value="entertainment"
                         defaultChecked
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        className="h-5 w-5 rounded-full border-white/20 bg-white/5 text-primary focus:ring-primary/40 transition-all checked:scale-110"
                         onChange={(e) => {
                           const current = form.getValues("allowedCategories")?.split(",") || [
                             "news",
@@ -193,17 +201,17 @@ export default function CreateCommunityPage() {
                           form.setValue("allowedCategories", newCats.join(","));
                         }}
                       />
-                      <Label htmlFor="cat-entertainment" className="font-normal">
+                      <Label htmlFor="cat-entertainment" className="text-xs font-black uppercase tracking-widest cursor-pointer opacity-60 group-hover:opacity-100 transition-opacity">
                         {t("feed.entertainment")}
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-3 group">
                       <input
                         type="checkbox"
                         id="cat-discussion"
                         value="discussion"
                         defaultChecked
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        className="h-5 w-5 rounded-full border-white/20 bg-white/5 text-primary focus:ring-primary/40 transition-all checked:scale-110"
                         onChange={(e) => {
                           const current = form.getValues("allowedCategories")?.split(",") || [
                             "news",
@@ -219,36 +227,36 @@ export default function CreateCommunityPage() {
                           form.setValue("allowedCategories", newCats.join(","));
                         }}
                       />
-                      <Label htmlFor="cat-discussion" className="font-normal">
+                      <Label htmlFor="cat-discussion" className="text-xs font-black uppercase tracking-widest cursor-pointer opacity-60 group-hover:opacity-100 transition-opacity">
                         {t("community.page.tabs.discussion")}
                       </Label>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">{t("community.create.feed_hint")}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 text-center">{t("community.create.feed_hint")}</p>
                 </div>
 
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-center space-x-2">
+                <div className="space-y-4 bg-primary/5 p-8 rounded-[2rem] border border-primary/10">
+                  <div className="flex items-center space-x-4">
                     <input
                       type="checkbox"
                       id="isPrivate"
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      className="h-6 w-6 rounded-lg border-primary/20 bg-primary/5 text-primary focus:ring-primary/40 transition-all checked:scale-110"
                       {...form.register("isPrivate")}
                     />
-                    <Label htmlFor="isPrivate" className="font-medium">
+                    <Label htmlFor="isPrivate" className="text-xs font-black uppercase tracking-widest cursor-pointer text-primary">
                       {t("community.create.privacy_label")}
                     </Label>
                   </div>
-                  <p className="text-xs text-muted-foreground">{t("community.create.privacy_desc")}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 pl-10 leading-relaxed">{t("community.create.privacy_desc")}</p>
                 </div>
 
                 <Button
                   type="submit"
                   disabled={createCommunityMutation.isPending}
-                  className="w-full"
+                  className="w-full h-16 rounded-full font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-primary/30 nebula-glow"
                 >
                   {createCommunityMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-6 w-6 animate-spin" />
                   ) : (
                     t("community.create.submit")
                   )}
@@ -256,7 +264,7 @@ export default function CreateCommunityPage() {
               </form>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </main>
     </>
   );

@@ -31,60 +31,75 @@ export default function TicketsPage() {
   };
 
   return (
-    <div className="w-full px-4 md:px-8 py-6 md:py-10 flex flex-col h-full min-h-screen">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
-        <div className="space-y-1">
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase italic italic">
-            {isOwner ? t("allTickets") : t("myTickets")}
+    <div className="w-full px-4 md:px-8 py-6 md:py-10 flex flex-col h-full min-h-screen pb-24">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12"
+      >
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 text-primary">
+            <RefreshCcw className="h-5 w-5 stroke-[2.5px] animate-spin-slow" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em]">{t("subtitle", "Support Hub")}</span>
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-none">
+            {isOwner ? t("allTickets") : t("myTickets")} <span className="text-transparent bg-clip-text bg-gradient-to-br from-primary to-accent">Verse</span>
           </h1>
-          <p className="text-muted-foreground font-medium">{t("subtitle", "Manage and track support issues across the platform")}</p>
+          <p className="text-lg text-muted-foreground/60 font-medium max-w-lg">Manage and track support issues across the platform in zero-gravity.</p>
         </div>
-        <Link href="/tickets/new" className="w-full sm:w-auto">
-          <Button className="w-full sm:w-auto h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 gap-3 font-black uppercase tracking-widest text-[10px] md:text-xs">
-            <Plus className="h-5 w-5 stroke-[3px]" />
+        <Link href="/tickets/new" className="w-full md:w-auto">
+          <Button className="w-full md:w-auto h-16 px-12 rounded-full shadow-2xl shadow-primary/30 gap-4 font-black uppercase tracking-widest text-[11px] transition-all hover:shadow-primary/50 hover:-translate-y-2 active:translate-y-0 active:scale-95 nebula-glow">
+            <Plus className="h-6 w-6 stroke-[4px]" />
             {t("createTicket")}
           </Button>
         </Link>
-      </div>
+      </motion.div>
 
-      <div className="bg-card/50 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 md:p-6 mb-8 shadow-2xl shadow-black/5 flex flex-col gap-4">
-        <div className="flex flex-col xl:flex-row justify-between gap-4">
-          <Tabs defaultValue="all" className="w-full xl:w-auto" onValueChange={handleStatusChange}>
-            <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:flex bg-muted/20 p-1 rounded-xl h-auto sm:h-11">
-              <TabsTrigger value="all" className="rounded-lg font-bold text-[10px] uppercase tracking-wider h-9 sm:h-auto">{t("filters.allStatus")}</TabsTrigger>
-              <TabsTrigger value="open" className="rounded-lg font-bold text-[10px] uppercase tracking-wider h-9 sm:h-auto">{t("status.open")}</TabsTrigger>
-              <TabsTrigger value="in_progress" className="rounded-lg font-bold text-[10px] uppercase tracking-wider h-9 sm:h-auto">{t("status.in_progress")}</TabsTrigger>
-              <TabsTrigger value="resolved" className="rounded-lg font-bold text-[10px] uppercase tracking-wider h-9 sm:h-auto">{t("status.resolved")}</TabsTrigger>
+      <div className="glass-premium border-white/5 rounded-[3rem] p-6 md:p-10 mb-12 shadow-2xl shadow-black/20 flex flex-col gap-8 relative overflow-hidden group">
+        <div className="absolute inset-0 nebula-banner opacity-5 group-hover:opacity-10 transition-opacity duration-1000" />
+        
+        <div className="relative z-10 flex flex-col lg:flex-row justify-between gap-8">
+          <Tabs defaultValue="all" className="w-full lg:w-auto" onValueChange={handleStatusChange}>
+            <TabsList className="bg-background/40 backdrop-blur-3xl p-1.5 rounded-full border border-white/10 h-14 w-full sm:w-auto">
+              {["all", "open", "in_progress", "resolved"].map((status) => (
+                <TabsTrigger 
+                  key={status}
+                  value={status} 
+                  className="relative flex-1 sm:flex-none flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10"
+                >
+                  {t(status === "all" ? "filters.allStatus" : `status.${status}`)}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
 
-          <form onSubmit={handleSearch} className="relative w-full xl:w-80 flex-shrink-0">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <form onSubmit={handleSearch} className="relative w-full lg:w-96 flex-shrink-0 group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-all duration-300" />
             <Input 
               type="search" 
               placeholder={t("filters.search")} 
-              className="pl-11 h-12 rounded-xl bg-muted/30 border-transparent focus:bg-background transition-all text-sm shadow-inner" 
+              className="glass-input pl-14 h-14 rounded-full border-white/10 focus-visible:ring-primary shadow-2xl shadow-black/10 font-bold text-xs" 
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </form>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-white/5">
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-2">
-            <Filter className="w-3 h-3" />
-            <span>Refine Feed:</span>
+        <div className="relative z-10 flex flex-wrap items-center gap-4 pt-8 border-t border-white/5">
+          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-primary/60 mr-4">
+            <Filter className="w-4 h-4" />
+            <span>Refine Signal:</span>
           </div>
 
           <Select value={filters.sortBy || "newest"} onValueChange={(val) => setFilters(f => ({ ...f, sortBy: val, page: 1 }))}>
-            <SelectTrigger className="w-[160px] h-10 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-muted/20 border-transparent">
-              <SelectValue placeholder="Sort By" />
+            <SelectTrigger className="w-[200px] h-12 rounded-full text-[10px] font-black uppercase tracking-widest glass-input border-white/5">
+              <SelectValue placeholder="Sort Projection" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="updated">Recently Updated</SelectItem>
-              <SelectItem value="priority">Highest Priority</SelectItem>
+            <SelectContent className="glass-premium border-white/10">
+              <SelectItem value="newest" className="font-bold text-xs uppercase tracking-widest">Newest First</SelectItem>
+              <SelectItem value="oldest" className="font-bold text-xs uppercase tracking-widest">Oldest First</SelectItem>
+              <SelectItem value="updated" className="font-bold text-xs uppercase tracking-widest">Recently Updated</SelectItem>
+              <SelectItem value="priority" className="font-bold text-xs uppercase tracking-widest">Highest Priority</SelectItem>
             </SelectContent>
           </Select>
 
@@ -94,13 +109,13 @@ export default function TicketsPage() {
               if (val === "me") setFilters(f => ({ ...f, assignedTo: user?.id, createdBy: undefined, page: 1 }));
               if (val === "created") setFilters(f => ({ ...f, assignedTo: undefined, createdBy: user?.id, page: 1 }));
             }}>
-              <SelectTrigger className="w-[180px] h-10 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-muted/20 border-transparent">
-                <SelectValue placeholder="Ownership" />
+              <SelectTrigger className="w-[220px] h-12 rounded-full text-[10px] font-black uppercase tracking-widest glass-input border-white/5">
+                <SelectValue placeholder="Signal Source" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Tickets</SelectItem>
-                <SelectItem value="me">Assigned to Me</SelectItem>
-                <SelectItem value="created">Created by Me</SelectItem>
+              <SelectContent className="glass-premium border-white/10">
+                <SelectItem value="all" className="font-bold text-xs uppercase tracking-widest">All Projections</SelectItem>
+                <SelectItem value="me" className="font-bold text-xs uppercase tracking-widest">Assigned to Me</SelectItem>
+                <SelectItem value="created" className="font-bold text-xs uppercase tracking-widest">Initiated by Me</SelectItem>
               </SelectContent>
             </Select>
           )}
