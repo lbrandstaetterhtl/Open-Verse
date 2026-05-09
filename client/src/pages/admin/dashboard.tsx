@@ -745,10 +745,10 @@ export default function AdminDashboard() {
                         label: "Decisions", 
                         render: (r) => (
                           <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" disabled={r.status !== "pending"} onClick={() => updateReportMutation.mutate({ reportId: r.id, status: "resolved" })}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "resolved" }); }}>
                               <CheckCircle className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" disabled={r.status !== "pending"} onClick={() => updateReportMutation.mutate({ reportId: r.id, status: "rejected" })}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "rejected" }); }}>
                               <XCircle className="h-4 w-4" />
                             </Button>
                           </div>
