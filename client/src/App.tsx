@@ -77,6 +77,7 @@ function Router() {
 
         {/* Post Routes */}
         <ProtectedRoute path="/post/discussions" component={PostDiscussionsPage} />
+        <ProtectedRoute path="/post/discussion" component={PostDiscussionsPage} />
         <ProtectedRoute path="/post/news" component={PostNewsPage} />
         <ProtectedRoute path="/post/entertainment" component={PostEntertainmentPage} />
 
