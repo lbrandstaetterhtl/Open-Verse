@@ -190,7 +190,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
     { href: "/admin/analytics", icon: BarChart3, label: t("analytics.title", "Analytics"), permission: "analytics" },
     { href: "/admin/performance", icon: Award, label: t("modPerf.nav", "Mod Performance"), permission: "performance" },
     { href: "/admin/tickets", icon: Ticket, label: "Tickets", permission: "tickets" },
-    { href: "/admin/security/stress-test", icon: ShieldAlert, label: "Stress Test", ownerOnly: true },
+    { href: "/admin/security/stress-test", icon: ShieldAlert, label: "Stress Test", permission: "stress_test" },
     { href: "/admin/settings", icon: Settings, label: t("admin.tabs.settings", "Settings"), permission: "settings" },
   ];
 

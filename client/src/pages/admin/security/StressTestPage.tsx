@@ -39,12 +39,29 @@ const TEST_MODULES = [
 
 export default function StressTestPage() {
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [intensity, setIntensity] = useState<"low" | "medium" | "high" | "extreme">("medium");
   const [duration] = useState(30);
   const [currentModule, setCurrentModule] = useState<string | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  if (!hasPermission("stress_test")) {
+    return (
+      <AdminLayout>
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+          <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
+            <AlertTriangle className="h-8 w-8 text-red-500" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-xl font-black uppercase italic tracking-tighter">Access Restricted</h2>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto">You do not have the required permissions to execute system stress tests.</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   const scrollToBottom = () => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });

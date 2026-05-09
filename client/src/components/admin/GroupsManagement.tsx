@@ -52,6 +52,7 @@ const AVAILABLE_PERMISSIONS = [
     { id: "analytics", label: "Platform Analytics", icon: BarChart3, description: "View growth charts and usage metrics" },
     { id: "performance", label: "Moderator Performance", icon: Award, description: "Track moderation efficiency and stats" },
     { id: "tickets", label: "Support Tickets", icon: Ticket, description: "Manage and resolve user support tickets" },
+    { id: "stress_test", label: "Stress Testing", icon: AlertTriangle, description: "Run system stress tests and performance audits" },
     { id: "settings", label: "System Settings", icon: Settings, description: "Configure global platform parameters" },
 ];
 
