@@ -19,10 +19,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { AlertTriangle } from "lucide-react";
 
 export default function GrowthDashboardPage() {
     const { t } = useTranslation();
     const { toast } = useToast();
+    const { hasPermission } = useAuth();
+    
+    if (!hasPermission("analytics")) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+                <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
+                    <AlertTriangle className="h-8 w-8 text-red-500" />
+                </div>
+                <div className="text-center">
+                    <h2 className="text-xl font-black uppercase italic tracking-tighter">Access Restricted</h2>
+                    <p className="text-sm text-muted-foreground max-w-xs mx-auto">You do not have the required permissions to access product analytics.</p>
+                </div>
+            </div>
+        );
+    }
+
     const [days, setDays] = useState(30);
     const { data: overview, isLoading: loadingOverview } = useAnalyticsOverview(days);
     const { data: hotCommunities, isLoading: loadingCommunities } = useHotCommunities();

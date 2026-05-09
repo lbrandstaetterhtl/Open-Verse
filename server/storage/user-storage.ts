@@ -424,7 +424,7 @@ export class UserStorage {
       .from(followers)
       .innerJoin(users, eq(followers.followingId, users.id))
       .where(eq(followers.followerId, userId));
-    return result.map((r) => r.user);
+    return result.map((r: any) => r.user);
   }
 
   async getFollowerCount(userId: number): Promise<number> {

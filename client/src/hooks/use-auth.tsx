@@ -13,6 +13,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
+  hasPermission: (permission: string) => boolean;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -88,6 +89,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const hasPermission = (permission: string): boolean => {
+    if (!user) return false;
+    if (user.role === 'owner') return true;
+    
+    const perms = (user as any).adminGroup?.permissions;
+    if (!perms) return false;
+    
+    try {
+      const parsed = typeof perms === 'string' ? JSON.parse(perms) : perms;
+      return Array.isArray(parsed) && parsed.includes(permission);
+    } catch (e) {
+      return false;
+    }
+  };
+
   const contextValue = useMemo<AuthContextType>(
     () => ({
       user: user ?? null,
@@ -96,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginMutation,
       logoutMutation,
       registerMutation,
+      hasPermission,
     }),
     [user, isLoading, error, loginMutation, logoutMutation, registerMutation],
   );

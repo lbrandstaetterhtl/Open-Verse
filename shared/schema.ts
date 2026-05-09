@@ -28,6 +28,7 @@ export const users = pgTable("users", {
   frozenUntil: timestamp("frozen_until"),
   freezeReason: text("freeze_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(), 
+  adminGroupId: integer("admin_group_id"),
 });
 
 export const sessions = pgTable("session", {
@@ -106,6 +107,15 @@ export const notifications = pgTable("notifications", {
   seen: integer("seen").notNull().default(0),
   archived: integer("archived").notNull().default(0),
   groupKey: text("group_key"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const adminGroups = pgTable("admin_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  permissions: text("permissions").notNull(), // JSON array of permission strings
+  color: text("color").notNull().default("#3b82f6"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -383,6 +393,14 @@ export const bulkActionLogs = pgTable("bulk_action_logs", {
 export const notificationPreferences = pgTable("notification_preferences", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
+  likePost: integer("like_post").notNull().default(1),
+  likeComment: integer("like_comment").notNull().default(1),
+  commentPost: integer("comment_post").notNull().default(1),
+  replyComment: integer("reply_comment").notNull().default(1),
+  mentionPost: integer("mention_post").notNull().default(1),
+  mentionComment: integer("mention_comment").notNull().default(1),
+  newFollower: integer("new_follower").notNull().default(1),
+  communityInvite: integer("community_invite").notNull().default(1),
   communityPost: integer("community_post").notNull().default(1),
   postMilestone: integer("post_milestone").notNull().default(1),
   systemAnnouncement: integer("system_announcement").notNull().default(1),
@@ -484,7 +502,8 @@ export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snap
 });
 
 // Zod schemas
-export const insertUserSchema = createInsertSchema(users).pick({ username: true, email: true, password: true });
+export const insertUserSchema = createInsertSchema(users);
+export const insertAdminGroupSchema = createInsertSchema(adminGroups);
 export const insertCommunitySchema = createInsertSchema(communities).extend({
   creatorId: z.number().nullable().optional(),
   slug: z.string().nullable().optional(),
@@ -545,6 +564,9 @@ export type InsertUser = typeof users.$inferInsert;
 export type Post = typeof posts.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Report = typeof reports.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type AdminGroup = typeof adminGroups.$inferSelect;
+export type InsertAdminGroup = typeof adminGroups.$inferInsert;
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type AnomalyEvent = typeof anomalyEvents.$inferSelect;
 export type Ban = typeof bans.$inferSelect;

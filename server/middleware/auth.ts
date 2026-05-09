@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { logSecurityEvent } from "../utils/logger";
+import { storage } from "../storage";
 
 // Standard Express Request with User type is handled by global declaration in auth.ts or similar
 // assuming req.user is populated by passport
@@ -38,4 +39,38 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
     if (req.isAuthenticated()) return next();
     logSecurityEvent({ type: 'AUTH_FAILURE', details: { reason: 'Unauthorized access attempt', path: req.path, ip: req.ip } });
     res.status(401).send("Unauthorized");
+};
+
+export const hasPermission = (permission: string) => async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    const user = req.user as any;
+    
+    // Owners always have all permissions
+    if (user.role === 'owner') return next();
+    
+    // If not admin/staff, no access
+    if (user.role !== 'admin' && user.role !== 'owner') return res.status(403).send("Forbidden");
+    
+    // Check group permissions
+    if (user.adminGroupId) {
+        const group = await storage.getAdminGroup(user.adminGroupId);
+        if (group) {
+            try {
+                // Handle both stringified JSON and direct array if storage handles it
+                const perms = typeof group.permissions === 'string' ? JSON.parse(group.permissions) : group.permissions;
+                if (Array.isArray(perms) && perms.includes(permission)) return next();
+            } catch (e) {
+                console.error("[AUTH] Failed to parse permissions for group:", group.id);
+            }
+        }
+    }
+    
+    // Fallback: If no group assigned but is admin, maybe we want to allow basic dashboard view?
+    // For now, be strict: No group + No owner = No special permission access
+    console.log(`[AUTH] Permission '${permission}' denied for user ${user.username}`);
+    res.status(403).json({ 
+        message: `Required permission missing: ${permission}`,
+        code: 'PERMISSION_DENIED',
+        permission 
+    });
 };

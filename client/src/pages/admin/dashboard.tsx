@@ -178,6 +178,7 @@ import {
 } from "@/components/ui/tabs";
 
 import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { GroupsManagement } from "@/components/admin/GroupsManagement";
 
 type AdminReport = Report & {
   reporter?: { username: string };
@@ -191,7 +192,7 @@ type AdminReport = Report & {
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -223,6 +224,10 @@ export default function AdminDashboard() {
 
   const { data: reports, isLoading: reportsLoading } = useQuery<AdminReport[]>({
     queryKey: ["/api/admin/reports"],
+  });
+
+  const { data: adminGroups } = useQuery<any[]>({
+    queryKey: ["/api/admin/groups"],
   });
 
   const updateUserMutation = useMutation({
@@ -379,7 +384,8 @@ export default function AdminDashboard() {
     return null;
   }
 
-  const currentTab = location === "/admin/reports" ? "reports" : "users";
+  const currentTab = location === "/admin/reports" ? "reports" : 
+                    location === "/admin/groups" ? "groups" : "users";
 
   return (
     <TooltipProvider>
@@ -426,33 +432,42 @@ export default function AdminDashboard() {
             value={currentTab}
             className="space-y-10"
             onValueChange={(value) => {
-              setLocation(value === "users" ? "/admin/users" : "/admin/reports");
-              if (value === "users") queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-              else if (value === "reports") queryClient.invalidateQueries({ queryKey: ["/api/admin/reports"] });
+              setLocation(`/admin/${value}`);
+              queryClient.invalidateQueries({ queryKey: [`/api/admin/${value}`] });
             }}
           >
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 border-b border-white/5 pb-8">
               <TabsList className="bg-background/40 backdrop-blur-3xl p-1.5 rounded-full border border-white/10 h-14">
-                <TabsTrigger value="users" className="relative flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10">
-                  <Users className="h-4 w-4" />
-                  {t("admin.tabs.users")}
-                  <span className={cn("ml-2 px-2 py-0.5 rounded-full text-[9px] font-black transition-colors", currentTab === "users" ? "bg-white/20" : "bg-primary/10 text-primary")}>
-                    {users?.length || 0}
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="reports" className="relative flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10">
-                  <Flag className="h-4 w-4" />
-                  {t("admin.tabs.reports")}
-                  {stats?.pendingReports && stats.pendingReports > 0 ? (
-                    <span className="ml-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-500 text-[9px] font-black animate-pulse">
-                      {stats.pendingReports}
+                {hasPermission("users") && (
+                  <TabsTrigger value="users" className="relative flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10">
+                    <Users className="h-4 w-4" />
+                    {t("admin.tabs.users")}
+                    <span className={cn("ml-2 px-2 py-0.5 rounded-full text-[9px] font-black transition-colors", currentTab === "users" ? "bg-white/20" : "bg-primary/10 text-primary")}>
+                      {users?.length || 0}
                     </span>
-                  ) : (
-                    <span className={cn("ml-2 px-2 py-0.5 rounded-full text-[9px] font-black transition-colors", currentTab === "reports" ? "bg-white/20" : "bg-primary/10 text-primary")}>
-                      {reports?.length || 0}
-                    </span>
-                  )}
-                </TabsTrigger>
+                  </TabsTrigger>
+                )}
+                {hasPermission("reports") && (
+                  <TabsTrigger value="reports" className="relative flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10">
+                    <Flag className="h-4 w-4" />
+                    {t("admin.tabs.reports")}
+                    {stats?.pendingReports && stats.pendingReports > 0 ? (
+                      <span className="ml-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-500 text-[9px] font-black animate-pulse">
+                        {stats.pendingReports}
+                      </span>
+                    ) : (
+                      <span className={cn("ml-2 px-2 py-0.5 rounded-full text-[9px] font-black transition-colors", currentTab === "reports" ? "bg-white/20" : "bg-primary/10 text-primary")}>
+                        {reports?.length || 0}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                )}
+                {hasPermission("groups") && (
+                  <TabsTrigger value="groups" className="relative flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10">
+                    <Shield className="h-4 w-4" />
+                    Groups
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <div className="flex items-center gap-4 w-full lg:w-auto">
@@ -574,6 +589,38 @@ export default function AdminDashboard() {
                                     )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
+
+                                {hasPermission("groups") && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                                        <Shield className="h-4 w-4 text-primary" />
+                                        <div className="flex flex-col flex-1">
+                                          <span className="text-[10px] font-black uppercase tracking-widest">Assign Group</span>
+                                          <span className="text-[9px] text-muted-foreground">
+                                            {adminGroups?.find(g => g.id === u.adminGroupId)?.name || "No Group"}
+                                          </span>
+                                        </div>
+                                        <ArrowRight className="h-3 w-3 opacity-30" />
+                                      </DropdownMenuItem>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent side="right" className="glass-premium border-white/10 rounded-xl p-2 shadow-2xl w-48">
+                                      <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { adminGroupId: null } })}>
+                                        <X className="h-3 w-3" /> None
+                                      </DropdownMenuItem>
+                                      {adminGroups?.map(group => (
+                                        <DropdownMenuItem 
+                                          key={group.id} 
+                                          className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" 
+                                          onClick={() => updateUserMutation.mutate({ userId: u.id, data: { adminGroupId: group.id } })}
+                                        >
+                                          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: group.color }} />
+                                          {group.name}
+                                        </DropdownMenuItem>
+                                      ))}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
                                 
                                 <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
                                   <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-amber-500" : "text-muted-foreground")} />
@@ -807,6 +854,10 @@ export default function AdminDashboard() {
                   />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="groups">
+              <GroupsManagement />
             </TabsContent>
           </Tabs>
 

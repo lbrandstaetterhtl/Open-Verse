@@ -60,9 +60,9 @@ export class NotificationStorage {
         preview: notification.preview || null,
         actionUrl: notification.actionUrl || null,
         groupKey: notification.groupKey || null,
-        read: false,
-        seen: false,
-        archived: false,
+        read: 0,
+        seen: 0,
+        archived: 0,
         createdAt: new Date(createdAt * 1000),
       };
     }
@@ -228,19 +228,20 @@ export class NotificationStorage {
         prefs = sqlite.prepare("SELECT * FROM notification_preferences WHERE user_id = ?").get(userId);
       }
       return {
+        id: prefs.id,
         userId: prefs.user_id,
-        likePost: Boolean(prefs.like_post),
-        likeComment: Boolean(prefs.like_comment),
-        commentPost: Boolean(prefs.comment_post),
-        replyComment: Boolean(prefs.reply_comment),
-        mentionPost: Boolean(prefs.mention_post),
-        mentionComment: Boolean(prefs.mention_comment),
-        newFollower: Boolean(prefs.new_follower),
-        communityInvite: Boolean(prefs.community_invite),
-        communityPost: Boolean(prefs.community_post),
-        postMilestone: Boolean(prefs.post_milestone),
-        systemAnnouncement: Boolean(prefs.system_announcement),
-        browserNotifications: Boolean(prefs.browser_notifications),
+        likePost: Number(prefs.like_post),
+        likeComment: Number(prefs.like_comment),
+        commentPost: Number(prefs.comment_post),
+        replyComment: Number(prefs.reply_comment),
+        mentionPost: Number(prefs.mention_post),
+        mentionComment: Number(prefs.mention_comment),
+        newFollower: Number(prefs.new_follower),
+        communityInvite: Number(prefs.community_invite),
+        communityPost: Number(prefs.community_post),
+        postMilestone: Number(prefs.post_milestone),
+        systemAnnouncement: Number(prefs.system_announcement),
+        browserNotifications: Number(prefs.browser_notifications),
         updatedAt: isNaN(Number(prefs.updated_at)) ? new Date(prefs.updated_at) : new Date(Number(prefs.updated_at) * 1000)
       };
     }

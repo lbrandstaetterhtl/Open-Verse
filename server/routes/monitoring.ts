@@ -2,13 +2,12 @@ import { Router } from "express";
 import { db } from "../db";
 import { activityLogs, anomalyEvents, users } from "@shared/schema";
 import { count, eq, desc, and, inArray, sql, or, like } from "drizzle-orm";
-import { isOwner, isAdmin } from "../middleware/auth";
+import { isOwner, isAdmin, hasPermission } from "../middleware/auth";
 
 const router = Router();
 
-// Only owners can access monitoring
-router.use(isAdmin); // base admin check
-router.use(isOwner);
+// Admin permission for monitoring
+router.use(hasPermission("logs"));
 
 // GET /api/admin/activity-logs
 router.get("/activity-logs", async (req, res) => {

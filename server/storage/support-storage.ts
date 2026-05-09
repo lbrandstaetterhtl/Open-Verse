@@ -243,7 +243,7 @@ export class SupportStorage {
     ))
     .orderBy(ticketCommentsTable.createdAt);
 
-    return rows.map(c => ({
+    return rows.map((c: any) => ({
       ...c,
       isSystem: Boolean(c.isSystem),
       isInternal: Boolean(c.isInternal)

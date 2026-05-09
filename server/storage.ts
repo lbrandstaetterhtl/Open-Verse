@@ -4,6 +4,8 @@ import type {
   Post,
   Comment,
   Report,
+  AdminGroup,
+  InsertAdminGroup,
   InsertUser,
   Theme,
   InsertTheme,
@@ -126,6 +128,13 @@ export interface IStorage {
   getReport(id: number): Promise<Report | undefined>;
   updateReportStatus(id: number, status: string, resolvedBy?: number, resolutionTimeSeconds?: number): Promise<Report>;
   deleteReportsForContent(postId?: number, commentId?: number): Promise<void>;
+  
+  // Admin Groups
+  createAdminGroup(group: InsertAdminGroup): Promise<AdminGroup>;
+  getAdminGroups(): Promise<AdminGroup[]>;
+  getAdminGroup(id: number): Promise<AdminGroup | undefined>;
+  updateAdminGroup(id: number, group: Partial<InsertAdminGroup>): Promise<AdminGroup>;
+  deleteAdminGroup(id: number): Promise<void>;
 
   // Global Session Store
   sessionStore: session.Store;
@@ -286,6 +295,13 @@ export class DatabaseStorage implements IStorage {
   }
   async updateReportStatus(id: number, s: string, rb?: number, rts?: number) { return this.securityStore.updateReportStatus(id, s, rb, rts); }
   async deleteReportsForContent(pId?: number, cId?: number) { return this.securityStore.deleteReportsForContent(pId, cId); }
+
+  // Admin Group Proxy
+  async createAdminGroup(g: InsertAdminGroup) { return this.securityStore.createAdminGroup(g); }
+  async getAdminGroups() { return this.securityStore.getAdminGroups(); }
+  async getAdminGroup(id: number) { return this.securityStore.getAdminGroup(id); }
+  async updateAdminGroup(id: number, g: Partial<InsertAdminGroup>) { return this.securityStore.updateAdminGroup(id, g); }
+  async deleteAdminGroup(id: number) { return this.securityStore.deleteAdminGroup(id); }
 
   // Notifications Proxy
   async createNotification(n: any) { return this.notificationStore.createNotification(n); }

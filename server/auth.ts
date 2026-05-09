@@ -17,7 +17,9 @@ import { logger } from "./logger";
 
 declare global {
   namespace Express {
-    interface User extends SelectUser { }
+    interface User extends SelectUser { 
+      adminGroup?: import("@shared/schema").AdminGroup;
+    }
   }
 }
 
@@ -206,7 +208,21 @@ export function setupAuth(app: Express, sessionParser: any) {
         return done(null, false); // Invalidate session
       }
 
-      done(null, sanitizeUser(user));
+      const sanitized = sanitizeUser(user) as any;
+      
+      // Enrich user with admin group if assigned
+      if (user.adminGroupId) {
+        try {
+          const group = await storage.getAdminGroup(user.adminGroupId);
+          if (group) {
+            sanitized.adminGroup = group;
+          }
+        } catch (err) {
+          logger.error('auth', "Failed to load admin group for user", err, { userId: id, groupId: user.adminGroupId });
+        }
+      }
+
+      done(null, sanitized);
     } catch (err) {
       logger.error('auth', "Session error", err, { userId: id });
       done(err);

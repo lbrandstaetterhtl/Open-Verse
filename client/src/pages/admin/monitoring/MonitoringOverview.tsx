@@ -2,12 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Loader2, Activity, AlertTriangle, XCircle, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/use-auth";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#8b5cf6'];
 
 export function MonitoringOverview() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const { data: metrics, isLoading } = useQuery({
     queryKey: ["/api/admin/monitoring/metrics/overview"],
     refetchInterval: 30000 
@@ -17,6 +19,20 @@ export function MonitoringOverview() {
     queryKey: ["/api/admin/monitoring/metrics/chart-data"],
     refetchInterval: 60000
   });
+
+  if (!hasPermission("logs")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-red-500" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-xl font-black uppercase italic tracking-tighter">Access Restricted</h2>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto">You do not have the required permissions to access system monitoring logs.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading || isLoadingCharts) return <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin" /></div>;
 

@@ -104,6 +104,7 @@ function Router() {
         <ProtectedRoute path="/admin" component={AdminDashboard} requiredRole="admin" />
         <ProtectedRoute path="/admin/users" component={AdminDashboard} requiredRole="admin" />
         <ProtectedRoute path="/admin/reports" component={AdminDashboard} requiredRole="admin" />
+        <ProtectedRoute path="/admin/groups" component={AdminDashboard} requiredRole="admin" />
         <ProtectedRoute path="/admin/logs" component={ActivityLogsPageOld} requiredRole="admin" />
         <ProtectedRoute path="/admin/settings" component={AdminSettingsPage} requiredRole="admin" />
         <ProtectedRoute path="/admin/bans" component={BansPage} requiredRole="admin" />

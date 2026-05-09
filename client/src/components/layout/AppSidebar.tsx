@@ -49,6 +49,7 @@ interface NavItem {
   exact?: boolean;
   ownerOnly?: boolean;
   adminOnly?: boolean;
+  permission?: string;
   subItems?: { href: string; label: string }[];
 }
 
@@ -156,7 +157,7 @@ function NavItemRow({
 
 export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: AppSidebarProps) {
   const { t } = useTranslation();
-  const { user, logoutMutation } = useAuth();
+  const { user, logoutMutation, hasPermission } = useAuth();
 
   const publicNav: NavItem[] = [
     { href: "/feed/media", icon: Home, label: t("navbar.media_feed", "Feed"), exact: true },
@@ -170,29 +171,36 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
   ];
 
   const adminNav: NavItem[] = [
-    { href: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true },
-    { href: "/admin/users", icon: Users, label: t("admin.tabs.users", "Users") },
-    { href: "/admin/reports", icon: Flag, label: t("admin.tabs.reports", "Reports") },
-    { href: "/admin/bans", icon: ShieldBan, label: t("bans.title", "Bans & Security") },
-    { href: "/admin/auto-punishments", icon: Zap, label: t("autoPunishment.title", "Auto-Punishment") },
+    { href: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true, permission: "dashboard" },
+    { href: "/admin/users", icon: Users, label: t("admin.tabs.users", "Users"), permission: "users" },
+    { href: "/admin/reports", icon: Flag, label: t("admin.tabs.reports", "Reports"), permission: "reports" },
+    { href: "/admin/groups", icon: Shield, label: "Groups", permission: "groups" },
+    { href: "/admin/bans", icon: ShieldBan, label: t("bans.title", "Bans & Security"), permission: "security" },
+    { href: "/admin/auto-punishments", icon: Zap, label: t("autoPunishment.title", "Auto-Punishment"), permission: "security" },
     {
       href: "/admin/monitoring",
       icon: Radar,
       label: t("admin.tabs.monitoring", "Monitoring"),
+      permission: "logs",
       subItems: [
         { href: "/admin/monitoring/activity", label: t("admin.tabs.logs", "Activity Logs") },
         { href: "/admin/monitoring/anomalies", label: "Anomalies" },
       ],
     },
-    { href: "/admin/analytics", icon: BarChart3, label: t("analytics.title", "Analytics"), ownerOnly: true },
-    { href: "/admin/performance", icon: Award, label: t("modPerf.nav", "Mod Performance"), ownerOnly: true },
-    { href: "/admin/tickets", icon: Ticket, label: "Tickets" },
+    { href: "/admin/analytics", icon: BarChart3, label: t("analytics.title", "Analytics"), permission: "analytics" },
+    { href: "/admin/performance", icon: Award, label: t("modPerf.nav", "Mod Performance"), permission: "performance" },
+    { href: "/admin/tickets", icon: Ticket, label: "Tickets", permission: "tickets" },
     { href: "/admin/security/stress-test", icon: ShieldAlert, label: "Stress Test", ownerOnly: true },
-    { href: "/admin/settings", icon: Settings, label: t("admin.tabs.settings", "Settings") },
+    { href: "/admin/settings", icon: Settings, label: t("admin.tabs.settings", "Settings"), permission: "settings" },
   ];
 
   const navItems = isAdmin
-    ? adminNav.filter((item) => !item.ownerOnly || user?.role === "owner")
+    ? adminNav.filter((item) => {
+        if (user?.role === "owner") return true;
+        if (item.ownerOnly) return false;
+        if (item.permission) return hasPermission(item.permission);
+        return true;
+      })
     : publicNav;
 
   return (

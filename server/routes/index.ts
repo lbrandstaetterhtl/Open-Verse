@@ -23,6 +23,7 @@ import notificationRoutes from "./notifications";
 import userRoutes from "./users";
 import adminRoutes from "./admin";
 import ticketRoutes from "./tickets";
+import adminGroupRoutes from "./admin-groups";
 import monitoringRoutes from "./monitoring";
 import analyticsRoutes from "./analytics";
 import modPerformanceRoutes from "./mod-performance";
@@ -284,6 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use("/api/admin/monitoring", monitoringRoutes);
     app.use("/api/admin/analytics", analyticsRoutes);
     app.use("/api/admin/performance", modPerformanceRoutes);
+    app.use("/api/admin/groups", adminGroupRoutes);
     app.use("/api/admin", adminRoutes);
     app.use("/api/security", securityRoutes);
     app.use("/api/tickets", ticketRoutes);

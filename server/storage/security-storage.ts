@@ -1,7 +1,11 @@
-import type {
-  Report} from "@shared/schema";
 import {
   reports,
+  adminGroups,
+} from "@shared/schema";
+import type {
+  Report,
+  AdminGroup,
+  InsertAdminGroup
 } from "@shared/schema";
 import { db, getSqlite } from "../db";
 import { eq, and, desc, sql, or } from "drizzle-orm";
@@ -169,5 +173,78 @@ export class SecurityStorage {
     if (process.env.USE_SQLITE === "true" && sqlite) {
       sqlite.prepare("UPDATE global_stats SET value = value + 1 WHERE key = ?").run(key);
     }
+  }
+
+  // Admin Groups
+  async createAdminGroup(group: InsertAdminGroup): Promise<AdminGroup> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const { name, description, permissions, color } = group;
+      const createdAt = new Date();
+      const res = sqlite.prepare(
+        "INSERT INTO admin_groups (name, description, permissions, color, created_at) VALUES (?, ?, ?, ?, ?)"
+      ).run(name, description || null, permissions, color || '#3b82f6', createdAt.toISOString());
+      
+      return {
+        id: res.lastInsertRowid as number,
+        name,
+        description: description || null,
+        permissions,
+        color: color || '#3b82f6',
+        createdAt
+      };
+    }
+
+    const [newGroup] = await db.insert(adminGroups).values(group).returning();
+    return newGroup;
+  }
+
+  async getAdminGroups(): Promise<AdminGroup[]> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite.prepare("SELECT * FROM admin_groups ORDER BY id ASC").all();
+      return rows.map((r: any) => ({
+        ...r,
+        createdAt: new Date(r.created_at)
+      }));
+    }
+    return await db.select().from(adminGroups).orderBy(adminGroups.id);
+  }
+
+  async getAdminGroup(id: number): Promise<AdminGroup | undefined> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const row = sqlite.prepare("SELECT * FROM admin_groups WHERE id = ?").get(id) as any;
+      if (!row) return undefined;
+      return { ...row, createdAt: new Date(row.created_at) };
+    }
+    const [group] = await db.select().from(adminGroups).where(eq(adminGroups.id, id));
+    return group;
+  }
+
+  async updateAdminGroup(id: number, group: Partial<InsertAdminGroup>): Promise<AdminGroup> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const sets = [];
+      const params = [];
+      for (const [key, val] of Object.entries(group)) {
+        sets.push(`${key === 'createdAt' ? 'created_at' : key} = ?`);
+        params.push(val);
+      }
+      params.push(id);
+      sqlite.prepare(`UPDATE admin_groups SET ${sets.join(", ")} WHERE id = ?`).run(...params);
+      return this.getAdminGroup(id) as Promise<AdminGroup>;
+    }
+    const [updated] = await db.update(adminGroups).set(group).where(eq(adminGroups.id, id)).returning();
+    return updated;
+  }
+
+  async deleteAdminGroup(id: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite.prepare("DELETE FROM admin_groups WHERE id = ?").run(id);
+      return;
+    }
+    await db.delete(adminGroups).where(eq(adminGroups.id, id));
   }
 }

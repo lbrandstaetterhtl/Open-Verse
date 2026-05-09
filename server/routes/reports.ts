@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { storage } from "../storage";
-import { isAuthenticated, isAdmin } from "../middleware/auth";
+import { isAuthenticated, isAdmin, hasPermission } from "../middleware/auth";
 import { insertReportSchema } from "@shared/schema";
 import { broadcastMessage, connections } from "../services/websocket";
 import { WebSocket } from 'ws';
@@ -9,7 +9,7 @@ import { activityLogger } from "../services/activity-logger";
 
 const router = Router();
 
-router.get("/", isAdmin, async (req, res) => {
+router.get("/", hasPermission("reports"), async (req, res) => {
     const reports = await storage.getReports();
     res.json(reports);
 });
@@ -83,7 +83,7 @@ router.post("/", isAuthenticated, async (req, res) => {
     }
 });
 
-router.patch("/:id", isAdmin, async (req, res) => {
+router.patch("/:id", hasPermission("reports"), async (req, res) => {
     try {
         const reportId = parseInt(req.params.id);
         const { status } = req.body;

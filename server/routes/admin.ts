@@ -8,20 +8,13 @@ import rateLimit from "express-rate-limit";
 import { SettingsService } from "../services/settings";
 import { bulkActionService } from "../services/bulk-action-service";
 import { bans, autoPunishmentRules, autoPunishmentExecutions, insertAutoPunishmentRuleSchema } from "@shared/schema";
+import { hasPermission } from "../middleware/auth";
 
 const router = Router();
 
-// Middleware to ensure user is admin
-router.use((req, res, next) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    const user = req.user as any;
-    if (!user.isAdmin && user.role !== "admin" && user.role !== "owner") {
-        return res.status(403).send("Forbidden");
-    }
-    next();
-});
+// Individual permissions apply to each route below
 
-router.get("/stats", async (req, res) => {
+router.get("/stats", hasPermission("dashboard"), async (req, res) => {
     try {
         // Use sql`` comparisons for SQLite integer booleans (true=1, false=0)
         const totalUsersResult = await db.select({ count: count() }).from(users);
@@ -53,7 +46,7 @@ router.get("/stats", async (req, res) => {
     }
 });
 
-router.get("/users", async (req, res) => {
+router.get("/users", hasPermission("users"), async (req, res) => {
     try {
         const allUsers = await db.select().from(users).orderBy(desc(users.id));
         // Normalize: SQLite stores timestamps as Unix seconds integers.
@@ -74,7 +67,7 @@ router.get("/users", async (req, res) => {
     }
 });
 
-router.get("/reports", async (req, res) => {
+router.get("/reports", hasPermission("reports"), async (req, res) => {
     try {
         const allReports = await db.select().from(reports).orderBy(desc(reports.createdAt));
 
@@ -116,7 +109,7 @@ router.get("/reports", async (req, res) => {
     }
 });
 
-router.patch("/users/:id", async (req, res) => {
+router.patch("/users/:id", hasPermission("users"), async (req, res) => {
     try {
         const userId = parseInt(req.params.id);
         if (isNaN(userId)) {
@@ -210,7 +203,7 @@ router.patch("/users/:id", async (req, res) => {
     }
 });
 
-router.delete("/users/:id", async (req, res) => {
+router.delete("/users/:id", hasPermission("users"), async (req, res) => {
     try {
         const userId = parseInt(req.params.id);
         if (isNaN(userId)) return res.status(400).send("Invalid user ID");
@@ -283,7 +276,7 @@ router.post("/reset-roles", async (req, res) => {
     }
 });
 
-router.patch("/reports/:id", async (req, res) => {
+router.patch("/reports/:id", hasPermission("reports"), async (req, res) => {
     try {
         // SECURITY FIX [VULN-005]: Validate report status against schema
         const result = adminUpdateReportSchema.safeParse(req.body);
@@ -313,7 +306,7 @@ router.patch("/reports/:id", async (req, res) => {
 });
 
 // FEATURE [AL-005]: Activity Log Endpoints
-router.get("/logs", async (req, res) => {
+router.get("/logs", hasPermission("logs"), async (req, res) => {
     try {
         const { category, severity, status, search, adminId } = req.query;
         const query = db.select().from(activityLogs);
@@ -380,7 +373,7 @@ router.get("/logs/export", async (req, res) => {
 });
 
 // FEATURE [AS-005]: Admin Settings Endpoints
-router.get("/settings", async (req, res) => {
+router.get("/settings", hasPermission("settings"), async (req, res) => {
     try {
         const settings = await db.select().from(adminSettings);
         // Mask sensitive data
@@ -395,7 +388,7 @@ router.get("/settings", async (req, res) => {
     }
 });
 
-router.patch("/settings/:id", async (req, res) => {
+router.patch("/settings/:id", hasPermission("settings"), async (req, res) => {
     try {
         const settingId = parseInt(req.params.id);
         const { value } = req.body;
@@ -477,7 +470,7 @@ router.post("/bulk/posts", async (req, res) => {
 });
 
 // BAN MANAGEMENT
-router.get("/bans", async (req, res) => {
+router.get("/bans", hasPermission("security"), async (req, res) => {
     try {
         const allBans = await db.select().from(bans).orderBy(desc(bans.createdAt));
         res.json(allBans);
@@ -547,7 +540,7 @@ router.patch("/bans/:id/revoke", async (req, res) => {
 });
 
 // AUTO-PUNISHMENT
-router.get("/auto-punishments", async (req, res) => {
+router.get("/auto-punishments", hasPermission("security"), async (req, res) => {
     try {
         const rules = await db.select().from(autoPunishmentRules).orderBy(desc(autoPunishmentRules.id));
         const executions = await db.select().from(autoPunishmentExecutions).orderBy(desc(autoPunishmentExecutions.createdAt)).limit(50);

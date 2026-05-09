@@ -4,18 +4,12 @@ import { db } from "../db";
 import { communityAnalytics, communities, creatorAnalytics, users } from "@shared/schema";
 import { eq, desc, sql, gte } from "drizzle-orm";
 import { subDays, format } from "date-fns";
+import { hasPermission } from "../middleware/auth";
 
 const router = Router();
 
-// SECURITY: Owner-only access for analytics
-router.use((req, res, next) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    const user = req.user as any;
-    if (user.role !== "owner") {
-        return res.status(403).json({ message: "Only the site owner can access product analytics." });
-    }
-    next();
-});
+// SECURITY: Permission-based access for analytics
+router.use(hasPermission("analytics"));
 
 router.get("/overview", async (req, res) => {
     try {
