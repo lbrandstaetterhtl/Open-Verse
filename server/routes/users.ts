@@ -367,4 +367,22 @@ router.post("/profile-upload", isAuthenticated, profileUpload.single("image"), a
     }
 });
 
+// DEBUG: List uploads to verify existence
+router.get("/debug-uploads", async (req, res) => {
+    try {
+        const uploadsDir = path.join(process.cwd(), "uploads");
+        if (!fs.existsSync(uploadsDir)) {
+            return res.json({ error: "Uploads directory does not exist", path: uploadsDir });
+        }
+        const files = fs.readdirSync(uploadsDir);
+        const details = files.map(f => {
+            const stat = fs.statSync(path.join(uploadsDir, f));
+            return { name: f, size: stat.size, mtime: stat.mtime };
+        });
+        res.json({ path: uploadsDir, files: details });
+    } catch (err) {
+        res.status(500).json({ error: String(err) });
+    }
+});
+
 export default router;
