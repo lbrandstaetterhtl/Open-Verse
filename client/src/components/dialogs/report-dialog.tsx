@@ -60,10 +60,10 @@ export function ReportDialog({ type, id, trigger }: ReportDialogProps) {
       setIsOpen(false);
       setReason("");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: "Failed to submit report. Please try again.",
+        title: "Report Failed",
+        description: error.message || "Failed to submit report. Please try again.",
         variant: "destructive",
       });
     },
