@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 
 
 export default function AIGeneratorPage() {

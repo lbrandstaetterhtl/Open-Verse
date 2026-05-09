@@ -314,7 +314,8 @@
       "placeholder": "Write your news article here. Please ensure it's factual and properly sourced.",
       "submit": "Submit News",
       "success_title": "News posted",
-      "success_desc": "Your news article has been posted successfully."
+      "success_desc": "Your news article has been posted successfully.",
+      "selector_desc": "Share breaking news and informational updates."
     },
     "entertainment": {
       "title": "Share Something Fun",
@@ -323,7 +324,8 @@
       "placeholder": "Share a joke, a funny story, or something interesting!",
       "submit": "Share",
       "success_title": "Post created",
-      "success_desc": "Your entertainment post has been shared successfully."
+      "success_desc": "Your entertainment post has been shared successfully.",
+      "selector_desc": "Fun, creative, and engaging visual content."
     },
     "discussion": {
       "title": "Start a Discussion",
@@ -339,26 +341,6 @@
       "title": "What's the Universe saying?",
       "subtitle": "New Creation",
       "description": "Choose a dimension for your story to resonate in."
-    },
-    "news": {
-      "title": "Share News",
-      "headline": "Headline",
-      "content": "Article Content",
-      "placeholder": "Write your news article here. Please ensure it's factual and properly sourced.",
-      "submit": "Submit News",
-      "success_title": "News posted",
-      "success_desc": "Your news article has been posted successfully.",
-      "selector_desc": "Share breaking news and informational updates."
-    },
-    "entertainment": {
-      "title": "Share Something Fun",
-      "title_label": "Title",
-      "content_label": "Content",
-      "placeholder": "Share a joke, a funny story, or something interesting!",
-      "submit": "Share",
-      "success_title": "Post created",
-      "success_desc": "Your entertainment post has been shared successfully.",
-      "selector_desc": "Fun, creative, and engaging visual content."
     },
     "media_label": "Media (Image or Video)"
   },
