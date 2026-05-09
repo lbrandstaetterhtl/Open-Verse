@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ThemeBackground } from "@/components/theme/theme-background";
+import { CursorParticles } from "@/components/theme/cursor-particles";
 import { ProtectedRoute } from "./lib/protected-route";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { NewUserDialog } from "@/components/profile/new-user-dialog";
@@ -200,6 +201,7 @@ function AppContent() {
     <>
       <WebSocketManager />
       <GlobalThemeApplier />
+      <CursorParticles />
       <HeadManager />
       <MaintenanceGuard>
         <AppShell>
