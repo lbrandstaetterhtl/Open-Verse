@@ -185,18 +185,25 @@ export default function ThemeBuilderPage() {
 
   // Initial load
   useEffect(() => {
-    const stored = loadCustomTheme();
-    const initialTheme = stored || defaultTheme;
-    setWorkingTheme(initialTheme);
-    setUnifiedMode(!!initialTheme.unified);
+    const params = new URLSearchParams(window.location.search);
+    const isNew = params.get("new") === "true";
     
-    const activeInfo = getActiveThemeInfo();
-    if (activeInfo) {
-      setThemeName(activeInfo.name);
-      setActiveThemeId(activeInfo.id);
-    }
+    if (isNew) {
+      handleCreateNew();
+    } else {
+      const stored = loadCustomTheme();
+      const initialTheme = stored || defaultTheme;
+      setWorkingTheme(initialTheme);
+      setUnifiedMode(!!initialTheme.unified);
+      
+      const activeInfo = getActiveThemeInfo();
+      if (activeInfo) {
+        setThemeName(activeInfo.name);
+        setActiveThemeId(activeInfo.id);
+      }
 
-    pushToHistory(initialTheme);
+      pushToHistory(initialTheme);
+    }
   }, []);
 
   // Sync with theme store changes
