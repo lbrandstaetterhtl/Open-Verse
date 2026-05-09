@@ -25,6 +25,12 @@ export interface ThemeColors {
   ring: string;
 }
 
+export interface ParticleConfig {
+  coreColor: string;   // hex e.g. "#c8d2ff"
+  glowColor: string;   // hex e.g. "#8496ff"
+  enabled: boolean;
+}
+
 export interface CustomTheme {
   light: ThemeColors;
   dark: ThemeColors;
@@ -32,7 +38,14 @@ export interface CustomTheme {
   unified?: boolean;
   version?: number;
   background?: BackgroundConfig;
+  particles?: ParticleConfig;
 }
+
+export const defaultParticles: ParticleConfig = {
+  coreColor: "#c8d2ff",
+  glowColor: "#8496ff",
+  enabled: true,
+};
 
 // --- Background Types ---
 
@@ -191,6 +204,7 @@ export const defaultTheme: CustomTheme = {
     input: "230 30% 15%",
     ring: "270 90% 70%",
   },
+  particles: defaultParticles,
 };
 
 // Convert HSL string to hex color for color picker
@@ -395,6 +409,15 @@ export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string, 
   if (font) {
     applyFont(font);
   }
+}
+
+// Apply particle CSS variables to document root
+export function applyParticleConfig(particles?: ParticleConfig): void {
+  const p = particles || defaultParticles;
+  const root = document.documentElement;
+  root.style.setProperty("--particle-core", p.coreColor);
+  root.style.setProperty("--particle-glow", p.glowColor);
+  root.style.setProperty("--particle-enabled", p.enabled ? "1" : "0");
 }
 
 // Saved Theme Interface

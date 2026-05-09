@@ -42,8 +42,8 @@ import {
   generateRandomTheme,
 } from "@/lib/theme-utils";
 import { useToast } from "@/hooks/use-toast";
-import type { ThemeColors, CustomTheme, BackgroundMode } from "@/lib/theme-utils";
-import { galaxyGradients, defaultBackground } from "@/lib/theme-utils";
+import type { ThemeColors, CustomTheme, BackgroundMode, ParticleConfig } from "@/lib/theme-utils";
+import { galaxyGradients, defaultBackground, defaultParticles, applyParticleConfig } from "@/lib/theme-utils";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -650,6 +650,113 @@ export default function ThemeBuilderPage() {
                       />
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* ✦ Particles Section */}
+              <Card className="shadow-md border-primary/20 bg-card">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <span className="text-base">✦</span> Particles
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Cursor-following star particles. Customise core dot and glow halo colors.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Enable/Disable toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium">Enable Particles</Label>
+                    <Checkbox
+                      checked={workingTheme.particles?.enabled ?? defaultParticles.enabled}
+                      onCheckedChange={(val) => {
+                        const updated = {
+                          ...workingTheme,
+                          particles: { ...(workingTheme.particles || defaultParticles), enabled: !!val },
+                        };
+                        setWorkingTheme(updated);
+                        applyParticleConfig(updated.particles);
+                        setHasUnsavedChanges(true);
+                        pushToHistory(updated);
+                      }}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  {/* Core Color */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <Label className="text-xs font-medium">Core Dot Color</Label>
+                      <p className="text-[10px] text-muted-foreground">Bright center of each particle</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-6 w-6 rounded-full border border-border shadow-sm"
+                        style={{ backgroundColor: workingTheme.particles?.coreColor ?? defaultParticles.coreColor }}
+                      />
+                      <input
+                        type="color"
+                        value={workingTheme.particles?.coreColor ?? defaultParticles.coreColor}
+                        className="h-8 w-16 cursor-pointer rounded border border-border bg-transparent"
+                        onChange={(e) => {
+                          const updated = {
+                            ...workingTheme,
+                            particles: { ...(workingTheme.particles || defaultParticles), coreColor: e.target.value },
+                          };
+                          setWorkingTheme(updated);
+                          applyParticleConfig(updated.particles);
+                          setHasUnsavedChanges(true);
+                        }}
+                        onBlur={() => pushToHistory(workingTheme)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Glow Color */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <Label className="text-xs font-medium">Glow Halo Color</Label>
+                      <p className="text-[10px] text-muted-foreground">Soft light surrounding each particle</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-6 w-6 rounded-full border border-border shadow-sm"
+                        style={{ backgroundColor: workingTheme.particles?.glowColor ?? defaultParticles.glowColor }}
+                      />
+                      <input
+                        type="color"
+                        value={workingTheme.particles?.glowColor ?? defaultParticles.glowColor}
+                        className="h-8 w-16 cursor-pointer rounded border border-border bg-transparent"
+                        onChange={(e) => {
+                          const updated = {
+                            ...workingTheme,
+                            particles: { ...(workingTheme.particles || defaultParticles), glowColor: e.target.value },
+                          };
+                          setWorkingTheme(updated);
+                          applyParticleConfig(updated.particles);
+                          setHasUnsavedChanges(true);
+                        }}
+                        onBlur={() => pushToHistory(workingTheme)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Reset to default */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs h-7"
+                    onClick={() => {
+                      const updated = { ...workingTheme, particles: defaultParticles };
+                      setWorkingTheme(updated);
+                      applyParticleConfig(defaultParticles);
+                      setHasUnsavedChanges(true);
+                      pushToHistory(updated);
+                    }}
+                  >
+                    Reset to Default
+                  </Button>
                 </CardContent>
               </Card>
 

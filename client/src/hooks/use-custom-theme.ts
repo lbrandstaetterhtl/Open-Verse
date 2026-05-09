@@ -7,6 +7,7 @@ import {
   defaultTheme,
   defaultBackground,
   applyTheme,
+  applyParticleConfig,
   migrateTheme,
   loadCustomTheme,
   saveCustomTheme,
@@ -107,6 +108,7 @@ export function useCustomTheme() {
   useEffect(() => {
     const colors = isDark ? customTheme.dark : customTheme.light;
     applyTheme(colors, isDark, customTheme.font, customTheme.background);
+    applyParticleConfig(customTheme.particles);
   }, [customTheme, isDark]);
 
   // Fetch server themes if logged in
