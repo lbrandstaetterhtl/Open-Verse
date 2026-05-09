@@ -14,9 +14,11 @@ import {
   Database,
   Globe,
   Upload,
-  UserCheck
+  UserCheck,
+  AlertTriangle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 interface LogEntry {
