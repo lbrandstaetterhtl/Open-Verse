@@ -300,8 +300,37 @@ export default function AdminDashboard() {
   const handleVerificationToggle = async (userId: number, currentVerified: boolean) => {
     updateUserMutation.mutate({
       userId,
-      data: { verified: !currentVerified }
+      data: { verified: currentVerified ? 0 : 1 }
     });
+  };
+
+  const handleRoleChange = (userId: number, currentRole: string) => {
+    const roles: ("user" | "admin" | "owner")[] = ["user", "admin", "owner"];
+    const currentIndex = roles.indexOf(currentRole as any);
+    const nextRole = roles[(currentIndex + 1) % roles.length];
+    
+    // Safety check for owner promotion already in backend, but good to have UI hint
+    if (nextRole === "owner" && user?.role !== "owner") {
+      toast({ title: "Access Denied", description: "Only system owners can promote to Owner status.", variant: "destructive" });
+      return;
+    }
+
+    updateUserMutation.mutate({ userId, data: { role: nextRole } });
+  };
+
+  const handleBanToggle = async (u: User) => {
+    const isBanned = u.karma < 0;
+    if (isBanned) {
+      // Unban: Reset karma to 0
+      updateUserMutation.mutate({ userId: u.id, data: { karma: 0 } });
+    } else {
+      // Simple Ban: Set karma to -9999
+      updateUserMutation.mutate({ userId: u.id, data: { karma: -9999 } });
+    }
+  };
+
+  const handleShadowBanToggle = async (u: User) => {
+    updateUserMutation.mutate({ userId: u.id, data: { isShadowBanned: u.isShadowBanned ? 0 : 1 } });
   };
 
   const toggleUserSelection = (id: number) => {
@@ -504,12 +533,58 @@ export default function AdminDashboard() {
                         label: "Operations", 
                         render: (u) => (
                           <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleVerificationToggle(u.id, u.verified)}>
-                              <BadgeCheck className={cn("h-4 w-4", u.verified ? "text-primary" : "")} />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteUserMutation.mutate(u.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all" onClick={() => handleVerificationToggle(u.id, !!u.verified)}>
+                                  <BadgeCheck className={cn("h-4 w-4", u.verified ? "text-primary fill-primary/20" : "opacity-30")} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{u.verified ? "Revoke Verification" : "Verify User"}</TooltipContent>
+                            </Tooltip>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/10 transition-all">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56 glass-premium border-white/10 rounded-2xl shadow-2xl p-2">
+                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleRoleChange(u.id, u.role)}>
+                                  <Shield className="h-4 w-4 text-primary" />
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Change Role</span>
+                                    <span className="text-[9px] text-muted-foreground">Current: {u.role.toUpperCase()}</span>
+                                  </div>
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
+                                  <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-amber-500" : "text-muted-foreground")} />
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-widest">
+                                      {u.isShadowBanned ? "Revoke Shadowban" : "Shadowban User"}
+                                    </span>
+                                    <span className="text-[9px] text-muted-foreground">Silent moderation state</span>
+                                  </div>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer text-red-500 hover:text-red-500 hover:bg-red-500/10" onClick={() => handleBanToggle(u)}>
+                                  <Ban className="h-4 w-4" />
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-widest">
+                                      {u.karma < 0 ? "Lift Restriction" : "Restrict Account"}
+                                    </span>
+                                    <span className="text-[9px] opacity-70">{u.karma < 0 ? "Restore access" : "Zero-gravity suspension"}</span>
+                                  </div>
+                                </DropdownMenuItem>
+
+                                <div className="h-[1px] bg-white/5 my-2" />
+
+                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer text-red-600 hover:text-red-600 hover:bg-red-600/10 font-bold" onClick={() => deleteUserMutation.mutate(u.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-red-500">Purge Entity</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         )
                       }
@@ -538,12 +613,35 @@ export default function AdminDashboard() {
                              </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => handleVerificationToggle(u.id, u.verified)}>
+                            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => handleVerificationToggle(u.id, !!u.verified)}>
                               {u.verified ? "Verified" : "Verify"}
                             </Button>
-                            <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-red-500 hover:text-red-600" onClick={() => deleteUserMutation.mutate(u.id)}>
-                              Delete
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56 glass-premium border-white/10 rounded-2xl shadow-2xl p-2">
+                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleRoleChange(u.id, u.role)}>
+                                  <Shield className="h-4 w-4 text-primary" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">Cycle Role</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
+                                  <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-amber-500" : "text-muted-foreground")} />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">Toggle Shadowban</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer text-red-500 hover:bg-red-500/10" onClick={() => handleBanToggle(u)}>
+                                  <Ban className="h-4 w-4" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">Toggle Restriction</span>
+                                </DropdownMenuItem>
+                                <div className="h-[1px] bg-white/5 my-2" />
+                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer text-red-600 hover:bg-red-600/10" onClick={() => deleteUserMutation.mutate(u.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">Purge Account</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </div>
