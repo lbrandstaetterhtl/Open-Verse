@@ -21,6 +21,7 @@
     "db:sync": "tsx --env-file=.env scripts/db-sync.ts",
     "db:repair": "tsx --env-file=.env scripts/db-repair.ts",
     "db:health": "tsx --env-file=.env scripts/db-health.ts",
+    "db:fix-reports": "tsx --env-file=.env scripts/fix-db-reports.ts",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,css}\""
   },
