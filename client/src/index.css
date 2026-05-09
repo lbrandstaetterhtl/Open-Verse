@@ -5,7 +5,9 @@
 @layer base {
   /* Kein horizontales Scrollen auf dem Body */
   html, body {
-    overflow-x: hidden;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
     max-width: 100vw;
     -webkit-tap-highlight-color: transparent;
   }
@@ -84,9 +86,9 @@
 
   .dark body {
     background-image: 
-      radial-gradient(circle at 10% 20%, hsla(217, 91%, 60%, 0.05) 0%, transparent 40%),
-      radial-gradient(circle at 80% 80%, hsla(280, 80%, 60%, 0.04) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, hsla(230, 50%, 5%, 1) 0%, transparent 100%);
+    radial-gradient(circle at 10% 20%, hsla(217, 91%, 60%, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, hsla(280, 80%, 60%, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, hsla(230, 50%, 5%, 1) 0%, transparent 100%);
     background-attachment: fixed;
     background-color: hsl(var(--background));
   }
@@ -126,7 +128,9 @@
     scroll-behavior: smooth;
     overscroll-behavior-y: auto; /* Allow natural iOS elastic bounce while preventing horizontal shifts */
     /* No horizontal scroll, ever */
-    overflow-x: hidden;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
     max-width: 100vw;
     /* Universal box-sizing */
     box-sizing: border-box;
@@ -143,9 +147,10 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-size-adjust: 100%;
-    overflow-x: hidden;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
     max-width: 100vw;
-    scrollbar-gutter: stable;
   }
 
   /* WEIGHTLESS-FIX: Universal Button & Link Transitions */
