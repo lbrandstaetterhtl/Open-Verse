@@ -345,6 +345,17 @@ router.post("/:id/moderators", isAuthenticated, async (req, res) => {
             await storage.addCommunityMember(communityId, targetUserId, "moderator");
         }
 
+        // Notify user
+        const community = await storage.getCommunity(communityId);
+        await notificationService.notify({
+            userId: targetUserId,
+            actorId: currentUserId,
+            type: "system_announcement", // Or create a new type. "system_announcement" is fine for now.
+            communityId: communityId,
+            title: `Moderator in ${community?.name}`,
+            actionUrl: `/mod-panel`
+        });
+
         res.sendStatus(200);
     } catch (error) {
         console.error("Error adding moderator:", error);

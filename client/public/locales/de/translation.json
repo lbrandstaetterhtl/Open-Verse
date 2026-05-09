@@ -506,7 +506,9 @@
         "user_id_label": "Benutzer-ID",
         "user_id_placeholder": "Ziel-Benutzer-ID",
         "confirm": "Moderator hinzufügen",
-        "cancel": "Abbrechen"
+        "cancel": "Abbrechen",
+        "or_by_id": "Oder per ID",
+        "manual_id": "Manuelle User-ID"
       }
     }
   },

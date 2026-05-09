@@ -40,6 +40,7 @@ export interface IStorage {
   updateUserPassword(id: number, password: string): Promise<User>;
   updateUserKarma(id: number, karma: number): Promise<void>;
   deleteUser(id: number): Promise<void>;
+  searchUsers(query: string): Promise<User[]>;
 
   // Content
   createPost(post: Omit<Post, "id" | "createdAt" | "karma">): Promise<Post>;
@@ -187,6 +188,7 @@ export class DatabaseStorage implements IStorage {
   async updateUserPassword(id: number, p: string) { return this.userStore.updateUserPassword(id, p); }
   async updateUserKarma(id: number, k: number) { return this.userStore.updateUserKarma(id, k); }
   async deleteUser(id: number) { return this.userStore.deleteUser(id); }
+  async searchUsers(query: string) { return this.userStore.searchUsers(query); }
 
   // Content Proxy
   async createPost(p: Omit<Post, "id" | "createdAt" | "karma">) { return this.contentStore.createPost(p); }

@@ -493,4 +493,22 @@ export class UserStorage {
 
     return result.map((r: { user: User }) => r.user);
   }
+
+  async searchUsers(query: string): Promise<User[]> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite
+        .prepare("SELECT * FROM users WHERE username LIKE ? LIMIT 10")
+        .all(`%${query}%`) as any[];
+      return rows.map((user: any) => ({
+        ...user,
+        emailVerified: Boolean(user.email_verified),
+        isAdmin: Boolean(user.is_admin),
+        verified: Boolean(user.verified),
+        isPrivate: Boolean(user.is_private),
+        createdAt: new Date(Number(user.created_at) * 1000),
+      }));
+    }
+    return db.select().from(users).where(sql`${users.username} ILIKE ${`%${query}%`}`).limit(10);
+  }
 }

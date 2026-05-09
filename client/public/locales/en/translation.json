@@ -511,7 +511,9 @@
         "user_id_label": "User ID",
         "user_id_placeholder": "Target User ID",
         "confirm": "Add Moderator",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "or_by_id": "Or by ID",
+        "manual_id": "Manual User ID"
       }
     }
   },

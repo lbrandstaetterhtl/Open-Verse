@@ -722,6 +722,8 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [modUserId, setModUserId] = useState("");
+  const [modUsername, setModUsername] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [modDialogOpen, setModDialogOpen] = useState(false);
 
   const { data: members, isLoading } = useQuery<any[]>({
@@ -732,21 +734,51 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
     },
   });
 
+  const { data: searchResults, isLoading: searching } = useQuery<User[]>({
+    queryKey: ["/api/users/search", searchQuery],
+    queryFn: async () => {
+      if (!searchQuery || searchQuery.length < 2) return [];
+      const res = await apiRequest("GET", `/api/users/search?q=${searchQuery}`);
+      return res.json();
+    },
+    enabled: searchQuery.length >= 2,
+  });
+
   const mods = members?.filter((m) => m.role === "moderator" || m.role === "owner") || [];
 
   const addModMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (userId: number) => {
       await apiRequest("POST", `/api/communities/${communityId}/moderators`, {
-        userId: parseInt(modUserId),
+        userId,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
       setModUserId("");
+      setModUsername("");
+      setSearchQuery("");
       setModDialogOpen(false);
       toast({
         title: t("mod_panel.staff.added_title"),
         description: t("mod_panel.staff.added_desc"),
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    },
+  });
+
+  const demoteMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      await apiRequest("PATCH", `/api/communities/${communityId}/members/${userId}/role`, {
+        role: "member",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
+      toast({
+        title: t("mod_panel.members.role_updated_title"),
+        description: t("mod_panel.members.role_updated_desc"),
       });
     },
     onError: (err: Error) => {
@@ -764,7 +796,7 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
               <UserPlus className="mr-2 h-4 w-4" /> {t("mod_panel.staff.add_button")}
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>{t("mod_panel.staff.add_dialog.title")}</DialogTitle>
               <DialogDescription>{t("mod_panel.staff.add_dialog.desc")}</DialogDescription>
@@ -772,23 +804,88 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>{t("mod_panel.staff.add_dialog.user_id_label")}</Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={t("admin.users_table.search_placeholder")}
+                    className="pl-9"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {searching && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+
+              {searchResults && searchResults.length > 0 && (
+                <div className="rounded-md border divide-y max-h-48 overflow-y-auto">
+                  {searchResults.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xs">
+                          {user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{user.username}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">ID: {user.id}</p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => addModMutation.mutate(user.id)}
+                        disabled={addModMutation.isPending}
+                      >
+                        {t("mod_panel.staff.add_dialog.confirm")}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {searchQuery.length >= 2 && searchResults?.length === 0 && !searching && (
+                <p className="text-sm text-center text-muted-foreground py-4">
+                  {t("communities_feed.no_results")}
+                </p>
+              )}
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    {t("mod_panel.staff.add_dialog.or_by_id")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <Input
-                  placeholder={t("mod_panel.staff.add_dialog.user_id_placeholder")}
+                  placeholder={t("mod_panel.staff.add_dialog.manual_id")}
                   value={modUserId}
                   onChange={(e) => setModUserId(e.target.value)}
                 />
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  disabled={!modUserId || addModMutation.isPending}
+                  onClick={() => addModMutation.mutate(parseInt(modUserId))}
+                >
+                  {t("mod_panel.staff.add_dialog.confirm")}
+                </Button>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setModDialogOpen(false)}>
+              <Button variant="ghost" onClick={() => setModDialogOpen(false)}>
                 {t("mod_panel.staff.add_dialog.cancel")}
-              </Button>
-              <Button
-                onClick={() => addModMutation.mutate()}
-                disabled={!modUserId || addModMutation.isPending}
-              >
-                {addModMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t("mod_panel.staff.add_dialog.confirm")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -818,7 +915,23 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
                   <TableCell>
                     <Badge variant="secondary">{mod.role.toUpperCase()}</Badge>
                   </TableCell>
-                  <TableCell className="text-right">{/* Future: Remove Mod action */}</TableCell>
+                  <TableCell className="text-right">
+                    {mod.role !== "owner" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={() => {
+                          if (window.confirm(t("mod_panel.members.kick_dialog.desc", { name: mod.user.username }))) {
+                            demoteMutation.mutate(mod.user.id);
+                          }
+                        }}
+                        disabled={demoteMutation.isPending}
+                      >
+                        {demoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))
             )}

@@ -282,4 +282,16 @@ router.get("/:username", async (req, res) => {
     }
 });
 
+router.get("/search", isAuthenticated, async (req, res) => {
+    try {
+        const query = req.query.q as string;
+        if (!query) return res.json([]);
+        const users = await storage.searchUsers(query);
+        res.json(users.map(u => storage.sanitizeUser(u)));
+    } catch (error) {
+        console.error("Error searching users:", error);
+        res.status(500).send("Failed to search users");
+    }
+});
+
 export default router;
