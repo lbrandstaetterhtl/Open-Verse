@@ -184,7 +184,6 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
       permission: "logs",
       subItems: [
         { href: "/admin/monitoring/activity", label: t("admin.tabs.logs", "Activity Logs") },
-        { href: "/admin/monitoring/anomalies", label: "Anomalies" },
       ],
     },
     { href: "/admin/analytics", icon: BarChart3, label: t("analytics.title", "Analytics"), permission: "analytics" },

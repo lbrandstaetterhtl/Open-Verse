@@ -32,7 +32,6 @@ const AutoPunishmentPage = lazy(() => import("@/pages/admin/AutoPunishmentPage")
 // Monitoring Pages
 const MonitoringOverview = lazy(() => import("@/pages/admin/monitoring/MonitoringOverview").then(m => ({ default: m.MonitoringOverview })));
 const ActivityLogsPage = lazy(() => import("@/pages/admin/monitoring/ActivityLogsPage").then(m => ({ default: m.ActivityLogsPage })));
-const AnomaliesPage = lazy(() => import("@/pages/admin/monitoring/AnomaliesPage").then(m => ({ default: m.AnomaliesPage })));
 const GrowthDashboardPage = lazy(() => import("@/pages/admin/analytics/GrowthDashboardPage"));
 const ModeratorPerformancePage = lazy(() => import("@/pages/admin/analytics/ModeratorPerformancePage"));
 const StressTestPage = lazy(() => import("@/pages/admin/security/StressTestPage"));
@@ -113,7 +112,6 @@ function Router() {
         {/* Monitoring Routes — owner only */}
         <ProtectedRoute path="/admin/monitoring" component={MonitoringOverview} requiredRole="owner" />
         <ProtectedRoute path="/admin/monitoring/activity" component={ActivityLogsPage} requiredRole="owner" />
-        <ProtectedRoute path="/admin/monitoring/anomalies" component={AnomaliesPage} requiredRole="owner" />
         <ProtectedRoute path="/admin/analytics" component={GrowthDashboardPage} requiredRole="owner" />
         <ProtectedRoute path="/admin/performance" component={ModeratorPerformancePage} requiredRole="owner" />
         <ProtectedRoute path="/admin/security/stress-test" component={StressTestPage} requiredRole="owner" />
