@@ -17,6 +17,7 @@ router.get("/", isAdmin, async (req, res) => {
 router.post("/", isAuthenticated, async (req, res) => {
     const result = insertReportSchema.safeParse(req.body);
     if (!result.success) {
+        console.error("[Report] Validation Failed:", result.error.format());
         return res.status(400).json(result.error);
     }
 

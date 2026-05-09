@@ -534,8 +534,8 @@ export const insertCommentSchema = createInsertSchema(comments).extend({
 
 export const insertReportSchema = createInsertSchema(reports).extend({
   reporterId: z.number().optional(),
-  status: z.string().optional(),
-  createdAt: z.date().optional(),
+  status: z.any().optional(),
+  createdAt: z.any().optional(),
 });
 
 // Types
