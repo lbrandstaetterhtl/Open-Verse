@@ -23,6 +23,10 @@ import {
   Monitor,
   Smartphone,
   Info,
+  Shuffle,
+  Sparkles,
+  Sun,
+  Contrast as ContrastIcon,
 } from "lucide-react";
 import {
   exportTheme,
@@ -35,6 +39,7 @@ import {
   clearActiveThemeInfo,
   ACTIVE_THEME_EVENT,
   availableFonts,
+  generateRandomTheme,
 } from "@/lib/theme-utils";
 import { useToast } from "@/hooks/use-toast";
 import type { ThemeColors, CustomTheme, BackgroundMode } from "@/lib/theme-utils";
@@ -50,6 +55,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -246,7 +252,6 @@ export default function ThemeBuilderPage() {
     });
     setHasUnsavedChanges(true);
   };
-
   const handleFontChange = (value: string) => {
     setWorkingTheme((prev) => {
       const updated = { ...prev, font: value };
@@ -254,6 +259,49 @@ export default function ThemeBuilderPage() {
       return updated;
     });
     setHasUnsavedChanges(true);
+  };
+
+  const handleShuffle = () => {
+    const newTheme = generateRandomTheme();
+    setWorkingTheme(newTheme);
+    setHasUnsavedChanges(true);
+    pushToHistory(newTheme);
+    toast({ title: "Theme Shuffled", description: "A new harmonious palette has been generated." });
+  };
+
+  const handleHarmonize = () => {
+    // Take the current primary color and generate matching colors for everything else
+    const primaryHsl = workingTheme[activeMode].primary;
+    const parts = primaryHsl.split(" ");
+    if (parts.length < 3) return;
+    const h = parts[0];
+    
+    setWorkingTheme(prev => {
+      const updated = { ...prev };
+      const mode = activeMode;
+      const isDark = mode === "dark";
+      
+      updated[mode] = {
+        ...prev[mode],
+        background: isDark ? `${h} 40% 6%` : `${h} 20% 98%`,
+        card: isDark ? `${h} 30% 10%` : "0 0% 100%",
+        secondary: isDark ? `${h} 20% 15%` : `${h} 20% 95%`,
+        muted: isDark ? `${h} 20% 15%` : `${h} 15% 96%`,
+        accent: isDark ? `${h} 40% 20%` : `${h} 30% 94%`,
+        border: isDark ? `${h} 20% 18%` : `${h} 20% 90%`,
+        input: isDark ? `${h} 20% 15%` : `${h} 20% 92%`,
+        ring: primaryHsl,
+      };
+
+      if (unifiedMode) {
+        updated[isDark ? "light" : "dark"] = { ...updated[mode] };
+      }
+
+      pushToHistory(updated);
+      return updated;
+    });
+    setHasUnsavedChanges(true);
+    toast({ title: "Theme Harmonized", description: "Colors have been adjusted to match your Primary color." });
   };
 
   const handleSave = async () => {
@@ -439,6 +487,19 @@ export default function ThemeBuilderPage() {
                       <RotateCcw className="h-3 w-3 mr-1.5" /> Reset
                     </Button>
                   </div>
+                  
+                  <Separator />
+                  
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={handleShuffle} className="flex-1 text-xs h-9 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
+                      <Shuffle className="h-3.5 w-3.5 mr-2" />
+                      Shuffle
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={handleHarmonize} className="flex-1 text-xs h-9 bg-accent/10 text-accent-foreground hover:bg-accent/20 border-accent/20">
+                      <Sparkles className="h-3.5 w-3.5 mr-2" />
+                      Harmonize
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -532,6 +593,54 @@ export default function ThemeBuilderPage() {
                       </label>
                     </div>
                   )}
+
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold flex items-center gap-2">
+                          <Sun className="h-3 w-3" />
+                          Brightness
+                        </Label>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {Math.round((workingTheme.background?.overlay.brightness ?? 1) * 100)}%
+                        </span>
+                      </div>
+                      <Slider
+                        value={[workingTheme.background?.overlay.brightness ?? 1]}
+                        min={0.1}
+                        max={2}
+                        step={0.05}
+                        onValueChange={([val]) => {
+                          const updated = { ...workingTheme, background: { ...workingTheme.background!, overlay: { ...workingTheme.background!.overlay, brightness: val } } };
+                          setWorkingTheme(updated);
+                          setHasUnsavedChanges(true);
+                        }}
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold flex items-center gap-2">
+                          <ContrastIcon className="h-3 w-3" />
+                          Contrast
+                        </Label>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {Math.round((workingTheme.background?.overlay.contrast ?? 1) * 100)}%
+                        </span>
+                      </div>
+                      <Slider
+                        value={[workingTheme.background?.overlay.contrast ?? 1]}
+                        min={0.1}
+                        max={2}
+                        step={0.05}
+                        onValueChange={([val]) => {
+                          const updated = { ...workingTheme, background: { ...workingTheme.background!, overlay: { ...workingTheme.background!.overlay, contrast: val } } };
+                          setWorkingTheme(updated);
+                          setHasUnsavedChanges(true);
+                        }}
+                      />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 

@@ -67,6 +67,8 @@ export function ThemeBackground({ background }: ThemeBackgroundProps) {
     const showGradient = bg.mode === "gradient" && bg.gradient;
     const showImage = bg.mode === "image" && resolvedImageUrl;
 
+    const filter = `brightness(${bg.overlay.brightness ?? 1}) contrast(${bg.overlay.contrast ?? 1})`;
+
     return (
         <div
             className="fixed inset-0 pointer-events-none -z-10"
@@ -76,7 +78,10 @@ export function ThemeBackground({ background }: ThemeBackgroundProps) {
             {showGradient && (
                 <div
                     className="absolute inset-0"
-                    style={{ background: bg.gradient }}
+                    style={{ 
+                        background: bg.gradient,
+                        filter: filter
+                    }}
                 />
             )}
 
@@ -84,7 +89,10 @@ export function ThemeBackground({ background }: ThemeBackgroundProps) {
             {showImage && (
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                    style={{ backgroundImage: `url(${resolvedImageUrl})` }}
+                    style={{ 
+                        backgroundImage: `url(${resolvedImageUrl})`,
+                        filter: filter
+                    }}
                 />
             )}
 

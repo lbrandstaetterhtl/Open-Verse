@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RotateCcw, AlertTriangle } from "lucide-react";
-import { hslToHex, hexToHsl } from "@/lib/theme-utils";
+import { getContrastRatio, hslToHex, hexToHsl } from "@/lib/theme-utils";
 import { useMemo } from "react";
 
 interface ColorPickerProps {
@@ -14,20 +14,6 @@ interface ColorPickerProps {
   defaultValue?: string;
   contrastAgainst?: string; // HSL value to check contrast ratio against
   onChange: (value: string) => void;
-}
-
-function getContrastRatio(hsl1: string, hsl2: string) {
-  const getLuminance = (hsl: string) => {
-    const parts = hsl.split(" ").map(p => parseFloat(p));
-    if (parts.length < 3) return 0;
-    const l = parts[2] / 100;
-    return l; // Simplified for basic checking, real formula is more complex
-  };
-
-  const l1 = getLuminance(hsl1);
-  const l2 = getLuminance(hsl2);
-  const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-  return ratio;
 }
 
 export function ColorPicker({ label, description, value, defaultValue, contrastAgainst, onChange }: ColorPickerProps) {
@@ -40,9 +26,13 @@ export function ColorPicker({ label, description, value, defaultValue, contrastA
     }
   };
 
-  const contrastRatio = useMemo(() => {
+  const contrastInfo = useMemo(() => {
     if (!contrastAgainst) return null;
-    return getContrastRatio(value, contrastAgainst);
+    const ratio = getContrastRatio(value, contrastAgainst);
+    let status: "AAA" | "AA" | "Fail" = "Fail";
+    if (ratio >= 7) status = "AAA";
+    else if (ratio >= 4.5) status = "AA";
+    return { ratio, status };
   }, [value, contrastAgainst]);
 
   return (
@@ -59,9 +49,17 @@ export function ColorPicker({ label, description, value, defaultValue, contrastA
           )}
         </div>
         <div className="flex items-center gap-2">
-          {contrastRatio !== null && contrastRatio < 4.5 && (
-            <div className="flex items-center text-amber-500 mr-1" title={`Low contrast ratio: ${contrastRatio.toFixed(1)}:1`}>
-              <AlertTriangle className="h-4 w-4" />
+          {contrastInfo && (
+            <div 
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tighter mr-1 ${
+                contrastInfo.status === "AAA" ? "bg-emerald-500/10 text-emerald-500" :
+                contrastInfo.status === "AA" ? "bg-blue-500/10 text-blue-500" :
+                "bg-red-500/10 text-red-500"
+              }`}
+              title={`Contrast ratio: ${contrastInfo.ratio.toFixed(1)}:1 (${contrastInfo.status})`}
+            >
+              {contrastInfo.status === "Fail" && <AlertTriangle className="h-2.5 w-2.5" />}
+              {contrastInfo.status}
             </div>
           )}
           

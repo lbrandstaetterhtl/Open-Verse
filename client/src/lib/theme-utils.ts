@@ -45,6 +45,8 @@ export interface BackgroundOverlay {
   opacity: number;  // 0..1
   blur: number;     // 0..24
   tint: string;     // HSL string e.g. "0 0% 0%"
+  brightness?: number; // 0..2 (1 is normal)
+  contrast?: number;   // 0..2 (1 is normal)
 }
 
 export interface BackgroundConfig {
@@ -58,7 +60,7 @@ export const defaultBackground: BackgroundConfig = {
   mode: "gradient",
   gradient: "linear-gradient(160deg, hsl(230 60% 6%), hsl(270 50% 10%), hsl(200 70% 8%))",
   image: undefined,
-  overlay: { opacity: 0.1, blur: 0, tint: "0 0% 0%" },
+  overlay: { opacity: 0.1, blur: 0, tint: "0 0% 0%", brightness: 1, contrast: 1 },
 };
 
 // Galaxy gradient presets
@@ -241,6 +243,94 @@ export function hexToHsl(hex: string): string {
   }
 
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
+
+// Get perceived luminance from HSL string
+export function getLuminance(hsl: string): number {
+  const hex = hslToHex(hsl);
+  const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!rgb) return 0;
+  
+  const r = parseInt(rgb[1], 16) / 255;
+  const g = parseInt(rgb[2], 16) / 255;
+  const b = parseInt(rgb[3], 16) / 255;
+  
+  // Relative luminance formula
+  const a = [r, g, b].map(v => {
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+}
+
+// Calculate contrast ratio between two HSL colors
+export function getContrastRatio(hsl1: string, hsl2: string): number {
+  const l1 = getLuminance(hsl1);
+  const l2 = getLuminance(hsl2);
+  const brighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (brighter + 0.05) / (darker + 0.05);
+}
+
+// Generate a random harmonious theme
+export function generateRandomTheme(): CustomTheme {
+  const baseHue = Math.floor(Math.random() * 360);
+  const secondaryHue = (baseHue + 180) % 360;
+  
+  const light: ThemeColors = {
+    background: `${baseHue} 20% 98%`,
+    foreground: `${baseHue} 60% 10%`,
+    card: "0 0% 100%",
+    cardForeground: `${baseHue} 60% 10%`,
+    popover: "0 0% 100%",
+    popoverForeground: `${baseHue} 60% 10%`,
+    primary: `${baseHue} 80% 60%`,
+    primaryForeground: "0 0% 98%",
+    secondary: `${baseHue} 20% 94%`,
+    secondaryForeground: `${baseHue} 60% 20%`,
+    muted: `${baseHue} 10% 95%`,
+    mutedForeground: `${baseHue} 20% 45%`,
+    accent: `${baseHue} 30% 92%`,
+    accentForeground: `${baseHue} 80% 50%`,
+    destructive: "0 84% 60%",
+    destructiveForeground: "0 0% 98%",
+    border: `${baseHue} 20% 90%`,
+    input: `${baseHue} 20% 90%`,
+    ring: `${baseHue} 80% 60%`,
+  };
+
+  const dark: ThemeColors = {
+    background: `${baseHue} 60% 6%`,
+    foreground: `${baseHue} 20% 98%`,
+    card: `${baseHue} 50% 10%`,
+    cardForeground: `${baseHue} 20% 98%`,
+    popover: `${baseHue} 50% 10%`,
+    popoverForeground: `${baseHue} 20% 98%`,
+    primary: `${baseHue} 90% 70%`,
+    primaryForeground: `${baseHue} 35% 7%`,
+    secondary: `${baseHue} 30% 15%`,
+    secondaryForeground: `${baseHue} 20% 98%`,
+    muted: `${baseHue} 30% 15%`,
+    mutedForeground: `${baseHue} 20% 65%`,
+    accent: `${baseHue} 50% 20%`,
+    accentForeground: `${baseHue} 20% 98%`,
+    destructive: "0 80% 50%",
+    destructiveForeground: "210 40% 98%",
+    border: `${baseHue} 30% 20%`,
+    input: `${baseHue} 30% 15%`,
+    ring: `${baseHue} 90% 70%`,
+  };
+
+  return {
+    version: 2,
+    font: "Outfit",
+    light,
+    dark,
+    background: {
+      mode: "gradient",
+      gradient: `linear-gradient(135deg, hsl(${baseHue} 60% 10%), hsl(${secondaryHue} 50% 15%))`,
+      overlay: { opacity: 0.1, blur: 0, tint: "0 0% 0%" }
+    }
+  };
 }
 
 export function applyFont(fontName: string) {
