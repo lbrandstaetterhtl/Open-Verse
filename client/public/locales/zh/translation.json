@@ -235,7 +235,33 @@
       "placeholder": "分享你的想法...",
       "submit": "发布讨论",
       "success_title": "讨论已创建",
-      "success_desc": "你的讨论已成功发布。"
+      "success_desc": "你的讨论已成功发布。",
+      "selector_desc": "开始深度对话或向社区提问。"
+    },
+    "selector": {
+      "title": "宇宙在说什么？",
+      "subtitle": "新创作",
+      "description": "选择一个维度让你的故事产生共鸣。"
+    },
+    "news": {
+      "title": "分享新闻",
+      "headline": "标题",
+      "content": "文章内容",
+      "placeholder": "在这里写下你的新闻文章。",
+      "submit": "提交新闻",
+      "success_title": "新闻已发布",
+      "success_desc": "你的新闻文章已成功发布。",
+      "selector_desc": "分享突发新闻和资讯更新。"
+    },
+    "entertainment": {
+      "title": "分享趣事",
+      "title_label": "标题",
+      "content_label": "内容",
+      "placeholder": "分享一个笑话，一个有趣的故事，或一些有趣的事情！",
+      "submit": "分享",
+      "success_title": "帖子已创建",
+      "success_desc": "你的娱乐帖子已成功分享。",
+      "selector_desc": "有趣、有创意且吸引人的视觉内容。"
     },
     "media_label": "媒体（图片或视频）"
   },

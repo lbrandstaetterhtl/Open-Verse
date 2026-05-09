@@ -23,7 +23,8 @@
     "search": "Suche",
     "create": "Erstellen",
     "notifications": "Mitteilungen",
-    "profile": "Profil"
+    "profile": "Profil",
+    "discussions": "Talk"
   },
   "auth": {
     "login": "Anmelden"
@@ -326,7 +327,33 @@
       "placeholder": "Teile deine Gedanken...",
       "submit": "Diskussion posten",
       "success_title": "Diskussion erstellt",
-      "success_desc": "Deine Diskussion wurde erfolgreich gepostet."
+      "success_desc": "Deine Diskussion wurde erfolgreich gepostet.",
+      "selector_desc": "Starte eine tiefe Unterhaltung oder frage die Community."
+    },
+    "selector": {
+      "title": "Was sagt das Universum?",
+      "subtitle": "Neues Werk",
+      "description": "Wähle eine Dimension, in der deine Geschichte wirken soll."
+    },
+    "news": {
+      "title": "Nachrichten teilen",
+      "headline": "Schlagzeile",
+      "content": "Artikelinhalt",
+      "placeholder": "Schreiben Sie hier Ihren Nachrichtenartikel.",
+      "submit": "Nachricht absenden",
+      "success_title": "Nachricht gepostet",
+      "success_desc": "Ihr Nachrichtenartikel wurde erfolgreich gepostet.",
+      "selector_desc": "Aktuelle Nachrichten und informative Updates teilen."
+    },
+    "entertainment": {
+      "title": "Etwas Lustiges teilen",
+      "title_label": "Titel",
+      "content_label": "Inhalt",
+      "placeholder": "Teile einen Witz, eine lustige Geschichte oder etwas Interessantes!",
+      "submit": "Teilen",
+      "success_title": "Beitrag erstellt",
+      "success_desc": "Dein Unterhaltungsbeitrag wurde erfolgreich geteilt.",
+      "selector_desc": "Lustiger, kreativer und ansprechender visueller Inhalt."
     },
     "media_label": "Medien (Bild oder Video)"
   },

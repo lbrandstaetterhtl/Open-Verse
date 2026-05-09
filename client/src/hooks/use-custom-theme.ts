@@ -11,6 +11,7 @@ import {
   loadCustomTheme,
   saveCustomTheme,
   CUSTOM_THEME_EVENT,
+  THEME_VERSION,
   type SavedTheme,
   getSavedThemes,
   saveNamedTheme,

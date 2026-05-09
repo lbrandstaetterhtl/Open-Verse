@@ -235,7 +235,33 @@
       "placeholder": "Partagez vos pensées...",
       "submit": "Publier la Discussion",
       "success_title": "Discussion créée",
-      "success_desc": "Votre discussion a été publiée avec succès."
+      "success_desc": "Votre discussion a été publiée avec succès.",
+      "selector_desc": "Lancez une conversation profonde ou posez une question à la communauté."
+    },
+    "selector": {
+      "title": "Que dit l'Univers ?",
+      "subtitle": "Nouvelle Création",
+      "description": "Choisissez une dimension dans laquelle votre histoire doit résonner."
+    },
+    "news": {
+      "title": "Partager une Info",
+      "headline": "Titre",
+      "content": "Contenu de l'Article",
+      "placeholder": "Écrivez votre article ici.",
+      "submit": "Envoyer l'Info",
+      "success_title": "Info publiée",
+      "success_desc": "Votre article a été publié avec succès.",
+      "selector_desc": "Partagez des dernières nouvelles et des mises à jour informatives."
+    },
+    "entertainment": {
+      "title": "Partager du Fun",
+      "title_label": "Titre",
+      "content_label": "Contenu",
+      "placeholder": "Partagez une blague, une histoire drôle ou quelque chose d'intéressant !",
+      "submit": "Partager",
+      "success_title": "Post créé",
+      "success_desc": "Votre post de divertissement a été partagé avec succès.",
+      "selector_desc": "Contenu visuel amusant, créatif et engageant."
     },
     "media_label": "Média (Image ou Vidéo)"
   },
