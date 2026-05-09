@@ -15,30 +15,29 @@ router.get("/", isAdmin, async (req, res) => {
 });
 
 router.post("/", isAuthenticated, async (req, res) => {
-    const result = insertReportSchema.safeParse(req.body);
-    if (!result.success) {
-        console.error("[Report] Validation Failed:", result.error.format());
-        return res.status(400).json(result.error);
-    }
-
     try {
-        if (result.data.discussionId) {
-            const discussion = await storage.getPost(result.data.discussionId);
-            if (!discussion || discussion.category !== 'discussion') {
-                return res.status(404).send("Discussion not found");
-            }
+        console.log("[Report] Incoming Request Body:", req.body);
+        const result = insertReportSchema.safeParse(req.body);
+        if (!result.success) {
+            console.error("[Report] Validation Failed:", result.error.format());
+            return res.status(400).json(result.error);
         }
 
+        console.log("[Report] Validation Passed, building storage object...");
         const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "unknown";
 
-        const report = await storage.createReport({
+        const reportData = {
             reason: result.data.reason,
             postId: result.data.postId ?? null,
             commentId: result.data.commentId ?? null,
             discussionId: result.data.discussionId ?? null,
             reporterId: (req.user as any).id,
             ipAddress: ipAddress,
-        });
+        };
+        
+        console.log("[Report] Sending to storage.createReport:", reportData);
+        const report = await storage.createReport(reportData);
+        console.log("[Report] Successfully created in DB with ID:", report.id);
 
         // Notify admins
         const adminSockets = Array.from(connections.entries()).filter(async ([userId]) => {

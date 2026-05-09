@@ -532,10 +532,11 @@ export const insertCommentSchema = createInsertSchema(comments).extend({
   postId: z.number().optional(),
 });
 
-export const insertReportSchema = createInsertSchema(reports).extend({
-  reporterId: z.number().optional(),
-  status: z.any().optional(),
-  createdAt: z.any().optional(),
+export const insertReportSchema = z.object({
+  reason: z.string().min(1),
+  postId: z.number().optional().nullable(),
+  commentId: z.number().optional().nullable(),
+  discussionId: z.number().optional().nullable(),
 });
 
 // Types
