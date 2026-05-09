@@ -1085,6 +1085,8 @@ function RequestsManager({ communityId }: { communityId: number }) {
     queryKey: ["/api/communities", communityId, "requests"],
   });
 
+  console.log("[RequestsManager] Join requests data:", requests);
+
   const approveMutation = useMutation({
     mutationFn: async (userId: number) => {
       await apiRequest("POST", `/api/communities/${communityId}/requests/${userId}/approve`);

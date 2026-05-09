@@ -424,12 +424,24 @@ export class CommunityStorage {
   }
 
   async updateJoinRequestStatus(communityId: number, userId: number, status: string): Promise<void> {
+    console.log(`[Storage] Updating join request status: cId=${communityId}, uId=${userId}, status=${status}`);
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       sqlite.prepare("UPDATE community_join_requests SET status = ? WHERE community_id = ? AND user_id = ? AND status = 'pending'").run(status, communityId, userId);
       return;
     }
-    await db.update(communityJoinRequests).set({ status }).where(and(eq(communityJoinRequests.communityId, communityId), eq(communityJoinRequests.userId, userId), eq(communityJoinRequests.status, "pending")));
+    try {
+      await db.update(communityJoinRequests)
+        .set({ status })
+        .where(and(
+          eq(communityJoinRequests.communityId, communityId), 
+          eq(communityJoinRequests.userId, userId), 
+          eq(communityJoinRequests.status, "pending")
+        ));
+    } catch (err) {
+      console.error(`[Storage] Failed to update join request status:`, err);
+      throw err;
+    }
   }
 
   async getJoinRequest(communityId: number, userId: number): Promise<any | undefined> {
@@ -450,6 +462,7 @@ export class CommunityStorage {
   }
 
   async getCommunityJoinRequests(communityId: number): Promise<any[]> {
+    console.log(`[Storage] Getting join requests for community ${communityId}`);
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const rows = sqlite.prepare(`
@@ -468,23 +481,38 @@ export class CommunityStorage {
         user: { id: row.user_id, username: row.username }
       }));
     }
-    const result = await db.select({
-      id: communityJoinRequests.id,
-      communityId: communityJoinRequests.communityId,
-      userId: communityJoinRequests.userId,
-      status: communityJoinRequests.status,
-      createdAt: communityJoinRequests.createdAt,
-      username: users.username,
-    }).from(communityJoinRequests).innerJoin(users, eq(communityJoinRequests.userId, users.id)).where(and(eq(communityJoinRequests.communityId, communityId), eq(communityJoinRequests.status, "pending"))).orderBy(desc(communityJoinRequests.createdAt));
+    
+    try {
+      const result = await db.select({
+        id: communityJoinRequests.id,
+        communityId: communityJoinRequests.communityId,
+        userId: communityJoinRequests.userId,
+        status: communityJoinRequests.status,
+        createdAt: communityJoinRequests.createdAt,
+        username: users.username,
+      })
+      .from(communityJoinRequests)
+      .innerJoin(users, eq(communityJoinRequests.userId, users.id))
+      .where(and(
+        eq(communityJoinRequests.communityId, communityId), 
+        eq(communityJoinRequests.status, "pending")
+      ))
+      .orderBy(desc(communityJoinRequests.createdAt));
 
-    return result.map(row => ({
-      id: row.id,
-      communityId: row.communityId,
-      userId: row.userId,
-      status: row.status,
-      createdAt: row.createdAt,
-      user: { id: row.userId, username: row.username }
-    }));
+      console.log(`[Storage] Drizzle join request rows:`, result.length);
+
+      return result.map(row => ({
+        id: row.id,
+        communityId: row.communityId,
+        userId: row.userId,
+        status: row.status,
+        createdAt: row.createdAt,
+        user: { id: row.userId, username: row.username || "Unknown" }
+      }));
+    } catch (err) {
+      console.error(`[Storage] Failed to fetch join requests:`, err);
+      throw err;
+    }
   }
 
   // Bans
