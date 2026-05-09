@@ -148,5 +148,4 @@ export function ProfileHeader({
       </div>
     </div>
   );
-  );
 }
