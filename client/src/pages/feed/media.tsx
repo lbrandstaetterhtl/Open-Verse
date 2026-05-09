@@ -53,7 +53,7 @@ export default function MediaFeedPage() {
           <div className="absolute inset-0 starfield opacity-40" />
           
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10 md:gap-16">
-            <div className="space-y-6 md:space-y-8">
+            <div className="space-y-6 md:space-y-8 flex-1 min-w-0">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -63,7 +63,7 @@ export default function MediaFeedPage() {
                 <Sparkles className="h-4 w-4" />
                 {t("feed.curated", "Curated Feed")}
               </motion.div>
-              <h1 className="text-5xl md:text-8xl lg:text-[10rem] font-black tracking-tighter leading-[0.8] uppercase italic flex flex-col sm:block">
+              <h1 className="text-5xl md:text-8xl lg:text-[7rem] xl:text-[9rem] font-black tracking-tighter leading-[0.8] uppercase italic flex flex-col sm:block overflow-hidden">
                 Media <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/60 to-accent whitespace-nowrap drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">Verse</span>
               </h1>
               <p className="text-lg md:text-2xl text-muted-foreground font-medium max-w-xl leading-relaxed opacity-80">
@@ -71,7 +71,7 @@ export default function MediaFeedPage() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-6 md:gap-8 lg:items-end">
+            <div className="flex flex-col gap-6 md:gap-8 lg:items-end shrink-0">
               <div className="p-2 rounded-full bg-background/40 border border-white/5 backdrop-blur-3xl flex flex-wrap gap-2 w-full sm:w-fit lg:ml-auto relative">
                 {["all", "news", "entertainment"].map((cat) => (
                   <button

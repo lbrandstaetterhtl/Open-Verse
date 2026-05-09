@@ -52,7 +52,7 @@ export default function DiscussionsFeedPage() {
           <div className="absolute inset-0 starfield opacity-40" />
           
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10 md:gap-16">
-            <div className="space-y-6 md:space-y-8">
+            <div className="space-y-6 md:space-y-8 flex-1 min-w-0">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -62,7 +62,7 @@ export default function DiscussionsFeedPage() {
                 <Sparkles className="h-4 w-4" />
                 {t("feed.community_voices", "Community Voices")}
               </motion.div>
-              <h1 className="text-5xl md:text-8xl lg:text-[10rem] font-black tracking-tighter leading-[0.8] uppercase italic flex flex-col sm:block">
+              <h1 className="text-5xl md:text-8xl lg:text-[7rem] xl:text-[9rem] font-black tracking-tighter leading-[0.8] uppercase italic flex flex-col sm:block overflow-hidden">
                 Discussion <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/60 to-accent whitespace-nowrap drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">Verse</span>
               </h1>
               <p className="text-lg md:text-2xl text-muted-foreground font-medium max-w-xl leading-relaxed opacity-80">
@@ -70,10 +70,10 @@ export default function DiscussionsFeedPage() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-6 md:gap-8 lg:items-end">
+            <div className="flex flex-col gap-6 md:gap-8 lg:items-end shrink-0">
               <div className="flex gap-4 w-full sm:w-auto lg:ml-auto">
                 <Link href="/post/discussion" className="w-full sm:w-auto">
-                  <Button className="w-full sm:w-auto h-16 md:h-20 px-10 md:px-14 rounded-full shadow-2xl shadow-primary/30 gap-4 font-black uppercase tracking-widest text-[11px] md:text-xs transition-all hover:shadow-primary/50 hover:-translate-y-2 active:translate-y-0 active:scale-95 nebula-glow">
+                  <Button className="w-full sm:w-auto h-16 md:h-20 px-8 md:px-14 rounded-full shadow-2xl shadow-primary/30 gap-4 font-black uppercase tracking-widest text-[11px] md:text-xs transition-all hover:shadow-primary/50 hover:-translate-y-2 active:translate-y-0 active:scale-95 nebula-glow">
                     <Plus className="h-6 w-6 stroke-[4px]" />
                     {t("feed.start_discussion", "Start Conversation")}
                   </Button>
