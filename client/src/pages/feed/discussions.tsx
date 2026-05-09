@@ -10,6 +10,7 @@ import { PostCard } from "@/components/post/post-card";
 import type { PostWithAuthor } from "@shared/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function DiscussionsFeedPage() {
   const { t } = useTranslation();

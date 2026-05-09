@@ -89,7 +89,7 @@ export function ThemeBackground({ background }: ThemeBackgroundProps) {
             )}
 
             {/* Stardust Texture Layer (Global Space Theme) */}
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] mix-blend-overlay pointer-events-none" />
+            <div className="absolute inset-0 starfield opacity-40 mix-blend-overlay pointer-events-none" />
 
             {/* Overlay layer (tint + blur) */}
             {(bg.overlay.opacity > 0 || bg.overlay.blur > 0) && (

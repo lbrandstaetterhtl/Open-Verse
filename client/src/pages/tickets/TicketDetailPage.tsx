@@ -16,6 +16,7 @@ import { Loader2, History, User, Clock, UserCircle2 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { BackButton } from "@/components/ui/back-button";
+import { cn } from "@/lib/utils";
 
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();

@@ -24,6 +24,7 @@ import {
   Loader2,
   ShieldAlert,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 type SortMode = "hot" | "new" | "top";

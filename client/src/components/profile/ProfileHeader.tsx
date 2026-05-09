@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { MutualFollowers } from "./MutualFollowers";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface ProfileHeaderProps {
   user: User & { 

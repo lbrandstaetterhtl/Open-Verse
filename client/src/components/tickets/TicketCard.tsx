@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
 import type { TicketWithMeta } from "@/hooks/use-tickets";
 import { Clock, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function TicketCard({ ticket, showOwnerFeatures }: { ticket: TicketWithMeta, showOwnerFeatures: boolean }) {
   const { t } = useTranslation("tickets");
