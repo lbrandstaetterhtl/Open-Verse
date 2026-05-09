@@ -47,8 +47,15 @@ export function EditProfileModal({
 }: EditProfileModalProps) {
   const { t } = useTranslation();
   
-  const form = useForm<UpdateProfile>({
-    resolver: zodResolver(updateProfileSchema),
+  // Create a form-specific schema that allows boolean for the switch
+  const formSchema = updateProfileSchema.extend({
+    isPrivate: z.boolean().optional(),
+    avatarUrl: z.string().optional(),
+    coverUrl: z.string().optional(),
+  });
+
+  const form = useForm<any>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       username: user.username,
       email: user.email,
@@ -62,21 +69,17 @@ export function EditProfileModal({
     },
   });
 
-  const handleFormSubmit = (data: UpdateProfile) => {
+  const handleFormSubmit = (data: any) => {
     console.log("Submitting Profile Data:", data);
-    // Ensure isPrivate is sent as number (0 or 1) for the DB
+    // Transform boolean back to integer for the backend schema
     const processedData = {
       ...data,
       isPrivate: data.isPrivate ? 1 : 0
     };
     
-    try {
-      onSubmit(processedData as any);
-      // Close immediately for better UX as the user requested
-      onClose();
-    } catch (err) {
-      console.error("Submission Error:", err);
-    }
+    onSubmit(processedData as any);
+    // The parent now handles closing, but we call it here too to be safe
+    onClose();
   };
 
   return (
