@@ -67,6 +67,14 @@ if (!fs.existsSync(uploadsDir)) {
 app.use(
   "/uploads",
   (req, res, next) => {
+    const fullPath = path.join(uploadsDir, req.path);
+    const exists = fs.existsSync(fullPath);
+    logger.info('system', `Upload request: ${req.method} ${req.path}`, { 
+      exists, 
+      fullPath,
+      ip: req.ip 
+    });
+
     // Set slightly less restrictive security headers for debugging
     res.setHeader("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; media-src 'self';");
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -76,7 +84,8 @@ app.use(
   express.static(uploadsDir, {
     index: false,
     redirect: false,
-    dotfiles: 'ignore'
+    dotfiles: 'ignore',
+    fallthrough: false // This will error if file not found, which we want for debugging
   }),
 );
 
