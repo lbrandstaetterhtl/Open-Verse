@@ -36,6 +36,13 @@ export function useCustomTheme() {
     const loadTheme = () => {
       const stored = loadCustomTheme();
       if (stored) {
+        // AUTO-UPDATE: If stored theme version is older than THEME_VERSION, reset to new defaults
+        if (!stored.version || stored.version < THEME_VERSION) {
+          console.log("[Theme] Outdated theme version detected. Applying Starlight Frost overhaul...");
+          setCustomTheme(defaultTheme);
+          saveCustomTheme(defaultTheme);
+          return;
+        }
         setCustomTheme(stored);
       }
     };

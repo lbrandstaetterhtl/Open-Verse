@@ -1,5 +1,7 @@
 // Theme utility functions for custom theme builder
 export const CUSTOM_THEME_EVENT = "custom-theme-changed";
+export const THEME_VERSION = 2; // Incremented to trigger overhaul
+
 
 export interface ThemeColors {
   background: string;
@@ -145,6 +147,7 @@ export const availableFonts = [
 
 // Default theme based on current Osiris blue theme
 export const defaultTheme: CustomTheme = {
+  version: THEME_VERSION,
   font: "Outfit",
   light: {
     background: "240 20% 99%",
