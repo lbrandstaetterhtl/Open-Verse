@@ -32,7 +32,11 @@ export class CommunityStorage {
       `);
 
       const info = stmt.run({
-        ...community,
+        name: community.name,
+        description: community.description || null,
+        slug: community.slug,
+        creatorId: community.creatorId,
+        imageUrl: community.imageUrl || null,
         allowedCategories: community.allowedCategories || "news,entertainment,discussion",
         isPrivate: community.isPrivate ? 1 : 0,
         createdAt,

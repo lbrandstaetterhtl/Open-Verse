@@ -233,9 +233,25 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </Suspense>
         </main>
 
+<<<<<<< HEAD
         {/* Mobile Bottom Tab Bar (non-admin only) */}
         {!isAdminArea && <MobileBottomNav />}
       </div>
+=======
+      {/* Persistent Bottom Tab Bar – visible only on mobile */}
+      {!isAdminArea ? (
+        <MobileBottomNav />
+      ) : (
+        <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Link href="/">
+            <Button className="rounded-full shadow-2xl gap-2 px-6 h-12 bg-primary text-primary-foreground hover:scale-105 transition-transform active:scale-95 border-2 border-background/20 backdrop-blur-sm">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="font-bold text-sm">Social Feed</span>
+            </Button>
+          </Link>
+        </div>
+      )}
+>>>>>>> 7eeb3e4 (feat: implement 'Weightless Universe' design overhaul, comprehensive documentation, and core storage fixes)
     </div>
   );
 }

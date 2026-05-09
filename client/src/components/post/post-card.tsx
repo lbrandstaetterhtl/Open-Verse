@@ -79,15 +79,14 @@ export const PostCard = React.memo(function PostCard({
 
   return (
     <motion.article 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={isMediaVariant ? { y: -8, transition: { duration: 0.4, ease: "easeOut" } } : {}}
+      initial={{ opacity: 0, scale: 0.98, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      whileHover={{ y: -5, transition: { duration: 0.3, ease: "easeOut" } }}
       className={cn(
-        "group w-full bg-card/40 backdrop-blur-md transition-all duration-500",
+        "group w-full glass-card transition-all duration-500",
         isMediaVariant 
-          ? "rounded-[2.5rem] border border-white/10 shadow-xl hover:shadow-primary/10 hover:bg-card/60" 
-          : "md:mb-4 md:rounded-3xl md:border md:border-border/40 md:hover:border-primary/20 md:hover:shadow-xl md:hover:shadow-primary/5 border-b border-border/40",
-        "p-5 md:p-6",
+          ? "rounded-[2.5rem] p-6" 
+          : "md:mb-6 md:rounded-[2rem] border-b md:border border-border/40 p-5 md:p-8",
         "relative overflow-hidden"
       )}
     >
@@ -102,11 +101,12 @@ export const PostCard = React.memo(function PostCard({
               <div className="relative group/avatar">
                 <UserAvatar 
                   user={author} 
-                  className="h-12 w-12 rounded-2xl ring-2 ring-background transition-all group-hover/avatar:ring-primary/20 group-hover/avatar:scale-105 shadow-md" 
+                  className="h-14 w-14 rounded-2xl ring-4 ring-background shadow-xl transition-all group-hover/avatar:ring-primary/40 group-hover/avatar:scale-105" 
                 />
+                <div className="absolute inset-0 rounded-2xl bg-primary/10 opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none" />
                 {author.role === 'owner' && (
-                  <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5 shadow-lg">
-                    <BadgeCheck className="h-3 w-3 text-white" />
+                  <div className="absolute -top-1 -right-1 bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full p-1 shadow-lg ring-2 ring-background nebula-glow">
+                    <BadgeCheck className="h-3.5 w-3.5 text-white" />
                   </div>
                 )}
               </div>
@@ -176,9 +176,9 @@ export const PostCard = React.memo(function PostCard({
               layoutId={`media-${post.id}`}
               className={cn(
                 "overflow-hidden bg-muted/20 relative group/media mb-4",
-                "rounded-[2rem] border border-white/10 shadow-inner",
-                isMediaVariant ? "aspect-square" : "aspect-[16/10] md:aspect-auto min-h-[200px] max-h-[600px]",
-                isMediaVariant ? "order-first mb-6" : ""
+                "rounded-[2.5rem] border border-white/5 shadow-2xl",
+                isMediaVariant ? "aspect-square" : "aspect-[16/10] md:aspect-auto min-h-[250px] max-h-[700px]",
+                isMediaVariant ? "order-first mb-8" : ""
               )}
             >
               {post.mediaType === "image" ? (

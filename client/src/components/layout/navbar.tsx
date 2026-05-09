@@ -42,7 +42,12 @@ export function Navbar() {
   const primaryLinks = [
     { href: "/feed/media", icon: Home, label: t("navbar.media_feed") },
     { href: "/feed/discussions", icon: MessageSquare, label: t("navbar.discussions_feed") },
+  ];
+
+  const toolsLinks = [
     { href: "/feed/communities", icon: Users, label: t("navbar.communities") },
+    { href: "/ai-generator", icon: MessageCircle, label: t("navbar.ai_generator", "AI Generator") },
+    { href: "/tickets", icon: Shield, label: t("navbar.support", "Support") },
   ];
 
   return (
@@ -50,8 +55,11 @@ export function Navbar() {
       {/* Premium Top Border Light Reflect */}
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-50" />
       
-      <div className="glass-premium nav-blur border-b h-14">
-        <div className="w-full flex h-full items-center px-4 md:px-6 relative">
+      <div className="glass-premium nav-blur border-b h-14 relative overflow-hidden">
+        {/* Animated Background Nebula for Navbar */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 opacity-30 animate-pulse duration-[10000ms]" />
+        
+        <div className="w-full flex h-full items-center px-4 md:px-6 relative z-10">
           
           {/* Brand & Mobile Menu (Left) */}
           <div className="flex items-center gap-4">
@@ -84,7 +92,7 @@ export function Navbar() {
                         {t("navbar.navigation", "Navigation")}
                       </p>
                       <div className="grid gap-2">
-                        {primaryLinks.map((link, idx) => (
+                        {toolsLinks.map((link, idx) => (
                           <Link key={link.href} href={link.href}>
                             <motion.div
                               initial={{ opacity: 0, y: 10 }}
@@ -126,10 +134,10 @@ export function Navbar() {
               </Sheet>
             </div>
 
-            <Link href="/" className="flex items-center gap-3 group floating-element">
+            <Link href="/" className="flex items-center gap-3 group weightless-float">
               <motion.div 
                 whileHover={{ scale: 1.05, rotate: [0, -5, 5, 0] }}
-                className="h-9 w-9 bg-primary rounded-xl flex items-center justify-center shadow-md shadow-primary/20 group-hover:shadow-primary/40 transition-shadow"
+                className="h-9 w-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-shadow nebula-glow"
               >
                 <OpenVerseIcon className="h-5 w-auto text-primary-foreground" />
               </motion.div>
@@ -138,8 +146,8 @@ export function Navbar() {
               </span>
               {user && (
                 <div className={cn(
-                  "h-1.5 w-1.5 rounded-full mt-1 transition-colors duration-500 shadow-[0_0_8px_rgba(var(--primary),0.5)]",
-                  wsStatus === "connected" ? "bg-emerald-500" : "bg-destructive animate-pulse"
+                  "h-2 w-2 rounded-full mt-1 transition-all duration-500",
+                  wsStatus === "connected" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-destructive animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]"
                 )} title={wsStatus === "connected" ? "Live Connected" : "Connection Lost - Retrying..."} />
               )}
             </Link>
@@ -181,8 +189,13 @@ export function Navbar() {
             {/* Chat + Notifications: visible on all sizes (bottom nav handles mobile tabs) */}
             {user && (
               <div className="flex items-center">
+                <Link href="/feed/communities">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary transition-colors active:scale-90" title={t("navbar.communities")}>
+                    <Users className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <Link href="/chat">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary transition-colors active:scale-90">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary transition-colors active:scale-90" title={t("navbar.chat")}>
                     <MessageCircle className="h-4 w-4" />
                   </Button>
                 </Link>

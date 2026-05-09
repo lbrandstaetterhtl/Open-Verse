@@ -25,12 +25,12 @@ export function MobileBottomNav() {
       exact: false,
     },
     {
-      to:    "/feed/communities",
-      icon:  Search,
-      label: t("navigation.search", "Explore"),
+      to:    "/feed/discussions",
+      icon:  MessageCircle,
+      label: t("navigation.discussions", "Talk"),
     },
     {
-      to:      "/post/news",
+      to:      "/ai-generator",
       icon:    PlusSquare,
       label:   t("navigation.create", "Create"),
       isPrimary: true,

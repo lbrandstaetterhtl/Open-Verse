@@ -101,7 +101,13 @@ export function ThemeBackground({ background }: ThemeBackgroundProps) {
                             ? { backdropFilter: `blur(${bg.overlay.blur}px)` }
                             : {}),
                     }}
-                />
+                >
+                    {/* Starfield for Dark Mode */}
+                    <div className="absolute inset-0 overflow-hidden opacity-40 dark:block hidden pointer-events-none">
+                        <div className="starfield" />
+                        <div className="starfield" style={{ animationDelay: '-60s', opacity: 0.2 }} />
+                    </div>
+                </div>
             )}
         </div>
     );
