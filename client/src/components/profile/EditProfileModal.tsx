@@ -56,9 +56,20 @@ export function EditProfileModal({
       bio: user.bio || "",
       location: user.location || "",
       website: user.website || "",
-      isPrivate: user.isPrivate || false,
+      isPrivate: !!user.isPrivate,
+      avatarUrl: user.avatarUrl || "",
+      coverUrl: user.coverUrl || "",
     },
   });
+
+  const handleFormSubmit = (data: UpdateProfile) => {
+    // Ensure isPrivate is sent as number (0 or 1) for the DB
+    const processedData = {
+      ...data,
+      isPrivate: data.isPrivate ? 1 : 0
+    };
+    onSubmit(processedData as any);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -82,7 +93,7 @@ export function EditProfileModal({
 
         <div className="p-0 max-h-[80vh] overflow-hidden">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(handleFormSubmit)}>
               <Tabs defaultValue="general" className="w-full">
                 <div className="px-10 border-b border-white/5 bg-white/5">
                   <TabsList className="bg-transparent h-16 w-full justify-start gap-8 p-0">
