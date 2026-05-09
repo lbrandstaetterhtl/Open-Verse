@@ -52,7 +52,7 @@ export default function MediaFeedPage() {
           )}
         >
           {/* Animated Background Starfield */}
-          <div className="absolute inset-0 starfield opacity-40" />
+          <div className="absolute inset-0 starfield opacity-40 dark:block hidden" />
           
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10 md:gap-16">
             <div className="space-y-6 md:space-y-8 flex-1 min-w-0">

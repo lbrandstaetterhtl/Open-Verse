@@ -166,7 +166,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           // Base positioning
           "fixed inset-y-0 left-0 z-50 flex flex-col",
           // Background + border
-          "bg-background/80 backdrop-blur-xl border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.3)]",
+          "bg-background/80 backdrop-blur-xl border-r border-border shadow-[4px_0_24px_rgba(0,0,0,0.05)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.3)]",
           // Smooth transition
           "transition-all duration-300 ease-in-out",
           // Mobile: full-width drawer, slides in
