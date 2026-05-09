@@ -77,7 +77,6 @@ const COLORS = {
   business:    '\x1b[32m',  // Grün
   system:      '\x1b[35m',  // Magenta
   performance: '\x1b[33m',  // Gelb
-  error:       '\x1b[31m',  // Rot
   dev:         '\x1b[90m',  // Grau
 } as const;
 
