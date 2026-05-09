@@ -57,6 +57,7 @@ export interface IStorage {
   deleteComment(id: number): Promise<void>;
 
   // Notifications
+  createNotification(notification: any): Promise<any>;
   getNotifications(userId: number, options?: { limit?: number; offset?: number; unreadOnly?: boolean; type?: string[] }): Promise<any[]>;
   getNotificationCounts(userId: number): Promise<{ unread: number; unseen: number }>;
   markNotificationsAsSeen(userId: number): Promise<void>;
@@ -98,6 +99,7 @@ export interface IStorage {
   getCommunityFeedPosts(userId: number, options?: { limit?: number; offset?: number }): Promise<Post[]>;
   addCommunityMember(communityId: number, userId: number, role?: string): Promise<CommunityMember>;
   removeCommunityMember(communityId: number, userId: number): Promise<void>;
+  updateCommunityMemberRole(communityId: number, userId: number, role: string): Promise<void>;
   getCommunityMember(communityId: number, userId: number): Promise<CommunityMember | undefined>;
   getCommunityMembers(communityId: number): Promise<(CommunityMember & { user: User })[]>;
   getUserCommunities(userId: number): Promise<(Community & { role: string })[]>;
@@ -242,6 +244,7 @@ export class DatabaseStorage implements IStorage {
   async getCommunityFeedPosts(uId: number, o?: { limit?: number; offset?: number }) { return this.communityStore.getCommunityFeedPosts(uId, o); }
   async addCommunityMember(cId: number, uId: number, r?: string) { return this.communityStore.addCommunityMember(cId, uId, r); }
   async removeCommunityMember(cId: number, uId: number) { return this.communityStore.removeCommunityMember(cId, uId); }
+  async updateCommunityMemberRole(cId: number, uId: number, r: string) { return this.communityStore.updateCommunityMemberRole(cId, uId, r); }
   async getCommunityMember(cId: number, uId: number) { return this.communityStore.getCommunityMember(cId, uId); }
   async getCommunityMembers(cId: number) { return this.communityStore.getCommunityMembers(cId); }
   async getUserCommunities(uId: number) { return this.communityStore.getUserCommunities(uId); }
@@ -258,6 +261,7 @@ export class DatabaseStorage implements IStorage {
   async updateTheme(id: number, t: Partial<InsertTheme>) { return this.themeStore.updateTheme(id, t); }
 
   // Notifications Proxy
+  async createNotification(n: any) { return this.notificationStore.createNotification(n); }
   async getNotifications(userId: number, options?: any) { return this.notificationStore.getNotifications(userId, options); }
   async getNotificationCounts(userId: number) { return this.notificationStore.getNotificationCounts(userId); }
   async markNotificationsAsSeen(userId: number) { return this.notificationStore.markNotificationsAsSeen(userId); }
