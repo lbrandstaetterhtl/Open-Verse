@@ -62,7 +62,14 @@ export function ResponsiveTable<T>({
                     "hover:bg-muted/30 transition-colors",
                     onRowClick && "cursor-pointer"
                   )}
-                  onClick={() => onRowClick?.(row)}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    // Ignore row click if clicking a button, link, or any interactive element
+                    if (target.closest('button') || target.closest('a') || target.closest('[role="button"]')) {
+                      return;
+                    }
+                    onRowClick?.(row);
+                  }}
                 >
                   {columns.map(col => (
                     <td key={col.key} className="px-4 py-3 text-sm">
@@ -90,7 +97,13 @@ export function ResponsiveTable<T>({
                 "rounded-xl border bg-card p-4 active:scale-[0.98] transition-transform",
                 onRowClick && "cursor-pointer"
               )}
-              onClick={() => onRowClick?.(row)}
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('button') || target.closest('a') || target.closest('[role="button"]')) {
+                  return;
+                }
+                onRowClick?.(row);
+              }}
             >
               {renderMobileCard(row)}
             </div>
