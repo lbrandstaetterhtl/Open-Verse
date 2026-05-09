@@ -104,18 +104,14 @@ router.patch("/:id", isAdmin, async (req, res) => {
 
                 try {
                     if (report.discussionId) {
-                        await storage.deleteComments(report.discussionId);
-                        await storage.deletePostReactions(report.discussionId);
                         await storage.deletePost(report.discussionId);
                     } else if (report.postId) {
-                        await storage.deleteComments(report.postId);
-                        await storage.deletePostReactions(report.postId);
                         await storage.deletePost(report.postId);
                     } else if (report.commentId) {
                         await storage.deleteComment(report.commentId);
                     }
                 } catch (deleteError) {
-                    console.error("Error during content deletion:", deleteError);
+                    console.error("[Report] Error during content deletion:", deleteError);
                 }
 
                 try {
