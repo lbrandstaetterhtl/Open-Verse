@@ -744,12 +744,34 @@ export default function AdminDashboard() {
                         key: "actions", 
                         label: "Decisions", 
                         render: (r) => (
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "resolved" }); }}>
-                              <CheckCircle className="h-4 w-4" />
+                          <div className="flex items-center gap-2 relative z-50">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/20 relative z-[60]" 
+                              disabled={updateReportMutation.isPending || r.status !== "pending"} 
+                              onClick={(e) => { 
+                                e.preventDefault();
+                                e.stopPropagation(); 
+                                console.log("[Admin] Resolve clicked for report:", r.id);
+                                updateReportMutation.mutate({ reportId: r.id, status: "resolved" }); 
+                              }}
+                            >
+                              <CheckCircle className="h-5 w-5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "rejected" }); }}>
-                              <XCircle className="h-4 w-4" />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 text-red-500 hover:text-red-400 hover:bg-red-500/10 border-red-500/20 relative z-[60]" 
+                              disabled={updateReportMutation.isPending || r.status !== "pending"} 
+                              onClick={(e) => { 
+                                e.preventDefault();
+                                e.stopPropagation(); 
+                                console.log("[Admin] Reject clicked for report:", r.id);
+                                updateReportMutation.mutate({ reportId: r.id, status: "rejected" }); 
+                              }}
+                            >
+                              <XCircle className="h-5 w-5" />
                             </Button>
                           </div>
                         )
