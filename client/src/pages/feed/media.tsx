@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { CreatePostSelectorDialog } from "@/components/post/create-post-selector-dialog";
+import { fadeIn, scaleIn, fadeInUp, staggerContainer } from "@/lib/animations";
 
 export default function MediaFeedPage() {
   const { t } = useTranslation();
@@ -43,9 +44,9 @@ export default function MediaFeedPage() {
       <main className="w-full px-4 md:px-8 py-6 md:py-12">
         {/* Cinematic Premium Header */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.98, translateY: 30 }}
-          animate={{ opacity: 1, scale: 1, translateY: 0 }}
-          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          variants={scaleIn}
+          initial="initial"
+          animate="animate"
           className={cn(
             "relative mb-12 overflow-hidden rounded-[3rem] p-8 md:p-16 lg:p-20 shadow-2xl shadow-black/20 border border-white/10",
             "nebula-banner"
@@ -142,25 +143,17 @@ export default function MediaFeedPage() {
             </motion.div>
           ) : (
             <motion.div 
-              initial="hidden"
-              animate="show"
-              variants={{
-                hidden: { opacity: 0 },
-                show: {
-                  opacity: 1,
-                  transition: { staggerChildren: 0.15 }
-                }
-              }}
+              variants={staggerContainer}
+              initial="initial"
+              animate="animate"
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10"
             >
               <AnimatePresence mode="popLayout">
                 {posts?.map((post) => (
                   <motion.div
                     key={post.id}
+                    variants={fadeInUp}
                     layout
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                     className="group"
                   >
                     <PostCard post={post} variant="media" />

@@ -79,9 +79,16 @@ export const PostCard = React.memo(function PostCard({
 
   return (
     <motion.article 
-      initial={{ opacity: 0, scale: 0.98, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      whileHover={{ y: -5, transition: { duration: 0.3, ease: "easeOut" } }}
+      initial="initial"
+      animate="animate"
+      whileHover="whileHover"
+      whileTap="whileTap"
+      variants={{
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+        whileHover: { y: -4, scale: 1.01, transition: { duration: 0.3 } },
+        whileTap: { scale: 0.98, transition: { duration: 0.1 } }
+      }}
       className={cn(
         "group w-full glass-card transition-all duration-500",
         isMediaVariant 

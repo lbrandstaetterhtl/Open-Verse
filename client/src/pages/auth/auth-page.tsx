@@ -32,6 +32,8 @@ import type { InsertUser, LoginCredentials } from "@shared/schema";
 import { insertUserSchema, loginSchema } from "@shared/schema";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useSiteSettings } from "@/hooks/use-site-settings";
+import { motion, AnimatePresence } from "framer-motion";
+import { fadeIn, fadeInUp, staggerContainer, scaleIn, hoverScale } from "@/lib/animations";
 
 export default function AuthPage() {
   const { user } = useAuth();
@@ -57,7 +59,12 @@ export default function AuthPage() {
       </div>
 
       {/* Auth Forms Section */}
-      <div className="flex items-center justify-center p-4 lg:p-8">
+      <motion.div 
+        variants={fadeIn}
+        initial="initial"
+        animate="animate"
+        className="flex items-center justify-center p-4 lg:p-8"
+      >
         <div className="mx-auto max-w-md w-full space-y-6">
           {isVerified && (
             <Alert className="bg-green-50 border-green-200">
@@ -76,29 +83,35 @@ export default function AuthPage() {
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
             )}
-            <TabsContent value="login" className="mt-4">
-              {settings.maintenance_mode && (
-                <Alert className="mb-4 bg-primary/5 border-primary/20">
-                  <ShieldCheck className="h-4 w-4 text-primary" />
-                  <AlertDescription className="text-xs font-bold text-primary uppercase tracking-wider">
-                    Maintenance Mode Active: Only Staff Login Allowed
-                  </AlertDescription>
-                </Alert>
-              )}
-              <LoginForm />
-              {(!settings.registration_enabled || settings.maintenance_mode) && (
-                <p className="text-center text-xs text-muted-foreground mt-4 italic">
-                  {settings.maintenance_mode 
-                    ? "Site is currently under maintenance. Registration is disabled."
-                    : "Registration is currently disabled by the administrator."}
-                </p>
-              )}
-            </TabsContent>
-            {(settings.registration_enabled && !settings.maintenance_mode) && (
-              <TabsContent value="register" className="mt-4">
-                <RegisterForm />
+            <AnimatePresence mode="wait">
+              <TabsContent value="login" key="login" className="mt-4 focus-visible:outline-none">
+                <motion.div variants={scaleIn} initial="initial" animate="animate" exit="exit">
+                  {settings.maintenance_mode && (
+                    <Alert className="mb-4 bg-primary/5 border-primary/20">
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                      <AlertDescription className="text-xs font-bold text-primary uppercase tracking-wider">
+                        Maintenance Mode Active: Only Staff Login Allowed
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <LoginForm />
+                  {(!settings.registration_enabled || settings.maintenance_mode) && (
+                    <p className="text-center text-xs text-muted-foreground mt-4 italic">
+                      {settings.maintenance_mode 
+                        ? "Site is currently under maintenance. Registration is disabled."
+                        : "Registration is currently disabled by the administrator."}
+                    </p>
+                  )}
+                </motion.div>
               </TabsContent>
-            )}
+              {(settings.registration_enabled && !settings.maintenance_mode) && (
+                <TabsContent value="register" key="register" className="mt-4 focus-visible:outline-none">
+                  <motion.div variants={scaleIn} initial="initial" animate="animate" exit="exit">
+                    <RegisterForm />
+                  </motion.div>
+                </TabsContent>
+              )}
+            </AnimatePresence>
           </Tabs>
 
           {/* Feature Highlights - Mobile Only */}
@@ -141,47 +154,49 @@ export default function AuthPage() {
             {settings.site_description || "Join our vibrant community where informed citizens connect, share, and discuss current events, politics, and entertainment."}
           </p>
 
-          <div className="space-y-6">
-            <div className="flex items-start space-x-3">
+          <motion.div 
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            className="space-y-6"
+          >
+            <motion.div variants={fadeInUp} className="flex items-start space-x-3">
               <Newspaper className="h-6 w-6 text-primary mt-1" />
               <div>
                 <h3 className="font-semibold">Quality News Coverage</h3>
-                <p className="text-muted-foreground">
-                  Access fact-checked news and in-depth analysis from reliable sources on politics
-                  and current events.
+                <p className="text-sm text-muted-foreground">
+                  Access fact-checked news and in-depth analysis from reliable sources on politics and current events.
                 </p>
               </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
+            </motion.div>
+            <motion.div variants={fadeInUp} className="flex items-start space-x-3">
               <MessageSquare className="h-6 w-6 text-primary mt-1" />
               <div>
                 <h3 className="font-semibold">Meaningful Discussions</h3>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Engage in civil discourse about important political and social issues that matter.
                 </p>
               </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
+            </motion.div>
+            <motion.div variants={fadeInUp} className="flex items-start space-x-3">
               <TrendingUp className="h-6 w-6 text-primary mt-1" />
               <div>
                 <h3 className="font-semibold">Entertainment & Trends</h3>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Stay updated with the latest in entertainment, culture, and trending topics.
                 </p>
               </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
+            </motion.div>
+            <motion.div variants={fadeInUp} className="flex items-start space-x-3">
               <Users className="h-6 w-6 text-primary mt-1" />
               <div>
                 <h3 className="font-semibold">Community Impact</h3>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Connect with others who share your interests in politics, news, and entertainment.
                 </p>
               </div>
-            </div>
+            </motion.div>
+          </motion.div>
 
             {/* Latest Updates Section */}
             <div className="mt-12 border-t pt-6">

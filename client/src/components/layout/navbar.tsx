@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { UserMenu } from "./user-menu";
 import { motion, AnimatePresence } from "framer-motion";
+import { fadeIn, fadeInUp, transitions, hoverScale } from "@/lib/animations";
 
 /**
  * REDESIGN [UX-002]: Consolidated navigation for maximum clarity.
