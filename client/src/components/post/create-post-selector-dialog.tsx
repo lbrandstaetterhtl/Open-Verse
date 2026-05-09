@@ -48,7 +48,7 @@ export function CreatePostSelectorDialog({
     },
     {
       id: "discussion",
-      href: "/post/discussion",
+      href: "/post/discussions",
       icon: MessageCircle,
       label: t("create_post.discussion.title", "Discussion"),
       description: t("create_post.discussion.selector_desc", "Start a deep conversation or ask the community."),

@@ -72,7 +72,7 @@ export default function DiscussionsFeedPage() {
 
             <div className="flex flex-col gap-6 md:gap-8 lg:items-end shrink-0">
               <div className="flex gap-4 w-full sm:w-auto lg:ml-auto">
-                <Link href="/post/discussion" className="w-full sm:w-auto">
+                <Link href="/post/discussions" className="w-full sm:w-auto">
                   <Button className="w-full sm:w-auto h-16 md:h-20 px-8 md:px-14 rounded-full shadow-2xl shadow-primary/30 gap-4 font-black uppercase tracking-widest text-[11px] md:text-xs transition-all hover:shadow-primary/50 hover:-translate-y-2 active:translate-y-0 active:scale-95 nebula-glow">
                     <Plus className="h-6 w-6 stroke-[4px]" />
                     {t("feed.start_discussion", "Start Conversation")}

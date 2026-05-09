@@ -139,7 +139,7 @@ export default function CommunityPage() {
 
   const isMember = !!community?.memberInfo;
   const isOwner = community?.memberInfo?.role === "owner";
-  const postLinkCategory = community?.type === "discussion" ? "discussion" : "news";
+  const postLinkCategory = community?.type === "discussion" ? "discussions" : "news";
 
   const sortButtons = [
     { mode: "hot", icon: Flame, label: t("community.page.sort.hot") },
