@@ -48,6 +48,7 @@ const AVAILABLE_PERMISSIONS = [
     { id: "reports", label: "Content Moderation", icon: Flag, description: "Handle reports and resolve content disputes" },
     { id: "groups", label: "Group Management", icon: Shield, description: "Edit admin groups and permissions" },
     { id: "security", label: "Security & Bans", icon: Lock, description: "Access ban system and security tools" },
+    { id: "auto_punishment", label: "Auto-Punishment", icon: Activity, description: "Manage automated rule enforcement systems" },
     { id: "logs", label: "Activity Monitoring", icon: Activity, description: "View system logs and anomaly reports" },
     { id: "analytics", label: "Platform Analytics", icon: BarChart3, description: "View growth charts and usage metrics" },
     { id: "performance", label: "Moderator Performance", icon: Award, description: "Track moderation efficiency and stats" },

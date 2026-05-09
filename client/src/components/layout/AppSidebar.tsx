@@ -176,7 +176,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
     { href: "/admin/reports", icon: Flag, label: t("admin.tabs.reports", "Reports"), permission: "reports" },
     { href: "/admin/groups", icon: Shield, label: "Groups", permission: "groups" },
     { href: "/admin/bans", icon: ShieldBan, label: t("bans.title", "Bans & Security"), permission: "security" },
-    { href: "/admin/auto-punishments", icon: Zap, label: t("autoPunishment.title", "Auto-Punishment"), permission: "security" },
+    { href: "/admin/auto-punishments", icon: Zap, label: t("autoPunishment.title", "Auto-Punishment"), permission: "auto_punishment" },
     {
       href: "/admin/monitoring",
       icon: Radar,

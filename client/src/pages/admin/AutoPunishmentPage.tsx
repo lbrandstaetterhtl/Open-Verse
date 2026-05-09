@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ShieldAlert, Zap, Plus, Trash2, Power, Pencil } from "lucide-react";
+import { ShieldAlert, Zap, Plus, Trash2, Power, Pencil, AlertTriangle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -12,10 +12,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export function AutoPunishmentPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
+
+  if (!hasPermission("auto_punishment")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-red-500" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-xl font-black uppercase italic tracking-tighter">Access Restricted</h2>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto">You do not have the required permissions to manage auto-punishment rules.</p>
+        </div>
+      </div>
+    );
+  }
   const { data, isLoading } = useQuery<{ rules: any[], executions: any[] }>({
     queryKey: ["/api/admin/auto-punishments"],
   });
