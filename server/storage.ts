@@ -3,6 +3,7 @@ import type {
   User,
   Post,
   Comment,
+  Report,
   InsertUser,
   Theme,
   InsertTheme,
@@ -118,6 +119,13 @@ export interface IStorage {
   getThemes(userId: number): Promise<Theme[]>;
   deleteTheme(id: number): Promise<void>;
   updateTheme(id: number, theme: Partial<InsertTheme>): Promise<Theme>;
+  
+  // Security / Reports
+  createReport(report: Omit<Report, "id" | "createdAt" | "status">): Promise<Report>;
+  getReports(options?: { status?: string; limit?: number; offset?: number }): Promise<Report[]>;
+  getReport(id: number): Promise<Report | undefined>;
+  updateReportStatus(id: number, status: string, resolvedBy?: number, resolutionTimeSeconds?: number): Promise<Report>;
+  deleteReportsForContent(postId?: number, commentId?: number): Promise<void>;
 
   // Global Session Store
   sessionStore: session.Store;
@@ -267,6 +275,17 @@ export class DatabaseStorage implements IStorage {
   async getThemes(uId: number) { return this.themeStore.getThemes(uId); }
   async deleteTheme(id: number) { return this.themeStore.deleteTheme(id); }
   async updateTheme(id: number, t: Partial<InsertTheme>) { return this.themeStore.updateTheme(id, t); }
+
+  // Security Proxy
+  async createReport(r: Omit<Report, "id" | "createdAt" | "status">) { return this.securityStore.createReport(r); }
+  async getReports(o?: { status?: string; limit?: number; offset?: number }) { return this.securityStore.getReports(o); }
+  async getReport(id: number) { 
+    // Manual fallback since SecurityStorage might not have getReport
+    const reports = await this.securityStore.getReports({ limit: 1000 });
+    return reports.find(r => r.id === id);
+  }
+  async updateReportStatus(id: number, s: string, rb?: number, rts?: number) { return this.securityStore.updateReportStatus(id, s, rb, rts); }
+  async deleteReportsForContent(pId?: number, cId?: number) { return this.securityStore.deleteReportsForContent(pId, cId); }
 
   // Notifications Proxy
   async createNotification(n: any) { return this.notificationStore.createNotification(n); }
