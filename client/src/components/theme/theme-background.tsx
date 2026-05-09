@@ -72,12 +72,9 @@ export function ThemeBackground({ background, isDark = true }: ThemeBackgroundPr
             className="fixed inset-0 pointer-events-none -z-10"
             aria-hidden="true"
         >
-            {/* Solid layer */}
+            {/* Solid layer — uses --background CSS var so Layout Colors changes are visible */}
             {bg.mode === "solid" && (
-                <div
-                    className="absolute inset-0"
-                    style={{ backgroundColor: `hsl(${bg.overlay.tint})` }}
-                />
+                <div className="absolute inset-0 bg-background" />
             )}
             {/* Gradient layer */}
             {showGradient && (

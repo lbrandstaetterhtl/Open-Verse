@@ -84,15 +84,9 @@
     --ring: 217 91% 60%;
   }
 
-
-  .dark body {
-    background-image: 
-    radial-gradient(circle at 10% 20%, hsla(217, 91%, 60%, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 80% 80%, hsla(280, 80%, 60%, 0.04) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, hsla(230, 50%, 5%, 1) 0%, transparent 100%);
-    background-attachment: fixed;
-  }
+  /* Dark background is handled by ThemeBackground component and applyTheme() */
 }
+
 
 @layer base {
   * {
