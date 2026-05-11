@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getBgBlobUrl } from "@/lib/theme-bg-store";
 import type { BackgroundConfig } from "@/lib/theme-utils";
 import { defaultBackground, defaultLightBackground } from "@/lib/theme-utils";
+import { ParticleBackground } from "./particle-background";
 
 interface ThemeBackgroundProps {
     background?: BackgroundConfig;
@@ -60,8 +61,6 @@ export function ThemeBackground({ background, isDark = true }: ThemeBackgroundPr
         };
     }, [bg.mode, bg.image?.type, bg.image?.value]);
 
-
-
     const showGradient = bg.mode === "gradient" && bg.gradient;
     const showImage = bg.mode === "image" && resolvedImageUrl;
 
@@ -76,10 +75,11 @@ export function ThemeBackground({ background, isDark = true }: ThemeBackgroundPr
             {bg.mode === "solid" && (
                 <div className="absolute inset-0 bg-background" />
             )}
+            
             {/* Gradient layer */}
             {showGradient && (
                 <div
-                    className="absolute inset-0"
+                    className="absolute inset-0 will-change-[transform,opacity]"
                     style={{ 
                         background: bg.gradient,
                         filter: filter
@@ -90,7 +90,7 @@ export function ThemeBackground({ background, isDark = true }: ThemeBackgroundPr
             {/* Image layer */}
             {showImage && (
                 <div
-                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat will-change-[transform,opacity]"
                     style={{ 
                         backgroundImage: `url(${resolvedImageUrl})`,
                         filter: filter
@@ -100,6 +100,9 @@ export function ThemeBackground({ background, isDark = true }: ThemeBackgroundPr
 
             {/* Stardust Texture Layer (Global Space Theme) */}
             <div className="absolute inset-0 starfield opacity-40 mix-blend-overlay pointer-events-none dark:block hidden" />
+
+            {/* Performance Optimized Particle System */}
+            <ParticleBackground count={100} />
 
             {/* Overlay layer (tint + blur) */}
             {(bg.overlay.opacity > 0 || bg.overlay.blur > 0) && (

@@ -85,6 +85,9 @@
   }
 
   /* Dark background is handled by ThemeBackground component and applyTheme() */
+  .dark body {
+    background-color: transparent;
+  }
 }
 
 
