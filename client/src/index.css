@@ -130,6 +130,8 @@
     width: 100%;
     max-width: 100vw;
     box-sizing: border-box;
+    /* PERF-FIX: Improve scroll performance */
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
@@ -186,6 +188,12 @@
 
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* PERF-FIX: content-visibility for off-screen cards */
+  article {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 500px;
   }
 }
 

@@ -86,7 +86,7 @@ export const PostCard = React.memo(function PostCard({
       variants={{
         initial: { opacity: 0, y: 20 },
         animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-        whileHover: { y: -4, scale: 1.01, transition: { duration: 0.3 } },
+        whileHover: { y: -4, transition: { duration: 0.3 } },
         whileTap: { scale: 0.98, transition: { duration: 0.1 } }
       }}
       className={cn(
@@ -180,7 +180,6 @@ export const PostCard = React.memo(function PostCard({
           {/* MEDIA (Immersive) */}
           {post.mediaUrl && !imageLoadError && (
             <motion.div 
-              layoutId={`media-${post.id}`}
               className={cn(
                 "overflow-hidden bg-muted/20 relative group/media mb-4",
                 "rounded-[2.5rem] border border-white/5 shadow-2xl",
@@ -195,6 +194,7 @@ export const PostCard = React.memo(function PostCard({
                   className="w-full h-full object-cover transition-transform duration-1000 group-hover/media:scale-110"
                   onError={() => setImageLoadError(true)}
                   loading="lazy"
+                  decoding="async"
                 />
               ) : post.mediaType === "video" ? (
                 <video

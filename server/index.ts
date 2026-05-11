@@ -12,12 +12,14 @@ import path from "node:path";
 import helmet from "helmet";
 import cors from "cors";
 import { logger } from "./logger";
+import compression from "compression";
 import { requestLoggerMiddleware } from "./middleware/request-logger";
 import { globalErrorHandler } from "./middleware/error-handler";
 import { dbLogger } from "./logger/service-loggers";
 
 
 const app = express();
+app.use(compression());
 
 // SECURITY-FIX [SEC-001]: Global Security Headers
 app.use(helmet({
@@ -79,6 +81,7 @@ app.use(
     res.setHeader("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; media-src 'self';");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("X-Accel-Buffering", "no"); // For better streaming
     next();
   },
   express.static(uploadsDir, {
