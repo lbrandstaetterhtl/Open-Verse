@@ -9,12 +9,8 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { ProfileTabContent } from "@/components/profile/ProfileTabContent";
 import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Post } from "@shared/schema";
-import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { PageTransition } from "@/components/ui/page-transition";
-import { Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function UserProfilePage() {
   const { username } = useParams();
@@ -26,121 +22,33 @@ export default function UserProfilePage() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Fetch enriched public profile data
-  const { 
-    data: profile, 
-    isLoading: profileLoading, 
-    error: profileError 
-  } = useQuery<any>({
+  const { data: profile, isLoading: isProfileLoading, error: profileError } = useQuery<any>({
     queryKey: [`/api/users/${username}`],
     enabled: !!username,
   });
 
-  // Fetch tab content with Infinite Scroll
-  const { 
-    data: infiniteData, 
-    isLoading: isTabLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-  } = useInfiniteQuery({
-    queryKey: [`/api/users/${username}/${activeTab}`, "infinite"],
-    queryFn: async ({ pageParam = 0 }) => {
-      const res = await fetch(`/api/users/${username}/${activeTab}?limit=10&offset=${pageParam}`);
-      if (!res.ok) throw new Error("Failed to fetch tab data");
-      return res.json();
-    },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < 10) return undefined;
-      return allPages.length * 10;
-    },
-    enabled: !!username && !!profile,
-  });
-
-  // Infinite Scroll Observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const tabData = infiniteData?.pages.flatMap((page) => page) ?? [];
-
   const followMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/follow/${profile.id}`);
-      if (!res.ok) throw new Error(await res.text());
+      await apiRequest("POST", `/api/users/${profile.id}/follow`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${username}`] });
-      toast({
-        title: t('profile.follow_success'),
-        description: t('profile.is_now_following', { username }),
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: t('common.error'),
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: t('profile.follow_success') });
     },
   });
 
   const unfollowMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("DELETE", `/api/follow/${profile.id}`);
-      if (!res.ok) throw new Error(await res.text());
+      await apiRequest("POST", `/api/users/${profile.id}/unfollow`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${username}`] });
-      toast({
-        title: t('profile.unfollow_success'),
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: t('common.error'),
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: t('profile.unfollow_success') });
     },
   });
 
-  if (profileLoading) {
-    return <ProfilePageSkeleton />;
-  }
-
-  if (profileError || !profile) {
-    return (
-      <div className="min-h-screen bg-transparent pt-24">
-        <main className="container mx-auto px-4">
-          <Alert variant="destructive" className="rounded-2xl shadow-lg border-none bg-destructive/10">
-            <AlertDescription className="text-destructive font-medium">
-              {profileError instanceof Error ? profileError.message : "User not found"}
-            </AlertDescription>
-          </Alert>
-        </main>
-      </div>
-    );
-  }
-
   const handleFollow = () => {
-    if (!currentUser) {
-      toast({ title: t('auth.login_required'), variant: "destructive" });
-      return;
-    }
+    if (!currentUser) return setLocation("/auth");
     followMutation.mutate();
   };
 
@@ -148,19 +56,27 @@ export default function UserProfilePage() {
     unfollowMutation.mutate();
   };
 
+  if (isProfileLoading) return <ProfilePageSkeleton />;
+  if (profileError || !profile) return <div>User not found</div>;
+
   const isOwnProfile = currentUser?.username === profile.username;
 
   return (
-    <PageTransition>
-    <div className="w-full min-h-screen pb-20">
-      <ProfileCover 
-        coverUrl={profile.coverUrl}
-        avatarUrl={profile.avatarUrl}
-        username={profile.username}
-        isOwnProfile={isOwnProfile}
-      />
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Dynamic Background Elements */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-b from-primary/10 via-transparent to-transparent opacity-30" />
+        <div className="absolute top-[20%] right-[10%] w-[30vw] h-[30vw] bg-accent/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[20%] left-[5%] w-[25vw] h-[25vw] bg-primary/10 rounded-full blur-[100px]" />
+      </div>
 
-      <div className="max-w-4xl mx-auto">
+      <main className="relative z-10 max-w-7xl mx-auto border-x border-white/5 bg-background/50 backdrop-blur-3xl shadow-2xl min-h-screen">
+        <ProfileCover 
+          username={profile.username}
+          avatarUrl={profile.avatarUrl}
+          coverUrl={profile.coverUrl}
+        />
+        
         <ProfileHeader 
           user={profile}
           isOwnProfile={isOwnProfile}
@@ -170,38 +86,35 @@ export default function UserProfilePage() {
           onMessage={() => setLocation(`/chat/${profile.id}`)}
         />
 
-        <ProfileTabs 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab} 
-          isOwnProfile={isOwnProfile}
-        />
-
-        <main className="px-4 md:px-6 py-6">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ProfileTabContent 
-                type={activeTab as any} 
-                data={tabData} 
-                isLoading={isTabLoading} 
-              />
-              
-              {/* Load More Trigger */}
-              <div ref={loadMoreRef} className="py-10 flex justify-center">
-                {isFetchingNextPage && (
-                  <Loader2 className="h-6 w-6 animate-spin text-primary/40" />
-                )}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </main>
-      </div>
+        <div className="px-6 md:px-10">
+          <ProfileTabs 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab} 
+            counts={{
+              posts: profile.stats?.posts || 0,
+              comments: profile.stats?.comments || 0,
+              liked: profile.stats?.liked || 0
+            }}
+          />
+          
+          <div className="py-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ProfileTabContent 
+                  activeTab={activeTab}
+                  userId={profile.id}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+      </main>
     </div>
-    </PageTransition>
   );
 }

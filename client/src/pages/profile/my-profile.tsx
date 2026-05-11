@@ -10,10 +10,8 @@ import { ProfileTabContent } from "@/components/profile/ProfileTabContent";
 import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
 import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import type { UpdateProfile} from "@shared/schema";
-import { User } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { PageTransition } from "@/components/ui/page-transition";
 
 export default function MyProfilePage() {
   const { user } = useAuth();
@@ -67,48 +65,60 @@ export default function MyProfilePage() {
   };
 
   return (
-    <PageTransition>
-    <div className="w-full min-h-screen pb-20">
-      <ProfileCover 
-        coverUrl={enrichedUser.coverUrl}
-        avatarUrl={enrichedUser.avatarUrl}
-        username={enrichedUser.username}
-        isOwnProfile={true}
-        onEditCover={() => setIsEditModalOpen(true)}
-        onEditAvatar={() => setIsEditModalOpen(true)}
-      />
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Dynamic Background Elements */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-b from-primary/10 via-transparent to-transparent opacity-30" />
+        <div className="absolute top-[20%] right-[10%] w-[30vw] h-[30vw] bg-accent/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[20%] left-[5%] w-[25vw] h-[25vw] bg-primary/10 rounded-full blur-[100px]" />
+      </div>
 
-      <div className="max-w-4xl mx-auto">
+      <main className="relative z-10 max-w-7xl mx-auto border-x border-white/5 bg-background/50 backdrop-blur-3xl shadow-2xl min-h-screen">
+        <ProfileCover 
+          username={enrichedUser.username}
+          avatarUrl={enrichedUser.avatarUrl}
+          coverUrl={enrichedUser.coverUrl}
+          isOwnProfile={true}
+          onEditCover={() => setIsEditModalOpen(true)}
+          onEditAvatar={() => setIsEditModalOpen(true)}
+        />
+        
         <ProfileHeader 
           user={enrichedUser}
           isOwnProfile={true}
           onEditProfile={() => setIsEditModalOpen(true)}
         />
 
-        <ProfileTabs 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab} 
-          isOwnProfile={true}
-        />
-
-        <main className="px-4 md:px-6 py-6">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ProfileTabContent 
-                type={activeTab as any} 
-                data={tabData} 
-                isLoading={isTabLoading} 
-              />
-            </motion.div>
-          </AnimatePresence>
-        </main>
-      </div>
+        <div className="px-6 md:px-10">
+          <ProfileTabs 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab} 
+            counts={{
+              posts: enrichedUser.stats?.posts || 0,
+              comments: enrichedUser.stats?.comments || 0,
+              liked: enrichedUser.stats?.liked || 0
+            }}
+          />
+          
+          <div className="py-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ProfileTabContent 
+                  type={activeTab as any} 
+                  data={tabData} 
+                  isLoading={isTabLoading} 
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+      </main>
 
       <EditProfileModal 
         user={user}
@@ -121,6 +131,5 @@ export default function MyProfilePage() {
         isSubmitting={updateProfileMutation.isPending}
       />
     </div>
-    </PageTransition>
   );
 }
