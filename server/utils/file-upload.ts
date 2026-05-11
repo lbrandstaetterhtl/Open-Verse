@@ -51,7 +51,7 @@ export async function checkFileSignature(filepath: string, mimetype: string): Pr
     }
 }
 
-// SEC-003: Image Sanitization (Strip EXIF, etc.)
+// SEC-003: Image Sanitization & Optimization (Strip EXIF, Convert to WebP)
 export async function sanitizeImage(filepath: string): Promise<void> {
     const ext = path.extname(filepath).toLowerCase();
     if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
@@ -59,18 +59,35 @@ export async function sanitizeImage(filepath: string): Promise<void> {
     }
 
     try {
-        const tempPath = `${filepath}.tmp`;
+        const webpPath = filepath.replace(ext, '.webp');
+        
         await sharp(filepath)
             .rotate() // Auto-rotate based on EXIF before stripping
-            .toFile(tempPath);
+            .webp({ 
+                quality: 80,
+                effort: 4, // Better compression
+                lossless: false,
+                smartSubsample: true
+            })
+            .toFile(webpPath);
         
-        // Overwrite original with sanctioned version
-        if (fs.existsSync(tempPath)) {
-            await fs.promises.rename(tempPath, filepath);
+        // If we converted to a new file, delete the old one
+        if (webpPath !== filepath) {
+            try {
+                if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+            } catch (e) { console.error("Error deleting original after WebP conversion:", e); }
+        }
+
+        // Return the new filepath or handle renaming if needed.
+        // Actually, routes expect the filename to stay the same OR we update it.
+        // For simplicity in this logic, we rename webp back to original filename 
+        // OR we ensure the route uses the new extension.
+        // Renaming back to original filename is safest for existing DB refs.
+        if (fs.existsSync(webpPath)) {
+            await fs.promises.rename(webpPath, filepath);
         }
     } catch (error) {
-        console.error(`[sanitizeImage] Failed to sanitize ${filepath}. Keeping original as fallback:`, error);
-        // We don't throw here to prevent deleting the file if sharp just has a minor issue
+        console.error(`[sanitizeImage] Failed to optimize ${filepath}:`, error);
     }
 }
 

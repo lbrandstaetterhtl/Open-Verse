@@ -60,6 +60,7 @@ export const PostCard = React.memo(function PostCard({
   const {
     reactionMutation,
     deletePostMutation,
+    prefetchPost,
   } = useFeedMutations();
 
   const author = post.author ?? {
@@ -89,6 +90,7 @@ export const PostCard = React.memo(function PostCard({
         whileHover: { y: -4, transition: { duration: 0.3 } },
         whileTap: { scale: 0.98, transition: { duration: 0.1 } }
       }}
+      onMouseEnter={() => prefetchPost(post.id)}
       className={cn(
         "group w-full glass-card transition-all duration-500",
         isMediaVariant 

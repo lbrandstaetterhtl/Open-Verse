@@ -1,15 +1,15 @@
 import { useTranslation } from "react-i18next";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { Plus, ImageIcon, Camera, Play, Sparkles, Filter } from "lucide-react";
+import { Plus, ImageIcon, Camera, Play, Sparkles, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { PostCard } from "@/components/post/post-card";
 import type { PostWithAuthor } from "@shared/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { CreatePostSelectorDialog } from "@/components/post/create-post-selector-dialog";
 import { fadeIn, scaleIn, fadeInUp, staggerContainer } from "@/lib/animations";
@@ -19,25 +19,53 @@ export default function MediaFeedPage() {
   const queryClient = useQueryClient();
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const {
-    data: posts,
+    data,
     isLoading,
-    isRefetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     error,
-  } = useQuery<PostWithAuthor[]>({
+  } = useInfiniteQuery({
     queryKey: ["/api/posts", "media", activeCategory],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 0 }) => {
       const categoryFilter = activeCategory === "all" ? "news,entertainment" : activeCategory;
       const res = await fetch(
-        `/api/posts?category=${categoryFilter}&include=author,comments,reactions,userReaction`,
+        `/api/posts?category=${categoryFilter}&include=author,comments,reactions,userReaction&limit=12&offset=${pageParam}`,
         { headers: { "x-auto-refresh": "true" } }
       );
       if (!res.ok) throw new Error(await res.text() || "Failed to fetch posts");
-      return res.json();
+      return res.json() as Promise<PostWithAuthor[]>;
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < 12) return undefined;
+      return allPages.length * 12;
     },
     refetchInterval: 60000,
   });
+
+  // Infinite Scroll Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const posts = data?.pages.flatMap((page) => page) ?? [];
 
   return (
     <div className="min-h-screen bg-transparent text-foreground">
@@ -124,7 +152,7 @@ export default function MediaFeedPage() {
                 retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] })}
               />
             </div>
-          ) : posts?.length === 0 ? (
+          ) : posts.length === 0 ? (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -142,25 +170,40 @@ export default function MediaFeedPage() {
               </Link>
             </motion.div>
           ) : (
-            <motion.div 
-              variants={staggerContainer}
-              initial="initial"
-              animate="animate"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10"
-            >
-              <AnimatePresence mode="popLayout">
-                {posts?.map((post) => (
-                  <motion.div
-                    key={post.id}
-                    variants={fadeInUp}
-                    layout
-                    className="group"
-                  >
-                    <PostCard post={post} variant="media" />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+            <>
+              <motion.div 
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10"
+              >
+                <AnimatePresence mode="popLayout">
+                  {posts.map((post) => (
+                    <motion.div
+                      key={post.id}
+                      variants={fadeInUp}
+                      layout
+                      className="group"
+                    >
+                      <PostCard post={post} variant="media" />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+              
+              {/* Load More Trigger */}
+              <div ref={loadMoreRef} className="py-20 flex justify-center">
+                {isFetchingNextPage && (
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Expanding Verse...</p>
+                  </div>
+                )}
+                {!hasNextPage && posts.length > 0 && (
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/40">You've reached the Edge of the Verse</p>
+                )}
+              </div>
+            </>
           )}
         </div>
       </main>
