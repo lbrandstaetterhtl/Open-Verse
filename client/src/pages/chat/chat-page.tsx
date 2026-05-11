@@ -37,10 +37,21 @@ type User = {
 export default function ChatPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const { userId: urlUserId } = useParams<{ userId?: string }>();
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(
+    urlUserId ? parseInt(urlUserId) : null
+  );
   const [messageInput, setMessageInput] = useState("");
-  const [showUserList, setShowUserList] = useState(true); // For mobile toggle
+  const [showUserList, setShowUserList] = useState(urlUserId ? false : true); // For mobile toggle
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Update selectedUserId when URL parameter changes
+  useEffect(() => {
+    if (urlUserId) {
+      setSelectedUserId(parseInt(urlUserId));
+      setShowUserList(false);
+    }
+  }, [urlUserId]);
 
   // Fetch both followers and following
   const { data: following } = useQuery<User[]>({

@@ -89,6 +89,7 @@ function Router() {
 
         {/* Chat Route */}
         <ProtectedRoute path="/chat" component={ChatPage} />
+        <ProtectedRoute path="/chat/:userId" component={ChatPage} />
 
         {/* AI Generator Route */}
         <ProtectedRoute path="/ai-generator" component={AIGeneratorPage} />

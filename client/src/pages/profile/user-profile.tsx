@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams } from "wouter";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,7 @@ import { User, Post } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { PageTransition } from "@/components/ui/page-transition";
+import { Loader2 } from "lucide-react";
 
 export default function UserProfilePage() {
   const { username } = useParams();
@@ -21,6 +22,8 @@ export default function UserProfilePage() {
   const { toast } = useToast();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("posts");
+  const [, setLocation] = useLocation();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Fetch enriched public profile data
   const { 
@@ -32,14 +35,47 @@ export default function UserProfilePage() {
     enabled: !!username,
   });
 
-  // Fetch tab content
+  // Fetch tab content with Infinite Scroll
   const { 
-    data: tabData = [], 
-    isLoading: isTabLoading 
-  } = useQuery<any[]>({
-    queryKey: [`/api/users/${username}/${activeTab}`],
+    data: infiniteData, 
+    isLoading: isTabLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: [`/api/users/${username}/${activeTab}`, "infinite"],
+    queryFn: async ({ pageParam = 0 }) => {
+      const res = await fetch(`/api/users/${username}/${activeTab}?limit=10&offset=${pageParam}`);
+      if (!res.ok) throw new Error("Failed to fetch tab data");
+      return res.json();
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < 10) return undefined;
+      return allPages.length * 10;
+    },
     enabled: !!username && !!profile,
   });
+
+  // Infinite Scroll Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const tabData = infiniteData?.pages.flatMap((page) => page) ?? [];
 
   const followMutation = useMutation({
     mutationFn: async () => {
@@ -131,7 +167,7 @@ export default function UserProfilePage() {
           onFollow={handleFollow}
           onUnfollow={handleUnfollow}
           isFollowingLoading={followMutation.isPending || unfollowMutation.isPending}
-          onMessage={() => toast({ title: "Messaging coming soon!" })}
+          onMessage={() => setLocation(`/chat/${profile.id}`)}
         />
 
         <ProfileTabs 
@@ -154,6 +190,13 @@ export default function UserProfilePage() {
                 data={tabData} 
                 isLoading={isTabLoading} 
               />
+              
+              {/* Load More Trigger */}
+              <div ref={loadMoreRef} className="py-10 flex justify-center">
+                {isFetchingNextPage && (
+                  <Loader2 className="h-6 w-6 animate-spin text-primary/40" />
+                )}
+              </div>
             </motion.div>
           </AnimatePresence>
         </main>
