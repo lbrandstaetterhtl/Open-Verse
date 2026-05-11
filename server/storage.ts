@@ -139,6 +139,12 @@ export interface IStorage {
   // Global Session Store
   sessionStore: session.Store;
 
+  // Messaging
+  createMessage(message: { senderId: number; receiverId: number; content: string }): Promise<any>;
+  getMessages(userId1: number, userId2: number, options?: { limit?: number; offset?: number }): Promise<any[]>;
+  getUnreadMessageCount(userId: number): Promise<number>;
+  markMessageAsRead(messageId: number): Promise<void>;
+
   // Domain Store Getters
   getUserStore(): UserStorage;
   getContentStore(): ContentStorage;
@@ -313,6 +319,12 @@ export class DatabaseStorage implements IStorage {
   async deleteNotification(id: number) { return this.notificationStore.deleteNotification(id); }
   async getNotificationPreferences(userId: number) { return this.notificationStore.getNotificationPreferences(userId); }
   async updateNotificationPreferences(userId: number, update: any) { return this.notificationStore.updateNotificationPreferences(userId, update); }
+
+  // Messaging Proxy
+  async createMessage(m: any) { return this.messageStore.createMessage(m); }
+  async getMessages(u1: number, u2: number, o?: any) { return this.messageStore.getMessages(u1, u2, o); }
+  async getUnreadMessageCount(u: number) { return this.messageStore.getUnreadMessageCount(u); }
+  async markMessageAsRead(mId: number) { return this.messageStore.markMessageAsRead(mId); }
 }
 
 export const storage = new DatabaseStorage();
