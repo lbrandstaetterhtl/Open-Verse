@@ -22,6 +22,7 @@ export function useSiteSettings() {
       site_name: settings?.site_name ?? "Osiris",
       site_description: settings?.site_description ?? "The next generation social platform.",
       maintenance_mode: settings?.maintenance_mode ?? false,
+      registration_enabled: settings?.registration_enabled ?? true,
       support_email: settings?.support_email ?? "support@osiris.com",
       custom_footer_text: settings?.custom_footer_text ?? "",
     },
