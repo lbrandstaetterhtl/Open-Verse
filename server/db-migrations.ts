@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';
 import { storage } from './storage';
-import crypto from 'node:crypto';
+import bcrypt from 'bcrypt';
 
 /**
  * Run all pending Drizzle migrations.
@@ -82,7 +82,9 @@ export async function runMigrations() {
     logger.info('db', "All migrations completed successfully");
 
     // Seed test account for development
-    await seedTestAccount();
+    await seedTestAccount().catch(err => {
+      console.warn('[SEED] Error during test account seeding:', err.message);
+    });
   } catch (err) {
     console.error("[MIGRATIONS] ✗ CRITICAL ERROR:", err);
     logger.critical('db', "Failed to run migrations", err);
@@ -104,11 +106,8 @@ async function seedTestAccount() {
       return;
     }
 
-    // Hash password
-    const passwordHash = crypto
-      .createHash('sha256')
-      .update(testPassword)
-      .digest('hex');
+    // Hash password with bcrypt
+    const passwordHash = await bcrypt.hash(testPassword, 12);
 
     // Create test owner account
     const user = await storage.createUser({
