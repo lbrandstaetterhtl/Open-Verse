@@ -3,6 +3,8 @@ import { logger } from './logger';
 import { sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';
+import { storage } from './storage';
+import crypto from 'node:crypto';
 
 /**
  * Run all pending Drizzle migrations.
@@ -78,9 +80,59 @@ export async function runMigrations() {
 
     console.log("[MIGRATIONS] ✓ All migrations completed successfully!");
     logger.info('db', "All migrations completed successfully");
+
+    // Seed test account for development
+    await seedTestAccount();
   } catch (err) {
     console.error("[MIGRATIONS] ✗ CRITICAL ERROR:", err);
     logger.critical('db', "Failed to run migrations", err);
     throw err;
+  }
+}
+
+async function seedTestAccount() {
+  try {
+    const testUsername = "testadmin";
+    const testEmail = "test@example.com";
+    const testPassword = "TestPassword123!";
+
+    // Check if test account already exists
+    const existingUser = await storage.getUserByUsername(testUsername);
+
+    if (existingUser) {
+      console.log(`[SEED] Test account '${testUsername}' already exists (ID: ${existingUser.id})`);
+      return;
+    }
+
+    // Hash password
+    const passwordHash = crypto
+      .createHash('sha256')
+      .update(testPassword)
+      .digest('hex');
+
+    // Create test owner account
+    const user = await storage.createUser({
+      username: testUsername,
+      email: testEmail,
+      passwordHash,
+      role: 'owner',
+      verified: true,
+      displayName: 'Test Admin'
+    });
+
+    console.log(`[SEED] ✓ Test account created!`);
+    console.log(`[SEED]   Username: ${testUsername}`);
+    console.log(`[SEED]   Email: ${testEmail}`);
+    console.log(`[SEED]   Password: ${testPassword}`);
+    console.log(`[SEED]   Role: owner`);
+    console.log(`[SEED]   ID: ${user.id}`);
+    logger.info('db', `Test owner account created: ${testUsername}`);
+  } catch (err: any) {
+    if (err.message?.includes('duplicate') || err.code === '23505') {
+      console.log(`[SEED] Test account already exists (constraint violation)`);
+    } else {
+      console.error(`[SEED] Error creating test account:`, err.message);
+      logger.warn('db', `Failed to seed test account`, err);
+    }
   }
 }
