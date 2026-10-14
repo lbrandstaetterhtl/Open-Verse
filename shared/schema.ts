@@ -443,7 +443,9 @@ export const creatorAnalytics = pgTable("creator_analytics", {
   totalReach: integer("total_reach").default(0),
   engagementScore: real("engagement_score").default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  userDateUnique: unique("creator_analytics_user_date_unique").on(table.userId, table.snapshotDate),
+}));
 
 export const communityAnalytics = pgTable("community_analytics", {
   id: serial("id").primaryKey(),
@@ -456,7 +458,9 @@ export const communityAnalytics = pgTable("community_analytics", {
   activeMembers: integer("active_members").default(0),
   engagementScore: real("engagement_score").default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  communityDateUnique: unique("community_analytics_community_date_unique").on(table.communityId, table.snapshotDate),
+}));
 
 export const analyticsSnapshots = pgTable("analytics_snapshots", {
   id: serial("id").primaryKey(),
@@ -476,7 +480,11 @@ export const analyticsSnapshots = pgTable("analytics_snapshots", {
   engagementRate: real("engagement_rate").default(0),
   d1Retention: real("d1_retention").default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  dateHourGranularityUnique: unique("analytics_snapshots_date_hour_granularity_unique")
+    .on(table.snapshotDate, table.snapshotHour, table.granularity)
+    .nullsNotDistinct(),
+}));
 
 export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snapshots", {
   id: serial("id").primaryKey(),
@@ -499,10 +507,18 @@ export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snap
   contentRemovals: integer("content_removals").default(0),
   performanceScore: real("performance_score").default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  moderatorDatePeriodUnique: unique("moderator_performance_snapshots_mod_date_period_unique")
+    .on(table.moderatorId, table.snapshotDate, table.period),
+}));
 
 // Zod schemas
-export const insertUserSchema = createInsertSchema(users);
+// Public registration may only set these fields; role, karma, verification etc. stay at their defaults.
+export const insertUserSchema = z.object({
+  username: z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, '.', '_' and '-' are allowed"),
+  email: z.string().trim().email(),
+  password: z.string().min(8).max(128),
+});
 export const insertAdminGroupSchema = createInsertSchema(adminGroups);
 export const insertCommunitySchema = createInsertSchema(communities).extend({
   creatorId: z.number().nullable().optional(),
@@ -518,7 +534,7 @@ const boolOrInt = z.union([z.boolean(), z.number()])
   .transform(v => (typeof v === "boolean" ? (v ? 1 : 0) : v))
   .optional();
 
-export const adminUpdateUserSchema = createInsertSchema(users).partial().extend({
+export const adminUpdateUserSchema = createInsertSchema(users).omit({ id: true, password: true }).partial().extend({
   verified:      boolOrInt,
   emailVerified: boolOrInt,
   isAdmin:       boolOrInt,
@@ -527,8 +543,25 @@ export const adminUpdateUserSchema = createInsertSchema(users).partial().extend(
   isShadowBanned: boolOrInt,
 });
 export const adminUpdateReportSchema = createInsertSchema(reports).partial();
-export const updateProfileSchema = createInsertSchema(users).partial();
-export const updatePasswordSchema = z.object({ password: z.string().min(1) });
+// Self-service profile edits are limited to cosmetic fields so users cannot change their own role or karma.
+export const updateProfileSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    email: true,
+    displayName: true,
+    bio: true,
+    location: true,
+    website: true,
+    avatarUrl: true,
+    coverUrl: true,
+    profilePictureUrl: true,
+  })
+  .extend({ isPrivate: boolOrInt })
+  .partial();
+export const updatePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(128),
+});
 export const messageSchema = createInsertSchema(messages).extend({
   senderId: z.number().optional(),
 });
@@ -546,9 +579,9 @@ export const insertDiscussionPostSchema = createInsertSchema(posts).extend({
   category: z.string().optional(),
 });
 
-export const insertCommentSchema = createInsertSchema(comments).extend({
-  authorId: z.number().optional(),
-  postId: z.number().optional(),
+export const insertCommentSchema = z.object({
+  content: z.string().trim().min(1).max(10000),
+  postId: z.number().int().positive(),
 });
 
 export const insertReportSchema = z.object({
@@ -561,8 +594,13 @@ export const insertReportSchema = z.object({
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
+export type LoginCredentials = z.infer<typeof loginSchema>;
 export type Post = typeof posts.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
+export type Message = typeof messages.$inferSelect;
+export type TicketComment = typeof ticketComments.$inferSelect;
+export type TicketStatusHistory = typeof ticketStatusHistory.$inferSelect;
 export type Report = typeof reports.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type AdminGroup = typeof adminGroups.$inferSelect;

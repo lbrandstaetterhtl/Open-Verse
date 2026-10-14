@@ -126,7 +126,7 @@ export function setupAuth(app: Express, sessionParser: any) {
   });
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy({ passReqToCallback: true }, async (req, username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
         if (!user) {
@@ -141,7 +141,8 @@ export function setupAuth(app: Express, sessionParser: any) {
             description: `Fehlgeschlagener Login-Versuch (User not found)`,
             severity: 'warning',
             status: 'failure',
-            metadata: { username }
+            metadata: { username },
+            req,
           });
           return done(null, false, { message: "Invalid username or password" });
         }
@@ -161,7 +162,8 @@ export function setupAuth(app: Express, sessionParser: any) {
             description: `Fehlgeschlagener Login-Versuch für ${user.username}`,
             severity: 'warning',
             status: 'failure',
-            metadata: { username }
+            metadata: { username },
+            req,
           });
           return done(null, false, { message: "Invalid username or password" });
         }
@@ -244,8 +246,9 @@ export function setupAuth(app: Express, sessionParser: any) {
 
   app.post("/api/register", strictAuthLimiter, async (req, res) => {
     try {
-      // SEC-FIX: Validate input against schema (enforces password complexity)
-      const data = insertUserSchema.parse(req.body);
+      const parsed = insertUserSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json(parsed.error);
+      const data = parsed.data;
 
       const existingUser = await storage.getUserByUsername(data.username);
       if (existingUser) {
@@ -257,13 +260,11 @@ export function setupAuth(app: Express, sessionParser: any) {
         return res.status(400).send("Email already registered");
       }
 
-      // Create the user first
-      // SECURITY FIX [AUTH-004]: Prevent IDOR - ignore any emailVerified value from request
-      const { emailVerified: _, ...registerData } = data;
       const user = await storage.createUser({
-        ...registerData,
+        username: data.username,
+        email: data.email,
         password: await hashPassword(data.password),
-      } as any);
+      });
 
       // SECURITY FIX [AUTH-003]: Do not auto-verify email on registration if SendGrid is available
       // It will be verified either by the link or by being manually set if NO SendGrid is used
@@ -369,7 +370,7 @@ export function setupAuth(app: Express, sessionParser: any) {
               status: 'success',
               req
             }).catch(err => logger.error('system', 'auth.register log failed', err));
-            res.status(201).json(user);
+            res.status(201).json(sanitizeUser(user));
           });
         });
       });
@@ -484,7 +485,7 @@ export function setupAuth(app: Express, sessionParser: any) {
     }
 
     const updatedUser = await storage.updateUserProfile(req.user!.id, result.data);
-    res.json(updatedUser);
+    res.json(sanitizeUser(updatedUser));
   });
 
   app.patch("/api/profile/password", validateCsrf, passwordChangeLimiter, async (req, res) => {
@@ -507,6 +508,6 @@ export function setupAuth(app: Express, sessionParser: any) {
       req.user!.id,
       await hashPassword(result.data.newPassword),
     );
-    res.json(updatedUser);
+    res.json(sanitizeUser(updatedUser));
   });
 }

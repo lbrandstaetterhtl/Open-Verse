@@ -111,6 +111,7 @@ export interface IStorage {
   unbanUserFromCommunity(communityId: number, userId: number): Promise<void>;
   isUserBannedFromCommunity(communityId: number, userId: number): Promise<boolean>;
   getCommunityBans(communityId: number): Promise<(CommunityBan & { user: User })[]>;
+  getCommunityReports(communityId: number): Promise<Report[]>;
   getCommunityJoinRequests(communityId: number): Promise<any[]>;
   updateJoinRequestStatus(communityId: number, userId: number, status: string): Promise<void>;
   addJoinRequest(communityId: number, userId: number): Promise<void>;
@@ -280,6 +281,7 @@ export class DatabaseStorage implements IStorage {
   async unbanUserFromCommunity(cId: number, uId: number) { return this.communityStore.unbanUserFromCommunity(cId, uId); }
   async isUserBannedFromCommunity(cId: number, uId: number) { return this.communityStore.isUserBannedFromCommunity(cId, uId); }
   async getCommunityBans(cId: number) { return this.communityStore.getCommunityBans(cId); }
+  async getCommunityReports(cId: number) { return this.communityStore.getCommunityReports(cId); }
   async getCommunityJoinRequests(cId: number) { return this.communityStore.getCommunityJoinRequests(cId); }
   async updateJoinRequestStatus(cId: number, uId: number, s: string) { return this.communityStore.updateJoinRequestStatus(cId, uId, s); }
   async addJoinRequest(cId: number, uId: number) { return this.communityStore.addJoinRequest(cId, uId); }

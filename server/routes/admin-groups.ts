@@ -1,6 +1,6 @@
 
 import { Router } from "express";
-import { storage } from "../storage";
+import { storage, sanitizeUser } from "../storage";
 import { isAdmin } from "../middleware/auth";
 import { insertAdminGroupSchema } from "@shared/schema";
 import { activityLogger } from "../services/activity-logger";
@@ -101,7 +101,7 @@ router.post("/assign", isAdmin, async (req, res) => {
             severity: 'info'
         }).catch(err => console.error('[Monitor] user_group_assign log failed:', err));
 
-        res.json(user);
+        res.json(sanitizeUser(user));
     } catch (error) {
         res.status(500).json({ message: "Failed to assign group" });
     }

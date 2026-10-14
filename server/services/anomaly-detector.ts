@@ -6,13 +6,6 @@ import { autoPunishmentEngine } from "./auto-punishment-engine";
 import { anomalyLogger, dbLogger } from "../logger/service-loggers";
 import { logger } from "../logger";
 
-/**
- * APE-FIX [TIME-001]: Unified Timing
- */
-export function now(): Date {
-  return new Date();
-}
-
 class AnomalyDetector {
 
   /**
@@ -146,7 +139,7 @@ class AnomalyDetector {
           triggerValue: timeDiffMs / 60000,
           thresholdValue: 240,
           autoAction: 'account_flagged',
-          evidence: { prevCountry: prev.ipCountry, currCountry: country, timeDiff }
+          evidence: { prevCountry: prev.ipCountry, currCountry: country, timeDiffMs }
         });
       }
     }
@@ -299,8 +292,6 @@ class AnomalyDetector {
     autoAction: string;
     evidence: Record<string, unknown>;
   }): Promise<void> {
-    const now = nowUnix();
-
     await db.transaction(async (tx) => {
       const [existing] = await tx.select()
         .from(anomalyEvents)

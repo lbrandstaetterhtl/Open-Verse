@@ -103,7 +103,7 @@ router.post("/", isAuthenticated, async (req, res) => {
       category: 'support',
       description: `Neues Ticket erstellt: ${title.slice(0, 50)}`,
       targetType: 'Ticket',
-      targetId: String(ticket.id),
+      targetId: String(ticket?.ticket.id),
       severity: priority === 'critical' ? 'high' : 'info',
       newValue: { type, priority }
     }).catch(err => console.error('[Monitor] ticket.create failed:', err));
@@ -295,8 +295,7 @@ router.get("/:id/history", isAuthenticated, async (req, res) => {
     const existing = await TicketService.getTicketById(ticketId, user.role, user.id);
     if (!existing) return res.status(404).send("Not found");
 
-    const history = await TicketService.getHistory(ticketId);
-    res.json(history);
+    res.json(existing.history);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

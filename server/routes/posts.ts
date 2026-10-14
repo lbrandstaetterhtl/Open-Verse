@@ -12,6 +12,7 @@ import { sanitizeUser } from "../storage";
 
 import { SettingsService } from "../services/settings";
 import { activityLogger } from "../services/activity-logger";
+import { parsePagination } from "../utils/pagination";
 
 const router = Router();
 
@@ -221,8 +222,7 @@ router.get("/", async (req, res) => {
         console.log("Fetching posts with query:", req.query);
         const category = req.query.category as string | undefined;
         const communityId = req.query.communityId ? parseInt(req.query.communityId as string) : undefined;
-        const limit = parseInt(req.query.limit as string) || 50;
-        const offset = parseInt(req.query.offset as string) || 0;
+        const { limit, offset } = parsePagination(req.query);
 
         // PERF-FIX [ROUTES-005]: Filtering and Pagination moved to DB level
         const filteredPosts = await storage.getPosts({ category, communityId, limit, offset });

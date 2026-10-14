@@ -520,6 +520,35 @@ router.get("/:id/reports", isAuthenticated, async (req, res) => {
     }
 });
 
+router.patch("/:id/reports/:reportId", isAuthenticated, async (req, res) => {
+    try {
+        const communityId = parseInt(req.params.id);
+        const reportId = parseInt(req.params.reportId);
+        const userId = (req.user as any).id;
+        const { status } = req.body;
+
+        if (!["pending", "resolved", "rejected"].includes(status)) {
+            return res.status(400).send("Invalid status");
+        }
+
+        const member = await storage.getCommunityMember(communityId, userId);
+        if (!member || (member.role !== "owner" && member.role !== "moderator")) {
+            return res.status(403).send("Unauthorized");
+        }
+
+        const communityReports = await storage.getCommunityReports(communityId);
+        if (!communityReports.some(r => r.id === reportId)) {
+            return res.status(404).send("Report not found in this community");
+        }
+
+        const updated = await storage.updateReportStatus(reportId, status, userId);
+        res.json(updated);
+    } catch (error) {
+        console.error("Error updating community report:", error);
+        res.status(500).send("Failed to update community report");
+    }
+});
+
 router.post("/:id/ban", isAuthenticated, async (req, res) => {
     try {
         const communityId = parseInt(req.params.id);

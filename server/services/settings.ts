@@ -141,7 +141,8 @@ export class SettingsService {
           valueType: d.valueType,
           isSensitive: isSensitive ? 1 : 0,
           isReadonly: 0,
-          // Removed updatedAt to let DEFAULT (strftime('%s', 'now')) handle it
+          // Explicit because the SQLite driver sends NULL instead of DEFAULT for omitted columns.
+          updatedAt: new Date(),
         });
       }
     }

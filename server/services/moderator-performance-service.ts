@@ -223,7 +223,7 @@ class ModeratorPerformanceService {
       userUnbans,
       contentRemovals:       contentRem,
       performanceScore:      performanceScore || 0,
-      createdAt:             Math.floor(Date.now() / 1000)
+      createdAt:             new Date()
     };
 
     try {
