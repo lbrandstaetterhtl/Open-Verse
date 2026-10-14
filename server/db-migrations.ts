@@ -114,11 +114,11 @@ async function seedTestAccount() {
     const user = await storage.createUser({
       username: testUsername,
       email: testEmail,
-      passwordHash,
+      password: passwordHash,
       role: 'owner',
-      verified: true,
+      verified: 1,
       displayName: 'Test Admin'
-    });
+    } as any);
 
     console.log(`[SEED] ✓ Test account created!`);
     console.log(`[SEED]   Username: ${testUsername}`);
