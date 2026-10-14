@@ -112,6 +112,20 @@ export function setupAuth(app: Express, sessionParser: any) {
     message: "Too many login attempts, please try again later",
   });
 
+  // SEC-FIX [SEC-002]: Rate limiting for sensitive operations
+  const passwordChangeLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5, // Max 5 password change attempts per hour
+    message: "Too many password change attempts, please try again later",
+    keyGenerator: (req) => (req.user as any)?.id || req.ip, // Rate limit by user ID if authenticated
+  });
+
+  const strictAuthLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5, // Max 5 registration attempts per IP per hour
+    message: "Too many registration attempts, please try again later",
+  });
+
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -229,7 +243,7 @@ export function setupAuth(app: Express, sessionParser: any) {
     }
   });
 
-  app.post("/api/register", authLimiter, async (req, res) => {
+  app.post("/api/register", strictAuthLimiter, async (req, res) => {
     try {
       // SEC-FIX: Validate input against schema (enforces password complexity)
       const data = insertUserSchema.parse(req.body);
@@ -474,7 +488,7 @@ export function setupAuth(app: Express, sessionParser: any) {
     res.json(updatedUser);
   });
 
-  app.patch("/api/profile/password", validateCsrf, async (req, res) => {
+  app.patch("/api/profile/password", validateCsrf, passwordChangeLimiter, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const result = updatePasswordSchema.safeParse(req.body);

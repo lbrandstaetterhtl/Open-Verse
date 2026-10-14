@@ -91,6 +91,23 @@ export async function sanitizeImage(filepath: string): Promise<void> {
     }
 }
 
+// SEC-FIX [SEC-003]: Validate filename for path traversal
+function validateFilename(filename: string): boolean {
+    // Reject if contains path separators or traversal attempts
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return false;
+    }
+    // Reject if too long (potential buffer overflow)
+    if (filename.length > 255) {
+        return false;
+    }
+    // Reject if contains null bytes
+    if (filename.includes('\x00')) {
+        return false;
+    }
+    return true;
+}
+
 // Ensure absolute uploads path
 const UPLOADS_DEST = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOADS_DEST)) {

@@ -1,6 +1,12 @@
 import sgMail from "@sendgrid/mail";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+// SEC-FIX [SEC-001]: Validate SendGrid API key at startup
+const sendgridApiKey = process.env.SENDGRID_API_KEY;
+if (!sendgridApiKey) {
+  console.warn("[EMAIL] SENDGRID_API_KEY not configured - email sending will fail");
+} else {
+  sgMail.setApiKey(sendgridApiKey);
+}
 
 // SECURITY FIX [VULN-011]: HTML-escape user input before embedding in email
 function escapeHtml(str: string): string {

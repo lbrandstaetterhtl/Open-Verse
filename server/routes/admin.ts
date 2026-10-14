@@ -71,26 +71,48 @@ router.get("/reports", hasPermission("reports"), async (req, res) => {
     try {
         const allReports = await db.select().from(reports).orderBy(desc(reports.createdAt));
 
+        // PERF-FIX [N+1-001]: Batch fetch all users and content to prevent N+1 queries
+        const reporterIds = [...new Set(allReports.map(r => r.reporterId))];
+        const postIds = [...new Set(allReports.filter(r => r.postId).map(r => r.postId))];
+        const commentIds = [...new Set(allReports.filter(r => r.commentId).map(r => r.commentId))];
+
+        // Batch fetch all needed data
+        const [reportersData, postsData, commentsData] = await Promise.all([
+            reporterIds.length > 0 ? db.select().from(users).where(sql`${users.id} IN (${reporterIds.join(',')})`) : [],
+            postIds.length > 0 ? db.select().from(posts).where(sql`${posts.id} IN (${postIds.join(',')})`) : [],
+            commentIds.length > 0 ? db.select().from(comments).where(sql`${comments.id} IN (${commentIds.join(',')})`) : []
+        ]);
+
+        // Batch fetch all post/comment authors
+        const authorIds = [...new Set([
+            ...postsData.map(p => p.authorId),
+            ...commentsData.map(c => c.authorId)
+        ])];
+        const authorsData = authorIds.length > 0
+            ? await db.select().from(users).where(sql`${users.id} IN (${authorIds.join(',')})`)
+            : [];
+
+        // Create maps for O(1) lookups
+        const reportersMap = new Map(reportersData.map(u => [u.id, u]));
+        const postsMap = new Map(postsData.map(p => [p.id, p]));
+        const commentsMap = new Map(commentsData.map(c => [c.id, c]));
+        const authorsMap = new Map(authorsData.map(u => [u.id, u]));
+
         // Attach reporter and content information
-        const extendedReports = await Promise.all(allReports.map(async (report: any) => {
-            const reporterResult = await db.select().from(users).where(eq(users.id, report.reporterId));
-            const reporter = reporterResult[0];
+        const extendedReports = allReports.map((report: any) => {
+            const reporter = reportersMap.get(report.reporterId);
 
             let content = null;
             if (report.postId) {
-                const postResult = await db.select().from(posts).where(eq(posts.id, report.postId));
-                const post = postResult[0];
+                const post = postsMap.get(report.postId);
                 if (post) {
-                    const authorResult = await db.select().from(users).where(eq(users.id, post.authorId));
-                    const author = authorResult[0];
+                    const author = authorsMap.get(post.authorId);
                     content = { type: post.category === "discussion" ? "discussion" : "post", title: post.title, content: post.content, author: author ? { username: author.username, id: author.id } : undefined };
                 }
             } else if (report.commentId) {
-                const commentResult = await db.select().from(comments).where(eq(comments.id, report.commentId));
-                const comment = commentResult[0];
+                const comment = commentsMap.get(report.commentId);
                 if (comment) {
-                    const authorResult = await db.select().from(users).where(eq(users.id, comment.authorId));
-                    const author = authorResult[0];
+                    const author = authorsMap.get(comment.authorId);
                     content = { type: "comment", content: comment.content, author: author ? { username: author.username, id: author.id } : undefined };
                 }
             }
@@ -100,7 +122,7 @@ router.get("/reports", hasPermission("reports"), async (req, res) => {
                 reporter: reporter ? { username: reporter.username } : undefined,
                 content
             };
-        }));
+        });
 
         res.json(extendedReports);
     } catch (error) {

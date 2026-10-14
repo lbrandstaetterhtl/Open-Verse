@@ -149,13 +149,15 @@ export class AnalyticsService {
         .from(posts)
         .where(and(eq(posts.communityId, community.id), this.timestampCondition(posts.createdAt, start, end)));
       
+      // SEC-FIX [SQL-001]: Use Drizzle ORM safely without string conversions
+      const communityIdStr = String(community.id);
       const [activeMembers] = await db.select({ count: sql<number>`count(distinct user_id)` })
         .from(activityLogs)
         .where(and(
             eq(activityLogs.category, 'content'),
-            process.env.USE_SQLITE === "true" 
-              ? sql`json_extract(${activityLogs.metadata}, '$.community_id') = ${community.id}`
-              : sql`${activityLogs.metadata}::jsonb->>'community_id' = ${community.id.toString()}`,
+            process.env.USE_SQLITE === "true"
+              ? sql`json_extract(${activityLogs.metadata}, '$.community_id') = ${communityIdStr}`
+              : sql`${activityLogs.metadata}::jsonb->>'community_id' = ${communityIdStr}`,
             this.timestampCondition(activityLogs.createdAt, start, end)
         ));
 
