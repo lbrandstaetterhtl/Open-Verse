@@ -22,6 +22,10 @@ export class AnalyticsService {
    * @param date Date to compute for (defaults to yesterday)
    */
   async computeDailySnapshot(date: Date = subDays(new Date(), 1)): Promise<void> {
+    // Ensure date is a valid Date object
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      date = new Date(date);
+    }
     const dayStart = startOfDay(date);
     const dayEnd = endOfDay(date);
     

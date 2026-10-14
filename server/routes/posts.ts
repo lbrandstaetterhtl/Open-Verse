@@ -107,15 +107,17 @@ router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
                 return res.status(400).send("File content does not match extension.");
             }
 
-            // SEC-003: Sanitize Image (Strip EXIF, etc.)
-            try {
-                await sanitizeImage(uploadedFile.path);
-            } catch (error) {
-                console.error("Image sanitization failed:", error);
+            // SEC-003: Sanitize Image (Strip EXIF, etc.) - only for images
+            if (uploadedFile.mimetype.startsWith('image/')) {
                 try {
-                    fs.unlinkSync(uploadedFile.path);
-                } catch (e) { console.error("Error deleting failed sanitization file:", e); }
-                return res.status(400).send("Failed to process image metadata.");
+                    await sanitizeImage(uploadedFile.path);
+                } catch (error) {
+                    console.error("Image sanitization failed:", error);
+                    try {
+                        fs.unlinkSync(uploadedFile.path);
+                    } catch (e) { console.error("Error deleting failed sanitization file:", e); }
+                    return res.status(400).send("Failed to process image metadata.");
+                }
             }
 
             postData.mediaUrl = uploadedFile.filename;
