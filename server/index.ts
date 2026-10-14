@@ -130,8 +130,16 @@ if (!process.env.SENDGRID_API_KEY) {
 
     // MIGRATION [POSTGRES-FIX]: Run Drizzle migrations first
     // This MUST run before any other DB operations
-    const { runMigrations } = await import("./db-migrations");
-    await runMigrations();
+    console.log("DEBUG: About to import migration runner...");
+    try {
+      const { runMigrations } = await import("./db-migrations");
+      console.log("DEBUG: Migration runner imported, executing migrations...");
+      await runMigrations();
+      console.log("DEBUG: Migrations completed successfully");
+    } catch (migrationErr: any) {
+      console.error("ERROR during migrations:", migrationErr);
+      throw migrationErr;
+    }
 
     // MIGRATION [POSTGRES-FIX]: Ensure schema consistency (adds missing columns)
     const { ensurePostgresColumns } = await import("./migrations/ensure_postgres_columns");
