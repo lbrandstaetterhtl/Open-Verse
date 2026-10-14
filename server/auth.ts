@@ -117,7 +117,6 @@ export function setupAuth(app: Express, sessionParser: any) {
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 5, // Max 5 password change attempts per hour
     message: "Too many password change attempts, please try again later",
-    keyGenerator: (req) => (req.user as any)?.id || req.ip, // Rate limit by user ID if authenticated
   });
 
   const strictAuthLimiter = rateLimit({
