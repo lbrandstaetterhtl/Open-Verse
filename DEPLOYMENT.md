@@ -44,9 +44,30 @@ docker compose up -d
 ```
 
 Der Start-Ablauf:
-1. PostgreSQL-Datenbankcontainer startet
+1. PostgreSQL-Datenbankcontainer startet (benötigt **PostgreSQL ≥ 15**, das Compose-Image nutzt 16)
 2. App-Container wartet auf DB (Health Check)
-3. App startet und ist unter Port 5000 erreichbar
+3. App führt die SQL-Migrationen aus `migrations/` aus und ist unter Port 5000 erreichbar
+
+### 4. Ersten Owner anlegen
+
+Beim allerersten Start in `.env` setzen:
+
+```env
+INITIAL_OWNER_USERNAME=deinname
+INITIAL_OWNER_PASSWORD=<mindestens 12 Zeichen>
+```
+
+Das Konto wird nur angelegt, wenn der Name noch nicht existiert; das Passwort wird nie zurückgesetzt oder geloggt. Nach dem ersten Start beide Werte wieder aus `.env` entfernen.
+
+> [!WARNING]
+> Ältere Versionen haben bei jedem Start ein Owner-Konto `testadmin` mit dem öffentlich bekannten Passwort `TestPassword123!` angelegt. Ab dieser Version bekommt dieses Konto beim Start ein zufälliges Passwort. Wer sich bisher damit eingeloggt hat, legt über `INITIAL_OWNER_*` ein eigenes Owner-Konto an. Prüfe außerdem, ob unbekannte Admins existieren:
+> ```bash
+> docker compose exec db psql -U openverse -d openverse -c "SELECT id, username, role FROM users WHERE role IN ('owner','admin');"
+> ```
+
+### 5. Auto-Punishment einführen
+
+Activity-Log, Anomalie-Erkennung und Auto-Punishment schreiben ab dieser Version tatsächlich in die Datenbank. Standardmäßig läuft das Auto-Punishment im Beobachtungsmodus (`AUTO_PUNISHMENT_DRY_RUN=true`): Es protokolliert nur, was es tun würde. Nach einer Beobachtungsphase in `.env` auf `false` stellen. Mit `AUTO_PUNISHMENT_WHITELIST=1,2` werden Nutzer-IDs von automatischen Strafen ausgenommen.
 
 ### Nützliche Docker-Befehle
 
@@ -78,7 +99,20 @@ docker compose up -d
 
 ---
 
+## ✅ Nach dem Deployment testen
+
+Die End-to-End-Tests laufen gegen einen gestarteten Server und legen eigene Testnutzer an, also **nur gegen eine Test-Instanz**, nicht gegen die Produktionsdatenbank:
+
+```bash
+E2E_BASE_URL=http://127.0.0.1:5000 E2E_ADMIN_USER=<owner> E2E_ADMIN_PASSWORD=<passwort> npm run test:e2e
+```
+
+---
+
 ## 🌐 Nginx als Reverse Proxy (Docker)
+
+> [!TIP]
+> Wenn Nginx auf demselben Host läuft, in `docker-compose.yml` den Port auf `"127.0.0.1:5000:5000"` setzen. Sonst ist Port 5000 von außen direkt erreichbar, und Clients können über einen gefälschten `X-Forwarded-For`-Header die IP-basierten Limits umgehen.
 
 ```nginx
 server {

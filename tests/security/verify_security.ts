@@ -192,7 +192,7 @@ async function runVerification() {
     // Check DB count
     const getRes = await request(`/api/posts/${postId}`);
     const getData = await getRes.json();
-    const likes = getData.reactions?.likes || 0;
+    const likes = getData.likes || 0;
 
     console.log(`Final DB Likes: ${likes}`);
 

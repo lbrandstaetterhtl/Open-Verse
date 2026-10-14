@@ -9,7 +9,7 @@ const CONCURRENCY = 50; // 50 concurrent "attackers"
 const STATS = {
   login: { sent: 0, blocked: 0, success: 0, error: 0 },
   upload: { sent: 0, blocked: 0, success: 0, error: 0 },
-  traffic: { sent: 0, success: 0, error: 0 },
+  traffic: { sent: 0, success: 0, rateLimited: 0, error: 0 },
 };
 
 let active = true;
@@ -86,8 +86,8 @@ Content-Type: text/html
       // 400 = Bad Request (Good)
       // 200/201 = Accepted (BAD for .html)
 
-      if (res.statusCode === 401)
-        STATS.upload.blocked++; // Auth blocked
+      if (res.statusCode === 401 || res.statusCode === 403)
+        STATS.upload.blocked++; // Auth or CSRF blocked
       else if (res.statusCode === 500)
         STATS.upload.blocked++; // Likely our Filter Error threw exception (handled by express usually as 500)
       else if (res.statusCode === 201)
@@ -118,6 +118,7 @@ function generateTraffic() {
     (res) => {
       STATS.traffic.sent++;
       if (res.statusCode === 200) STATS.traffic.success++;
+      else if (res.statusCode === 429) STATS.traffic.rateLimited++;
       else STATS.traffic.error++;
 
       res.resume();
@@ -164,7 +165,7 @@ async function runStressTest() {
 
     console.log("\nVECTOR 2: MALICIOUS UPLOAD (Unauthenticated)");
     console.log(`- Requests: ${STATS.upload.sent}`);
-    console.log(`- Blocked:  ${STATS.upload.blocked} (HTTP 401/500/400)`);
+    console.log(`- Blocked:  ${STATS.upload.blocked} (HTTP 401/403/500)`);
     console.log(`- Accepted: ${STATS.upload.success} (HTTP 201)`);
     console.log(
       STATS.upload.success === 0
@@ -175,6 +176,7 @@ async function runStressTest() {
     console.log("\nVECTOR 3: SERVER STABILITY (Traffic)");
     console.log(`- Requests: ${STATS.traffic.sent}`);
     console.log(`- Success:  ${STATS.traffic.success}`);
+    console.log(`- Rate limited: ${STATS.traffic.rateLimited} (HTTP 429, expected after 1000 requests/15 min per IP)`);
     console.log(`- Errors:   ${STATS.traffic.error}`);
     console.log(
       STATS.traffic.error === 0 ? "✅ Server REMAINED STABLE." : "⚠️ Server showed instability.",

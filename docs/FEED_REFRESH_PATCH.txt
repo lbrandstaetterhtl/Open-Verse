@@ -1,8 +1,0 @@
-// Add this after line 47 in media.tsx and line 60 in discussions.tsx
-
-  // Invalidate and refetch posts when navigating to this page
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] }); // for media.tsx
-    // OR
-    queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussions"] }); // for discussions.tsx
-  }, []);
