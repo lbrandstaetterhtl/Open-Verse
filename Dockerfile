@@ -43,7 +43,7 @@ COPY --from=builder /app/dist ./dist
 # Copy other required runtime files
 COPY drizzle.config.ts ./
 COPY shared ./shared
-COPY server/migrations ./server/migrations
+COPY migrations ./migrations
 
 # Create required runtime dirs and set permissions
 RUN mkdir -p /app/uploads /app/logs \
