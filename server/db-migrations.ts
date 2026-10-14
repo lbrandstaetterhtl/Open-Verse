@@ -100,16 +100,22 @@ async function seedTestAccount() {
     const testEmail = "test@example.com";
     const testPassword = "TestPassword123!";
 
+    // Hash password with bcrypt
+    const passwordHash = await bcrypt.hash(testPassword, 12);
+
     // Check if test account already exists
     const existingUser = await storage.getUserByUsername(testUsername);
 
     if (existingUser) {
-      console.log(`[SEED] Test account '${testUsername}' already exists (ID: ${existingUser.id})`);
+      // Update password to ensure it's correct
+      console.log(`[SEED] Test account '${testUsername}' exists, updating password...`);
+      await storage.updateUserPassword(existingUser.id, passwordHash);
+      console.log(`[SEED] ✓ Password updated for testadmin`);
+      console.log(`[SEED]   Username: ${testUsername}`);
+      console.log(`[SEED]   Password: ${testPassword}`);
+      console.log(`[SEED]   ID: ${existingUser.id}`);
       return;
     }
-
-    // Hash password with bcrypt
-    const passwordHash = await bcrypt.hash(testPassword, 12);
 
     // Create test owner account
     const user = await storage.createUser({
