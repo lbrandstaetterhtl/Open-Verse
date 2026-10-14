@@ -127,9 +127,13 @@ if (!process.env.SENDGRID_API_KEY) {
   try {
     logger.info('system', "Starting server...");
     console.log("DEBUG: Application startup sequence initiated");
-    
-    // MIGRATION [POSTGRES-FIX]: Ensure schema consistency
+
+    // MIGRATION [POSTGRES-FIX]: Run Drizzle migrations first
     // This MUST run before any other DB operations
+    const { runMigrations } = await import("./db-migrations");
+    await runMigrations();
+
+    // MIGRATION [POSTGRES-FIX]: Ensure schema consistency (adds missing columns)
     const { ensurePostgresColumns } = await import("./migrations/ensure_postgres_columns");
     await ensurePostgresColumns();
 
