@@ -50,7 +50,7 @@ services:
       # Persist user-uploaded files
       - uploads_data:/app/uploads
     ports:
-      - "${5000}:5000"
+      - "$5000:5000"
     networks:
       - open-verse-net
 
