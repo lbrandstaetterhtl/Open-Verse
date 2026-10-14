@@ -66,12 +66,14 @@ export async function runMigrations() {
         logger.info('db', `Completed migration: ${file}`);
       } catch (err: any) {
         // Some migrations may fail if tables already exist - that's OK
-        if (err.message?.includes('already exists') ||
-            err.code === '42P07') { // PostgreSQL duplicate table error
+        const errorCode = err.code || err.cause?.code;
+        const errorMessage = err.message || err.cause?.message || '';
+
+        if (errorMessage.includes('already exists') || errorCode === '42P07') {
           console.log(`[MIGRATIONS] Already applied: ${file}`);
           logger.info('db', `Migration ${file} already applied (skipped)`);
         } else {
-          console.error(`[MIGRATIONS] ✗ ERROR in ${file}:`, err.message);
+          console.error(`[MIGRATIONS] ✗ ERROR in ${file}:`, errorMessage);
           logger.error('db', `Failed to execute migration ${file}`, err);
           throw err;
         }
