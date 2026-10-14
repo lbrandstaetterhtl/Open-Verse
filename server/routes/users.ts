@@ -323,13 +323,21 @@ router.post("/profile-upload", isAuthenticated, profileUpload.single("image"), a
             return res.status(400).json({ error: "Invalid file signature" });
         }
 
-        // SEC-003: Sanitize image (strip metadata)
-        await sanitizeImage(req.file.path);
+        // SEC-003: Sanitize image (strip metadata) - only for images
+        if (req.file.mimetype.startsWith('image/')) {
+            try {
+                await sanitizeImage(req.file.path);
 
-        // Verify file exists after sanitization
-        if (!fs.existsSync(req.file.path)) {
-            console.error(`[Upload] File missing after sanitization: ${req.file.path}`);
-            return res.status(500).json({ error: "File processing error" });
+                // Verify file exists after sanitization
+                if (!fs.existsSync(req.file.path)) {
+                    console.error(`[Upload] File missing after sanitization: ${req.file.path}`);
+                    return res.status(500).json({ error: "File processing error" });
+                }
+            } catch (error) {
+                console.error(`[Upload] Sanitization failed: ${error}`);
+                fs.unlink(req.file.path, () => { });
+                return res.status(400).json({ error: "Failed to process image metadata" });
+            }
         }
 
         const userId = (req.user as any).id;

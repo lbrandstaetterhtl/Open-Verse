@@ -105,13 +105,15 @@ router.post("/background", isAuthenticated, themeBackgroundUpload.single("backgr
             return res.status(400).json({ error: "File signature mismatch - ensure file matches its extension" });
         }
 
-        // SEC-003: Sanitize background image
-        try {
-            await sanitizeImage(req.file.path);
-        } catch (error) {
-            console.error("Theme background sanitization failed:", error);
-            fs.unlink(req.file.path, () => { });
-            return res.status(400).json({ error: "Failed to process background image metadata" });
+        // SEC-003: Sanitize background image (only for images)
+        if (req.file.mimetype.startsWith('image/')) {
+            try {
+                await sanitizeImage(req.file.path);
+            } catch (error) {
+                console.error("Theme background sanitization failed:", error);
+                fs.unlink(req.file.path, () => { });
+                return res.status(400).json({ error: "Failed to process background image metadata" });
+            }
         }
 
         res.json({
