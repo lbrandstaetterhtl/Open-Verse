@@ -1,5 +1,6 @@
 import { db } from './db';
 import { logger } from './logger';
+import { sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -34,11 +35,19 @@ export async function runMigrations() {
 
     for (const file of files) {
       const filePath = path.join(migrationsDir, file);
-      const sql = fs.readFileSync(filePath, 'utf-8');
+      const sqlContent = fs.readFileSync(filePath, 'utf-8');
 
       try {
         logger.info('db', `Executing migration: ${file}`);
-        await db.execute(sql as any);
+        // Split by semicolon to handle multiple statements
+        const statements = sqlContent
+          .split(';')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
+        for (const statement of statements) {
+          await db.execute(sql.raw(statement));
+        }
         logger.info('db', `Completed migration: ${file}`);
       } catch (err: any) {
         // Some migrations may fail if tables already exist - that's OK
