@@ -2,7 +2,7 @@ import React, { ReactNode, useState, Suspense } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { Menu, Bell, PenSquare, ArrowLeft, Search } from "lucide-react";
+import { Menu, Bell, Plus, ArrowLeft, Search } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { SkeletonFeed } from "./skeleton-loaders";
@@ -98,7 +98,7 @@ function MobileHeader({
             {(location === "/feed/media" || location === "/") && (
               <Link href="/post/discussions">
                 <button className="p-2 rounded-sm hover:bg-foreground/5 hover:text-foreground transition-colors text-muted-foreground">
-                  <PenSquare className="h-5 w-5" />
+                  <Plus className="h-5 w-5" />
                 </button>
               </Link>
             )}

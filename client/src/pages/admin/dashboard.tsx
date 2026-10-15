@@ -1,33 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
-import {
-  Users,
-  Flag,
-  Shield,
-  ShieldOff,
-  UserPlus,
-  UserMinus,
-  Ban,
-  Check,
-  AlertTriangle,
-  BadgeCheck,
-  Search,
-  Trash2,
-  Activity,
-  UserCheck,
-  UserX,
-  MessagesSquare,
-  CheckCircle,
-  XCircle,
-  TrendingUp,
-  Filter,
-  MoreVertical,
-  ArrowRight,
-  Crown,
-  Trophy,
-  X,
-} from "lucide-react";
+import { Users, Flag, Shield, ShieldOff, UserPlus, UserMinus, Ban, Check, AlertTriangle, BadgeCheck, Search, Trash2, Activity, UserCheck, UserX, MessagesSquare, CheckCircle2, XCircle, TrendingUp, Filter, MoreHorizontal, ArrowRight, Crown, Trophy, X } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
@@ -541,7 +515,7 @@ export default function AdminDashboard() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreVertical className="h-4 w-4" />
+                                  <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56 p-2">
@@ -665,7 +639,7 @@ export default function AdminDashboard() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                                  <MoreVertical className="h-4 w-4" />
+                                  <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56 p-2">
@@ -785,7 +759,7 @@ export default function AdminDashboard() {
                                 updateReportMutation.mutate({ reportId: r.id, status: "resolved" }); 
                               }}
                             >
-                              <CheckCircle className="h-5 w-5" />
+                              <CheckCircle2 className="h-5 w-5" />
                             </Button>
                             <Button 
                               variant="outline" 

@@ -18,17 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  ThumbsUp,
-  ThumbsDown,
-  Loader2,
-  MessageCircle,
-  Trash2,
-  Heart,
-  BadgeCheck,
-  ImageOff,
-  ArrowLeft,
-} from "lucide-react";
+import { Heart, Loader2, MessageCircle, Trash2, BadgeCheck, ImageOff, ArrowLeft } from "lucide-react";
 import { ReportDialog } from "@/components/dialogs/report-dialog";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -65,7 +55,9 @@ export default function PostViewPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [, params] = useRoute("/posts/:id");
-  const postId = params?.id ? parseInt(params.id) : null;
+  const [, legacyParams] = useRoute("/post/:id");
+  const id = params?.id ?? legacyParams?.id;
+  const postId = id ? parseInt(id) : null;
   const [imageLoadError, setImageLoadError] = useState(false);
   const [, navigate] = useLocation();
 
@@ -410,21 +402,10 @@ export default function PostViewPage() {
                     disabled={reactionMutation.isPending}
                     className="h-8"
                   >
-                    <ThumbsUp
+                    <Heart
                       className={`h-4 w-4 mr-1 ${post.userVote?.isLike ? "fill-current" : ""}`}
                     />
                     <span className="ov-data text-xs lg:text-sm">{post.likes > 0 ? post.likes : 0}</span>
-                  </Button>
-                  <Button
-                    variant={post.userVote?.isLike === false ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => reactionMutation.mutate({ isLike: false })}
-                    disabled={reactionMutation.isPending}
-                    className="h-8"
-                  >
-                    <ThumbsDown
-                      className={`h-4 w-4 mr-1 ${post.userVote?.isLike === false ? "fill-current" : ""}`}
-                    />
                   </Button>
                 </div>
 

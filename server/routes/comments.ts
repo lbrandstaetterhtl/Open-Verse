@@ -35,7 +35,7 @@ router.post("/", isAuthenticated, async (req, res) => {
                 postId: post.id,
                 commentId: comment.id,
                 preview: comment.content.slice(0, 100),
-                actionUrl: `/post/${post.id}#comment-${comment.id}`
+                actionUrl: `/posts/${post.id}#comment-${comment.id}`
             });
         }
 
@@ -102,7 +102,7 @@ router.post("/:id/like", isAuthenticated, async (req, res) => {
                         type: "like_comment",
                         postId: comment.postId,
                         commentId: comment.id,
-                        actionUrl: `/post/${comment.postId}#comment-${comment.id}`
+                        actionUrl: `/posts/${comment.postId}#comment-${comment.id}`
                     });
                 }
             }

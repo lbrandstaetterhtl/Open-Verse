@@ -1,16 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useModeratorLeaderboard, useTeamOverview, useTriggerSnapshot } from "@/hooks/use-moderator-performance";
 import { KPICard } from "@/components/analytics/KPICard";
-import { 
-    ShieldCheck, 
-    TicketCheck, 
-    Clock, 
-    RefreshCcw,
-    TrendingUp,
-    Award,
-    AlertCircle,
-    BarChart2,
-} from "lucide-react";
+import { ShieldCheck, TicketCheck, Clock, RefreshCcw, TrendingUp, Award, AlertCircle, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -210,7 +201,7 @@ export default function ModeratorPerformancePage() {
                             </div>
                             
                             <div className="p-3 bg-muted/50 rounded-sm text-xs text-muted-foreground border border-border">
-                                <BarChart2 className="h-4 w-4 mb-1 inline mr-2 text-primary" />
+                                <BarChart3 className="h-4 w-4 mb-1 inline mr-2 text-primary" />
                                 {t("modPerf.scoring_hint", "Scores are recalculated daily. Weights are optimized to prioritize resolution speed and ticket quality.")}
                             </div>
 

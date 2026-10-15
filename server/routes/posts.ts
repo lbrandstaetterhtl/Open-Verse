@@ -368,7 +368,7 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
                     type: "like_post",
                     postId: post.id,
                     title: post.title,
-                    actionUrl: `/post/${post.id}`
+                    actionUrl: `/posts/${post.id}`
                 });
             }
         }

@@ -73,7 +73,8 @@ export const PostCard = React.memo(function PostCard({
   const isOwner = user?.id === author.id || user?.role === "owner" || (user?.role === "admin" && author.role !== "owner");
 
   const handleLike = useCallback(() => {
-    reactionMutation.mutate({ postId: post.id, isLike: !post.userReaction?.isLike });
+    // Liking again removes the like (the server toggles); isLike:false would record a dislike.
+    reactionMutation.mutate({ postId: post.id, isLike: true });
   }, [post.id, post.userReaction?.isLike, reactionMutation]);
 
   const isMediaVariant = variant === "media";

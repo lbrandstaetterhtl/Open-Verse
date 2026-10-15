@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Newspaper, Film, MessageCircle, ArrowRight } from "lucide-react";
+import { Newspaper, Film, MessagesSquare, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,7 @@ export function CreatePostSelectorDialog({
     {
       id: "discussion",
       href: "/post/discussions",
-      icon: MessageCircle,
+      icon: MessagesSquare,
       label: t("create_post.discussion.title", "Discussion"),
       description: t("create_post.discussion.selector_desc", "Start a deep conversation or ask the community."),
       iconColor: "bg-primary/10 text-primary",

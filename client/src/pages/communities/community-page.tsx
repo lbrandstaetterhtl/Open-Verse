@@ -13,17 +13,7 @@ import type { PostWithAuthor } from "@shared/types";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Users,
-  UserPlus,
-  UserMinus,
-  PlusCircle,
-  Flame,
-  Clock,
-  TrendingUp,
-  Loader2,
-  ShieldAlert,
-} from "lucide-react";
+import { Users, UserPlus, UserMinus, Plus, Flame, Clock, TrendingUp, Loader2, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -226,7 +216,7 @@ export default function CommunityPage() {
               {isMember && (
                 <Link href={`/post/${postLinkCategory}?communityId=${community.id}`}>
                   <Button>
-                    <PlusCircle className="h-4 w-4" />
+                    <Plus className="h-4 w-4" />
                     {t("community.page.create_post")}
                   </Button>
                 </Link>

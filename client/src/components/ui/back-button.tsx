@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 
@@ -35,7 +35,7 @@ export function BackButton({
       className={`gap-1 text-muted-foreground hover:text-foreground ${className}`}
       aria-label={label ?? t("common.back", "Zurück")}
     >
-      <ChevronLeft className="h-4 w-4" />
+      <ArrowLeft className="h-4 w-4" />
       {label ?? t("common.back", "Zurück")}
     </Button>
   );

@@ -16,17 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
-import {
-  Newspaper,
-  MessageSquare,
-  Users,
-  TrendingUp,
-  Info,
-  Eye,
-  EyeOff,
-  CheckCircle2,
-  ShieldCheck
-} from "lucide-react";
+import { Newspaper, MessagesSquare, Users, TrendingUp, Info, Eye, EyeOff, CheckCircle2, ShieldCheck } from "lucide-react";
 import { OpenVerseIcon } from "@/components/icons/open-verse-icon";
 import type { InsertUser, LoginCredentials } from "@shared/schema";
 import { insertUserSchema, loginSchema } from "@shared/schema";
@@ -123,7 +113,7 @@ export default function AuthPage() {
                 <h3 className="text-sm font-semibold">Quality News</h3>
               </div>
               <div className="ov-panel p-3">
-                <MessageSquare className="h-5 w-5 text-primary mb-2" />
+                <MessagesSquare className="h-5 w-5 text-primary mb-2" />
                 <h3 className="text-sm font-semibold">Discussions</h3>
               </div>
               <div className="ov-panel p-3">
@@ -170,7 +160,7 @@ export default function AuthPage() {
               </div>
             </motion.div>
             <motion.div variants={fadeInUp} className="flex items-start space-x-3">
-              <MessageSquare className="h-6 w-6 text-primary mt-1" />
+              <MessagesSquare className="h-6 w-6 text-primary mt-1" />
               <div>
                 <h3 className="font-semibold">Meaningful Discussions</h3>
                 <p className="text-sm text-muted-foreground">

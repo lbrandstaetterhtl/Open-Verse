@@ -3,7 +3,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
-import { MessageSquare, LayoutGrid, Heart, Calendar } from "lucide-react";
+import { MessageCircle, LayoutGrid, Heart, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 import { PostCard } from "@/components/post/post-card";
 
@@ -27,7 +27,7 @@ export function ProfileTabContent({ type, data, isLoading }: ProfileTabContentPr
   }
 
   if (!data || data.length === 0) {
-    const Icon = type === "posts" ? LayoutGrid : type === "comments" ? MessageSquare : Heart;
+    const Icon = type === "posts" ? LayoutGrid : type === "comments" ? MessageCircle : Heart;
     return (
       <div className="pt-12">
         <EmptyState 

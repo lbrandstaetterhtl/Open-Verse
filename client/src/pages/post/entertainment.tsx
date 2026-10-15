@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, SmilePlus } from "lucide-react";
+import { Loader2, Film } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -102,7 +102,7 @@ export default function CreateEntertainmentPage() {
           <Card>
             <CardHeader className="ov-rule mb-6">
               <CardTitle className="flex items-center gap-2">
-                <SmilePlus className="h-5 w-5 text-primary" />
+                <Film className="h-5 w-5 text-primary" />
                 <span>{t("create_post.entertainment.title")}</span>
               </CardTitle>
             </CardHeader>
