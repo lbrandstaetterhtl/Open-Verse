@@ -10,66 +10,85 @@ import type { PostWithAuthor } from "@shared/types";
 export function useFeedMutations() {
     const { toast } = useToast();
 
-    // Helper to update both specific post and feeds
-    const updatePostInCache = (postId: number, updater: (old: any) => any) => {
-        // 1. Update Post Detail Query
-        queryClient.setQueryData(["/api/posts", postId], updater);
+    // Post lists live under /api/posts... (feeds, detail) and /api/users/<name>/<tab> (profile tabs).
+    const isPostQuery = (key: readonly unknown[]) =>
+        typeof key[0] === "string" && (key[0].startsWith("/api/posts") || key[0].startsWith("/api/users/"));
 
-        // 2. Update all Feed Queries
-        queryClient.setQueriesData({ queryKey: ["/api/posts"] }, (old: any) => {
+    /** Applies `updater` to the post with this id wherever it is cached. Returns a snapshot for rollback. */
+    const updatePostInCache = (postId: number, updater: (old: any) => any) => {
+        const snapshot = queryClient.getQueriesData({ predicate: (q) => isPostQuery(q.queryKey) });
+        queryClient.setQueriesData({ predicate: (q) => isPostQuery(q.queryKey) }, (old: any) => {
             if (!old) return old;
-            
-            // Handle both flat arrays and paginated data
-            if (Array.isArray(old)) {
-                return old.map(p => p.id === postId ? updater(p) : p);
-            }
-            
+            if (Array.isArray(old)) return old.map((p) => (p?.id === postId ? updater(p) : p));
             if (old.pages) {
                 return {
                     ...old,
                     pages: old.pages.map((page: any) => ({
                         ...page,
-                        data: page.data?.map((p: any) => p.id === postId ? updater(p) : p)
-                    }))
+                        data: page.data?.map((p: any) => (p.id === postId ? updater(p) : p)),
+                    })),
                 };
             }
+            if (old.id === postId) return updater(old);
             return old;
         });
+        return snapshot;
     };
 
-    const reactionMutation = useMutation<any, Error, { postId: number; isLike: boolean }>({
+    const restore = (snapshot?: [readonly unknown[], unknown][]) => {
+        snapshot?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    };
+
+    const refreshPostQueries = () => queryClient.invalidateQueries({ predicate: (q) => isPostQuery(q.queryKey) });
+
+    // The server toggles: sending the same reaction again removes it.
+    const reactionMutation = useMutation<any, Error, { postId: number; isLike: boolean }, { snapshot: [readonly unknown[], unknown][] }>({
         mutationFn: async ({ postId, isLike }) => {
             const res = await apiRequest("POST", `/api/posts/${postId}/react`, { isLike });
             return res.json();
         },
-        // SMOOTH-FIX: Optimistic Update for reactions
         onMutate: async ({ postId, isLike }) => {
-            await queryClient.cancelQueries({ queryKey: ["/api/posts"] });
-            const previousPosts = queryClient.getQueryData(["/api/posts"]);
-
-            updatePostInCache(postId, (old: any) => {
-                if (!old) return old;
-                const prevUserReaction = old.userReaction?.isLike;
-                const newLikes = old.reactions.likes + (isLike ? (prevUserReaction === true ? 0 : 1) : (prevUserReaction === true ? -1 : 0));
-                const newDislikes = old.reactions.dislikes + (!isLike ? (prevUserReaction === false ? 0 : 1) : (prevUserReaction === false ? -1 : 0));
-                
+            await queryClient.cancelQueries({ predicate: (q) => isPostQuery(q.queryKey) });
+            const snapshot = updatePostInCache(postId, (old: any) => {
+                const prev = old.userReaction ? !!old.userReaction.isLike : undefined;
+                const removing = prev === isLike;
+                const reactions = old.reactions ?? { likes: 0, dislikes: 0 };
+                const likes = reactions.likes + (isLike ? (removing ? -1 : 1) : prev === true ? -1 : 0);
+                const dislikes = reactions.dislikes + (!isLike ? (removing ? -1 : 1) : prev === false ? -1 : 0);
                 return {
                     ...old,
-                    userReaction: { isLike },
-                    reactions: { likes: newLikes, dislikes: newDislikes }
+                    userReaction: removing ? null : { isLike },
+                    reactions: { likes: Math.max(0, likes), dislikes: Math.max(0, dislikes) },
                 };
             });
+            return { snapshot };
+        },
+        onError: (_err, _vars, context) => {
+            restore(context?.snapshot);
+            toast({ title: "Like failed", variant: "destructive" });
+        },
+        onSettled: () => refreshPostQueries(),
+    });
 
-            return { previousPosts };
+    // Bookmarks ("Merken"): saved=true saves, saved=false removes.
+    const saveMutation = useMutation<any, Error, { postId: number; saved: boolean }, { snapshot: [readonly unknown[], unknown][] }>({
+        mutationFn: async ({ postId, saved }) => {
+            const res = await apiRequest(saved ? "POST" : "DELETE", `/api/posts/${postId}/save`);
+            return res.json();
         },
-        onError: (_, __, context) => {
-            if (context?.previousPosts) {
-                queryClient.setQueryData(["/api/posts"], context.previousPosts);
-            }
+        onMutate: async ({ postId, saved }) => {
+            await queryClient.cancelQueries({ predicate: (q) => isPostQuery(q.queryKey) });
+            const snapshot = updatePostInCache(postId, (old: any) => ({ ...old, isSaved: saved }));
+            return { snapshot };
         },
-        onSettled: (data, error, { postId }) => {
-            queryClient.invalidateQueries({ queryKey: ["/api/posts", postId] });
+        onError: (_err, _vars, context) => {
+            restore(context?.snapshot);
+            toast({ title: "Saving failed", variant: "destructive" });
         },
+        onSuccess: (_data, { saved }) => {
+            toast({ title: saved ? "Saved" : "Removed from saved" });
+        },
+        onSettled: () => refreshPostQueries(),
     });
 
     const followMutation = useMutation({
@@ -149,7 +168,7 @@ export function useFeedMutations() {
             if (!res.ok) throw new Error(await res.text());
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+            refreshPostQueries();
             toast({ title: "Success", description: "Post deleted successfully" });
         },
     });
@@ -189,6 +208,7 @@ export function useFeedMutations() {
 
     return {
         reactionMutation,
+        saveMutation,
         followMutation,
         unfollowMutation,
         createCommentMutation,

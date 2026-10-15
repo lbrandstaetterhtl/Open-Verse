@@ -1,20 +1,23 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, MessageCircle, Heart } from "lucide-react";
+import { LayoutGrid, MessageCircle, Heart, Bookmark } from "lucide-react";
 
 interface ProfileTabsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   counts?: { posts: number; comments: number; liked: number };
+  /** Saved posts are private, so the tab only appears on your own profile. */
+  showSaved?: boolean;
 }
 
-export function ProfileTabs({ activeTab, onTabChange, counts }: ProfileTabsProps) {
+export function ProfileTabs({ activeTab, onTabChange, counts, showSaved }: ProfileTabsProps) {
   const { t } = useTranslation();
 
   const tabs = [
     { id: "posts", label: t("profile.tabs.posts", "Posts"), icon: LayoutGrid, count: counts?.posts },
     { id: "comments", label: t("profile.tabs.comments", "Comments"), icon: MessageCircle, count: counts?.comments },
     { id: "liked", label: t("profile.tabs.liked", "Likes"), icon: Heart, count: counts?.liked },
+    ...(showSaved ? [{ id: "saved", label: t("profile.tabs.saved", "Saved"), icon: Bookmark, count: undefined }] : []),
   ];
 
   return (

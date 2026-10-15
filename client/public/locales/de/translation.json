@@ -664,5 +664,16 @@
     "eyebrow_audit": "Admin / Audit",
     "eyebrow_monitoring": "Admin / Monitoring",
     "eyebrow_moderation": "Admin / Moderation"
+  },
+  "post_actions": {
+    "comment": "Kommentieren",
+    "like": "Gefällt mir",
+    "save": "Merken",
+    "share": "Teilen",
+    "link_copied": "Link kopiert",
+    "copy_failed": "Diesen Link kopieren",
+    "delete_post": "Beitrag löschen",
+    "delete_comment": "Kommentar löschen",
+    "like_comment": "Kommentar gefällt mir"
   }
 }

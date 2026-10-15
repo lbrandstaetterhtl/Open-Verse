@@ -86,7 +86,7 @@ export function ReportDialog({ type, id, trigger }: ReportDialogProps) {
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
         {trigger || (
-          <Button variant="ghost" size="sm" className="h-8">
+          <Button variant="ghost" size="sm" className="h-8" aria-label="Report">
             <Flag className="h-4 w-4 lg:mr-1" />
             <span className="text-xs lg:text-sm hidden lg:inline">Report</span>
           </Button>
@@ -103,7 +103,7 @@ export function ReportDialog({ type, id, trigger }: ReportDialogProps) {
 
         <div className="py-4">
           <Select value={reason} onValueChange={setReason}>
-            <SelectTrigger>
+            <SelectTrigger aria-label="Reason">
               <SelectValue placeholder="Select a reason" />
             </SelectTrigger>
             <SelectContent>

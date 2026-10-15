@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import React, { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFeedMutations } from "@/hooks/use-feed-mutations";
+import { useToast } from "@/hooks/use-toast";
+import { sharePost } from "@/lib/share-post";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ReportDialog } from "@/components/dialogs/report-dialog";
@@ -57,11 +59,15 @@ export const PostCard = React.memo(function PostCard({
   const { user } = useAuth();
   const [imageLoadError, setImageLoadError] = useState(false);
 
+  const { toast } = useToast();
   const {
     reactionMutation,
+    saveMutation,
     deletePostMutation,
     prefetchPost,
   } = useFeedMutations();
+  const isSaved = !!(post as any).isSaved;
+  const commentCount = (post as any).commentCount ?? post.comments?.length;
 
   const author = post.author ?? {
     username: "Unknown",
@@ -220,16 +226,16 @@ export const PostCard = React.memo(function PostCard({
             <div className="flex items-center gap-1">
               <ActionButton 
                 icon={MessageCircle} 
-                count={post.comments?.length} 
-                label="Reply"
+                count={commentCount} 
+                label={t("post_actions.comment", "Comment")}
                 href={`/posts/${post.id}`} 
                 className="hover:text-primary hover:bg-primary/10"
               />
               <ActionButton 
                 icon={Heart} 
                 count={post.reactions?.likes} 
-                label="Like"
-                active={post.userReaction?.isLike}
+                label={t("post_actions.like", "Like")}
+                active={!!post.userReaction?.isLike}
                 activeColor="text-destructive bg-destructive/10"
                 onClick={handleLike}
                 animate="like-pop"
@@ -239,18 +245,19 @@ export const PostCard = React.memo(function PostCard({
             <div className="flex items-center gap-1">
               <ActionButton 
                 icon={Bookmark} 
-                label="Save"
-                onClick={() => {}} 
+                label={t("post_actions.save", "Save")}
+                active={isSaved}
+                activeColor="text-star bg-star/10"
+                onClick={() => saveMutation.mutate({ postId: post.id, saved: !isSaved })} 
                 className="hover:text-star hover:bg-star/10"
               />
               <ActionButton 
                 icon={Share2} 
-                label="Share"
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({ title: post.title, text: post.content, url: window.location.origin + `/posts/${post.id}` });
-                  }
-                }} 
+                label={t("post_actions.share", "Share")}
+                onClick={() => sharePost(post, toast, {
+                  copied: t("post_actions.link_copied", "Link copied"),
+                  copyFailed: t("post_actions.copy_failed", "Copy this link"),
+                })} 
                 className="hover:text-primary hover:bg-primary/10"
               />
             </div>
@@ -314,7 +321,7 @@ function ActionButton({
 
   if (href) {
     return (
-      <Link href={href} className="group min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label={label}>
+      <Link href={href} className="group min-h-[44px] min-w-[44px] flex items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={label}>
         {Content}
       </Link>
     );
@@ -322,9 +329,11 @@ function ActionButton({
 
   return (
     <button 
+      type="button"
       onClick={handleClick} 
-      className="group min-h-[44px] min-w-[44px] flex items-center justify-center outline-none" 
+      className="group min-h-[44px] min-w-[44px] flex items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" 
       aria-label={label}
+      aria-pressed={active === undefined ? undefined : active}
     >
       {Content}
     </button>
@@ -339,7 +348,7 @@ function PostMenu({ post, isOwner, onDelete, reportType }: { post: any, isOwner:
       {isOwner && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+            <Button variant="ghost" size="icon" aria-label={t("post_actions.delete_post", "Delete post")} className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
               <Trash2 className="h-4 w-4" />
             </Button>
           </AlertDialogTrigger>

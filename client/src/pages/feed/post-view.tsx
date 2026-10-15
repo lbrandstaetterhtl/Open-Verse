@@ -18,7 +18,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Heart, Loader2, MessageCircle, Trash2, BadgeCheck, ImageOff, ArrowLeft } from "lucide-react";
+import { Heart, Loader2, MessageCircle, Trash2, BadgeCheck, ImageOff, ArrowLeft, Bookmark, Share2 } from "lucide-react";
+import { useFeedMutations } from "@/hooks/use-feed-mutations";
+import { sharePost } from "@/lib/share-post";
 import { ReportDialog } from "@/components/dialogs/report-dialog";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -53,6 +55,7 @@ type PostWithAuthor = Post & {
 export default function PostViewPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { saveMutation } = useFeedMutations();
   const { user } = useAuth();
   const [, params] = useRoute("/posts/:id");
   const [, legacyParams] = useRoute("/post/:id");
@@ -105,6 +108,7 @@ export default function PostViewPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ predicate: (q) => typeof q.queryKey[0] === "string" && q.queryKey[0].startsWith("/api/users/") });
     },
   });
 
@@ -175,6 +179,9 @@ export default function PostViewPage() {
     },
   });
 
+  // The post endpoint sends isFollowing next to the author, not inside it.
+  const isFollowingAuthor = !!((post as any)?.isFollowing ?? post?.author?.isFollowing);
+
   return (
     <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
@@ -222,10 +229,10 @@ export default function PostViewPage() {
                     </span>
                     {post.author.id !== user?.id && (
                       <Button
-                        variant={post.author.isFollowing ? "default" : "outline"}
+                        variant={isFollowingAuthor ? "default" : "outline"}
                         size="sm"
                         onClick={() => {
-                          if (post.author.isFollowing) {
+                          if (isFollowingAuthor) {
                             unfollowMutation.mutate(post.author.id);
                           } else {
                             followMutation.mutate(post.author.id);
@@ -234,7 +241,7 @@ export default function PostViewPage() {
                         disabled={followMutation.isPending || unfollowMutation.isPending}
                         className="text-xs lg:text-sm"
                       >
-                        {post.author.isFollowing ? t("feed.following") : t("feed.follow")}
+                        {isFollowingAuthor ? t("feed.following") : t("feed.follow")}
                       </Button>
                     )}
                   </div>
@@ -342,6 +349,8 @@ export default function PostViewPage() {
                             <Button
                               variant={comment.isLiked ? "default" : "ghost"}
                               size="sm"
+                              aria-label={t("post_actions.like_comment", "Like comment")}
+                              aria-pressed={!!comment.isLiked}
                               onClick={() => likeCommentMutation.mutate(comment.id)}
                               disabled={likeCommentMutation.isPending}
                               className="h-8"
@@ -361,6 +370,7 @@ export default function PostViewPage() {
                                       size="sm"
                                       disabled={deleteCommentMutation.isPending}
                                       className="h-8 w-8 p-0"
+                                      aria-label={t("post_actions.delete_comment", "Delete comment")}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -401,11 +411,36 @@ export default function PostViewPage() {
                     onClick={() => reactionMutation.mutate({ isLike: true })}
                     disabled={reactionMutation.isPending}
                     className="h-8"
+                    aria-label={t("post_actions.like", "Like")}
+                    aria-pressed={!!post.userVote?.isLike}
                   >
                     <Heart
                       className={`h-4 w-4 mr-1 ${post.userVote?.isLike ? "fill-current" : ""}`}
                     />
                     <span className="ov-data text-xs lg:text-sm">{post.likes > 0 ? post.likes : 0}</span>
+                  </Button>
+                  <Button
+                    variant={(post as any).isSaved ? "default" : "ghost"}
+                    size="sm"
+                    className="h-8"
+                    aria-label={t("post_actions.save", "Save")}
+                    aria-pressed={!!(post as any).isSaved}
+                    disabled={saveMutation.isPending}
+                    onClick={() => saveMutation.mutate({ postId: post.id, saved: !(post as any).isSaved })}
+                  >
+                    <Bookmark className={`h-4 w-4 ${(post as any).isSaved ? "fill-current" : ""}`} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8"
+                    aria-label={t("post_actions.share", "Share")}
+                    onClick={() => sharePost(post, toast, {
+                      copied: t("post_actions.link_copied", "Link copied"),
+                      copyFailed: t("post_actions.copy_failed", "Copy this link"),
+                    })}
+                  >
+                    <Share2 className="h-4 w-4" />
                   </Button>
                 </div>
 
@@ -420,6 +455,7 @@ export default function PostViewPage() {
                             size="sm"
                             disabled={deletePostMutation.isPending}
                             className="h-8"
+                            aria-label={t("post_actions.delete_post", "Delete post")}
                           >
                             {deletePostMutation.isPending ? (
                               <Loader2 className="h-4 w-4 animate-spin" />

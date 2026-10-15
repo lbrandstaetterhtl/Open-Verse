@@ -136,6 +136,14 @@ export const postLikes = pgTable("post_likes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Bookmarks ("Merken"); unique per user and post (migrations/0002_saved_posts.sql).
+export const savedPosts = pgTable("saved_posts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  postId: integer("post_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const commentLikes = pgTable("comment_likes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),

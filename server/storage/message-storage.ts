@@ -71,7 +71,7 @@ export class MessageStorage {
       return res.count;
     }
     const result = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(messages)
       .where(and(eq(messages.receiverId, userId), eq(messages.read, 0)));
 

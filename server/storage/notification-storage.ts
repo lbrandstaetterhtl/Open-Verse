@@ -165,8 +165,8 @@ export class NotificationStorage {
       return { unread: unread.count, unseen: unseen.count };
     }
 
-    const unreadResult = await db.select({ count: sql<number>`count(*)` }).from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.read, 0), eq(notifications.archived, 0)));
-    const unseenResult = await db.select({ count: sql<number>`count(*)` }).from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.seen, 0), eq(notifications.archived, 0)));
+    const unreadResult = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.read, 0), eq(notifications.archived, 0)));
+    const unseenResult = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.seen, 0), eq(notifications.archived, 0)));
 
     return {
       unread: Number(unreadResult[0].count),

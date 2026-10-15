@@ -13,6 +13,7 @@ import { sanitizeUser } from "../storage";
 import { SettingsService } from "../services/settings";
 import { activityLogger } from "../services/activity-logger";
 import { parsePagination } from "../utils/pagination";
+import { getPostExtras } from "../utils/post-extras";
 
 const router = Router();
 
@@ -209,7 +210,8 @@ router.get("/:id", async (req, res) => {
             comments: filteredComments,
             likes: reactions.likes - reactions.dislikes,
             userVote: userReaction,
-            isFollowing
+            isFollowing,
+            isSaved: req.user ? (await storage.getSavedPostIds((req.user as any).id, [post.id])).has(post.id) : false
         });
     } catch (error) {
         console.error('Error fetching post:', error);
@@ -237,6 +239,7 @@ router.get("/", async (req, res) => {
         // PERF-FIX [OPT-002]: Batch fetch reactions (Prevents N+1)
         const postIds = filteredPosts.map(p => p.id);
         const batchReactions = await storage.getBatchPostReactions(postIds);
+        const extras = await getPostExtras(postIds, (req.user as any)?.id);
 
         let postsWithDetails = await Promise.all(filteredPosts.map(async (post) => {
             const author = authorsMap.get(post.authorId);
@@ -255,7 +258,8 @@ router.get("/", async (req, res) => {
                     isFollowing
                 },
                 reactions,
-                userReaction
+                userReaction,
+                ...extras(post.id)
             };
         }));
 
@@ -312,6 +316,31 @@ router.delete("/:id", isAuthenticated, async (req, res) => {
     } catch (error) {
         console.error('Error deleting post:', error);
         res.status(500).send("Failed to delete post");
+    }
+});
+
+// Bookmarks ("Merken"): POST saves, DELETE removes. Both are idempotent.
+router.post("/:id/save", isAuthenticated, async (req, res) => {
+    try {
+        const postId = parseInt(req.params.id);
+        if (!Number.isInteger(postId) || !(await storage.getPost(postId))) return res.status(404).send("Post not found");
+        await storage.savePost((req.user as any).id, postId);
+        res.json({ saved: true });
+    } catch (error) {
+        console.error("Error saving post:", error);
+        res.status(500).send("Failed to save post");
+    }
+});
+
+router.delete("/:id/save", isAuthenticated, async (req, res) => {
+    try {
+        const postId = parseInt(req.params.id);
+        if (!Number.isInteger(postId)) return res.status(404).send("Post not found");
+        await storage.unsavePost((req.user as any).id, postId);
+        res.json({ saved: false });
+    } catch (error) {
+        console.error("Error removing saved post:", error);
+        res.status(500).send("Failed to remove saved post");
     }
 });
 
