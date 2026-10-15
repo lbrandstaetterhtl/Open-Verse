@@ -1,13 +1,13 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Circle, Clock, PauseCircle, CheckCircle, XCircle, AlertCircle, ArrowUp, ArrowRight, ArrowDown } from "lucide-react";
+import { Circle, Clock, PauseCircle, CheckCircle2, XCircle, AlertCircle, ArrowUp, ArrowRight, ArrowDown } from "lucide-react";
 
 const STATUS_CONFIG = {
   open: { color: "ov-chip-primary", icon: Circle },
   in_progress: { color: "ov-chip-star", icon: Clock },
   on_hold: { color: "", icon: PauseCircle },
-  resolved: { color: "ov-chip-success", icon: CheckCircle },
+  resolved: { color: "ov-chip-success", icon: CheckCircle2 },
   closed: { color: "", icon: XCircle }
 } as const;
 

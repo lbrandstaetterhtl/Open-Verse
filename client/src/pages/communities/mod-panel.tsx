@@ -37,17 +37,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  MoreHorizontal,
-  Ban,
-  CheckCircle,
-  XCircle,
-  Search,
-  UserPlus,
-  Trash2,
-  UserMinus,
-  Crown,
-} from "lucide-react";
+import { MoreHorizontal, Ban, CheckCircle2, XCircle, Search, UserPlus, Trash2, UserMinus, Crown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -309,7 +299,7 @@ function ReportsManager({ communityId }: { communityId: number }) {
                             }
                             disabled={updateReportMutation.isPending}
                           >
-                            <CheckCircle className="h-4 w-4 text-primary" />
+                            <CheckCircle2 className="h-4 w-4 text-primary" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -1169,7 +1159,7 @@ function RequestsManager({ communityId }: { communityId: number }) {
                         onClick={() => approveMutation.mutate(request.userId)}
                         disabled={approveMutation.isPending}
                       >
-                        <CheckCircle className="h-4 w-4 text-primary" />
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
                       </Button>
                       <Button
                         variant="ghost"

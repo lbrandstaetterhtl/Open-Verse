@@ -1,19 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { de, enUS, es, fr, it, zhCN } from "date-fns/locale";
-import { 
-  Heart, 
-  MessageSquare, 
-  UserPlus, 
-  AtSign, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Info,
-  Circle,
-  MoreHorizontal,
-  Trash2,
-  CheckCircle2,
-  Users
-} from "lucide-react";
+import { Heart, MessageCircle, UserPlus, AtSign, ShieldCheck, ShieldAlert, Info, Circle, MoreHorizontal, Trash2, CheckCircle2, Users } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { 
@@ -57,7 +44,7 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
         return <Heart className="h-4 w-4 text-star fill-star" />;
       case "comment_post":
       case "comment_reply":
-        return <MessageSquare className="h-4 w-4 text-primary" />;
+        return <MessageCircle className="h-4 w-4 text-primary" />;
       case "new_follower":
         return <UserPlus className="h-4 w-4 text-primary" />;
       case "mention_post":

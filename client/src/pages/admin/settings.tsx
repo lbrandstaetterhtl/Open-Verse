@@ -1,21 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { 
-  Users, 
-  Shield, 
-  Mail, 
-  Palette, 
-  Save, 
-  RotateCcw,
-  Eye,
-  EyeOff,
-  AlertTriangle,
-  Globe,
-  Search,
-  Clock,
-  MessageSquare
-} from "lucide-react";
+import { Users, Shield, Mail, Palette, Save, RotateCcw, Eye, EyeOff, AlertTriangle, Globe, Search, Clock, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { PageHeader } from "@/components/layout/page-header";
@@ -34,7 +20,7 @@ import { type AdminSetting } from "@shared/schema";
 const CATEGORIES = [
   { id: "general", label: "General", icon: Globe, description: "Core site identification and status." },
   { id: "users", label: "Users", icon: Users, description: "Authentication and member management." },
-  { id: "content", label: "Content", icon: MessageSquare, description: "Posting and moderation rules." },
+  { id: "content", label: "Content", icon: FileText, description: "Posting and moderation rules." },
   { id: "email", label: "Email", icon: Mail, description: "SMTP and notification delivery." },
   { id: "security", label: "Security", icon: Shield, description: "Access control and protection." },
   { id: "appearance", label: "Appearance", icon: Palette, description: "Themes and visual branding." },

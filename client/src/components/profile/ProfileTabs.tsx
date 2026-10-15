@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, MessageSquare, Heart } from "lucide-react";
+import { LayoutGrid, MessageCircle, Heart } from "lucide-react";
 
 interface ProfileTabsProps {
   activeTab: string;
@@ -13,7 +13,7 @@ export function ProfileTabs({ activeTab, onTabChange, counts }: ProfileTabsProps
 
   const tabs = [
     { id: "posts", label: t("profile.tabs.posts", "Posts"), icon: LayoutGrid, count: counts?.posts },
-    { id: "comments", label: t("profile.tabs.comments", "Comments"), icon: MessageSquare, count: counts?.comments },
+    { id: "comments", label: t("profile.tabs.comments", "Comments"), icon: MessageCircle, count: counts?.comments },
     { id: "liked", label: t("profile.tabs.liked", "Likes"), icon: Heart, count: counts?.liked },
   ];
 

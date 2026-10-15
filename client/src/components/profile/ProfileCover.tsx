@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Camera, Edit3 } from "lucide-react";
+import { Camera, Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -84,7 +84,7 @@ export function ProfileCover({
                  onClick={onEditAvatar}
                  className="ov-avatar absolute inset-0 z-10 flex items-center justify-center bg-background/60 text-foreground transition-colors"
                >
-                 <Edit3 className="h-7 w-7" />
+                 <Pencil className="h-7 w-7" />
                </motion.button>
              )}
            </div>

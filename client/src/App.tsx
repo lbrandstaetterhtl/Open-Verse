@@ -82,6 +82,8 @@ function Router() {
         <ProtectedRoute path="/post/discussion" component={PostDiscussionsPage} />
         <ProtectedRoute path="/post/news" component={PostNewsPage} />
         <ProtectedRoute path="/post/entertainment" component={PostEntertainmentPage} />
+        {/* Older notifications link to /post/<id>; the post page lives at /posts/<id>. */}
+        <ProtectedRoute path="/post/:id" component={PostViewPage} />
 
         {/* User Routes */}
         <ProtectedRoute path="/profile" component={ProfilePage} />

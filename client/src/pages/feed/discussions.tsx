@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { Plus, MessageCircle, Filter, Hash, Quote } from "lucide-react";
+import { Plus, MessagesSquare, Filter, Hash, Quote } from "lucide-react";
 import { Link } from "wouter";
 import { PostCard } from "@/components/post/post-card";
 import type { PostWithAuthor } from "@shared/types";
@@ -81,7 +81,7 @@ export default function DiscussionsFeedPage() {
               className="ov-panel flex flex-col items-center justify-center px-6 py-16 md:py-24 text-center"
             >
               <div className="ov-cut mb-6 flex h-14 w-14 items-center justify-center rounded-sm bg-primary/10 md:h-16 md:w-16">
-                <MessageCircle className="h-7 w-7 text-primary md:h-8 md:w-8" />
+                <MessagesSquare className="h-7 w-7 text-primary md:h-8 md:w-8" />
               </div>
               <h3 className="font-display text-xl md:text-2xl font-semibold mb-2">{t("feed.no_discussions", "Silence in the Verse")}</h3>
               <p className="text-muted-foreground text-sm md:text-base max-w-sm px-4">{t("feed.no_discussions_desc", "Every great movement started with a single word. Be the first to speak.")}</p>

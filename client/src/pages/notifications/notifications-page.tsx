@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { BackButton } from "@/components/ui/back-button";
-import { Bell, CheckCircle2, Settings2, Trash2, Sliders } from "lucide-react";
+import { Bell, CheckCircle2, Settings, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/layout/page-header";
 
@@ -81,7 +81,7 @@ export default function NotificationsPage() {
                     value="settings" 
                     className="flex-1 h-10"
                   >
-                    <Settings2 className="h-4 w-4 mr-2" />
+                    <Settings className="h-4 w-4 mr-2" />
                     {t("notifications.tabs.settings", "Settings")}
                   </TabsTrigger>
                </TabsList>

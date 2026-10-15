@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Search, PlusSquare, Bell, User, MessageCircle } from "lucide-react";
+import { Home, Search, Plus, Bell, User, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationCounts } from "@/hooks/use-notifications";
@@ -29,12 +29,12 @@ export function MobileBottomNav() {
     },
     {
       to:    "/feed/discussions",
-      icon:  MessageCircle,
+      icon:  MessagesSquare,
       label: t("navigation.discussions", "Talk"),
     },
     {
       to:      "/ai-generator",
-      icon:    PlusSquare,
+      icon:    Plus,
       label:   t("navigation.create", "Create"),
       isPrimary: true,
     },

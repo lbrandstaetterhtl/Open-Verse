@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TicketStatusBadge, TicketPriorityBadge } from "@/components/tickets/badges";
-import { Loader2, History, User, Clock, UserCircle2 } from "lucide-react";
+import { Loader2, History, User, Clock, UserCircle } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { BackButton } from "@/components/ui/back-button";
@@ -147,7 +147,7 @@ export default function TicketDetailPage() {
             <Card className="overflow-hidden">
               <CardHeader className="px-6 py-4 ov-rule">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                  <UserCircle2 className="w-4 h-4 text-primary" />
+                  <UserCircle className="w-4 h-4 text-primary" />
                   <span className="font-semibold text-foreground">{ticket.creatorUsername}</span>
                   <span className="text-muted-foreground">initiated signal</span>
                   <span className="ov-data text-xs text-muted-foreground ml-auto" title={format(new Date(ticket.createdAt), "PPpp")}>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}</span>

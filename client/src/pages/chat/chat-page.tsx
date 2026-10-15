@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef, useEffect } from "react";
-import { Loader2, Info, Menu, MessageSquare } from "lucide-react";
+import { Loader2, Info, Menu, Send } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -288,7 +288,7 @@ export default function ChatPage() {
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 text-center">
                  <div className="ov-panel p-8">
-                    <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
+                    <Send className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
                     <h2 className="font-display text-xl font-semibold mb-2">No Chat Selected</h2>
                     <p className="text-sm text-muted-foreground max-w-xs">
                       Pick a friend from the list and start vibing.

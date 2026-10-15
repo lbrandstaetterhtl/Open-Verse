@@ -3,35 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  Home,
-  MessageSquare,
-  Users,
-  Bell,
-  User,
-  Shield,
-  LayoutDashboard,
-  Flag,
-  Activity,
-  Zap,
-  Ticket,
-  ArrowLeft,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  BarChart3,
-  Award,
-  ShieldAlert,
-  Radar,
-  ShieldBan,
-  Bot,
-  Palette,
-  LogOut,
-  MoreHorizontal,
-  Menu,
-  Sparkle,
-} from "lucide-react";
+import { Home, Send, MessagesSquare, Users, Bell, User, Shield, LayoutDashboard, Flag, Activity, Zap, Ticket, ArrowLeft, Settings, ChevronLeft, ChevronRight, X, BarChart3, Award, ShieldAlert, Radar, ShieldBan, Bot, Palette, LogOut, MoreHorizontal, Menu, Sparkles } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   DropdownMenu,
@@ -161,10 +133,10 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
 
   const publicNav: NavItem[] = [
     { href: "/feed/media", icon: Home, label: t("navbar.media_feed", "Feed"), exact: true },
-    { href: "/feed/discussions", icon: MessageSquare, label: t("navbar.discussions_feed", "Discussions") },
+    { href: "/feed/discussions", icon: MessagesSquare, label: t("navbar.discussions_feed", "Discussions") },
     { href: "/feed/communities", icon: Users, label: t("navbar.communities", "Communities") },
     { href: "/notifications", icon: Bell, label: t("navigation.notifications", "Notifications") },
-    { href: "/chat", icon: MessageSquare, label: t("navbar.messages", "Messages") },
+    { href: "/chat", icon: Send, label: t("navbar.messages", "Messages") },
     { href: "/ai-generator", icon: Bot, label: "AI Generator" },
     { href: "/theme-builder", icon: Palette, label: "Theme Builder" },
     { href: "/profile", icon: User, label: t("navbar.profile", "Profile") },
@@ -215,7 +187,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
           className={cn("flex items-center gap-2.5 flex-1 min-w-0", collapsed && "lg:hidden")}
         >
           <div className="ov-panel h-8 w-8 flex items-center justify-center flex-shrink-0">
-            <Sparkle className="h-4 w-4 text-star fill-current" aria-hidden="true" />
+            <Sparkles className="h-4 w-4 text-star fill-current" aria-hidden="true" />
           </div>
           {!collapsed && (
             <span className="font-display font-semibold text-[16px] truncate sidebar-label">Osiris</span>
