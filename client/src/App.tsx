@@ -185,8 +185,8 @@ function LoadingScreen() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-background z-[9999]">
       <div className="flex flex-col items-center gap-4">
-        <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-        <p className="text-sm font-medium text-muted-foreground animate-pulse">Initializing Osiris...</p>
+        <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <p className="ov-label animate-pulse">Initializing Osiris...</p>
       </div>
     </div>
   );

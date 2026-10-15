@@ -50,11 +50,11 @@ export function ColorPicker({ label, description, value, defaultValue, contrastA
         </div>
         <div className="flex items-center gap-2">
           {contrastInfo && (
-            <div 
-              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tighter mr-1 ${
-                contrastInfo.status === "AAA" ? "bg-emerald-500/10 text-emerald-500" :
-                contrastInfo.status === "AA" ? "bg-blue-500/10 text-blue-500" :
-                "bg-red-500/10 text-red-500"
+            <div
+              className={`ov-chip ov-data mr-1 h-5 gap-1 px-1.5 text-[10px] font-semibold ${
+                contrastInfo.status === "AAA" ? "ov-chip-success text-foreground" :
+                contrastInfo.status === "AA" ? "ov-chip-primary" :
+                "ov-chip-danger"
               }`}
               title={`Contrast ratio: ${contrastInfo.ratio.toFixed(1)}:1 (${contrastInfo.status})`}
             >
@@ -75,11 +75,11 @@ export function ColorPicker({ label, description, value, defaultValue, contrastA
             </Button>
           )}
 
-          <div className="flex items-center bg-background rounded-md border p-1 pr-2 shadow-sm">
+          <div className="flex items-center rounded-sm border border-input bg-background p-1 pr-2">
             <Popover>
               <PopoverTrigger asChild>
-                <button 
-                  className="h-6 w-6 rounded border shadow-inner mr-2" 
+                <button
+                  className="mr-2 h-6 w-6 rounded-xs border border-border"
                   style={{ backgroundColor: hexValue }} 
                 />
               </PopoverTrigger>
@@ -90,7 +90,7 @@ export function ColorPicker({ label, description, value, defaultValue, contrastA
             <Input
               value={hexValue.toUpperCase()}
               onChange={(e) => handleChange(e.target.value)}
-              className="h-7 w-[85px] text-xs font-mono border-0 p-1 focus-visible:ring-0 bg-transparent"
+              className="h-7 w-[85px] border-0 bg-transparent p-1 font-data text-xs focus-visible:ring-0"
               maxLength={7}
             />
           </div>

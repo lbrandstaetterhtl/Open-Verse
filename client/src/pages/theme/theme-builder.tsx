@@ -27,6 +27,14 @@ import {
   Sparkles,
   Sun,
   Contrast as ContrastIcon,
+  Hexagon,
+  PanelTop,
+  Orbit,
+  Users,
+  FileText,
+  Heart,
+  MessageCircle,
+  BadgeCheck,
 } from "lucide-react";
 import {
   exportTheme,
@@ -39,10 +47,27 @@ import {
   clearActiveThemeInfo,
   ACTIVE_THEME_EVENT,
   availableFonts,
+  dataFonts,
   generateRandomTheme,
+  normalizeShape,
+  normalizeSurface,
+  normalizeFonts,
+  normalizeGalaxy,
 } from "@/lib/theme-utils";
 import { useToast } from "@/hooks/use-toast";
-import type { ThemeColors, CustomTheme, BackgroundMode, ParticleConfig } from "@/lib/theme-utils";
+import type {
+  ThemeColors,
+  CustomTheme,
+  BackgroundMode,
+  ParticleConfig,
+  ShapeConfig,
+  ShapeStyle,
+  AvatarShape,
+  SurfaceConfig,
+  SurfaceMode,
+  FontConfig,
+  GalaxyConfig,
+} from "@/lib/theme-utils";
 import { galaxyGradients, defaultBackground, defaultParticles, applyParticleConfig } from "@/lib/theme-utils";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,6 +81,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +108,116 @@ const COLOR_METADATA: Record<keyof ThemeColors, { label: string; description: st
   border: { label: "Border Color", description: "Lines between layout sections" },
   input: { label: "Input Border", description: "Borders of text and select fields" },
   ring: { label: "Focus Outline", description: "Ring visible when an element is focused" },
+  star: { label: "Starlight", description: "Warm highlight for badges, markers and single stars", contrastAgainst: "card" },
 };
+
+/* Segmented control for small option sets; the selected option carries aria-pressed. */
+function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+  ariaLabel,
+  labelledBy,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  ariaLabel?: string;
+  labelledBy?: string;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      aria-labelledby={labelledBy}
+      className="flex w-full gap-0.5 rounded-pill border border-border bg-background/40 p-1"
+    >
+      {options.map((option) => {
+        const selected = value === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(option.value)}
+            className={`flex-1 rounded-pill px-2 py-1.5 text-xs transition-colors ${
+              selected ? "ov-tab-active font-semibold" : "font-medium text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Labelled slider with its current value shown in the data font. */
+function RangeSetting({
+  label,
+  valueLabel,
+  value,
+  min,
+  max,
+  step,
+  disabled,
+  onChange,
+  onCommit,
+}: {
+  label: string;
+  valueLabel: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  disabled?: boolean;
+  onChange: (value: number) => void;
+  onCommit: (value: number) => void;
+}) {
+  return (
+    <div className={`space-y-3 ${disabled ? "opacity-60" : ""}`}>
+      <div className="flex items-center justify-between gap-3">
+        <Label className="text-xs font-semibold">{label}</Label>
+        <span className="ov-data text-xs text-muted-foreground">{valueLabel}</span>
+      </div>
+      <Slider
+        aria-label={label}
+        value={[value]}
+        min={min}
+        max={max}
+        step={step}
+        disabled={disabled}
+        onValueChange={([next]) => onChange(next)}
+        onValueCommit={([next]) => onCommit(next)}
+      />
+    </div>
+  );
+}
+
+/* Labelled on/off switch. */
+function ToggleSetting({
+  id,
+  label,
+  checked,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <Label htmlFor={id} className="text-xs font-medium">{label}</Label>
+      <Switch id={id} checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
+/* Keeps a font that is not in the list (e.g. from an imported theme) selectable. */
+function withCurrentFont(list: { name: string; family: string }[], current: string) {
+  return list.some((font) => font.name === current) ? list : [{ name: current, family: current }, ...list];
+}
 
 export default function ThemeBuilderPage() {
   const { t } = useTranslation();
@@ -229,7 +364,7 @@ export default function ThemeBuilderPage() {
   useEffect(() => {
     // Apply the colors from the tab the user is currently editing
     const isDarkMode = activeMode === "dark";
-    applyTheme(workingTheme[activeMode], isDarkMode, workingTheme.font, workingTheme.background);
+    applyTheme(workingTheme[activeMode], isDarkMode, workingTheme.font, workingTheme.background, workingTheme);
     
     // Toggle the .dark class on the root to ensure shadcn components respond correctly
     if (isDarkMode) {
@@ -261,20 +396,59 @@ export default function ThemeBuilderPage() {
     });
     setHasUnsavedChanges(true);
   };
-  const handleFontChange = (value: string) => {
+  const handleFontChange = (role: keyof FontConfig, value: string) => {
     setWorkingTheme((prev) => {
-      const updated = { ...prev, font: value };
+      const current = normalizeFonts(prev.fonts, prev.fonts ? undefined : prev.font);
+      const nextFonts: FontConfig = { ...current, [role]: value };
+      // "Same as text" keeps following the body font.
+      if (role === "body" && current.data === current.body) nextFonts.data = value;
+      // `font` mirrors the body font for themes and clients that only know the single font.
+      const updated = { ...prev, fonts: nextFonts, font: nextFonts.body };
       pushToHistory(updated);
       return updated;
     });
     setHasUnsavedChanges(true);
   };
 
-  const handleShuffle = () => {
-    const newTheme = generateRandomTheme();
-    setWorkingTheme(newTheme);
+  // Shape, surface and galaxy settings. `record` is false while a slider is being dragged;
+  // the slider's commit then applies and records the committed value (record = true).
+  const updateDesign = (patch: (prev: CustomTheme) => Partial<CustomTheme>, record = true) => {
+    setWorkingTheme((prev) => {
+      const updated = { ...prev, ...patch(prev) };
+      if (record) pushToHistory(updated);
+      return updated;
+    });
     setHasUnsavedChanges(true);
-    pushToHistory(newTheme);
+  };
+
+  const handleShapeChange = (patch: Partial<ShapeConfig>, record = true) =>
+    updateDesign((prev) => ({ shape: { ...normalizeShape(prev.shape), ...patch } }), record);
+
+  const handleSurfaceChange = (patch: Partial<SurfaceConfig>, record = true) =>
+    updateDesign((prev) => ({ surface: { ...normalizeSurface(prev.surface), ...patch } }), record);
+
+  const handleGalaxyChange = (patch: Partial<GalaxyConfig>, record = true) =>
+    updateDesign((prev) => ({ galaxy: { ...normalizeGalaxy(prev.galaxy), ...patch } }), record);
+
+  const handleShuffle = () => {
+    const generated = generateRandomTheme();
+    // Only the palette and background gradient change; shape, surface, fonts, galaxy and particles stay.
+    setWorkingTheme((prev) => {
+      const previousBackground = prev.background ?? defaultBackground;
+      const updated: CustomTheme = {
+        ...prev,
+        light: unifiedMode ? generated[activeMode] : generated.light,
+        dark: unifiedMode ? generated[activeMode] : generated.dark,
+        background: {
+          ...previousBackground,
+          ...generated.background,
+          overlay: { ...previousBackground.overlay, ...generated.background?.overlay },
+        },
+      };
+      pushToHistory(updated);
+      return updated;
+    });
+    setHasUnsavedChanges(true);
     toast({ title: "Theme Shuffled", description: "A new harmonious palette has been generated." });
   };
 
@@ -405,6 +579,45 @@ export default function ThemeBuilderPage() {
   const currentColors = workingTheme[activeMode];
   const defaultColors = defaultTheme[activeMode];
 
+  const shape = normalizeShape(workingTheme.shape);
+  const surface = normalizeSurface(workingTheme.surface);
+  // Glass always blurs by at least 12px (see applyDesign), so the slider shows and offers that range.
+  const minBlur = surface.mode === "glas" ? 12 : 0;
+  const effectiveBlur = Math.max(surface.blur, minBlur);
+  const fonts =normalizeFonts(workingTheme.fonts, workingTheme.fonts ? undefined : workingTheme.font);
+  const galaxy = normalizeGalaxy(workingTheme.galaxy);
+
+  const colorLabels: Partial<Record<keyof ThemeColors, string>> = {
+    star: t("theme_builder.color_star", "Starlight"),
+  };
+
+  const backgroundModeOptions: { value: BackgroundMode; label: string }[] = (["solid", "gradient", "image"] as const).map((mode) => ({
+    value: mode,
+    label: mode.charAt(0).toUpperCase() + mode.slice(1),
+  }));
+
+  const cornerStyleOptions: { value: ShapeStyle; label: string }[] = [
+    { value: "fase", label: t("theme_builder.corner_fase", "Chamfer") },
+    { value: "kante", label: t("theme_builder.corner_kante", "Sharp") },
+    { value: "rund", label: t("theme_builder.corner_rund", "Round") },
+  ];
+
+  const avatarShapeOptions: { value: AvatarShape; label: string }[] = [
+    { value: "achteck", label: t("theme_builder.avatar_achteck", "Octagon") },
+    { value: "quadrat", label: t("theme_builder.avatar_quadrat", "Square") },
+    { value: "kreis", label: t("theme_builder.avatar_kreis", "Circle") },
+  ];
+
+  const surfaceModeOptions: { value: SurfaceMode; label: string }[] = [
+    { value: "panel", label: t("theme_builder.surface_panel", "Panel") },
+    { value: "glas", label: t("theme_builder.surface_glas", "Glass") },
+    { value: "kontur", label: t("theme_builder.surface_kontur", "Outline") },
+  ];
+
+  // "Same as text" uses the body font, so the list leaves that font out to avoid two items with one value.
+  const dataFontOptions = dataFonts.filter((font) => font.name !== fonts.body);
+  const hasUnlistedDataFont = fonts.data !== fonts.body && !dataFonts.some((font) => font.name === fonts.data);
+
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
       {/* THEME-REDESIGN [TB-011]: Use normal Navbar */}
@@ -416,12 +629,12 @@ export default function ThemeBuilderPage() {
             <div className="max-w-xl mx-auto space-y-6">
               
               {/* THEME-REDESIGN [TB-008, TB-011]: Integrated Toolbar Card */}
-              <Card className="shadow-md border-primary/20 bg-card">
+              <Card>
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex flex-col gap-2">
-                        <Label htmlFor="theme-name" className="text-xs font-semibold uppercase tracking-wider opacity-70">
+                        <Label htmlFor="theme-name" className="ov-label text-[11px]">
                           {t("theme_builder.theme_name_label")}
                         </Label>
                         <Input
@@ -436,13 +649,13 @@ export default function ThemeBuilderPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         {hasUnsavedChanges ? (
-                          <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/20 py-0 h-4">
+                          <span className="ov-chip ov-chip-star h-5 px-2 text-[11px]">
                             Unsaved Changes
-                          </Badge>
+                          </span>
                         ) : (
-                          <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20 py-0 h-4">
+                          <span className="ov-chip ov-chip-success h-5 px-2 text-[11px] text-foreground">
                             All Saved
-                          </Badge>
+                          </span>
                         )}
                       </div>
                     </div>
@@ -474,7 +687,7 @@ export default function ThemeBuilderPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button onClick={handleSave} className="h-9 gap-2 shadow-sm" disabled={!hasUnsavedChanges && activeThemeId !== null}>
+                    <Button onClick={handleSave} className="h-9 gap-2" disabled={!hasUnsavedChanges && activeThemeId !== null}>
                       <Save className="h-4 w-4" />
                       Save
                     </Button>
@@ -500,11 +713,11 @@ export default function ThemeBuilderPage() {
                   <Separator />
                   
                   <div className="flex gap-2">
-                    <Button variant="secondary" size="sm" onClick={handleShuffle} className="flex-1 text-xs h-9 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
+                    <Button variant="secondary" size="sm" onClick={handleShuffle} className="flex-1 text-xs h-9 bg-primary/10 text-primary hover:bg-primary/20">
                       <Shuffle className="h-3.5 w-3.5 mr-2" />
                       Shuffle
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={handleHarmonize} className="flex-1 text-xs h-9 bg-accent/10 text-accent-foreground hover:bg-accent/20 border-accent/20">
+                    <Button variant="secondary" size="sm" onClick={handleHarmonize} className="flex-1 text-xs h-9 bg-accent/10 text-accent-foreground hover:bg-accent/20">
                       <Sparkles className="h-3.5 w-3.5 mr-2" />
                       Harmonize
                     </Button>
@@ -512,10 +725,98 @@ export default function ThemeBuilderPage() {
                 </CardContent>
               </Card>
 
-              {/* Typography */}
-              <Card className="shadow-sm">
+              {/* Shape: corner style, corner size, avatar shape */}
+              <Card>
                 <CardHeader className="pb-3 px-4">
-                  <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                    <Hexagon className="h-5 w-5" />
+                    {t("theme_builder.section_shape", "Shape")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-5">
+                  <div className="space-y-2">
+                    <p id="theme-corner-style" className="text-xs font-semibold">
+                      {t("theme_builder.corner_style", "Corner style")}
+                    </p>
+                    <SegmentedControl
+                      labelledBy="theme-corner-style"
+                      options={cornerStyleOptions}
+                      value={shape.style}
+                      onChange={(style) => handleShapeChange({ style })}
+                    />
+                  </div>
+
+                  <RangeSetting
+                    label={t("theme_builder.corner_size", "Corner size")}
+                    valueLabel={`${shape.size}px`}
+                    value={shape.size}
+                    min={0}
+                    max={24}
+                    step={1}
+                    disabled={shape.style === "kante"}
+                    onChange={(size) => handleShapeChange({ size }, false)}
+                    onCommit={(size) => handleShapeChange({ size })}
+                  />
+
+                  <div className="space-y-2">
+                    <p id="theme-avatar-shape" className="text-xs font-semibold">
+                      {t("theme_builder.avatar_shape", "Avatar shape")}
+                    </p>
+                    <SegmentedControl
+                      labelledBy="theme-avatar-shape"
+                      options={avatarShapeOptions}
+                      value={shape.avatar}
+                      onChange={(avatar) => handleShapeChange({ avatar })}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Surface: panel material, opacity, blur */}
+              <Card>
+                <CardHeader className="pb-3 px-4">
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                    <PanelTop className="h-5 w-5" />
+                    {t("theme_builder.section_surface", "Surface")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-5">
+                  <SegmentedControl
+                    ariaLabel={t("theme_builder.section_surface", "Surface")}
+                    options={surfaceModeOptions}
+                    value={surface.mode}
+                    onChange={(mode) => handleSurfaceChange({ mode })}
+                  />
+
+                  <RangeSetting
+                    label={t("theme_builder.surface_opacity", "Opacity")}
+                    valueLabel={`${Math.round(surface.opacity * 100)}%`}
+                    value={Math.round(surface.opacity * 100)}
+                    min={0}
+                    max={100}
+                    step={1}
+                    disabled={surface.mode === "kontur"}
+                    onChange={(value) => handleSurfaceChange({ opacity: value / 100 }, false)}
+                    onCommit={(value) => handleSurfaceChange({ opacity: value / 100 })}
+                  />
+
+                  <RangeSetting
+                    label={t("theme_builder.surface_blur", "Blur")}
+                    valueLabel={`${Math.round(effectiveBlur)}px`}
+                    value={effectiveBlur}
+                    min={minBlur}
+                    max={24}
+                    step={1}
+                    onChange={(blur) => handleSurfaceChange({ blur }, false)}
+                    onCommit={(blur) => handleSurfaceChange({ blur })}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Typography: headings, text, numbers & times */}
+              <Card>
+                <CardHeader className="pb-3 px-4">
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                     <Type className="h-5 w-5" />
                     Typography
                   </CardTitle>
@@ -523,13 +824,59 @@ export default function ThemeBuilderPage() {
                 <CardContent className="px-4 pb-4">
                   <div className="space-y-4">
                     <div className="flex flex-col gap-2">
-                      <Label className="text-sm font-semibold">Font Family</Label>
-                      <Select value={workingTheme.font || "Inter"} onValueChange={handleFontChange}>
-                        <SelectTrigger className="w-full h-10">
+                      <Label htmlFor="theme-font-display" className="text-sm font-semibold">
+                        {t("theme_builder.font_display", "Headings")}
+                      </Label>
+                      <Select value={fonts.display} onValueChange={(value) => handleFontChange("display", value)}>
+                        <SelectTrigger id="theme-font-display" className="w-full h-10">
                           <SelectValue placeholder="Select a font" />
                         </SelectTrigger>
                         <SelectContent>
-                          {availableFonts.map((font) => (
+                          {withCurrentFont(availableFonts, fonts.display).map((font) => (
+                            <SelectItem key={font.name} value={font.name} style={{ fontFamily: font.family }}>
+                              {font.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="theme-font-body" className="text-sm font-semibold">
+                        {t("theme_builder.font_body", "Text")}
+                      </Label>
+                      <Select value={fonts.body} onValueChange={(value) => handleFontChange("body", value)}>
+                        <SelectTrigger id="theme-font-body" className="w-full h-10">
+                          <SelectValue placeholder="Select a font" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {withCurrentFont(availableFonts, fonts.body).map((font) => (
+                            <SelectItem key={font.name} value={font.name} style={{ fontFamily: font.family }}>
+                              {font.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="theme-font-data" className="text-sm font-semibold">
+                        {t("theme_builder.font_data", "Numbers & times")}
+                      </Label>
+                      <Select value={fonts.data} onValueChange={(value) => handleFontChange("data", value)}>
+                        <SelectTrigger id="theme-font-data" className="w-full h-10">
+                          <SelectValue placeholder="Select a font" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={fonts.body} style={{ fontFamily: fonts.body }}>
+                            {t("theme_builder.font_same_as_text", "Same as text")} ({fonts.body})
+                          </SelectItem>
+                          {hasUnlistedDataFont && (
+                            <SelectItem value={fonts.data} style={{ fontFamily: fonts.data }}>
+                              {fonts.data}
+                            </SelectItem>
+                          )}
+                          {dataFontOptions.map((font) => (
                             <SelectItem key={font.name} value={font.name} style={{ fontFamily: font.family }}>
                               {font.name}
                             </SelectItem>
@@ -542,29 +889,20 @@ export default function ThemeBuilderPage() {
               </Card>
 
               {/* Background */}
-              <Card className="shadow-sm">
+              <Card>
                 <CardHeader className="pb-3 px-4">
-                  <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                     <Layers className="h-5 w-5" />
                     Background Style
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-4 space-y-6">
-                  <div className="flex p-1 bg-muted rounded-lg w-full">
-                    {["solid", "gradient", "image"].map((mode) => (
-                      <button
-                        key={mode}
-                        onClick={() => handleBgModeChange(mode as BackgroundMode)}
-                        className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
-                          (workingTheme.background?.mode || "solid") === mode 
-                          ? "bg-background shadow-sm text-foreground" 
-                          : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                      </button>
-                    ))}
-                  </div>
+                  <SegmentedControl
+                    ariaLabel="Background Style"
+                    options={backgroundModeOptions}
+                    value={workingTheme.background?.mode || "solid"}
+                    onChange={handleBgModeChange}
+                  />
 
                   {workingTheme.background?.mode === "gradient" && (
                     <div className="grid grid-cols-3 gap-2">
@@ -610,11 +948,12 @@ export default function ThemeBuilderPage() {
                           <Sun className="h-3 w-3" />
                           Brightness
                         </Label>
-                        <span className="text-[10px] font-mono text-muted-foreground">
+                        <span className="ov-data text-xs text-muted-foreground">
                           {Math.round((workingTheme.background?.overlay.brightness ?? 1) * 100)}%
                         </span>
                       </div>
                       <Slider
+                        aria-label="Brightness"
                         value={[workingTheme.background?.overlay.brightness ?? 1]}
                         min={0.1}
                         max={2}
@@ -633,11 +972,12 @@ export default function ThemeBuilderPage() {
                           <ContrastIcon className="h-3 w-3" />
                           Contrast
                         </Label>
-                        <span className="text-[10px] font-mono text-muted-foreground">
+                        <span className="ov-data text-xs text-muted-foreground">
                           {Math.round((workingTheme.background?.overlay.contrast ?? 1) * 100)}%
                         </span>
                       </div>
                       <Slider
+                        aria-label="Contrast"
                         value={[workingTheme.background?.overlay.contrast ?? 1]}
                         min={0.1}
                         max={2}
@@ -653,11 +993,54 @@ export default function ThemeBuilderPage() {
                 </CardContent>
               </Card>
 
+              {/* Galaxy layers: star field, grid, constellation, grain */}
+              <Card>
+                <CardHeader className="pb-3 px-4">
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                    <Orbit className="h-5 w-5" />
+                    {t("theme_builder.section_galaxy", "Galaxy layers")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-4">
+                  <ToggleSetting
+                    id="theme-galaxy-stars"
+                    label={t("theme_builder.galaxy_stars", "Star field")}
+                    checked={galaxy.stars}
+                    onChange={(stars) => handleGalaxyChange({ stars })}
+                  />
+                  <ToggleSetting
+                    id="theme-galaxy-grid"
+                    label={t("theme_builder.galaxy_grid", "Coordinate grid")}
+                    checked={galaxy.grid}
+                    onChange={(grid) => handleGalaxyChange({ grid })}
+                  />
+                  <ToggleSetting
+                    id="theme-galaxy-constellation"
+                    label={t("theme_builder.galaxy_constellation", "Constellation in page headers")}
+                    checked={galaxy.constellation}
+                    onChange={(constellation) => handleGalaxyChange({ constellation })}
+                  />
+
+                  <Separator />
+
+                  <RangeSetting
+                    label={t("theme_builder.galaxy_grain", "Grain")}
+                    valueLabel={`${Math.round(galaxy.grain * 100)}%`}
+                    value={Math.round(galaxy.grain * 100)}
+                    min={0}
+                    max={30}
+                    step={1}
+                    onChange={(value) => handleGalaxyChange({ grain: value / 100 }, false)}
+                    onCommit={(value) => handleGalaxyChange({ grain: value / 100 })}
+                  />
+                </CardContent>
+              </Card>
+
               {/* ✦ Particles Section */}
-              <Card className="shadow-md border-primary/20 bg-card">
+              <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <span className="text-base">✦</span> Particles
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                    <span className="text-base text-star">✦</span> Particles
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">
                     Cursor-following star particles. Customise core dot and glow halo colors.
@@ -688,17 +1071,17 @@ export default function ThemeBuilderPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <Label className="text-xs font-medium">Core Dot Color</Label>
-                      <p className="text-[10px] text-muted-foreground">Bright center of each particle</p>
+                      <p className="text-xs text-muted-foreground">Bright center of each particle</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div
-                        className="h-6 w-6 rounded-full border border-border shadow-sm"
+                        className="h-6 w-6 rounded-full border border-border"
                         style={{ backgroundColor: workingTheme.particles?.coreColor ?? defaultParticles.coreColor }}
                       />
                       <input
                         type="color"
                         value={workingTheme.particles?.coreColor ?? defaultParticles.coreColor}
-                        className="h-8 w-16 cursor-pointer rounded border border-border bg-transparent"
+                        className="h-8 w-16 cursor-pointer rounded-sm border border-border bg-transparent"
                         onChange={(e) => {
                           const updated = {
                             ...workingTheme,
@@ -717,17 +1100,17 @@ export default function ThemeBuilderPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <Label className="text-xs font-medium">Glow Halo Color</Label>
-                      <p className="text-[10px] text-muted-foreground">Soft light surrounding each particle</p>
+                      <p className="text-xs text-muted-foreground">Soft light surrounding each particle</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div
-                        className="h-6 w-6 rounded-full border border-border shadow-sm"
+                        className="h-6 w-6 rounded-full border border-border"
                         style={{ backgroundColor: workingTheme.particles?.glowColor ?? defaultParticles.glowColor }}
                       />
                       <input
                         type="color"
                         value={workingTheme.particles?.glowColor ?? defaultParticles.glowColor}
-                        className="h-8 w-16 cursor-pointer rounded border border-border bg-transparent"
+                        className="h-8 w-16 cursor-pointer rounded-sm border border-border bg-transparent"
                         onChange={(e) => {
                           const updated = {
                             ...workingTheme,
@@ -768,11 +1151,12 @@ export default function ThemeBuilderPage() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-semibold flex items-center gap-2">Speed</Label>
-                        <span className="text-[10px] font-mono text-muted-foreground">
+                        <span className="ov-data text-xs text-muted-foreground">
                           {Math.round((workingTheme.particles?.speed ?? defaultParticles.speed) * 100)}%
                         </span>
                       </div>
                       <Slider
+                        aria-label="Speed"
                         value={[workingTheme.particles?.speed ?? defaultParticles.speed]}
                         min={0.1}
                         max={3}
@@ -794,11 +1178,12 @@ export default function ThemeBuilderPage() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-semibold flex items-center gap-2">Cursor Pull</Label>
-                        <span className="text-[10px] font-mono text-muted-foreground">
+                        <span className="ov-data text-xs text-muted-foreground">
                           {Math.round(((workingTheme.particles?.attraction ?? defaultParticles.attraction) / 0.008) * 100)}%
                         </span>
                       </div>
                       <Slider
+                        aria-label="Cursor Pull"
                         value={[workingTheme.particles?.attraction ?? defaultParticles.attraction]}
                         min={0}
                         max={0.03}
@@ -820,11 +1205,12 @@ export default function ThemeBuilderPage() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-semibold flex items-center gap-2">Size</Label>
-                        <span className="text-[10px] font-mono text-muted-foreground">
+                        <span className="ov-data text-xs text-muted-foreground">
                           {Math.round((workingTheme.particles?.size ?? defaultParticles.size) * 100)}%
                         </span>
                       </div>
                       <Slider
+                        aria-label="Size"
                         value={[workingTheme.particles?.size ?? defaultParticles.size]}
                         min={0.5}
                         max={4}
@@ -846,11 +1232,12 @@ export default function ThemeBuilderPage() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-semibold flex items-center gap-2">Glow Strength</Label>
-                        <span className="text-[10px] font-mono text-muted-foreground">
+                        <span className="ov-data text-xs text-muted-foreground">
                           {Math.round((workingTheme.particles?.glowStrength ?? defaultParticles.glowStrength) * 100)}%
                         </span>
                       </div>
                       <Slider
+                        aria-label="Glow Strength"
                         value={[workingTheme.particles?.glowStrength ?? defaultParticles.glowStrength]}
                         min={0}
                         max={5}
@@ -941,10 +1328,11 @@ export default function ThemeBuilderPage() {
                    icon={<MousePointer className="h-5 w-5" />}
                    colors={currentColors}
                    defaultColors={defaultColors}
-                   colorKeys={["primary", "primaryForeground", "secondary", "secondaryForeground", "accent", "ring", "destructive"]}
+                   colorKeys={["primary", "primaryForeground", "secondary", "secondaryForeground", "accent", "star", "ring", "destructive"]}
                    onColorChange={handleColorChange}
                    descriptions={descriptions}
                    contrastPairs={contrastPairs}
+                   labels={colorLabels}
                   />
                 </div>
               </Tabs>
@@ -955,11 +1343,11 @@ export default function ThemeBuilderPage() {
         {/* THEME-REDESIGN [TB-001]: Right Column - Sticky Preview */}
         <div className={`lg:flex flex-1 flex-col bg-muted/10 ${mobileActiveTab === "settings" ? "hidden lg:flex" : "flex"}`}>
           <div className="flex items-center justify-between px-6 py-4 border-b bg-background">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              Live App Preview
-              <Badge variant="outline" className="text-[9px] h-4 py-0">Real-time</Badge>
+            <h2 className="flex items-center gap-2">
+              <span className="ov-label">Live App Preview</span>
+              <span className="ov-chip ov-chip-primary h-5 px-2 text-[11px]">Real-time</span>
             </h2>
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-md">
+            <div className="flex items-center gap-1 rounded-pill border border-border p-1">
               <Button 
                 variant={previewSize === "desktop" ? "default" : "ghost"} 
                 size="icon" 
@@ -980,27 +1368,27 @@ export default function ThemeBuilderPage() {
           </div>
           
           <ScrollArea className="flex-1 p-8">
-            <div className={`mx-auto relative transition-all duration-300 ${previewSize === "mobile" ? "max-w-[375px] border-[8px] border-border rounded-[2.5rem] shadow-2xl h-[700px] overflow-hidden bg-background" : "max-w-4xl"}`}>
+            <div className={`mx-auto relative transition-all duration-300 ${previewSize === "mobile" ? "max-w-[375px] border-[8px] border-border rounded-xl h-[700px] overflow-hidden bg-background" : "max-w-4xl"}`}>
               {/* THEME-REDESIGN [TB-001]: Background preview inside the mockup frame */}
-              <div className="absolute inset-0 -z-10 overflow-hidden rounded-[1.8rem]">
+              <div className="absolute inset-0 -z-10 overflow-hidden rounded-lg">
                 <ThemeBackground background={workingTheme.background} isDark={activeMode === "dark"} />
               </div>
 
               {/* THEME-REDESIGN [TB-002]: Realistic UI Preview */}
               <div className="relative space-y-8 p-4 min-h-full">
                 {/* Mock Navbar */}
-                <Card className="rounded-xl overflow-hidden border-0 shadow-lg">
-                  <div className="h-14 bg-background border-b px-4 flex items-center justify-between">
+                <Card className="overflow-hidden">
+                  <div className="h-14 px-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                      <div className="ov-cut h-8 w-8 rounded-sm bg-primary flex items-center justify-center">
                         <Palette className="h-5 w-5 text-primary-foreground" />
                       </div>
-                      <span className="font-bold text-sm tracking-tight">Osiris App</span>
+                      <span className="font-display text-sm font-semibold">Osiris App</span>
                     </div>
-                    <div className="flex gap-3">
-                      <div className="h-4 w-12 bg-muted rounded-full" />
-                      <div className="h-4 w-12 bg-muted rounded-full" />
-                      <div className="h-8 w-8 rounded-full bg-accent" />
+                    <div className="flex items-center gap-3">
+                      <div className="h-4 w-12 bg-muted rounded-pill" />
+                      <div className="h-4 w-12 bg-muted rounded-pill" />
+                      <div className="ov-avatar h-8 w-8 bg-accent" />
                     </div>
                   </div>
                 </Card>
@@ -1008,59 +1396,64 @@ export default function ThemeBuilderPage() {
                 {/* Hero / Stat Section */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
-                    { label: "Followers", value: "1.2k", icon: "👥" },
-                    { label: "Karma", value: "840", icon: "✨" },
-                    { label: "Posts", value: "142", icon: "📝" },
+                    { label: "Followers", value: "1.2k", icon: Users, star: false },
+                    { label: "Karma", value: "840", icon: Sparkles, star: true },
+                    { label: "Posts", value: "142", icon: FileText, star: false },
                   ].map((s) => (
-                    <Card key={s.label} className="p-4 bg-card border-border shadow-sm">
+                    <Card key={s.label} className="p-4">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-xl">{s.icon}</span>
-                        <Badge variant="secondary" className="text-[10px]">{s.label}</Badge>
+                        <span className="ov-label">{s.label}</span>
+                        <s.icon className={`h-4 w-4 ${s.star ? "text-star" : "text-muted-foreground"}`} />
                       </div>
-                      <p className="text-2xl font-bold text-foreground">{s.value}</p>
+                      <p className="ov-data text-2xl font-semibold text-foreground">{s.value}</p>
                     </Card>
                   ))}
                 </div>
 
                 {/* Sample Post Card */}
-                <Card className="p-0 border-border shadow-md overflow-hidden bg-card">
+                <Card className="overflow-hidden">
                   <div className="p-4 space-y-4">
                     <div className="flex items-center gap-3">
                       <UserAvatar user={{ username: "Designer" }} size="sm" />
                       <div>
-                        <p className="text-sm font-bold text-foreground">Creative Lead</p>
-                        <p className="text-[10px] text-muted-foreground">2 hours ago</p>
+                        <p className="flex items-center gap-1 text-sm font-semibold text-foreground">
+                          Creative Lead
+                          <BadgeCheck className="h-3.5 w-3.5 text-star" />
+                        </p>
+                        <p className="ov-data text-[11px] text-muted-foreground">2 hours ago</p>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-base font-bold text-foreground leading-tight">Implementing the new Theme Builder design system!</h3>
+                      <h3 className="font-display text-base font-semibold text-foreground leading-tight">Implementing the new Theme Builder design system!</h3>
                       <p className="text-sm text-foreground/90 leading-relaxed">
                         The two-column layout provides a much better workflow. It's now possible to see every color tweak in real-time without scrolling.
                       </p>
                     </div>
-                    <div className="p-2 bg-muted/30 rounded-lg flex gap-2">
-                      <Badge className="bg-primary text-primary-foreground">#UX</Badge>
-                      <Badge variant="outline" className="border-border">#FrontEnd</Badge>
+                    {/* Media placeholder: shows the cut corners on images and the coordinate grid */}
+                    <div className="ov-cut-2 ov-grid h-28 rounded-xl bg-muted" />
+                    <div className="flex flex-wrap gap-2">
+                      <span className="ov-chip ov-chip-primary">#UX</span>
+                      <span className="ov-chip">#FrontEnd</span>
                     </div>
                     <Separator className="bg-border/50" />
                     <div className="flex items-center justify-between">
                       <div className="flex gap-4">
                         <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs">
-                          <span>❤️</span> 24
+                          <Heart /> <span className="ov-data">24</span>
                         </Button>
                         <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs">
-                          <span>💬</span> 8
+                          <MessageCircle /> <span className="ov-data">8</span>
                         </Button>
                       </div>
-                      <Button variant="outline" size="sm" className="h-7 text-[10px] px-3">Read More</Button>
+                      <Button variant="outline" size="sm" className="h-8 px-3 text-xs">Read More</Button>
                     </div>
                   </div>
                 </Card>
 
                 {/* Interactive Elements / Form */}
-                <Card className="p-6 bg-card border-border shadow-sm space-y-6">
+                <Card className="p-6 space-y-6">
                   <div className="space-y-2">
-                    <h3 className="text-sm font-bold text-foreground">Interactive Elements</h3>
+                    <h3 className="font-display text-lg font-semibold text-foreground">Interactive Elements</h3>
                     <p className="text-xs text-muted-foreground">Test your interactive and modal colors here.</p>
                   </div>
                   
@@ -1082,11 +1475,11 @@ export default function ThemeBuilderPage() {
                     </div>
                   </div>
                   
-                  <div className="p-4 bg-muted/50 rounded-lg border border-border/50 flex items-start gap-3">
+                  <div className="ov-panel p-4 flex items-start gap-3">
                     <Info className="h-4 w-4 text-primary mt-0.5" />
                     <div className="space-y-1">
-                      <p className="text-xs font-bold text-foreground">Pro Tip</p>
-                      <p className="text-[10px] text-muted-foreground leading-normal">
+                      <p className="ov-label">Pro Tip</p>
+                      <p className="text-xs text-muted-foreground leading-normal">
                         Use the <strong>Contrast Checker</strong> icons next to text colors to ensure your theme remains accessible for everyone.
                       </p>
                     </div>
@@ -1099,19 +1492,19 @@ export default function ThemeBuilderPage() {
       </main>
 
       {/* Mobile Actions Overlay - Logic for TB-001 mobile tabs */}
-      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex bg-background/80 backdrop-blur-md border shadow-2xl rounded-full p-1 z-50">
-        <Button 
-          variant={mobileActiveTab === "settings" ? "default" : "ghost"} 
-          size="sm" 
-          className="rounded-full px-6 h-9 transition-all"
+      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-1 rounded-pill border border-border bg-background p-1 z-50">
+        <Button
+          variant={mobileActiveTab === "settings" ? "default" : "ghost"}
+          size="sm"
+          className="rounded-pill px-6 h-9"
           onClick={() => setMobileActiveTab("settings")}
         >
           Settings
         </Button>
-        <Button 
-          variant={mobileActiveTab === "preview" ? "default" : "ghost"} 
-          size="sm" 
-          className="rounded-full px-6 h-9 transition-all"
+        <Button
+          variant={mobileActiveTab === "preview" ? "default" : "ghost"}
+          size="sm"
+          className="rounded-pill px-6 h-9"
           onClick={() => setMobileActiveTab("preview")}
         >
           Preview

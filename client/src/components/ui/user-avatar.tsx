@@ -21,9 +21,9 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
   const initials = user?.username?.slice(0, 2).toUpperCase() || "";
 
   return (
-    <Avatar className={cn(sizeClasses[size], "border border-border/40", className)}>
+    <Avatar className={cn(sizeClasses[size], className)}>
       {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.username} className="object-cover" />}
-      <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
+      <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
         {initials || <UserCircle className="h-4 w-4" />}
       </AvatarFallback>
     </Avatar>

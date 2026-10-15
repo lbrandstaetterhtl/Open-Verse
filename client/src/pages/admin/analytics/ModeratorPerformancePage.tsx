@@ -12,14 +12,14 @@ import {
     BarChart2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default function ModeratorPerformancePage() {
     const { t } = useTranslation();
@@ -55,23 +55,22 @@ export default function ModeratorPerformancePage() {
 
     return (
         <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">{t("modPerf.title", "Moderator Performance Audit")}</h1>
-                        <p className="text-muted-foreground">{t("modPerf.subtitle", "Audit moderator efficiency, response times, and incident resolution.")}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={handleRecompute} 
+                <PageHeader
+                    eyebrow={t("modPerf.eyebrow", "Admin / Analytics")}
+                    title={t("modPerf.title", "Moderator Performance Audit")}
+                    description={t("modPerf.subtitle", "Audit moderator efficiency, response times, and incident resolution.")}
+                    actions={
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRecompute}
                             disabled={triggerSnapshot.isPending}
                         >
                             <RefreshCcw className={triggerSnapshot.isPending ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"} />
                             {t("modPerf.sync_now", "Recalculate Now")}
                         </Button>
-                    </div>
-                </div>
+                    }
+                />
 
                 {/* Team KPIs */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -107,11 +106,11 @@ export default function ModeratorPerformancePage() {
 
                 <div className="grid gap-4 md:grid-cols-7">
                     {/* Leaderboard */}
-                    <Card className="md:col-span-5">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                    <section className="md:col-span-5 space-y-4">
+                        <div className="flex flex-wrap items-end justify-between gap-4">
                             <div>
-                                <CardTitle className="text-xl">{t("modPerf.leaderboard", "Moderator Leaderboard")}</CardTitle>
-                                <CardDescription>{t("modPerf.leaderboard_desc", "Ranking based on weighted performance score.")}</CardDescription>
+                                <h2 className="font-display text-xl font-semibold">{t("modPerf.leaderboard", "Moderator Leaderboard")}</h2>
+                                <p className="text-sm text-muted-foreground">{t("modPerf.leaderboard_desc", "Ranking based on weighted performance score.")}</p>
                             </div>
                             <div className="flex gap-2">
                                 <Select value={period} onValueChange={(v: any) => setPeriod(v)}>
@@ -125,64 +124,62 @@ export default function ModeratorPerformancePage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <ResponsiveTable<any>
-                                keyField="moderatorId"
-                                columns={[
-                                    { 
-                                        key: "rank", 
-                                        label: t("modPerf.rank", "Rank"), 
-                                        render: (_, index) => (
-                                            <div className="font-medium">
-                                                {index === 0 ? <Award className="h-5 w-5 text-yellow-500" /> : index + 1}
-                                            </div>
-                                        )
-                                    },
-                                    { 
-                                        key: "moderator", 
-                                        label: t("modPerf.moderator", "Moderator"), 
-                                        render: (entry) => (
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-8 w-8">
-                                                    <AvatarFallback>{entry.moderatorUsername.slice(0, 2).toUpperCase()}</AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex flex-col">
-                                                    <span className="font-semibold text-sm">{entry.moderatorUsername}</span>
-                                                    <Badge variant="outline" className="text-[10px] h-4 w-fit px-1 uppercase leading-none">
-                                                        {entry.moderatorRole}
-                                                    </Badge>
-                                                </div>
-                                            </div>
-                                        )
-                                    },
-                                    { key: "totalReportsHandled", label: t("modPerf.reports", "Reports"), render: (e) => e.totalReportsHandled },
-                                    { key: "totalTicketsResolved", label: t("modPerf.tickets", "Tickets"), render: (e) => e.totalTicketsResolved },
-                                    { key: "avgResponse", label: t("modPerf.avg_response_short", "Avg Resp."), render: (e) => formatTime(e.avgTicketResponseS) },
-                                    { key: "score", label: t("modPerf.score", "Score"), render: (e) => <span className="font-mono font-bold text-primary">{Math.round(e.totalScore)}</span> }
-                                ]}
-                                data={leaderboard || []}
-                                loading={loadingLeaderboard}
-                                renderMobileCard={(entry) => (
-                                    <div className="flex items-center justify-between">
+                        </div>
+                        <ResponsiveTable<any>
+                            keyField="moderatorId"
+                            columns={[
+                                { 
+                                    key: "rank", 
+                                    label: t("modPerf.rank", "Rank"), 
+                                    render: (_, index) => (
+                                        <div className="ov-data font-medium">
+                                            {index === 0 ? <Award className="h-5 w-5 text-star" /> : index + 1}
+                                        </div>
+                                    )
+                                },
+                                { 
+                                    key: "moderator", 
+                                    label: t("modPerf.moderator", "Moderator"), 
+                                    render: (entry) => (
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="h-10 w-10">
+                                            <Avatar className="h-8 w-8">
                                                 <AvatarFallback>{entry.moderatorUsername.slice(0, 2).toUpperCase()}</AvatarFallback>
                                             </Avatar>
-                                            <div>
-                                                <p className="font-bold text-sm">{entry.moderatorUsername}</p>
-                                                <p className="text-[10px] text-muted-foreground uppercase">{entry.moderatorRole}</p>
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-sm">{entry.moderatorUsername}</span>
+                                                <span className="ov-chip ov-chip-primary capitalize mt-1 h-5 w-fit px-1.5">
+                                                    {entry.moderatorRole}
+                                                </span>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-lg font-black text-primary">{Math.round(entry.totalScore)}</p>
-                                            <p className="text-[9px] text-muted-foreground uppercase">Points</p>
+                                    )
+                                },
+                                { key: "totalReportsHandled", label: t("modPerf.reports", "Reports"), render: (e) => <span className="ov-data">{e.totalReportsHandled}</span> },
+                                { key: "totalTicketsResolved", label: t("modPerf.tickets", "Tickets"), render: (e) => <span className="ov-data">{e.totalTicketsResolved}</span> },
+                                { key: "avgResponse", label: t("modPerf.avg_response_short", "Avg Resp."), render: (e) => <span className="ov-data">{formatTime(e.avgTicketResponseS)}</span> },
+                                { key: "score", label: t("modPerf.score", "Score"), render: (e) => <span className="ov-data font-semibold text-primary">{Math.round(e.totalScore)}</span> }
+                            ]}
+                            data={leaderboard || []}
+                            loading={loadingLeaderboard}
+                            renderMobileCard={(entry) => (
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-10 w-10">
+                                            <AvatarFallback>{entry.moderatorUsername.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <p className="font-semibold text-sm">{entry.moderatorUsername}</p>
+                                            <p className="ov-label">{entry.moderatorRole}</p>
                                         </div>
                                     </div>
-                                )}
-                            />
-                        </CardContent>
-                    </Card>
+                                    <div className="text-right">
+                                        <p className="ov-data text-lg font-semibold text-primary">{Math.round(entry.totalScore)}</p>
+                                        <p className="ov-label">Points</p>
+                                    </div>
+                                </div>
+                            )}
+                        />
+                    </section>
 
                     {/* Weighting Info */}
                     <Card className="md:col-span-2">
@@ -196,45 +193,45 @@ export default function ModeratorPerformancePage() {
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
                                     <span>{t("modPerf.weight_report", "Report Resolution")}</span>
-                                    <span className="font-bold text-primary">+3 pts</span>
+                                    <span className="ov-data font-semibold text-primary">+3 pts</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span>{t("modPerf.weight_ticket", "Ticket Solved")}</span>
-                                    <span className="font-bold text-primary">+5 pts</span>
+                                    <span className="ov-data font-semibold text-primary">+5 pts</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span>{t("modPerf.weight_comment", "Ticket Reply")}</span>
-                                    <span className="font-bold text-primary">+1 pt</span>
+                                    <span className="ov-data font-semibold text-primary">+1 pt</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span>{t("modPerf.weight_response", "Fast Response (<2h)")}</span>
-                                    <span className="font-bold text-primary">+10 pts</span>
+                                    <span className="ov-data font-semibold text-primary">+10 pts</span>
                                 </div>
                             </div>
                             
-                            <div className="p-3 bg-muted rounded-lg text-xs text-muted-foreground border">
+                            <div className="p-3 bg-muted/50 rounded-sm text-xs text-muted-foreground border border-border">
                                 <BarChart2 className="h-4 w-4 mb-1 inline mr-2 text-primary" />
                                 {t("modPerf.scoring_hint", "Scores are recalculated daily. Weights are optimized to prioritize resolution speed and ticket quality.")}
                             </div>
 
-                            <div className="pt-4 border-t space-y-4">
-                                <h4 className="text-sm font-semibold">{t("modPerf.team_stats", "Team Stats (30d)")}</h4>
+                            <div className="pt-4 border-t border-border space-y-4">
+                                <h4 className="ov-label">{t("modPerf.team_stats", "Team Stats (30d)")}</h4>
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-xs mb-1 text-muted-foreground">
                                         <span>{t("modPerf.reports_efficiency", "Report Efficiency")}</span>
-                                        <span>88%</span>
+                                        <span className="ov-data">88%</span>
                                     </div>
-                                    <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
-                                        <div className="h-full bg-emerald-500 w-[88%]" />
+                                    <div className="h-1 w-full bg-secondary rounded-pill overflow-hidden">
+                                        <div className="h-full bg-primary w-[88%]" />
                                     </div>
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-xs mb-1 text-muted-foreground">
                                         <span>{t("modPerf.ticket_sla", "Ticket SLA (D1)")}</span>
-                                        <span>92%</span>
+                                        <span className="ov-data">92%</span>
                                     </div>
-                                    <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-500 w-[92%]" />
+                                    <div className="h-1 w-full bg-secondary rounded-pill overflow-hidden">
+                                        <div className="h-full bg-primary w-[92%]" />
                                     </div>
                                 </div>
                             </div>

@@ -76,9 +76,9 @@ export default function CreateDiscussionPage() {
             <main className="container mx-auto px-4 pt-24">
         <div className="max-w-3xl mx-auto">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MessageSquarePlus className="h-5 w-5" />
+            <CardHeader className="ov-rule mb-6">
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquarePlus className="h-5 w-5 text-primary" />
                 <span>{t("create_post.discussion.title")}</span>
               </CardTitle>
             </CardHeader>

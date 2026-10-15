@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 import { LayoutGrid, MessageSquare, Heart } from "lucide-react";
 
 interface ProfileTabsProps {
@@ -19,7 +18,7 @@ export function ProfileTabs({ activeTab, onTabChange, counts }: ProfileTabsProps
   ];
 
   return (
-    <div className="border-b border-white/5 bg-background/20 backdrop-blur-md sticky top-0 z-40">
+    <div className="ov-rule bg-background/90 sticky top-0 z-40">
       <div className="flex px-2 md:px-4">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -28,31 +27,22 @@ export function ProfileTabs({ activeTab, onTabChange, counts }: ProfileTabsProps
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                "relative flex items-center gap-2 px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all",
+                "relative flex items-center gap-2 px-4 md:px-5 py-3.5 text-sm font-medium transition-colors",
                 activeTab === tab.id
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  ? "ov-tab-active font-semibold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-primary/5"
               )}
             >
-              <Icon className={cn("h-4 w-4 transition-transform", activeTab === tab.id && "scale-110")} />
+              <Icon className={cn("h-4 w-4", activeTab === tab.id && "text-primary")} />
               <span className="hidden sm:inline">{tab.label}</span>
-              
+
               {tab.count !== undefined && (
                 <span className={cn(
-                  "px-2 py-0.5 rounded-full text-[9px] font-black tracking-tight",
-                  activeTab === tab.id ? "bg-primary/10 text-primary" : "bg-white/5 text-muted-foreground"
+                  "ov-data rounded-pill px-1.5 text-[11px] leading-5",
+                  activeTab === tab.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                 )}>
                   {tab.count}
                 </span>
-              )}
-              
-              {activeTab === tab.id && (
-                <motion.div
-                  layoutId="profileTabActive"
-                  className="absolute bottom-0 left-0 right-0 h-1 bg-primary shadow-[0_0_15px_rgba(var(--primary),0.8)]"
-                  initial={false}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
               )}
             </button>
           );

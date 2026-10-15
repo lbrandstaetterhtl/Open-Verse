@@ -98,11 +98,13 @@ export function ThemeBackground({ background, isDark = true }: ThemeBackgroundPr
                 />
             )}
 
-            {/* Stardust Texture Layer (Global Space Theme) */}
-            <div className="absolute inset-0 starfield opacity-40 mix-blend-overlay pointer-events-none dark:block hidden" />
-
-            {/* Performance Optimized Particle System */}
-            <ParticleBackground count={100} />
+            {/* Galaxy layers; each one can be switched off in the theme (data attributes set by applyDesign) */}
+            <div className="ov-stars-layer absolute inset-0">
+                <div className="absolute inset-0 starfield opacity-40 mix-blend-overlay pointer-events-none dark:block hidden" />
+                <ParticleBackground count={100} />
+            </div>
+            <div className="ov-grid-layer ov-grid absolute inset-0" />
+            <div className="ov-grain absolute inset-0" />
 
             {/* Overlay layer (tint + blur) */}
             {(bg.overlay.opacity > 0 || bg.overlay.blur > 0) && (
@@ -116,7 +118,7 @@ export function ThemeBackground({ background, isDark = true }: ThemeBackgroundPr
                     }}
                 >
                     {/* Starfield for Dark Mode */}
-                    <div className="absolute inset-0 overflow-hidden opacity-40 dark:block hidden pointer-events-none">
+                    <div className="ov-stars-layer absolute inset-0 overflow-hidden opacity-40 dark:block hidden pointer-events-none">
                         <div className="starfield" />
                         <div className="starfield" style={{ animationDelay: '-60s', opacity: 0.2 }} />
                     </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -40,6 +42,7 @@ const TEST_MODULES = [
 ];
 
 export default function StressTestPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { hasPermission } = useAuth();
   const [isRunning, setIsRunning] = useState(false);
@@ -53,11 +56,11 @@ export default function StressTestPage() {
     return (
       <AdminLayout>
         <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-          <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
-            <AlertTriangle className="h-8 w-8 text-red-500" />
+          <div className="ov-cut-2 flex h-16 w-16 items-center justify-center bg-destructive/10">
+            <AlertTriangle className="h-8 w-8 text-destructive" />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-black uppercase italic tracking-tighter">Access Restricted</h2>
+            <h2 className="font-display text-xl font-semibold">Access Restricted</h2>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">You do not have the required permissions to execute system stress tests.</p>
           </div>
         </div>
@@ -156,39 +159,36 @@ export default function StressTestPage() {
   return (
     <AdminLayout>
       <div className="space-y-8 animate-in fade-in duration-500 pb-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-1">
-            <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
-              <Zap className="h-8 w-8 text-primary" />
-              Osiris Stress Forge
-            </h2>
-            <p className="text-muted-foreground font-medium">Verify platform resilience under extreme load conditions.</p>
-          </div>
-          
-          <div className="flex items-center gap-3 bg-card p-1 rounded-2xl border shadow-sm">
-            {(["low", "medium", "high", "extreme"] as const).map((lvl) => (
-              <Button
-                key={lvl}
-                variant={intensity === lvl ? "default" : "ghost"}
-                size="sm"
-                className={cn(
-                  "px-4 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all h-8",
-                  intensity === lvl && lvl === "extreme" && "bg-red-600 hover:bg-red-700"
-                )}
-                onClick={() => setIntensity(lvl)}
-              >
-                {lvl}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <PageHeader
+          eyebrow={t("security.eyebrow", "Admin / Security")}
+          title="Osiris Stress Forge"
+          description="Verify platform resilience under extreme load conditions."
+          actions={
+            <div className="flex items-center gap-1 rounded-pill border border-border bg-card p-1">
+              {(["low", "medium", "high", "extreme"] as const).map((lvl) => (
+                <Button
+                  key={lvl}
+                  variant={intensity === lvl && lvl === "extreme" ? "destructive" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-8 px-4 capitalize",
+                    intensity === lvl && lvl !== "extreme" && "ov-tab-active"
+                  )}
+                  onClick={() => setIntensity(lvl)}
+                >
+                  {lvl}
+                </Button>
+              ))}
+            </div>
+          }
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Controllers */}
           <div className="lg:col-span-4 space-y-6">
-            <Card className="border-none shadow-sm bg-card/60 backdrop-blur-md">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                <CardTitle className="text-lg flex items-center gap-2">
                   <ShieldAlert className="h-4 w-4 text-primary" />
                   Test Modules
                 </CardTitle>
@@ -201,25 +201,23 @@ export default function StressTestPage() {
                     disabled={isRunning}
                     onClick={() => startTest(module.id)}
                     className={cn(
-                      "w-full text-left p-4 rounded-2xl transition-all border-2 group relative overflow-hidden",
-                      currentModule === module.id && isRunning
-                        ? "border-primary bg-primary/5 shadow-lg shadow-primary/5"
-                        : "border-transparent bg-muted/40 hover:bg-muted hover:border-muted-foreground/20",
+                      "ov-panel ov-panel-hover w-full text-left p-4 group overflow-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-0",
+                      currentModule === module.id && isRunning && "ov-panel-active",
                       isRunning && currentModule !== module.id && "opacity-50 grayscale cursor-not-allowed"
                     )}
                   >
                     <div className="flex items-center gap-4 relative z-10">
                       <div className={cn(
-                        "p-2.5 rounded-xl transition-colors",
-                        module.primary ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground group-hover:text-primary"
+                        "ov-cut rounded-sm p-2.5 transition-colors",
+                        module.primary ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:text-primary"
                       )}>
                         <module.icon className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-black text-sm">{module.label}</div>
-                        <div className="text-[10px] text-muted-foreground font-medium line-clamp-1">{module.description}</div>
+                        <div className="text-sm font-semibold">{module.label}</div>
+                        <div className="text-xs text-muted-foreground line-clamp-1">{module.description}</div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-all" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
                     </div>
                     {currentModule === module.id && isRunning && (
                       <div className="absolute bottom-0 left-0 h-1 bg-primary animate-progress-indefinite w-full" />
@@ -232,7 +230,7 @@ export default function StressTestPage() {
             {isRunning && (
               <Button 
                 variant="destructive" 
-                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 gap-3"
+                className="w-full h-12 gap-3"
                 onClick={killTest}
               >
                 <Square className="h-5 w-5 fill-current" />
@@ -243,38 +241,38 @@ export default function StressTestPage() {
 
           {/* Terminal Output */}
           <div className="lg:col-span-8 flex flex-col gap-6">
-            <Card className="border-none shadow-lg bg-black/95 text-zinc-300 font-mono text-[12px] flex-1 min-h-[600px] flex flex-col relative overflow-hidden group">
-              <div className="bg-zinc-800/50 px-4 py-2 border-b border-white/5 flex items-center justify-between shrink-0">
+            <Card className="ov-panel-solid font-data text-[12px] text-foreground/85 flex-1 min-h-[600px] flex flex-col overflow-hidden group">
+              <div className="ov-rule bg-muted/40 px-4 py-2 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1.5 mr-3">
-                    <div className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
-                    <div className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
-                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
+                    <div className="h-2 w-2 rounded-full bg-destructive/70" />
+                    <div className="h-2 w-2 rounded-full bg-star/70" />
+                    <div className="h-2 w-2 rounded-full bg-primary/70" />
                   </div>
-                  <Terminal className="h-3.5 w-3.5 text-zinc-500" />
-                  <span className="text-[10px] font-bold text-zinc-500 tracking-wider">osiris_stress_forge@system: ~{isRunning ? '/running' : '/idle'}</span>
+                  <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="font-data text-[11px] text-muted-foreground">osiris_stress_forge@system: ~{isRunning ? '/running' : '/idle'}</span>
                 </div>
                 {isRunning && (
                   <div className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                    <span className="text-[10px] font-black text-primary uppercase animate-pulse">Live Stream Active</span>
+                    <span className="ov-label text-primary">Live Stream Active</span>
                   </div>
                 )}
               </div>
               
-              <CardContent className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 flex-1 space-y-1 font-mono leading-relaxed">
+              <CardContent className="p-6 overflow-y-auto scrollbar-thin flex-1 space-y-1 font-data leading-relaxed">
                 {logs.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-4 opacity-50 select-none">
+                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4 opacity-60 select-none">
                     <Terminal className="h-16 w-16" />
-                    <p className="font-bold text-sm tracking-widest uppercase">Select a module to begin forge process</p>
+                    <p className="text-sm font-semibold">Select a module to begin forge process</p>
                   </div>
                 ) : (
                   logs.map((log, idx) => (
                     <div key={idx} className={cn(
                       "flex gap-4 group/line",
-                      log.type === 'error' ? "text-red-400" : ""
+                      log.type === 'error' ? "text-destructive" : ""
                     )}>
-                      <span className="text-zinc-600 shrink-0 select-none">[{idx.toString().padStart(3, '0')}]</span>
+                      <span className="text-muted-foreground/70 shrink-0 select-none">[{idx.toString().padStart(3, '0')}]</span>
                       <span className="whitespace-pre-wrap">{log.message}</span>
                     </div>
                   ))
@@ -284,33 +282,33 @@ export default function StressTestPage() {
 
               {/* Status Overlay */}
               {!isRunning && logs.length > 0 && (
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-zinc-900 border border-white/10 px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
+                <div className="absolute inset-0 bg-background/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="ov-panel ov-panel-solid px-6 py-3 flex items-center gap-4">
                     <History className="h-5 w-5 text-primary" />
-                    <span className="font-bold text-sm tracking-tight">Test Log Session Complete</span>
-                    <Button variant="outline" size="sm" className="h-8 text-[10px] font-black border-white/10" onClick={() => setLogs([])}>Clear</Button>
+                    <span className="font-sans text-sm font-semibold text-foreground">Test Log Session Complete</span>
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setLogs([])}>Clear</Button>
                   </div>
                 </div>
               )}
             </Card>
 
             <div className="grid grid-cols-3 gap-4">
-              <Card className="border-none shadow-sm bg-card/60">
+              <Card>
                 <CardContent className="p-4 flex flex-col items-center gap-2">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Stability Score</span>
-                  <span className="text-xl font-black">{logs.length > 0 ? (logs.some(l => l.type === 'error') ? "DEGRADED" : "NOMINAL") : "—"}</span>
+                  <span className="ov-label">Stability Score</span>
+                  <span className="ov-data text-xl font-semibold">{logs.length > 0 ? (logs.some(l => l.type === 'error') ? "DEGRADED" : "NOMINAL") : "—"}</span>
                 </CardContent>
               </Card>
-              <Card className="border-none shadow-sm bg-card/60">
+              <Card>
                 <CardContent className="p-4 flex flex-col items-center gap-2">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Metrics Captured</span>
-                  <span className="text-xl font-black">{logs.length}</span>
+                  <span className="ov-label">Metrics Captured</span>
+                  <span className="ov-data text-xl font-semibold">{logs.length}</span>
                 </CardContent>
               </Card>
-              <Card className="border-none shadow-sm bg-card/60">
+              <Card>
                 <CardContent className="p-4 flex flex-col items-center gap-2">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">System Status</span>
-                  <span className="text-xl font-black text-emerald-500 flex items-center gap-2">
+                  <span className="ov-label">System Status</span>
+                  <span className="ov-chip ov-chip-success font-data text-sm font-semibold">
                     <Activity className="h-4 w-4" /> LIVE
                   </span>
                 </CardContent>

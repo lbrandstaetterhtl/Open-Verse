@@ -16,7 +16,8 @@
     "navigation": "Navigation",
     "support": "Support Tickets",
     "settings": "Settings",
-    "mobile_footer_hint": "Explore premium tools like AI Generator and Support via the User Menu on Desktop."
+    "mobile_footer_hint": "Explore premium tools like AI Generator and Support via the User Menu on Desktop.",
+    "section_admin": "Administration"
   },
   "navigation": {
     "home": "Home",
@@ -36,13 +37,16 @@
     "title": "Auto-Punishment"
   },
   "analytics": {
-    "title": "Analytics"
+    "title": "Analytics",
+    "eyebrow": "Admin / Analytics"
   },
   "modPerf": {
-    "nav": "Mod Performance"
+    "nav": "Mod Performance",
+    "eyebrow": "Admin / Analytics"
   },
   "security": {
-    "stress_test": "Security Tests"
+    "stress_test": "Security Tests",
+    "eyebrow": "Admin / Security"
   },
   "profile": {
     "pro": "Pro",
@@ -96,7 +100,8 @@
     "update_success_desc": "Your changes have been saved successfully.",
     "follow_success": "Followed successfully",
     "is_now_following": "You are now following {{username}}",
-    "unfollow_success": "Unfollowed"
+    "unfollow_success": "Unfollowed",
+    "unfollow": "Unfollow"
   },
   "common": {
     "loading": "Loading...",
@@ -129,7 +134,14 @@
     "no_posts": "No posts yet. Be the first to share something!",
     "curated": "Curated Feed",
     "media_description": "The most visual and engaging stories curated for your exploration.",
-    "create_story": "Create Story"
+    "create_story": "Create story",
+    "eyebrow_media": "Feed / Media",
+    "eyebrow_discussions": "Feed / Discussions",
+    "no_media": "Silence in the Verse",
+    "no_media_desc": "Be the spark that ignites this feed. Share your first media post now.",
+    "discussion_description": "Connect, debate, and share ideas with a community that values deep conversations.",
+    "start_discussion": "Start conversation",
+    "no_discussions_desc": "Every great movement started with a single word. Be the first to speak."
   },
   "comments": {
     "title": "Comments",
@@ -225,7 +237,10 @@
       "type_post": "Post",
       "type_discussion": "Discussion",
       "type_comment": "Comment"
-    }
+    },
+    "overview_eyebrow": "Admin / Overview",
+    "command_center": "Command Center",
+    "settings_eyebrow": "Admin / Settings"
   },
   "notifications": {
     "title": "Notifications",
@@ -272,7 +287,8 @@
       "followers": "New Followers",
       "community_invites": "Community Events",
       "system": "System Announcements"
-    }
+    },
+    "eyebrow": "Account / Notifications"
   },
   "ai_generator": {
     "title": "AI Post Generator",
@@ -304,7 +320,8 @@
       "german": "German",
       "spanish": "Spanish",
       "french": "French"
-    }
+    },
+    "eyebrow": "Create / AI generator"
   },
   "create_post": {
     "news": {
@@ -361,7 +378,8 @@
       "success_title": "Community Created",
       "restriction_title": "Restriction",
       "restriction_desc": "You need at least 200 reputation to create a community.",
-      "current_rep": "Your current reputation:"
+      "current_rep": "Your current reputation:",
+      "eyebrow": "Communities / New"
     },
     "page": {
       "not_found_title": "Community Not Found",
@@ -396,7 +414,8 @@
         "top": "Top"
       },
       "empty_posts": "No posts yet",
-      "empty_posts_desc": "Be the first to share something!"
+      "empty_posts_desc": "Be the first to share something!",
+      "eyebrow": "Communities"
     }
   },
   "mod_panel": {
@@ -542,7 +561,8 @@
     "no_results": "No communities found.",
     "no_posts": "No posts yet",
     "no_posts_desc": "Join communities to see their posts here, or create your own community!",
-    "join_suggestion": "Create Community"
+    "join_suggestion": "Create Community",
+    "eyebrow": "Feed / Communities"
   },
   "media_feed": {
     "load_error": "Media failed to load"
@@ -574,7 +594,33 @@
     "all_saved": "All Saved",
     "reset_confirm": "Are you sure you want to reset all colors to their defaults? This cannot be undone.",
     "import_success": "Theme imported successfully",
-    "export_success": "Theme configuration copied to clipboard"
+    "export_success": "Theme configuration copied to clipboard",
+    "section_shape": "Shape",
+    "corner_style": "Corner style",
+    "corner_fase": "Chamfer",
+    "corner_kante": "Sharp",
+    "corner_rund": "Round",
+    "corner_size": "Corner size",
+    "avatar_shape": "Avatar shape",
+    "avatar_achteck": "Octagon",
+    "avatar_quadrat": "Square",
+    "avatar_kreis": "Circle",
+    "section_surface": "Surface",
+    "surface_panel": "Panel",
+    "surface_glas": "Glass",
+    "surface_kontur": "Outline",
+    "surface_opacity": "Opacity",
+    "surface_blur": "Blur",
+    "font_display": "Headings",
+    "font_body": "Text",
+    "font_data": "Numbers & times",
+    "font_same_as_text": "Same as text",
+    "section_galaxy": "Galaxy layers",
+    "galaxy_stars": "Star field",
+    "galaxy_grid": "Coordinate grid",
+    "galaxy_constellation": "Constellation in page headers",
+    "galaxy_grain": "Grain",
+    "color_star": "Starlight"
   },
   "footer": {
     "default_tagline": "Unleash your creativity. Build the universe.",
@@ -611,6 +657,9 @@
     "metrics": {
       "events_minute_chart": "Events Activity (24h)",
       "errors_by_category": "Errors & Warnings by Category"
-    }
+    },
+    "eyebrow_audit": "Admin / Audit",
+    "eyebrow_monitoring": "Admin / Monitoring",
+    "eyebrow_moderation": "Admin / Moderation"
   }
 }

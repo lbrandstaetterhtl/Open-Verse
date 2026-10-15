@@ -48,8 +48,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/layout/page-header";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -94,44 +94,37 @@ function MetricCard({
   priority?: "default" | "critical" | "success";
 }) {
   return (
-    <Card className="overflow-hidden border border-white/5 shadow-2xl transition-all hover:-translate-y-1 group glass-premium relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-      <CardContent className="p-8 relative z-10">
-        <div className="flex items-center justify-between space-y-0 pb-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-hover:text-primary transition-colors duration-500">
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between gap-3 pb-3">
+          <p className="ov-label">
             {title}
           </p>
           <div className={cn(
-            "h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-500 shadow-lg",
-            priority === "critical" ? "bg-red-500/10 text-red-500 shadow-red-500/10" : 
-            priority === "success" ? "bg-emerald-500/10 text-emerald-500 shadow-emerald-500/10" : 
-            "bg-primary/10 text-primary shadow-primary/10 group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-110"
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-sm",
+            priority === "critical" ? "bg-star/10 text-star" :
+            priority === "success" ? "bg-primary/10 text-primary" :
+            "bg-primary/10 text-primary"
           )}>
-            <Icon className="h-5 w-5 stroke-[2.5px]" />
+            <Icon className="h-4 w-4" />
           </div>
         </div>
         <div className="flex items-baseline gap-3">
-          <div className="text-4xl font-black tracking-tight italic italic-primary leading-none px-2 -ml-2">{value}</div>
+          <div className={cn("ov-data text-3xl font-semibold leading-none", priority === "critical" && "text-star")}>{value}</div>
           {trend !== undefined && (
             <span className={cn(
-              "text-[10px] font-black px-2 py-1 rounded-full flex items-center gap-1 shadow-sm border border-white/5",
-              trend > 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+              "ov-chip ov-data h-5 gap-1 px-1.5 text-xs",
+              trend > 0 ? "ov-chip-success" : "ov-chip-danger"
             )}>
               <TrendingUp className={cn("h-3 w-3", trend < 0 && "rotate-180")} />
               {Math.abs(trend)}%
             </span>
           )}
         </div>
-        <p className="text-[11px] text-muted-foreground mt-4 font-medium leading-relaxed opacity-60">
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
           {description}
         </p>
       </CardContent>
-      <div className={cn(
-        "h-1.5 w-full absolute bottom-0 left-0 opacity-40 transition-all duration-500",
-        priority === "critical" ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" : 
-        priority === "success" ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : 
-        "bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)] group-hover:h-2"
-      )} />
     </Card>
   );
 }
@@ -140,10 +133,10 @@ function UserRowSkeleton() {
   return (
     <TableRow>
       <TableCell className="px-6"><Skeleton className="h-4 w-4 rounded" /></TableCell>
-      <TableCell><div className="flex items-center gap-3"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-1"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-16" /></div></div></TableCell>
+      <TableCell><div className="flex items-center gap-3"><Skeleton className="ov-avatar h-8 w-8" /><div className="space-y-1"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-16" /></div></div></TableCell>
       <TableCell><Skeleton className="h-4 w-40" /></TableCell>
       <TableCell><div className="flex gap-1"><Skeleton className="h-4 w-16" /><Skeleton className="h-4 w-16" /></div></TableCell>
-      <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+      <TableCell><Skeleton className="h-5 w-16 rounded-pill" /></TableCell>
       <TableCell><Skeleton className="h-6 w-12 rounded" /></TableCell>
       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
       <TableCell><div className="flex justify-center gap-1"><Skeleton className="h-7 w-7 rounded" /><Skeleton className="h-7 w-7 rounded" /><Skeleton className="h-7 w-7 rounded" /></div></TableCell>
@@ -167,7 +160,7 @@ function ReportRowSkeleton() {
 
 function StatCardSkeleton() {
   return (
-    <Card className="border-none shadow-sm"><CardContent className="p-6"><Skeleton className="h-4 w-20 mb-4" /><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-3 w-full" /></CardContent></Card>
+    <Card><CardContent className="p-5"><Skeleton className="h-4 w-20 mb-4" /><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-3 w-full" /></CardContent></Card>
   );
 }
 
@@ -390,28 +383,15 @@ export default function AdminDashboard() {
 
   return (
     <TooltipProvider>
-        <div className="space-y-12 animate-in fade-in duration-700 pb-20 pt-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 text-primary">
-                <Shield className="h-5 w-5 stroke-[2.5px]" />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em]">{t("admin.title")}</span>
-              </div>
-              <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-none">
-                Command <span className="text-transparent bg-clip-text bg-gradient-to-br from-primary to-accent">Center</span>
-              </h2>
-              <p className="text-lg text-muted-foreground/60 font-medium max-w-md">Monitor platform health and manage operations in zero-gravity.</p>
-            </div>
-            
-            <div className="flex items-center gap-4">
-               <div className="h-14 w-14 rounded-2xl glass-premium border-white/5 flex items-center justify-center shadow-xl">
-                 <Activity className="h-6 w-6 text-primary animate-pulse" />
-               </div>
-            </div>
-          </div>
+        <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+          <PageHeader
+            eyebrow={t("admin.overview_eyebrow", "Admin / Overview")}
+            title={t("admin.command_center", "Command Center")}
+            description="Monitor platform health and manage operations in zero-gravity."
+          />
 
           {/* Statistics Grid */}
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {statsLoading ? [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />) : (
               <>
                 <MetricCard title={t("admin.stats.total_users")} value={stats?.totalUsers || 0} icon={Users} description="Cumulative registered users across the platform." />
@@ -431,40 +411,40 @@ export default function AdminDashboard() {
 
           <Tabs
             value={currentTab}
-            className="space-y-10"
+            className="space-y-6"
             onValueChange={(value) => {
               setLocation(`/admin/${value}`);
               queryClient.invalidateQueries({ queryKey: [`/api/admin/${value}`] });
             }}
           >
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 border-b border-white/5 pb-8">
-              <TabsList className="bg-background/40 backdrop-blur-3xl p-1.5 rounded-full border border-white/10 h-14">
+            <div className="ov-rule flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4">
+              <TabsList className="max-w-full justify-start overflow-x-auto">
                 {hasPermission("users") && (
-                  <TabsTrigger value="users" className="relative flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10">
+                  <TabsTrigger value="users" className="gap-2 px-4">
                     <Users className="h-4 w-4" />
                     {t("admin.tabs.users")}
-                    <span className={cn("ml-2 px-2 py-0.5 rounded-full text-[9px] font-black transition-colors", currentTab === "users" ? "bg-white/20" : "bg-primary/10 text-primary")}>
+                    <span className={cn("ov-data ml-1 text-xs", currentTab === "users" ? "text-primary" : "text-muted-foreground")}>
                       {users?.length || 0}
                     </span>
                   </TabsTrigger>
                 )}
                 {hasPermission("reports") && (
-                  <TabsTrigger value="reports" className="relative flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10">
+                  <TabsTrigger value="reports" className="gap-2 px-4">
                     <Flag className="h-4 w-4" />
                     {t("admin.tabs.reports")}
                     {stats?.pendingReports && stats.pendingReports > 0 ? (
-                      <span className="ml-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-500 text-[9px] font-black animate-pulse">
+                      <span className="ov-chip ov-chip-star ov-data ml-1 h-5 px-1.5 text-xs">
                         {stats.pendingReports}
                       </span>
                     ) : (
-                      <span className={cn("ml-2 px-2 py-0.5 rounded-full text-[9px] font-black transition-colors", currentTab === "reports" ? "bg-white/20" : "bg-primary/10 text-primary")}>
+                      <span className={cn("ov-data ml-1 text-xs", currentTab === "reports" ? "text-primary" : "text-muted-foreground")}>
                         {reports?.length || 0}
                       </span>
                     )}
                   </TabsTrigger>
                 )}
                 {hasPermission("groups") && (
-                  <TabsTrigger value="groups" className="relative flex items-center gap-3 px-8 h-11 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:shadow-primary/20 transition-all text-[10px] font-black uppercase tracking-widest z-10">
+                  <TabsTrigger value="groups" className="gap-2 px-4">
                     <Shield className="h-4 w-4" />
                     Groups
                   </TabsTrigger>
@@ -473,10 +453,10 @@ export default function AdminDashboard() {
 
               <div className="flex items-center gap-4 w-full lg:w-auto">
                 <div className="relative flex-1 lg:w-80 group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-all duration-300" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
                     placeholder="Search the Verse..."
-                    className="glass-input pl-11 h-14 rounded-full border-white/10 focus-visible:ring-primary shadow-2xl shadow-black/10 font-bold text-xs"
+                    className="pl-10"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -485,16 +465,16 @@ export default function AdminDashboard() {
             </div>
 
             <TabsContent value="users">
-              <Card className="border-none shadow-sm overflow-hidden bg-card/50 backdrop-blur-sm">
-                <CardHeader className="bg-card/80 border-b px-6 py-4 flex flex-row items-center justify-between backdrop-blur-md sticky top-0 z-20">
-                  <div>
-                    <CardTitle className="text-lg font-bold tracking-tight">User Directory</CardTitle>
+              <Card className="overflow-hidden isolate">
+                <CardHeader className="ov-rule px-6 py-4 flex flex-row flex-wrap items-center justify-between gap-4 space-y-0 sticky top-0 z-20">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">User Directory</CardTitle>
                     <CardDescription className="text-xs">Manage authentication states and moderation levels.</CardDescription>
                   </div>
-                  <div className="flex gap-1 bg-muted/40 p-1 rounded-lg border">
-                    <Button variant={userFilter === "all" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setUserFilter("all")}>All</Button>
-                    <Button variant={userFilter === "verified" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setUserFilter("verified")}>Verified</Button>
-                    <Button variant={userFilter === "banned" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setUserFilter("banned")}>Banned</Button>
+                  <div className="flex gap-0.5 rounded-sm border border-border bg-background/40 p-1">
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", userFilter === "all" && "ov-tab-active")} onClick={() => setUserFilter("all")}>All</Button>
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", userFilter === "verified" && "ov-tab-active")} onClick={() => setUserFilter("verified")}>Verified</Button>
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", userFilter === "banned" && "ov-tab-active")} onClick={() => setUserFilter("banned")}>Banned</Button>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -518,28 +498,28 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-3 py-1">
                             <UserAvatar user={{ username: u.username }} size="sm" />
                             <div className="flex flex-col min-w-0">
-                              <Link href={`/users/${u.username}`} className="hover:text-primary transition-colors text-sm font-bold truncate leading-tight">{u.username}</Link>
-                              <span className="text-[9px] font-mono text-muted-foreground">ID: {u.id}</span>
+                              <Link href={`/users/${u.username}`} className="hover:text-primary transition-colors text-sm font-semibold truncate leading-tight">{u.username}</Link>
+                              <span className="ov-data text-xs text-muted-foreground">ID: {u.id}</span>
                             </div>
                           </div>
                         )
                       },
-                      { key: "email", label: "Contact", render: (u) => <span className="text-[11px] font-mono">{u.email}</span> },
-                      { 
-                        key: "role", 
-                        label: "Role", 
+                      { key: "email", label: "Contact", render: (u) => <span className="ov-data text-xs">{u.email}</span> },
+                      {
+                        key: "role",
+                        label: "Role",
                         render: (u) => (
-                          <Badge variant={u.role === "owner" ? "destructive" : u.role === "admin" ? "default" : "secondary"} className="text-[9px] py-0 font-bold tracking-wider">
-                            {u.role.toUpperCase()}
-                          </Badge>
+                          <span className={cn("ov-chip capitalize", u.role === "owner" ? "ov-chip-star" : u.role === "admin" ? "ov-chip-primary" : "")}>
+                            {u.role}
+                          </span>
                         )
                       },
-                      { 
-                        key: "karma", 
-                        label: "Rep", 
+                      {
+                        key: "karma",
+                        label: "Rep",
                         render: (u) => (
-                          <div className={cn("inline-flex items-center gap-1 text-xs font-black px-1.5 py-0.5 rounded border shadow-sm", 
-                            u.karma >= 0 ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/20" : "bg-red-500/5 text-red-500 border-red-500/20")}>
+                          <div className={cn("ov-chip ov-data",
+                            u.karma >= 0 ? "ov-chip-success" : "ov-chip-danger")}>
                             {u.karma >= 0 ? "+" : ""}{u.karma}
                           </div>
                         )
@@ -551,8 +531,8 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all" onClick={() => handleVerificationToggle(u.id, !!u.verified)}>
-                                  <BadgeCheck className={cn("h-4 w-4", u.verified ? "text-primary fill-primary/20" : "opacity-30")} />
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary" onClick={() => handleVerificationToggle(u.id, !!u.verified)}>
+                                  <BadgeCheck className={cn("h-4 w-4", u.verified ? "text-star fill-star/20" : "opacity-30")} />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>{u.verified ? "Revoke Verification" : "Verify User"}</TooltipContent>
@@ -560,31 +540,31 @@ export default function AdminDashboard() {
 
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/10 transition-all">
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-56 glass-premium border-white/10 rounded-2xl shadow-2xl p-2">
+                              <DropdownMenuContent align="end" className="w-56 p-2">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                                    <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onSelect={(e) => e.preventDefault()}>
                                       <Shield className="h-4 w-4 text-primary" />
                                       <div className="flex flex-col flex-1">
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Assign Role</span>
-                                        <span className="text-[9px] text-muted-foreground">Currently: {u.role.toUpperCase()}</span>
+                                        <span className="text-sm font-medium">Assign Role</span>
+                                        <span className="text-xs text-muted-foreground">Currently: <span className="capitalize">{u.role}</span></span>
                                       </div>
                                       <ArrowRight className="h-3 w-3 opacity-30" />
                                     </DropdownMenuItem>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent side="right" className="glass-premium border-white/10 rounded-xl p-2 shadow-2xl">
-                                    <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "user" } })}>
+                                  <DropdownMenuContent side="right" className="p-2">
+                                    <DropdownMenuItem className="gap-2 py-2 text-sm font-medium" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "user" } })}>
                                       <Users className="h-3 w-3" /> User
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "admin" } })}>
+                                    <DropdownMenuItem className="gap-2 py-2 text-sm font-medium" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "admin" } })}>
                                       <Shield className="h-3 w-3 text-primary" /> Admin
                                     </DropdownMenuItem>
                                     {user?.role === "owner" && (
-                                      <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2 text-primary" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "owner" } })}>
+                                      <DropdownMenuItem className="gap-2 py-2 text-sm font-medium text-primary" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "owner" } })}>
                                         <Crown className="h-3 w-3" /> Owner
                                       </DropdownMenuItem>
                                     )}
@@ -594,25 +574,25 @@ export default function AdminDashboard() {
                                 {hasPermission("groups") && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                                      <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onSelect={(e) => e.preventDefault()}>
                                         <Shield className="h-4 w-4 text-primary" />
                                         <div className="flex flex-col flex-1">
-                                          <span className="text-[10px] font-black uppercase tracking-widest">Assign Group</span>
-                                          <span className="text-[9px] text-muted-foreground">
+                                          <span className="text-sm font-medium">Assign Group</span>
+                                          <span className="text-xs text-muted-foreground">
                                             {adminGroups?.find(g => g.id === u.adminGroupId)?.name || "No Group"}
                                           </span>
                                         </div>
                                         <ArrowRight className="h-3 w-3 opacity-30" />
                                       </DropdownMenuItem>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent side="right" className="glass-premium border-white/10 rounded-xl p-2 shadow-2xl w-48">
-                                      <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { adminGroupId: null } })}>
+                                    <DropdownMenuContent side="right" className="w-48 p-2">
+                                      <DropdownMenuItem className="gap-2 py-2 text-sm font-medium" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { adminGroupId: null } })}>
                                         <X className="h-3 w-3" /> None
                                       </DropdownMenuItem>
                                       {adminGroups?.map(group => (
-                                        <DropdownMenuItem 
-                                          key={group.id} 
-                                          className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" 
+                                        <DropdownMenuItem
+                                          key={group.id}
+                                          className="gap-2 py-2 text-sm font-medium"
                                           onClick={() => updateUserMutation.mutate({ userId: u.id, data: { adminGroupId: group.id } })}
                                         >
                                           <div className="h-2 w-2 rounded-full" style={{ backgroundColor: group.color }} />
@@ -622,32 +602,32 @@ export default function AdminDashboard() {
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 )}
-                                
-                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
-                                  <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-amber-500" : "text-muted-foreground")} />
+
+                                <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
+                                  <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-star" : "text-muted-foreground")} />
                                   <div className="flex flex-col">
-                                    <span className="text-[10px] font-black uppercase tracking-widest">
+                                    <span className="text-sm font-medium">
                                       {u.isShadowBanned ? "Revoke Shadowban" : "Shadowban User"}
                                     </span>
-                                    <span className="text-[9px] text-muted-foreground">Silent moderation state</span>
+                                    <span className="text-xs text-muted-foreground">Silent moderation state</span>
                                   </div>
                                 </DropdownMenuItem>
 
-                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer text-red-500 hover:text-red-500 hover:bg-red-500/10" onClick={() => handleBanToggle(u)}>
+                                <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleBanToggle(u)}>
                                   <Ban className="h-4 w-4" />
                                   <div className="flex flex-col">
-                                    <span className="text-[10px] font-black uppercase tracking-widest">
+                                    <span className="text-sm font-medium">
                                       {u.karma < 0 ? "Lift Restriction" : "Restrict Account"}
                                     </span>
-                                    <span className="text-[9px] opacity-70">{u.karma < 0 ? "Restore access" : "Zero-gravity suspension"}</span>
+                                    <span className="text-xs opacity-70">{u.karma < 0 ? "Restore access" : "Zero-gravity suspension"}</span>
                                   </div>
                                 </DropdownMenuItem>
 
-                                <div className="h-[1px] bg-white/5 my-2" />
+                                <div className="my-2 h-px bg-border" />
 
-                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer text-red-600 hover:text-red-600 hover:bg-red-600/10 font-bold" onClick={() => deleteUserMutation.mutate(u.id)}>
+                                <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => deleteUserMutation.mutate(u.id)}>
                                   <Trash2 className="h-4 w-4" />
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-red-500">Purge Entity</span>
+                                  <span className="text-sm font-semibold">Purge Entity</span>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -662,19 +642,19 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-3">
                             <UserAvatar user={{ username: u.username }} size="sm" />
                             <div>
-                              <p className="font-bold text-sm">{u.username}</p>
-                              <p className="text-[10px] text-muted-foreground font-mono">{u.email}</p>
+                              <p className="font-semibold text-sm">{u.username}</p>
+                              <p className="ov-data text-xs text-muted-foreground">{u.email}</p>
                             </div>
                           </div>
-                          <Checkbox 
+                          <Checkbox
                             checked={selectedUsers.has(u.id)}
                             onCheckedChange={() => toggleUserSelection(u.id)}
                           />
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex gap-2">
-                             <Badge variant={u.role === "owner" ? "destructive" : "secondary"} className="text-[9px]">{u.role.toUpperCase()}</Badge>
-                             <div className={cn("text-[10px] font-black px-1.5 rounded border", u.karma >= 0 ? "text-emerald-600" : "text-red-500")}>
+                             <span className={cn("ov-chip capitalize", u.role === "owner" ? "ov-chip-star" : u.role === "admin" ? "ov-chip-primary" : "")}>{u.role}</span>
+                             <div className={cn("ov-chip ov-data", u.karma >= 0 ? "ov-chip-success" : "ov-chip-danger")}>
                                {u.karma >= 0 ? "+" : ""}{u.karma}
                              </div>
                           </div>
@@ -688,41 +668,41 @@ export default function AdminDashboard() {
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-56 glass-premium border-white/10 rounded-2xl shadow-2xl p-2">
+                              <DropdownMenuContent align="end" className="w-56 p-2">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                                    <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onSelect={(e) => e.preventDefault()}>
                                       <Shield className="h-4 w-4 text-primary" />
-                                      <span className="text-[10px] font-black uppercase tracking-widest flex-1">Assign Role</span>
+                                      <span className="text-sm font-medium flex-1">Assign Role</span>
                                       <ArrowRight className="h-3 w-3 opacity-30" />
                                     </DropdownMenuItem>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent side="right" className="glass-premium border-white/10 rounded-xl p-2 shadow-2xl">
-                                    <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "user" } })}>
+                                  <DropdownMenuContent side="right" className="p-2">
+                                    <DropdownMenuItem className="gap-2 py-2 text-sm font-medium" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "user" } })}>
                                       <Users className="h-3 w-3" /> User
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "admin" } })}>
+                                    <DropdownMenuItem className="gap-2 py-2 text-sm font-medium" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "admin" } })}>
                                       <Shield className="h-3 w-3 text-primary" /> Admin
                                     </DropdownMenuItem>
                                     {user?.role === "owner" && (
-                                      <DropdownMenuItem className="rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest py-2 text-primary" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "owner" } })}>
+                                      <DropdownMenuItem className="gap-2 py-2 text-sm font-medium text-primary" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "owner" } })}>
                                         <Crown className="h-3 w-3" /> Owner
                                       </DropdownMenuItem>
                                     )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
-                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
-                                  <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-amber-500" : "text-muted-foreground")} />
-                                  <span className="text-[10px] font-black uppercase tracking-widest">Toggle Shadowban</span>
+                                <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
+                                  <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-star" : "text-muted-foreground")} />
+                                  <span className="text-sm font-medium">Toggle Shadowban</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer text-red-500 hover:bg-red-500/10" onClick={() => handleBanToggle(u)}>
+                                <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleBanToggle(u)}>
                                   <Ban className="h-4 w-4" />
-                                  <span className="text-[10px] font-black uppercase tracking-widest">Toggle Restriction</span>
+                                  <span className="text-sm font-medium">Toggle Restriction</span>
                                 </DropdownMenuItem>
-                                <div className="h-[1px] bg-white/5 my-2" />
-                                <DropdownMenuItem className="rounded-xl gap-3 py-3 cursor-pointer text-red-600 hover:bg-red-600/10" onClick={() => deleteUserMutation.mutate(u.id)}>
+                                <div className="my-2 h-px bg-border" />
+                                <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => deleteUserMutation.mutate(u.id)}>
                                   <Trash2 className="h-4 w-4" />
-                                  <span className="text-[10px] font-black uppercase tracking-widest">Purge Account</span>
+                                  <span className="text-sm font-semibold">Purge Account</span>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -737,16 +717,16 @@ export default function AdminDashboard() {
             </TabsContent>
 
             <TabsContent value="reports">
-               <Card className="border-none shadow-sm overflow-hidden bg-card/50 backdrop-blur-sm">
-                <CardHeader className="bg-card/80 border-b px-6 py-4 flex flex-row items-center justify-between backdrop-blur-md sticky top-0 z-20">
-                  <div>
-                    <CardTitle className="text-lg font-bold tracking-tight">Content Integrity Queue</CardTitle>
+               <Card className="overflow-hidden isolate">
+                <CardHeader className="ov-rule px-6 py-4 flex flex-row flex-wrap items-center justify-between gap-4 space-y-0 sticky top-0 z-20">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">Content Integrity Queue</CardTitle>
                     <CardDescription className="text-xs">Community flags requiring administrative adjudication.</CardDescription>
                   </div>
-                  <div className="flex gap-1 bg-muted/40 p-1 rounded-lg border">
-                    <Button variant={reportFilter === "pending" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setReportFilter("pending")}>Pending</Button>
-                    <Button variant={reportFilter === "resolved" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setReportFilter("resolved")}>Resolved</Button>
-                    <Button variant={reportFilter === "rejected" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest px-3" onClick={() => setReportFilter("rejected")}>Rejected</Button>
+                  <div className="flex gap-0.5 rounded-sm border border-border bg-background/40 p-1">
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", reportFilter === "pending" && "ov-tab-active")} onClick={() => setReportFilter("pending")}>Pending</Button>
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", reportFilter === "resolved" && "ov-tab-active")} onClick={() => setReportFilter("resolved")}>Resolved</Button>
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", reportFilter === "rejected" && "ov-tab-active")} onClick={() => setReportFilter("rejected")}>Rejected</Button>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -758,34 +738,34 @@ export default function AdminDashboard() {
                         label: "Source", 
                         render: (r) => (
                           <div className="flex flex-col">
-                            <span className="text-xs font-bold">{(r as any).reporter?.username}</span>
-                            <span className="text-[9px] font-mono text-muted-foreground">{r.ipAddress || "INTERNAL"}</span>
+                            <span className="text-xs font-semibold">{(r as any).reporter?.username}</span>
+                            <span className="ov-data text-xs text-muted-foreground">{r.ipAddress || "INTERNAL"}</span>
                           </div>
                         )
                       },
-                      { 
-                        key: "entity", 
-                        label: "Entity", 
+                      {
+                        key: "entity",
+                        label: "Entity",
                         render: (r) => (
-                          <Badge variant="outline" className="text-[8px] py-0 font-black tracking-tighter border-primary/20 bg-primary/5">
-                            {(r as any).content?.type?.toUpperCase()}
-                          </Badge>
+                          <span className="ov-chip capitalize">
+                            {(r as any).content?.type}
+                          </span>
                         )
                       },
-                      { 
-                        key: "observation", 
-                        label: "Observation", 
+                      {
+                        key: "observation",
+                        label: "Observation",
                         render: (r) => (
-                          <p className="text-xs font-bold truncate max-w-[200px]">{(r as any).content?.title || (r as any).content?.content}</p>
+                          <p className="text-xs font-medium truncate max-w-[200px]">{(r as any).content?.title || (r as any).content?.content}</p>
                         )
                       },
-                      { 
-                        key: "status", 
-                        label: "Status", 
+                      {
+                        key: "status",
+                        label: "Status",
                         render: (r) => (
-                          <Badge variant={r.status === "resolved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"} className="text-[9px] font-bold">
-                            {r.status.toUpperCase()}
-                          </Badge>
+                          <span className={cn("ov-chip capitalize", r.status === "resolved" ? "ov-chip-success" : r.status === "rejected" ? "ov-chip-danger" : "ov-chip-star")}>
+                            {r.status}
+                          </span>
                         )
                       },
                       { 
@@ -796,7 +776,7 @@ export default function AdminDashboard() {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-8 w-8 p-0 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/20 relative z-[60]" 
+                              className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10 relative z-[60]"
                               disabled={updateReportMutation.isPending || r.status !== "pending"} 
                               onClick={(e) => { 
                                 e.preventDefault();
@@ -810,7 +790,7 @@ export default function AdminDashboard() {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-8 w-8 p-0 text-red-500 hover:text-red-400 hover:bg-red-500/10 border-red-500/20 relative z-[60]" 
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 relative z-[60]"
                               disabled={updateReportMutation.isPending || r.status !== "pending"} 
                               onClick={(e) => { 
                                 e.preventDefault();
@@ -831,21 +811,21 @@ export default function AdminDashboard() {
                       <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold">{(r as any).reporter?.username}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase font-black">{(r as any).content?.type} Flag</span>
+                            <span className="text-sm font-semibold">{(r as any).reporter?.username}</span>
+                            <span className="ov-label">{(r as any).content?.type} Flag</span>
                           </div>
-                          <Badge variant={r.status === "resolved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"} className="text-[9px]">
-                            {r.status.toUpperCase()}
-                          </Badge>
+                          <span className={cn("ov-chip capitalize", r.status === "resolved" ? "ov-chip-success" : r.status === "rejected" ? "ov-chip-danger" : "ov-chip-star")}>
+                            {r.status}
+                          </span>
                         </div>
                         <p className="text-xs italic text-muted-foreground line-clamp-2">"{r.reason}"</p>
-                        <div className="flex items-center justify-between pt-2 border-t border-border/40">
-                          <span className="text-[10px] font-mono text-muted-foreground">{format(new Date(r.createdAt), "MMM d, HH:mm")}</span>
+                        <div className="flex items-center justify-between pt-2 border-t border-border">
+                          <span className="ov-data text-xs text-muted-foreground">{format(new Date(r.createdAt), "MMM d, HH:mm")}</span>
                           <div className="flex gap-2">
-                             <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-emerald-600" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "resolved" }); }}>
+                             <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-primary" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "resolved" }); }}>
                                Resolve
                              </Button>
-                             <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-red-500" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "rejected" }); }}>
+                             <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-destructive" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "rejected" }); }}>
                                Dismiss
                              </Button>
                           </div>

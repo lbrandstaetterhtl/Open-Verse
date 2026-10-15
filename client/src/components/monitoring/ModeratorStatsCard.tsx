@@ -17,51 +17,51 @@ export function ModeratorStatsCard() {
     if (isLoading) return <Skeleton className="h-24 w-full" />;
 
     return (
-        <Card className="overflow-hidden border-none bg-primary/5">
+        <Card>
             <CardContent className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 border-r pr-6 last:border-0 grow">
-                        <div className="h-10 w-10 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-600">
+                    <div className="flex items-center gap-4 border-r border-border pr-6 last:border-0 grow">
+                        <div className="ov-cut h-10 w-10 shrink-0 bg-primary/10 flex items-center justify-center text-primary">
                             <ShieldCheck className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t("modPerf.reports_today", "Reports Handled")}</p>
-                            <p className="text-xl font-bold">{team?.reportsHandledToday || 0}</p>
+                            <p className="ov-label">{t("modPerf.reports_today", "Reports Handled")}</p>
+                            <p className="ov-data text-xl font-semibold">{team?.reportsHandledToday || 0}</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 border-r pr-6 last:border-0 grow">
-                        <div className="h-10 w-10 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-600">
+                    <div className="flex items-center gap-4 border-r border-border pr-6 last:border-0 grow">
+                        <div className="ov-cut h-10 w-10 shrink-0 bg-primary/10 flex items-center justify-center text-primary">
                             <TicketCheck className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t("modPerf.tickets_today", "Tickets Resolved")}</p>
-                            <p className="text-xl font-bold">{team?.ticketsResolvedToday || 0}</p>
+                            <p className="ov-label">{t("modPerf.tickets_today", "Tickets Resolved")}</p>
+                            <p className="ov-data text-xl font-semibold">{team?.ticketsResolvedToday || 0}</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 border-r pr-6 last:border-0 grow">
-                        <div className="h-10 w-10 bg-purple-500/10 rounded-full flex items-center justify-center text-purple-600">
+                    <div className="flex items-center gap-4 border-r border-border pr-6 last:border-0 grow">
+                        <div className="ov-cut h-10 w-10 shrink-0 bg-muted flex items-center justify-center text-muted-foreground">
                             <Clock className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t("modPerf.resp_time", "Avg Response")}</p>
-                            <p className="text-xl font-bold">{formatTime(team?.avgTicketResponseSeconds || 0)}</p>
+                            <p className="ov-label">{t("modPerf.resp_time", "Avg Response")}</p>
+                            <p className="ov-data text-xl font-semibold">{formatTime(team?.avgTicketResponseSeconds || 0)}</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4 grow">
-                        <div className="h-10 w-10 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-600">
+                        <div className="ov-cut h-10 w-10 shrink-0 bg-star/10 flex items-center justify-center text-star">
                             <TrendingUp className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t("modPerf.audit_score", "Audit Score")}</p>
+                            <p className="ov-label">{t("modPerf.audit_score", "Audit Score")}</p>
                             <div className="flex items-center gap-2">
-                                <p className="text-xl font-bold">{(team?.reportsHandledToday || 0) * 3 + (team?.ticketsResolvedToday || 0) * 5}</p>
+                                <p className="ov-data text-xl font-semibold">{(team?.reportsHandledToday || 0) * 3 + (team?.ticketsResolvedToday || 0) * 5}</p>
                                 {Number(team?.reportsTrend || 0) > 0 && (
-                                    <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-200 bg-emerald-50 h-4">
+                                    <span className="ov-chip ov-chip-success ov-data h-5 px-1.5">
                                         +{team?.reportsTrend}%
-                                    </Badge>
+                                    </span>
                                 )}
                             </div>
                         </div>
@@ -71,5 +71,3 @@ export function ModeratorStatsCard() {
         </Card>
     );
 }
-
-import { Badge } from "@/components/ui/badge";

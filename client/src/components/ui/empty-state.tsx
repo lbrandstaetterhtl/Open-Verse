@@ -30,10 +30,10 @@ export function EmptyState({
             )}
             {...props}
         >
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/50 mb-4">
+            <div className="ov-panel flex h-20 w-20 items-center justify-center mb-4">
                 {icon || <FolderOpen className="h-10 w-10 text-muted-foreground" />}
             </div>
-            <h3 className="text-xl font-semibold tracking-tight">{title}</h3>
+            <h3 className="font-display text-xl font-semibold">{title}</h3>
             <p className="text-sm text-muted-foreground mt-2 max-w-sm text-balance">
                 {description}
             </p>

@@ -35,7 +35,7 @@ export function ResponsiveModal({ open, onClose, title, children, className, hid
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60"
               onClick={onClose}
             />
             <motion.div
@@ -44,23 +44,23 @@ export function ResponsiveModal({ open, onClose, title, children, className, hid
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className={cn(
-                "relative w-full bg-background rounded-t-[2.5rem] shadow-2xl border-t border-border/40",
+                "ov-panel relative w-full bg-background",
                 "pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] overflow-hidden flex flex-col max-h-[92vh]",
                 className
               )}
             >
               {/* Handle Bar */}
               <div className="flex justify-center py-4 flex-shrink-0">
-                <div className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
+                <div className="w-12 h-1 rounded-pill bg-muted-foreground/30" />
               </div>
 
               {title && (
-                <div className="px-6 pb-4 flex items-center justify-between border-b border-border/40 flex-shrink-0">
-                  <h2 className="font-black text-xl tracking-tight">{title}</h2>
+                <div className="px-6 pb-4 flex items-center justify-between border-b border-border flex-shrink-0">
+                  <h2 className="font-display text-xl font-semibold">{title}</h2>
                   {!hideClose && (
-                    <button 
+                    <button
                       onClick={onClose}
-                      className="p-2 rounded-full hover:bg-muted transition-colors active:scale-90"
+                      className="p-2 rounded-sm hover:bg-foreground/5 transition-colors"
                     >
                       <X className="h-5 w-5 opacity-60" />
                     </button>
@@ -79,12 +79,12 @@ export function ResponsiveModal({ open, onClose, title, children, className, hid
       {/* Desktop Dialog */}
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
         <DialogContent className={cn(
-          "hidden md:flex flex-col gap-6 max-w-lg p-8 rounded-[2rem] glass-premium border-border/40",
+          "hidden md:flex flex-col gap-6 max-w-lg p-6",
           className
         )}>
           {title && (
             <DialogHeader className="space-y-1">
-              <DialogTitle className="text-2xl font-black tracking-tight">{title}</DialogTitle>
+              <DialogTitle className="font-display text-xl font-semibold">{title}</DialogTitle>
             </DialogHeader>
           )}
           <div className="relative">

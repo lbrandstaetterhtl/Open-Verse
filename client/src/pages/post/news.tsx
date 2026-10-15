@@ -99,9 +99,9 @@ export default function CreateNewsPage() {
     <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Newspaper className="h-5 w-5" />
+            <CardHeader className="ov-rule mb-6">
+              <CardTitle className="flex items-center gap-2">
+                <Newspaper className="h-5 w-5 text-primary" />
                 <span>{t("create_post.news.title")}</span>
               </CardTitle>
             </CardHeader>

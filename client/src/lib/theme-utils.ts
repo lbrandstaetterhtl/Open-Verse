@@ -1,7 +1,6 @@
 // Theme utility functions for custom theme builder
 export const CUSTOM_THEME_EVENT = "custom-theme-changed";
-export const THEME_VERSION = 2; // Incremented to trigger overhaul
-
+export const THEME_VERSION = 3;
 
 export interface ThemeColors {
   background: string;
@@ -23,29 +22,85 @@ export interface ThemeColors {
   border: string;
   input: string;
   ring: string;
+  /** Warm highlight for badges, markers and single stars. */
+  star?: string;
 }
 
 export interface ParticleConfig {
   coreColor: string;   // hex e.g. "#c8d2ff"
   glowColor: string;   // hex e.g. "#8496ff"
   enabled: boolean;
+  speed?: number;
+  attraction?: number;
+  size?: number;
+  glowStrength?: number;
+  twinkle?: boolean;
+}
+
+export type ShapeStyle = "fase" | "kante" | "rund";
+export type AvatarShape = "achteck" | "quadrat" | "kreis";
+export type SurfaceMode = "panel" | "glas" | "kontur";
+
+export interface ShapeConfig {
+  style: ShapeStyle;
+  /** Corner size in px: the chamfer cut for "fase", the radius for "rund". */
+  size: number;
+  avatar: AvatarShape;
+}
+
+export interface SurfaceConfig {
+  mode: SurfaceMode;
+  opacity: number; // 0..1
+  blur: number;    // 0..24 px
+}
+
+export interface FontConfig {
+  display: string;
+  body: string;
+  data: string;
+}
+
+export interface GalaxyConfig {
+  stars: boolean;
+  grid: boolean;
+  constellation: boolean;
+  grain: number; // 0..0.3
 }
 
 export interface CustomTheme {
   light: ThemeColors;
   dark: ThemeColors;
+  /** Legacy single font (v2); v3 themes use `fonts`. */
   font?: string;
   unified?: boolean;
   version?: number;
   background?: BackgroundConfig;
   particles?: ParticleConfig;
+  shape?: ShapeConfig;
+  surface?: SurfaceConfig;
+  fonts?: FontConfig;
+  galaxy?: GalaxyConfig;
 }
 
-export const defaultParticles: ParticleConfig = {
+export const defaultParticles: Required<ParticleConfig> = {
   coreColor: "#c8d2ff",
   glowColor: "#8496ff",
   enabled: true,
+  speed: 1,
+  attraction: 0.008,
+  size: 1,
+  glowStrength: 1,
+  twinkle: true,
 };
+
+export const defaultShape: ShapeConfig = { style: "fase", size: 10, avatar: "achteck" };
+export const defaultSurface: SurfaceConfig = { mode: "panel", opacity: 0.9, blur: 0 };
+export const defaultFonts: FontConfig = { display: "Chakra Petch", body: "Instrument Sans", data: "JetBrains Mono" };
+export const defaultGalaxy: GalaxyConfig = { stars: true, grid: true, constellation: true, grain: 0.06 };
+
+const SHAPE_STYLES: ShapeStyle[] = ["fase", "kante", "rund"];
+const AVATAR_SHAPES: AvatarShape[] = ["achteck", "quadrat", "kreis"];
+const SURFACE_MODES: SurfaceMode[] = ["panel", "glas", "kontur"];
 
 // --- Background Types ---
 
@@ -71,11 +126,13 @@ export interface BackgroundConfig {
   overlay: BackgroundOverlay;
 }
 
+const LEGACY_DEFAULT_GRADIENT = "linear-gradient(160deg, hsl(230 60% 6%), hsl(270 50% 10%), hsl(200 70% 8%))";
+
 export const defaultBackground: BackgroundConfig = {
   mode: "gradient",
-  gradient: "linear-gradient(160deg, hsl(230 60% 6%), hsl(270 50% 10%), hsl(200 70% 8%))",
+  gradient: "linear-gradient(160deg, hsl(230 56% 6%), hsl(252 50% 10%) 55%, hsl(212 60% 7%))",
   image: undefined,
-  overlay: { opacity: 0.1, blur: 0, tint: "0 0% 0%", brightness: 1, contrast: 1 },
+  overlay: { opacity: 0, blur: 0, tint: "0 0% 0%", brightness: 1, contrast: 1 },
 };
 
 export const defaultLightBackground: BackgroundConfig = {
@@ -109,28 +166,111 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-// Migrate legacy themes (no version field) to v2 with background defaults
+function finiteOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+// Font names end up in a Google Fonts URL and a CSS font-family value, so only plain family names are accepted.
+function safeFontName(value: unknown, fallback: string): string {
+  return typeof value === "string" && /^[A-Za-z0-9 ]{1,60}$/.test(value.trim()) ? value.trim() : fallback;
+}
+
+export function normalizeShape(shape?: Partial<ShapeConfig>): ShapeConfig {
+  return {
+    style: SHAPE_STYLES.includes(shape?.style as ShapeStyle) ? (shape!.style as ShapeStyle) : defaultShape.style,
+    size: Math.round(clamp(finiteOr(shape?.size, defaultShape.size), 0, 24)),
+    avatar: AVATAR_SHAPES.includes(shape?.avatar as AvatarShape) ? (shape!.avatar as AvatarShape) : defaultShape.avatar,
+  };
+}
+
+export function normalizeSurface(surface?: Partial<SurfaceConfig>): SurfaceConfig {
+  return {
+    mode: SURFACE_MODES.includes(surface?.mode as SurfaceMode) ? (surface!.mode as SurfaceMode) : defaultSurface.mode,
+    opacity: clamp(finiteOr(surface?.opacity, defaultSurface.opacity), 0, 1),
+    blur: clamp(finiteOr(surface?.blur, defaultSurface.blur), 0, 24),
+  };
+}
+
+export function normalizeFonts(fonts?: Partial<FontConfig>, legacyFont?: string): FontConfig {
+  const legacy = legacyFont ? safeFontName(legacyFont, "") : "";
+  return {
+    display: safeFontName(fonts?.display, legacy || defaultFonts.display),
+    body: safeFontName(fonts?.body, legacy || defaultFonts.body),
+    data: safeFontName(fonts?.data, defaultFonts.data),
+  };
+}
+
+export function normalizeGalaxy(galaxy?: Partial<GalaxyConfig>): GalaxyConfig {
+  return {
+    stars: typeof galaxy?.stars === "boolean" ? galaxy.stars : defaultGalaxy.stars,
+    grid: typeof galaxy?.grid === "boolean" ? galaxy.grid : defaultGalaxy.grid,
+    constellation: typeof galaxy?.constellation === "boolean" ? galaxy.constellation : defaultGalaxy.constellation,
+    grain: clamp(finiteOr(galaxy?.grain, defaultGalaxy.grain), 0, 0.3),
+  };
+}
+
+// The v2 default palette. Themes still using it untouched get the new default palette on migration;
+// every customised palette is kept as it is.
+const LEGACY_V2_DARK: ThemeColors = {
+  background: "230 60% 6%", foreground: "210 20% 98%", card: "230 50% 10%", cardForeground: "210 20% 98%",
+  popover: "230 50% 10%", popoverForeground: "210 20% 98%", primary: "270 90% 70%", primaryForeground: "230 35% 7%",
+  secondary: "230 30% 15%", secondaryForeground: "210 20% 98%", muted: "230 30% 15%", mutedForeground: "215 20% 65%",
+  accent: "270 50% 20%", accentForeground: "210 20% 98%", destructive: "0 80% 50%", destructiveForeground: "210 40% 98%",
+  border: "230 30% 20%", input: "230 30% 15%", ring: "270 90% 70%",
+};
+
+function isLegacyDefaultPalette(theme: CustomTheme): boolean {
+  if (!theme.dark) return true;
+  return (Object.keys(LEGACY_V2_DARK) as (keyof ThemeColors)[]).every((key) => theme.dark[key] === LEGACY_V2_DARK[key]);
+}
+
+function normalizeBackground(background: BackgroundConfig | undefined, legacyPalette: boolean): BackgroundConfig {
+  if (!background) return { ...defaultBackground, overlay: { ...defaultBackground.overlay } };
+  const gradient = legacyPalette && background.gradient === LEGACY_DEFAULT_GRADIENT ? defaultBackground.gradient : background.gradient;
+  return {
+    ...defaultBackground,
+    ...background,
+    gradient,
+    overlay: {
+      ...defaultBackground.overlay,
+      ...background.overlay,
+      opacity: clamp(finiteOr(background.overlay?.opacity, 0), 0, 1),
+      blur: clamp(finiteOr(background.overlay?.blur, 0), 0, 24),
+    },
+  };
+}
+
+/** Brings any stored, imported or server theme up to the current version. Safe to call repeatedly. */
 export function migrateTheme(theme: CustomTheme): CustomTheme {
-  if (theme.version === 2) return theme;
+  const legacyPalette = (theme.version ?? 0) < THEME_VERSION && isLegacyDefaultPalette(theme);
+  const legacyFont = !theme.fonts && theme.font && !["Outfit", "Inter"].includes(theme.font) ? theme.font : undefined;
+  const light = legacyPalette || !theme.light ? defaultTheme.light : theme.light;
+  const dark = legacyPalette || !theme.dark ? defaultTheme.dark : theme.dark;
+  const fonts = normalizeFonts(theme.fonts, legacyFont);
+
   return {
     ...theme,
-    version: 2,
-    font: theme.font || "Inter",
-    background: theme.background ? {
-      ...defaultBackground,
-      ...theme.background,
-      overlay: {
-        ...defaultBackground.overlay,
-        ...theme.background.overlay,
-        opacity: clamp(theme.background.overlay?.opacity ?? 0, 0, 1),
-        blur: clamp(theme.background.overlay?.blur ?? 0, 0, 24),
-      },
-    } : { ...defaultBackground },
+    version: THEME_VERSION,
+    light: { ...light, star: light.star ?? defaultTheme.light.star },
+    dark: { ...dark, star: dark.star ?? defaultTheme.dark.star },
+    font: fonts.body,
+    background: normalizeBackground(theme.background, legacyPalette),
+    particles: { ...defaultParticles, ...theme.particles },
+    shape: normalizeShape(theme.shape),
+    surface: normalizeSurface(theme.surface),
+    fonts,
+    galaxy: normalizeGalaxy(theme.galaxy),
   };
 }
 
 // Available fonts with their Google Fonts family names
 export const availableFonts = [
+  { name: "Chakra Petch", family: "Chakra Petch" },
+  { name: "Instrument Sans", family: "Instrument Sans" },
+  { name: "Oxanium", family: "Oxanium" },
+  { name: "Saira", family: "Saira" },
+  { name: "Archivo", family: "Archivo" },
+  { name: "IBM Plex Sans", family: "IBM Plex Sans" },
   { name: "Inter", family: "Inter" },
   { name: "Roboto", family: "Roboto" },
   { name: "Open Sans", family: "Open Sans" },
@@ -158,53 +298,69 @@ export const availableFonts = [
   { name: "Cabin", family: "Cabin" },
 ];
 
-// Default theme based on current Osiris blue theme
+// Fonts offered for numbers, timestamps and small labels.
+export const dataFonts = [
+  { name: "JetBrains Mono", family: "JetBrains Mono" },
+  { name: "IBM Plex Mono", family: "IBM Plex Mono" },
+  { name: "Fira Code", family: "Fira Code" },
+  { name: "Space Mono", family: "Space Mono" },
+  { name: "Courier Prime", family: "Courier Prime" },
+];
+
+// Default "Sternkarte" theme: Nachthimmel (dark) and Tageslicht (light).
 export const defaultTheme: CustomTheme = {
   version: THEME_VERSION,
-  font: "Outfit",
+  font: defaultFonts.body,
   light: {
-    background: "240 20% 99%",
-    foreground: "240 40% 12%",
+    background: "228 30% 96%",
+    foreground: "232 40% 12%",
     card: "0 0% 100%",
-    cardForeground: "240 40% 12%",
+    cardForeground: "232 40% 12%",
     popover: "0 0% 100%",
-    popoverForeground: "240 40% 12%",
-    primary: "262 80% 50%",
+    popoverForeground: "232 40% 12%",
+    primary: "262 70% 52%",
     primaryForeground: "0 0% 100%",
-    secondary: "240 25% 96%",
-    secondaryForeground: "240 40% 12%",
-    muted: "240 25% 96%",
-    mutedForeground: "240 15% 45%",
-    accent: "262 100% 97%",
-    accentForeground: "262 80% 50%",
-    destructive: "0 84% 60%",
+    secondary: "228 30% 92%",
+    secondaryForeground: "232 40% 12%",
+    muted: "228 30% 93%",
+    mutedForeground: "232 15% 38%",
+    accent: "262 80% 95%",
+    accentForeground: "262 70% 40%",
+    destructive: "0 72% 48%",
     destructiveForeground: "0 0% 100%",
-    border: "240 20% 92%",
-    input: "240 20% 92%",
-    ring: "262 80% 50%",
+    border: "228 22% 82%",
+    input: "228 22% 84%",
+    ring: "262 70% 52%",
+    star: "30 90% 32%",
   },
   dark: {
-    background: "230 60% 6%",
-    foreground: "210 20% 98%",
-    card: "230 50% 10%",
-    cardForeground: "210 20% 98%",
-    popover: "230 50% 10%",
-    popoverForeground: "210 20% 98%",
-    primary: "270 90% 70%",
-    primaryForeground: "230 35% 7%",
-    secondary: "230 30% 15%",
-    secondaryForeground: "210 20% 98%",
-    muted: "230 30% 15%",
-    mutedForeground: "215 20% 65%",
-    accent: "270 50% 20%",
-    accentForeground: "210 20% 98%",
-    destructive: "0 80% 50%",
-    destructiveForeground: "210 40% 98%",
-    border: "230 30% 20%",
-    input: "230 30% 15%",
-    ring: "270 90% 70%",
+    background: "230 56% 6%",
+    foreground: "231 58% 95%",
+    card: "233 51% 14%",
+    cardForeground: "231 58% 95%",
+    popover: "233 48% 12%",
+    popoverForeground: "231 58% 95%",
+    primary: "264 100% 74%",
+    primaryForeground: "250 56% 8%",
+    secondary: "233 40% 18%",
+    secondaryForeground: "231 58% 95%",
+    muted: "233 40% 16%",
+    mutedForeground: "233 32% 75%",
+    accent: "264 45% 22%",
+    accentForeground: "231 58% 95%",
+    destructive: "0 72% 55%",
+    destructiveForeground: "0 0% 100%",
+    border: "232 39% 27%",
+    input: "232 39% 24%",
+    ring: "264 100% 74%",
+    star: "38 100% 74%",
   },
+  background: defaultBackground,
   particles: defaultParticles,
+  shape: defaultShape,
+  surface: defaultSurface,
+  fonts: defaultFonts,
+  galaxy: defaultGalaxy,
 };
 
 // Convert HSL string to hex color for color picker
@@ -319,6 +475,7 @@ export function generateRandomTheme(): CustomTheme {
     border: `${baseHue} 20% 90%`,
     input: `${baseHue} 20% 90%`,
     ring: `${baseHue} 80% 60%`,
+    star: `${(baseHue + 40) % 360} 85% 32%`,
   };
 
   const dark: ThemeColors = {
@@ -341,11 +498,12 @@ export function generateRandomTheme(): CustomTheme {
     border: `${baseHue} 30% 20%`,
     input: `${baseHue} 30% 15%`,
     ring: `${baseHue} 90% 70%`,
+    star: `${(baseHue + 40) % 360} 95% 72%`,
   };
 
   return {
-    version: 2,
-    font: "Outfit",
+    version: THEME_VERSION,
+    font: defaultFonts.body,
     light,
     dark,
     background: {
@@ -356,31 +514,78 @@ export function generateRandomTheme(): CustomTheme {
   };
 }
 
+const FONT_WEIGHTS = "400;500;600;700";
+
+// One stylesheet per family. Families that lack one of the weights make Google reject the whole request,
+// so a failed load retries with the family's default weight only.
+function loadFontFamily(family: string): void {
+  const name = safeFontName(family, "");
+  if (!name) return;
+  const existing = document.querySelector(`link[data-ov-font="${name}"]`);
+  if (existing) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.dataset.ovFont = name;
+  const familyParam = name.replaceAll(" ", "+");
+  link.href = `https://fonts.googleapis.com/css2?family=${familyParam}:wght@${FONT_WEIGHTS}&display=swap`;
+  link.addEventListener("error", () => {
+    link.href = `https://fonts.googleapis.com/css2?family=${familyParam}&display=swap`;
+  }, { once: true });
+  document.head.append(link);
+}
+
 export function applyFont(fontName: string) {
   if (!fontName) return;
+  loadFontFamily(fontName);
+  document.documentElement.style.setProperty("--font-family", `"${safeFontName(fontName, defaultFonts.body)}", system-ui, -apple-system, sans-serif`);
+}
 
-  // Load font from Google Fonts
-  const linkId = "custom-theme-font";
-  let link = document.querySelector(`#${linkId}`) as HTMLLinkElement;
+type DesignSettings = Pick<CustomTheme, "shape" | "surface" | "fonts" | "galaxy" | "font">;
 
-  if (!link) {
-    link = document.createElement("link");
-    link.id = linkId;
-    link.rel = "stylesheet";
-    document.head.append(link);
-  }
+/** Applies shape, surface, font roles and galaxy layers as CSS variables and data attributes on <html>. */
+export function applyDesign(design: DesignSettings): void {
+  const root = document.documentElement;
+  const shape = normalizeShape(design.shape);
+  const surface = normalizeSurface(design.surface);
+  const fonts = normalizeFonts(design.fonts, design.fonts ? undefined : design.font);
+  const galaxy = normalizeGalaxy(design.galaxy);
 
-  link.href = `https://fonts.googleapis.com/css2?family=${fontName.replaceAll(' ', "+")}:wght@300;400;500;600;700&display=swap`;
+  root.dataset.shape = shape.style;
+  root.dataset.avatar = shape.avatar;
+  root.dataset.surface = surface.mode;
+  root.dataset.stars = galaxy.stars ? "on" : "off";
+  root.dataset.grid = galaxy.grid ? "on" : "off";
+  root.dataset.constellation = galaxy.constellation ? "on" : "off";
 
-  // Apply font family
-  document.documentElement.style.setProperty(
-    "--font-family",
-    `'${fontName}', system-ui, -apple-system, sans-serif`,
-  );
+  const size = shape.size;
+  const radii = shape.style === "rund"
+    ? { xs: Math.max(2, Math.round(size * 0.4)), sm: Math.max(3, Math.round(size * 0.6)), md: size, lg: Math.round(size * 1.4), pill: 9999 }
+    : { xs: 2, sm: 2, md: 2, lg: 2, pill: 2 };
+  root.style.setProperty("--radius-xs", `${radii.xs}px`);
+  root.style.setProperty("--radius-sm", `${radii.sm}px`);
+  root.style.setProperty("--radius-md", `${radii.md}px`);
+  root.style.setProperty("--radius-lg", `${radii.lg}px`);
+  root.style.setProperty("--radius-pill", `${radii.pill}px`);
+  root.style.setProperty("--radius", `${radii.md}px`);
+  root.style.setProperty("--cut", `${shape.style === "fase" ? size : 0}px`);
+  root.style.setProperty("--cut-sm", `${shape.style === "fase" ? Math.max(4, Math.round(size * 0.6)) : 0}px`);
+
+  const blur = surface.mode === "glas" ? Math.max(surface.blur, 12) : surface.blur;
+  // Blur only when requested: backdrop-filter turns every panel into a containing block for fixed children.
+  root.dataset.blur = blur > 0 ? "on" : "off";
+  root.style.setProperty("--surface-opacity", String(surface.mode === "kontur" ? 0 : surface.opacity));
+  root.style.setProperty("--surface-blur", `${blur}px`);
+  root.style.setProperty("--grain", String(galaxy.grain));
+
+  [fonts.display, fonts.body, fonts.data].forEach(loadFontFamily);
+  root.style.setProperty("--font-display", `"${fonts.display}", "Arial Narrow", system-ui, sans-serif`);
+  root.style.setProperty("--font-body", `"${fonts.body}", system-ui, -apple-system, sans-serif`);
+  root.style.setProperty("--font-data", `"${fonts.data}", ui-monospace, SFMono-Regular, Menlo, monospace`);
+  root.style.setProperty("--font-family", `"${fonts.body}", system-ui, -apple-system, sans-serif`);
 }
 
 // Apply theme colors to CSS variables
-export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string, background?: BackgroundConfig): void {
+export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string, background?: BackgroundConfig, design?: DesignSettings): void {
   const root = document.documentElement;
 
   Object.entries(colors).forEach(([key, value]) => {
@@ -406,7 +611,9 @@ export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string, 
     root.style.removeProperty("--bg-image-type");
   }
 
-  if (font) {
+  if (design) {
+    applyDesign({ ...design, font: design.font ?? font });
+  } else if (font) {
     applyFont(font);
   }
 }
@@ -563,15 +770,6 @@ export function applySavedTheme(theme: SavedTheme): void {
   setActiveThemeInfo(theme.id, theme.name);
 }
 
-// Reset to default theme
-// Logic preserved for future use but export removed for Knip
-function resetToDefaultTheme(): void {
-  localStorage.removeItem("customTheme");
-  const isDark = document.documentElement.classList.contains("dark");
-  applyTheme(defaultTheme[isDark ? "dark" : "light"], isDark, defaultTheme.font);
-  window.dispatchEvent(new Event(CUSTOM_THEME_EVENT));
-}
-
 // Export theme as JSON
 export function exportTheme(theme: CustomTheme): string {
   return JSON.stringify(theme, null, 2);
@@ -584,7 +782,6 @@ export function importTheme(jsonString: string): CustomTheme | null {
     // Validate basic structure
     if (!theme.light || !theme.dark) return null;
 
-    // Migrate to v2
     const migrated = migrateTheme(theme);
 
     // Sanitize background image URL if present

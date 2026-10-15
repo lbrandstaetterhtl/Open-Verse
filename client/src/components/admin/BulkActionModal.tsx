@@ -41,14 +41,14 @@ export function BulkActionModal({ isOpen, onClose, onConfirm, type, actionId, co
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             {meta.title}
-            <Badge variant="secondary" className="text-xs font-black">{count} {type}</Badge>
+            <Badge variant="secondary" className="font-data font-medium">{count} {type}</Badge>
           </AlertDialogTitle>
           <AlertDialogDescription>{meta.description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            className={meta.danger ? "bg-red-600 hover:bg-red-700 font-bold" : "font-bold"}
+            className={meta.danger ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : undefined}
             onClick={() => onConfirm("")}
           >
             {meta.confirm}

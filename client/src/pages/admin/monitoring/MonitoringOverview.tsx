@@ -3,9 +3,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Loader2, Activity, AlertTriangle, XCircle, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
+import { PageHeader } from "@/components/layout/page-header";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
-const COLORS = ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#8b5cf6'];
+/* Theme-driven tokens that stay distinct in light and dark mode: danger, warm accent, primary, neutral, faded primary. */
+const COLORS = ['hsl(var(--destructive))', 'hsl(var(--star))', 'hsl(var(--primary))', 'hsl(var(--muted-foreground))', 'hsl(var(--primary) / 0.4)'];
+const AXIS_TICK = { fontSize: 12, fill: 'hsl(var(--muted-foreground))' };
 
 export function MonitoringOverview() {
   const { t } = useTranslation();
@@ -23,11 +26,11 @@ export function MonitoringOverview() {
   if (!hasPermission("logs")) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
-          <AlertTriangle className="h-8 w-8 text-red-500" />
+        <div className="ov-cut h-16 w-16 bg-destructive/10 flex items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
         </div>
         <div className="text-center">
-          <h2 className="text-xl font-black uppercase italic tracking-tighter">Access Restricted</h2>
+          <h2 className="font-display text-xl font-semibold">Access Restricted</h2>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto">You do not have the required permissions to access system monitoring logs.</p>
         </div>
       </div>
@@ -38,51 +41,54 @@ export function MonitoringOverview() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">{t("monitoring.title", "Monitoring Overview")}</h1>
-      
+      <PageHeader
+        eyebrow={t("monitoring.eyebrow_monitoring", "Admin / Monitoring")}
+        title={t("monitoring.title", "Monitoring Overview")}
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between">
-              {t("monitoring.events_today", "Events Today")} <Activity className="w-4 h-4 text-primary" />
+            <CardTitle className="flex items-center justify-between gap-2 text-sm">
+              <span className="ov-label">{t("monitoring.events_today", "Events Today")}</span> <Activity className="w-4 h-4 text-primary" />
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics?.events_today || "N/A"}</div>
+            <div className="ov-data text-2xl font-semibold">{metrics?.events_today || "N/A"}</div>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between">
-              {t("monitoring.open_anomalies", "Open Anomalies")} <AlertTriangle className="w-4 h-4 text-orange-500" />
+            <CardTitle className="flex items-center justify-between gap-2 text-sm">
+              <span className="ov-label">{t("monitoring.open_anomalies", "Open Anomalies")}</span> <AlertTriangle className="w-4 h-4 text-star" />
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics?.open_anomalies || 0}</div>
-            <p className="text-xs text-red-500 font-medium">{metrics?.anomalies_critical || 0} {t("monitoring.critical", "Critical")}</p>
+            <div className="ov-data text-2xl font-semibold">{metrics?.open_anomalies || 0}</div>
+            <p className="text-xs text-destructive font-medium">{metrics?.anomalies_critical || 0} {t("monitoring.critical", "Critical")}</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between">
-              {t("monitoring.error_rate", "Error Rate (1h)")} <XCircle className="w-4 h-4 text-red-500" />
+            <CardTitle className="flex items-center justify-between gap-2 text-sm">
+              <span className="ov-label">{t("monitoring.error_rate", "Error Rate (1h)")}</span> <XCircle className="w-4 h-4 text-destructive" />
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(metrics?.error_rate_last_hour || 0).toFixed(2)}%</div>
+            <div className="ov-data text-2xl font-semibold">{(metrics?.error_rate_last_hour || 0).toFixed(2)}%</div>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between">
-              {t("monitoring.active_users", "Active Users")} <Users className="w-4 h-4 text-blue-500" />
+            <CardTitle className="flex items-center justify-between gap-2 text-sm">
+              <span className="ov-label">{t("monitoring.active_users", "Active Users")}</span> <Users className="w-4 h-4 text-primary" />
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics?.active_users_now || "0"}</div>
+            <div className="ov-data text-2xl font-semibold">{metrics?.active_users_now || "0"}</div>
             <p className="text-xs text-muted-foreground">{t("monitoring.in_last_5m", "in last 5m")}</p>
           </CardContent>
         </Card>
@@ -98,21 +104,21 @@ export function MonitoringOverview() {
               <AreaChart data={chartData?.timeData || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorInfo" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorWarn" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(var(--star))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--star))" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted-foreground)/0.2)" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={false} />
+                <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }} />
-                <Area type="monotone" dataKey="info" name="Info" stroke="#3b82f6" fillOpacity={1} fill="url(#colorInfo)" />
-                <Area type="monotone" dataKey="warning" name="Warning" stroke="#f97316" fillOpacity={1} fill="url(#colorWarn)" />
-                <Area type="monotone" dataKey="error" name="Error/Critical" stroke="#ef4444" fillOpacity={0.2} fill="#ef4444" />
+                <Area type="monotone" dataKey="info" name="Info" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorInfo)" />
+                <Area type="monotone" dataKey="warning" name="Warning" stroke="hsl(var(--star))" fillOpacity={1} fill="url(#colorWarn)" />
+                <Area type="monotone" dataKey="error" name="Error/Critical" stroke="hsl(var(--destructive))" fillOpacity={0.2} fill="hsl(var(--destructive))" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -144,7 +150,7 @@ export function MonitoringOverview() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full border border-dashed rounded-lg p-6">
+              <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full border border-dashed border-border rounded-sm p-6">
                  <XCircle className="w-8 h-8 opacity-20 mb-2" />
                  <p className="text-sm">No recent incidents</p>
               </div>
@@ -152,6 +158,6 @@ export function MonitoringOverview() {
           </CardContent>
         </Card>
       </div>
-      </div>
+    </div>
   );
 }

@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ShieldAlert, Zap, Plus, Trash2, Power, Pencil, AlertTriangle } from "lucide-react";
+import { ShieldAlert, Plus, Trash2, Power, Pencil, AlertTriangle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -13,8 +12,20 @@ import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/layout/page-header";
+import { cn } from "@/lib/utils";
+
+/* Severity threshold chip tint, matching the activity log severities. */
+const severityChip: Record<string, string> = {
+  low: "",
+  medium: "ov-chip-primary",
+  high: "ov-chip-star",
+  critical: "ov-chip-danger",
+};
 
 export function AutoPunishmentPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { hasPermission } = useAuth();
@@ -22,11 +33,11 @@ export function AutoPunishmentPage() {
   if (!hasPermission("auto_punishment")) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
-          <AlertTriangle className="h-8 w-8 text-red-500" />
+        <div className="ov-cut h-16 w-16 bg-destructive/10 flex items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
         </div>
         <div className="text-center">
-          <h2 className="text-xl font-black uppercase italic tracking-tighter">Access Restricted</h2>
+          <h2 className="font-display text-xl font-semibold">Access Restricted</h2>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto">You do not have the required permissions to manage auto-punishment rules.</p>
         </div>
       </div>
@@ -110,14 +121,15 @@ export function AutoPunishmentPage() {
 
   return (
     <div className="space-y-8">
-        <div>
-           <h1 className="text-3xl font-bold flex items-center gap-2"><Zap className="h-8 w-8 text-yellow-500" /> Auto-Punishment Engine</h1>
-           <p className="text-muted-foreground">Automated threat response and mitigation rules.</p>
-        </div>
+        <PageHeader
+          eyebrow={t("monitoring.eyebrow_moderation", "Admin / Moderation")}
+          title="Auto-Punishment Engine"
+          description="Automated threat response and mitigation rules."
+        />
 
         <Card>
           <CardHeader className="flex flex-row justify-between items-center">
-            <CardTitle className="text-lg flex items-center gap-2"><ShieldAlert className="h-5 w-5" /> Active Rules</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-primary" /> Active Rules</CardTitle>
             <Dialog open={isCreateOpen} onOpenChange={open => { setIsCreateOpen(open); if (!open) setEditId(null); }}>
               <DialogTrigger asChild>
                 <Button size="sm" onClick={() => { setEditId(null); setFormData(emptyForm); }}><Plus className="w-4 h-4 mr-2" /> New Rule</Button>
@@ -206,7 +218,7 @@ export function AutoPunishmentPage() {
                    </div>
 
                    <div className="space-y-2 border-t pt-4">
-                     <Label>Action Reason <span className="text-red-500">*</span></Label>
+                     <Label>Action Reason <span className="text-destructive">*</span></Label>
                      <Input value={formData.actionReason} onChange={e => setFormData({ ...formData, actionReason: e.target.value })} placeholder="Internal reason for this exact block..." />
                    </div>
                 </div>
@@ -221,12 +233,12 @@ export function AutoPunishmentPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Rule Name</TableHead>
-                  <TableHead>Trigger (Anomaly)</TableHead>
-                  <TableHead>Threshold</TableHead>
-                  <TableHead>Automated Action</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Manage</TableHead>
+                  <TableHead className="ov-label">Rule Name</TableHead>
+                  <TableHead className="ov-label">Trigger (Anomaly)</TableHead>
+                  <TableHead className="ov-label">Threshold</TableHead>
+                  <TableHead className="ov-label">Automated Action</TableHead>
+                  <TableHead className="ov-label">Status</TableHead>
+                  <TableHead className="ov-label text-right">Manage</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -234,11 +246,11 @@ export function AutoPunishmentPage() {
                 {data?.rules?.map(rule => (
                   <TableRow key={rule.id}>
                     <TableCell className="font-medium">{rule.name}</TableCell>
-                    <TableCell><Badge variant="outline">{rule.anomalyType}</Badge></TableCell>
-                    <TableCell><Badge variant="secondary">{rule.severityThreshold}</Badge></TableCell>
-                    <TableCell className="font-mono text-xs">{rule.action}</TableCell>
+                    <TableCell><span className="ov-chip font-data">{rule.anomalyType}</span></TableCell>
+                    <TableCell><span className={cn("ov-chip capitalize", severityChip[rule.severityThreshold])}>{rule.severityThreshold}</span></TableCell>
+                    <TableCell className="font-data text-xs">{rule.action}</TableCell>
                     <TableCell>
-                      {rule.isActive ? <Badge className="bg-emerald-500">Active</Badge> : <Badge variant="outline">Disabled</Badge>}
+                      {rule.isActive ? <span className="ov-chip ov-chip-success">Active</span> : <span className="ov-chip">Disabled</span>}
                     </TableCell>
                     <TableCell className="text-right flex items-center justify-end gap-2">
                       <Button variant="ghost" size="icon" onClick={() => {
@@ -260,10 +272,10 @@ export function AutoPunishmentPage() {
                          <Pencil className="w-4 h-4 text-muted-foreground" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => toggleMutation.mutate({ id: rule.id, isActive: !rule.isActive })}>
-                         <Power className={rule.isActive ? "text-red-500 w-4 h-4" : "text-emerald-500 w-4 h-4"} />
+                         <Power className={rule.isActive ? "text-destructive w-4 h-4" : "text-primary w-4 h-4"} />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => { if(window.confirm('Delete this rule?')) deleteMutation.mutate(rule.id) }}>
-                         <Trash2 className="text-red-500 w-4 h-4" />
+                         <Trash2 className="text-destructive w-4 h-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -281,11 +293,11 @@ export function AutoPunishmentPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Rule</TableHead>
-                  <TableHead>Target User</TableHead>
-                  <TableHead>Action Taken</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="ov-label">Time</TableHead>
+                  <TableHead className="ov-label">Rule</TableHead>
+                  <TableHead className="ov-label">Target User</TableHead>
+                  <TableHead className="ov-label">Action Taken</TableHead>
+                  <TableHead className="ov-label">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -293,14 +305,14 @@ export function AutoPunishmentPage() {
                 {data?.executions?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No recent executions</TableCell></TableRow>}
                 {data?.executions?.map(exec => (
                   <TableRow key={exec.id}>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="ov-data text-xs text-muted-foreground">
                         {new Date(exec.createdAt * 1000).toLocaleString()}
                     </TableCell>
                     <TableCell className="font-medium">{exec.ruleName}</TableCell>
-                    <TableCell>User #{exec.userId}</TableCell>
-                    <TableCell className="font-mono text-xs">{exec.actionTaken}</TableCell>
+                    <TableCell>User <span className="ov-data">#{exec.userId}</span></TableCell>
+                    <TableCell className="font-data text-xs">{exec.actionTaken}</TableCell>
                     <TableCell>
-                      {exec.success ? <Badge className="bg-emerald-500">Success</Badge> : <Badge variant="destructive">Failed</Badge>}
+                      {exec.success ? <span className="ov-chip ov-chip-success">Success</span> : <span className="ov-chip ov-chip-danger">Failed</span>}
                     </TableCell>
                   </TableRow>
                 ))}

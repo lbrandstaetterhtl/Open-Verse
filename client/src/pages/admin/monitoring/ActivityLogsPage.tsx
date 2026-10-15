@@ -4,10 +4,19 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/page-header";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { ModeratorStatsCard } from "@/components/monitoring/ModeratorStatsCard";
+import { cn } from "@/lib/utils";
+
+/* Severity chip tint: errors read as danger, warnings in the warm accent, everything else neutral. */
+const severityChip = (severity: string) =>
+  severity === "critical" || severity === "error"
+    ? "ov-chip-danger"
+    : severity === "warning"
+      ? "ov-chip-star"
+      : "";
 
 export function ActivityLogsPage() {
   const { t } = useTranslation();
@@ -32,28 +41,27 @@ export function ActivityLogsPage() {
 
   return (
     <div className="w-full space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-black tracking-tight uppercase italic italic-primary">
-          {t("monitoring.activity_logs", "Activity Logs")}
-        </h1>
-        <p className="text-muted-foreground font-medium">Real-time audit trail of all platform operations.</p>
-      </div>
+      <PageHeader
+        eyebrow={t("monitoring.eyebrow_monitoring", "Admin / Monitoring")}
+        title={t("monitoring.activity_logs", "Activity Logs")}
+        description="Real-time audit trail of all platform operations."
+      />
 
       <ModeratorStatsCard />
 
-      <div className="flex flex-col xl:flex-row gap-4 p-4 rounded-[1.5rem] border bg-card/50 backdrop-blur-sm">
+      <div className="ov-panel flex flex-col xl:flex-row gap-4 p-4">
          <div className="relative flex-1">
-           <Input 
-             placeholder={t("monitoring.search_action", "Search action or description...")} 
+           <Input
+             placeholder={t("monitoring.search_action", "Search action or description...")}
              value={filters.search}
              onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
-             className="h-12 px-6 rounded-xl bg-background/50 border-white/10"
+             className="h-11"
            />
          </div>
          <div className="flex flex-wrap gap-2">
            <Select value={filters.category} onValueChange={v => setFilters(f => ({ ...f, category: v }))}>
-             <SelectTrigger className="h-12 w-[160px] rounded-xl bg-background/50 border-white/10 font-bold uppercase text-[10px] tracking-widest"><SelectValue placeholder="Category" /></SelectTrigger>
-             <SelectContent className="rounded-xl">
+             <SelectTrigger className="h-11 w-[160px]"><SelectValue placeholder="Category" /></SelectTrigger>
+             <SelectContent>
                <SelectItem value="all">{t("monitoring.all_categories", "All Categories")}</SelectItem>
                <SelectItem value="auth">Auth</SelectItem>
                <SelectItem value="content">Content</SelectItem>
@@ -62,8 +70,8 @@ export function ActivityLogsPage() {
              </SelectContent>
            </Select>
            <Select value={filters.severity} onValueChange={v => setFilters(f => ({ ...f, severity: v }))}>
-             <SelectTrigger className="h-12 w-[160px] rounded-xl bg-background/50 border-white/10 font-bold uppercase text-[10px] tracking-widest"><SelectValue placeholder="Severity" /></SelectTrigger>
-             <SelectContent className="rounded-xl">
+             <SelectTrigger className="h-11 w-[160px]"><SelectValue placeholder="Severity" /></SelectTrigger>
+             <SelectContent>
                <SelectItem value="all">{t("monitoring.all_severities", "All Severities")}</SelectItem>
                <SelectItem value="info">Info</SelectItem>
                <SelectItem value="warning">Warning</SelectItem>
@@ -74,9 +82,9 @@ export function ActivityLogsPage() {
          </div>
       </div>
 
-      <div className="rounded-[2rem] border bg-card/50 backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/5">
+      <div>
         <ResponsiveTable<{ log: any, user: any }>
-          keyField="id"
+          keyField={(row) => row.log.id}
           data={data?.logs || []}
           isLoading={isLoading}
           columns={[
@@ -84,7 +92,7 @@ export function ActivityLogsPage() {
               key: "time",
               label: t("monitoring.time", "Time"),
               render: ({ log }) => (
-                <span className="text-[10px] font-mono font-bold uppercase tracking-widest opacity-60">
+                <span className="ov-data text-xs text-muted-foreground">
                   {format(new Date(log.createdAt), 'dd.MM HH:mm:ss')}
                 </span>
               )
@@ -93,32 +101,29 @@ export function ActivityLogsPage() {
               key: "severity",
               label: t("monitoring.severity", "Severity"),
               render: ({ log }) => (
-                <Badge 
-                  variant={log.severity === 'critical' || log.severity === 'error' ? 'destructive' : log.severity === 'warning' ? 'default' : 'secondary'}
-                  className="text-[9px] font-black uppercase tracking-widest px-3 h-6"
-                >
+                <span className={cn("ov-chip capitalize", severityChip(log.severity))}>
                   {log.severity}
-                </Badge>
+                </span>
               )
             },
             {
               key: "user",
               label: t("monitoring.user", "User"),
               render: ({ log, user }) => (
-                <span className="text-sm font-bold">{user?.username || log.userEmail || 'System'}</span>
+                <span className="text-sm font-semibold">{user?.username || log.userEmail || 'System'}</span>
               )
             },
             {
               key: "action",
               label: t("monitoring.action", "Action"),
-              render: ({ log }) => <code className="text-[10px] font-mono bg-muted/50 px-2 py-0.5 rounded text-primary">{log.action}</code>
+              render: ({ log }) => <code className="font-data text-xs bg-muted/50 px-2 py-0.5 rounded-sm text-primary">{log.action}</code>
             },
             {
               key: "description",
               label: t("monitoring.description", "Description"),
               render: ({ log }) => (
                 <span className="flex items-center gap-2 text-sm font-medium">
-                  {log.isAnomaly === 1 && <AlertTriangle className="w-4 h-4 text-orange-500" />}
+                  {log.isAnomaly === 1 && <AlertTriangle className="w-4 h-4 text-star" />}
                   {log.description}
                 </span>
               )
@@ -126,27 +131,27 @@ export function ActivityLogsPage() {
             {
               key: "ip",
               label: t("monitoring.ip", "IP"),
-              render: ({ log }) => <span className="text-[10px] font-mono opacity-50">{log.ipAddress}</span>
+              render: ({ log }) => <span className="ov-data text-xs text-muted-foreground">{log.ipAddress}</span>
             }
           ]}
           renderMobileCard={({ log, user }) => (
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-2">
-                    <Badge variant={log.severity === 'critical' || log.severity === 'error' ? 'destructive' : 'secondary'} className="text-[8px] h-5">
-                       {log.severity.toUpperCase()}
-                    </Badge>
-                    <span className="text-[10px] font-mono opacity-50">{format(new Date(log.createdAt), 'HH:mm:ss')}</span>
+                    <span className={cn("ov-chip capitalize h-5", severityChip(log.severity))}>
+                       {log.severity}
+                    </span>
+                    <span className="ov-data text-xs text-muted-foreground">{format(new Date(log.createdAt), 'HH:mm:ss')}</span>
                  </div>
-                 <code className="text-[10px] text-primary font-bold uppercase">{log.action}</code>
+                 <code className="font-data text-xs font-semibold text-primary">{log.action}</code>
               </div>
               <div>
-                 <p className="text-xs font-bold mb-1">{user?.username || log.userEmail || 'System'}</p>
+                 <p className="text-xs font-semibold mb-1">{user?.username || log.userEmail || 'System'}</p>
                  <p className="text-sm font-medium text-foreground/90">{log.description}</p>
               </div>
-              <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                 <span className="text-[9px] font-mono opacity-30">{log.ipAddress}</span>
-                 {log.isAnomaly === 1 && <Badge variant="outline" className="text-[8px] border-orange-500/20 text-orange-500 bg-orange-500/5">ANOMALY</Badge>}
+              <div className="flex justify-between items-center pt-2 border-t border-border">
+                 <span className="ov-data text-xs text-muted-foreground">{log.ipAddress}</span>
+                 {log.isAnomaly === 1 && <span className="ov-chip ov-chip-star h-5">ANOMALY</span>}
               </div>
             </div>
           )}

@@ -14,6 +14,7 @@ import { useLocation } from "wouter";
 import { Users, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/layout/page-header";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
@@ -86,25 +87,22 @@ export default function CreateCommunityPage() {
 
   return (
     <>
-            <main className="container mx-auto px-4 pt-32 pb-24">
-        <motion.div 
+            <main className="container mx-auto px-4 pt-6 pb-24">
+        <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8 }}
           className="max-w-2xl mx-auto"
         >
-          <Card className="glass-premium border-white/10 shadow-2xl overflow-hidden relative group">
-            <div className="absolute inset-0 nebula-banner opacity-5 group-hover:opacity-10 transition-opacity duration-1000" />
-            <CardHeader className="relative z-10 p-10 pb-6 border-b border-white/5">
-              <div className="flex items-center gap-6">
-                <BackButton fallback="/feed" className="-ml-4 font-black uppercase tracking-widest text-[10px] opacity-60 hover:opacity-100 hover:-translate-x-2 transition-all" />
-                <div className="space-y-2">
-                  <CardTitle className="text-4xl font-black tracking-tighter uppercase italic italic-primary leading-none">{t("community.create.title")}</CardTitle>
-                  <CardDescription className="text-sm font-medium opacity-60">{t("community.create.subtitle")}</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10 p-10">
+          <BackButton fallback="/feed" className="-ml-3" />
+          <PageHeader
+            className="mb-8 pt-3 md:pt-4"
+            eyebrow={t("community.create.eyebrow", "Communities / New")}
+            title={t("community.create.title")}
+            description={t("community.create.subtitle")}
+          />
+          <Card>
+            <CardContent className="p-5 md:p-6">
               <form
                 onSubmit={form.handleSubmit(
                   (data) => {
@@ -115,52 +113,52 @@ export default function CreateCommunityPage() {
                     console.error("[CreateCommunity] Validation errors:", errors);
                   }
                 )}
-                className="space-y-10"
+                className="space-y-6"
               >
-                <div className="space-y-3">
-                  <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-2">{t("community.create.name_label")}</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="name">{t("community.create.name_label")}</Label>
                   <Input
                     id="name"
                     placeholder={t("community.create.name_placeholder")}
-                    className="glass-input h-14 rounded-3xl px-6 font-bold"
+                    className="h-11"
                     {...form.register("name")}
                   />
                   {form.formState.errors.name && (
-                    <p className="text-xs font-bold text-destructive pl-2">{form.formState.errors.name.message}</p>
+                    <p className="text-xs font-medium text-destructive">{form.formState.errors.name.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="description" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-2">{t("community.create.desc_label")}</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="description">{t("community.create.desc_label")}</Label>
                   <Textarea
                     id="description"
                     placeholder={t("community.create.desc_placeholder")}
                     rows={6}
-                    className="glass-input rounded-[2rem] p-8 font-medium leading-relaxed"
+                    className="leading-relaxed"
                     {...form.register("description")}
                   />
                   {form.formState.errors.description && (
-                    <p className="text-xs font-bold text-destructive pl-2">
+                    <p className="text-xs font-medium text-destructive">
                       {form.formState.errors.description.message}
                     </p>
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="imageUrl" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-2">{t("community.create.image_label")}</Label>
-                  <Input id="imageUrl" placeholder="https://..." className="glass-input h-14 rounded-3xl px-6 font-bold" {...form.register("imageUrl")} />
+                <div className="space-y-2">
+                  <Label htmlFor="imageUrl">{t("community.create.image_label")}</Label>
+                  <Input id="imageUrl" placeholder="https://..." className="h-11" {...form.register("imageUrl")} />
                 </div>
 
-                <div className="space-y-6 bg-white/5 p-8 rounded-[2rem] border border-white/5">
-                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{t("community.create.allowed_feeds_label")}</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="ov-panel space-y-4 p-5">
+                  <Label>{t("community.create.allowed_feeds_label")}</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="flex items-center space-x-3 group">
                       <input
                         type="checkbox"
                         id="cat-news"
                         value="news"
                         defaultChecked
-                        className="h-5 w-5 rounded-full border-white/20 bg-white/5 text-primary focus:ring-primary/40 transition-all checked:scale-110"
+                        className="h-4 w-4 cursor-pointer accent-primary"
                         onChange={(e) => {
                           const current = form.getValues("allowedCategories")?.split(",") || [
                             "news",
@@ -176,7 +174,7 @@ export default function CreateCommunityPage() {
                           form.setValue("allowedCategories", newCats.join(","));
                         }}
                       />
-                      <Label htmlFor="cat-news" className="text-xs font-black uppercase tracking-widest cursor-pointer opacity-60 group-hover:opacity-100 transition-opacity">
+                      <Label htmlFor="cat-news" className="cursor-pointer text-muted-foreground transition-colors group-hover:text-foreground">
                         {t("feed.news")}
                       </Label>
                     </div>
@@ -186,7 +184,7 @@ export default function CreateCommunityPage() {
                         id="cat-entertainment"
                         value="entertainment"
                         defaultChecked
-                        className="h-5 w-5 rounded-full border-white/20 bg-white/5 text-primary focus:ring-primary/40 transition-all checked:scale-110"
+                        className="h-4 w-4 cursor-pointer accent-primary"
                         onChange={(e) => {
                           const current = form.getValues("allowedCategories")?.split(",") || [
                             "news",
@@ -202,7 +200,7 @@ export default function CreateCommunityPage() {
                           form.setValue("allowedCategories", newCats.join(","));
                         }}
                       />
-                      <Label htmlFor="cat-entertainment" className="text-xs font-black uppercase tracking-widest cursor-pointer opacity-60 group-hover:opacity-100 transition-opacity">
+                      <Label htmlFor="cat-entertainment" className="cursor-pointer text-muted-foreground transition-colors group-hover:text-foreground">
                         {t("feed.entertainment")}
                       </Label>
                     </div>
@@ -212,7 +210,7 @@ export default function CreateCommunityPage() {
                         id="cat-discussion"
                         value="discussion"
                         defaultChecked
-                        className="h-5 w-5 rounded-full border-white/20 bg-white/5 text-primary focus:ring-primary/40 transition-all checked:scale-110"
+                        className="h-4 w-4 cursor-pointer accent-primary"
                         onChange={(e) => {
                           const current = form.getValues("allowedCategories")?.split(",") || [
                             "news",
@@ -228,33 +226,34 @@ export default function CreateCommunityPage() {
                           form.setValue("allowedCategories", newCats.join(","));
                         }}
                       />
-                      <Label htmlFor="cat-discussion" className="text-xs font-black uppercase tracking-widest cursor-pointer opacity-60 group-hover:opacity-100 transition-opacity">
+                      <Label htmlFor="cat-discussion" className="cursor-pointer text-muted-foreground transition-colors group-hover:text-foreground">
                         {t("community.page.tabs.discussion")}
                       </Label>
                     </div>
                   </div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 text-center">{t("community.create.feed_hint")}</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">{t("community.create.feed_hint")}</p>
                 </div>
 
-                <div className="space-y-4 bg-primary/5 p-8 rounded-[2rem] border border-primary/10">
-                  <div className="flex items-center space-x-4">
+                <div className="ov-panel space-y-2 p-5">
+                  <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
                       id="isPrivate"
-                      className="h-6 w-6 rounded-lg border-primary/20 bg-primary/5 text-primary focus:ring-primary/40 transition-all checked:scale-110"
+                      className="h-4 w-4 cursor-pointer accent-primary"
                       {...form.register("isPrivate")}
                     />
-                    <Label htmlFor="isPrivate" className="text-xs font-black uppercase tracking-widest cursor-pointer text-primary">
+                    <Label htmlFor="isPrivate" className="cursor-pointer font-semibold">
                       {t("community.create.privacy_label")}
                     </Label>
                   </div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 pl-10 leading-relaxed">{t("community.create.privacy_desc")}</p>
+                  <p className="pl-7 text-xs leading-relaxed text-muted-foreground">{t("community.create.privacy_desc")}</p>
                 </div>
 
                 <Button
                   type="submit"
+                  size="lg"
                   disabled={createCommunityMutation.isPending}
-                  className="w-full h-16 rounded-full font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-primary/30 nebula-glow"
+                  className="w-full"
                 >
                   {createCommunityMutation.isPending ? (
                     <Loader2 className="h-6 w-6 animate-spin" />

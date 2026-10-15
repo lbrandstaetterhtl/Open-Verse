@@ -16,7 +16,8 @@
     "navigation": "Navigation",
     "support": "Support Tickets",
     "settings": "Einstellungen",
-    "mobile_footer_hint": "Entdecke Premium-Tools wie den KI-Generator und Support über das Benutzermenü am Desktop."
+    "mobile_footer_hint": "Entdecke Premium-Tools wie den KI-Generator und Support über das Benutzermenü am Desktop.",
+    "section_admin": "Verwaltung"
   },
   "navigation": {
     "home": "Home",
@@ -36,13 +37,16 @@
     "title": "Auto-Bestrafung"
   },
   "analytics": {
-    "title": "Analysen"
+    "title": "Analysen",
+    "eyebrow": "Admin / Analysen"
   },
   "modPerf": {
-    "nav": "Mod-Leistung"
+    "nav": "Mod-Leistung",
+    "eyebrow": "Admin / Analysen"
   },
   "security": {
-    "stress_test": "Sicherheitstests"
+    "stress_test": "Sicherheitstests",
+    "eyebrow": "Admin / Sicherheit"
   },
   "profile": {
     "pro": "Pro",
@@ -96,7 +100,8 @@
     "update_success_desc": "Deine Änderungen wurden erfolgreich gespeichert.",
     "follow_success": "Erfolgreich gefolgt",
     "is_now_following": "Du folgst nun {{username}}",
-    "unfollow_success": "Entfolgt"
+    "unfollow_success": "Entfolgt",
+    "unfollow": "Entfolgen"
   },
   "common": {
     "loading": "Laden...",
@@ -127,7 +132,14 @@
     "no_posts": "Noch keine Beiträge. Sei der Erste, der etwas teilt!",
     "curated": "Kuratierter Feed",
     "media_description": "Die visuellsten und ansprechendsten Geschichten, kuratiert für deine Entdeckung.",
-    "create_story": "Story erstellen"
+    "create_story": "Story erstellen",
+    "eyebrow_media": "Feed / Medien",
+    "eyebrow_discussions": "Feed / Diskussionen",
+    "no_media": "Stille im Verse",
+    "no_media_desc": "Sei der Funke, der diesen Feed entzündet. Teile jetzt deinen ersten Medien-Beitrag.",
+    "discussion_description": "Vernetze dich, diskutiere und teile Ideen mit einer Community, die tiefgehende Gespräche schätzt.",
+    "start_discussion": "Unterhaltung starten",
+    "no_discussions_desc": "Jede große Bewegung begann mit einem einzigen Wort. Sei der Erste, der etwas sagt."
   },
   "comments": {
     "title": "Kommentare",
@@ -220,7 +232,10 @@
       "type_post": "Beitrag",
       "type_discussion": "Diskussion",
       "type_comment": "Kommentar"
-    }
+    },
+    "overview_eyebrow": "Admin / Übersicht",
+    "command_center": "Kommandozentrale",
+    "settings_eyebrow": "Admin / Einstellungen"
   },
   "notifications": {
     "title": "Benachrichtigungen",
@@ -267,7 +282,8 @@
       "followers": "Neue Follower",
       "community_invites": "Community-Ereignisse",
       "system": "System-Ankündigungen"
-    }
+    },
+    "eyebrow": "Konto / Benachrichtigungen"
   },
   "ai_generator": {
     "title": "KI-Beitragsgenerator",
@@ -299,42 +315,10 @@
       "german": "Deutsch",
       "spanish": "Spanisch",
       "french": "Französisch"
-    }
+    },
+    "eyebrow": "Erstellen / KI-Generator"
   },
   "create_post": {
-    "news": {
-      "title": "Nachrichten teilen",
-      "headline": "Schlagzeile",
-      "content": "Artikelinhalt",
-      "placeholder": "Schreiben Sie hier Ihren Nachrichtenartikel. Bitte stellen Sie sicher, dass er sachlich und ordnungsgemäß belegt ist.",
-      "submit": "Nachricht absenden",
-      "success_title": "Nachricht gepostet",
-      "success_desc": "Ihr Nachrichtenartikel wurde erfolgreich gepostet."
-    },
-    "entertainment": {
-      "title": "Etwas Lustiges teilen",
-      "title_label": "Titel",
-      "content_label": "Inhalt",
-      "placeholder": "Teile einen Witz, eine lustige Geschichte oder etwas Interessantes!",
-      "submit": "Teilen",
-      "success_title": "Beitrag erstellt",
-      "success_desc": "Dein Unterhaltungsbeitrag wurde erfolgreich geteilt."
-    },
-    "discussion": {
-      "title": "Diskussion starten",
-      "title_label": "Titel",
-      "content_label": "Inhalt",
-      "placeholder": "Teile deine Gedanken...",
-      "submit": "Diskussion posten",
-      "success_title": "Diskussion erstellt",
-      "success_desc": "Deine Diskussion wurde erfolgreich gepostet.",
-      "selector_desc": "Starte eine tiefe Unterhaltung oder frage die Community."
-    },
-    "selector": {
-      "title": "Was sagt das Universum?",
-      "subtitle": "Neues Werk",
-      "description": "Wähle eine Dimension, in der deine Geschichte wirken soll."
-    },
     "news": {
       "title": "Nachrichten teilen",
       "headline": "Schlagzeile",
@@ -355,6 +339,21 @@
       "success_desc": "Dein Unterhaltungsbeitrag wurde erfolgreich geteilt.",
       "selector_desc": "Lustiger, kreativer und ansprechender visueller Inhalt."
     },
+    "discussion": {
+      "title": "Diskussion starten",
+      "title_label": "Titel",
+      "content_label": "Inhalt",
+      "placeholder": "Teile deine Gedanken...",
+      "submit": "Diskussion posten",
+      "success_title": "Diskussion erstellt",
+      "success_desc": "Deine Diskussion wurde erfolgreich gepostet.",
+      "selector_desc": "Starte eine tiefe Unterhaltung oder frage die Community."
+    },
+    "selector": {
+      "title": "Was sagt das Universum?",
+      "subtitle": "Neues Werk",
+      "description": "Wähle eine Dimension, in der deine Geschichte wirken soll."
+    },
     "media_label": "Medien (Bild oder Video)"
   },
   "community": {
@@ -374,7 +373,8 @@
       "success_title": "Community erstellt",
       "restriction_title": "Einschränkung",
       "restriction_desc": "Du benötigst mindestens 200 Reputation, um eine Community zu erstellen.",
-      "current_rep": "Deine aktuelle Reputation:"
+      "current_rep": "Deine aktuelle Reputation:",
+      "eyebrow": "Communities / Neu"
     },
     "page": {
       "not_found_title": "Community nicht gefunden",
@@ -409,7 +409,8 @@
         "top": "Top"
       },
       "empty_posts": "Noch keine Beiträge",
-      "empty_posts_desc": "Sei der Erste, der etwas teilt!"
+      "empty_posts_desc": "Sei der Erste, der etwas teilt!",
+      "eyebrow": "Communities"
     }
   },
   "mod_panel": {
@@ -555,7 +556,8 @@
     "no_results": "Keine Communities gefunden.",
     "no_posts": "Noch keine Beiträge",
     "no_posts_desc": "Tritt Communities bei, um hier Beiträge zu sehen, oder erstelle deine eigene Community!",
-    "join_suggestion": "Community erstellen"
+    "join_suggestion": "Community erstellen",
+    "eyebrow": "Feed / Communities"
   },
   "media_feed": {
     "load_error": "Medien konnten nicht geladen werden"
@@ -587,7 +589,33 @@
     "all_saved": "Alles gespeichert",
     "reset_confirm": "Möchten Sie wirklich alle Farben auf die Standardwerte zurücksetzen? Dies kann nicht rückgängig gemacht werden.",
     "import_success": "Theme erfolgreich importiert",
-    "export_success": "Theme-Konfiguration in die Zwischenablage kopiert"
+    "export_success": "Theme-Konfiguration in die Zwischenablage kopiert",
+    "section_shape": "Form",
+    "corner_style": "Eckenstil",
+    "corner_fase": "Fase",
+    "corner_kante": "Kante",
+    "corner_rund": "Rund",
+    "corner_size": "Eckengröße",
+    "avatar_shape": "Avatar-Form",
+    "avatar_achteck": "Achteck",
+    "avatar_quadrat": "Quadrat",
+    "avatar_kreis": "Kreis",
+    "section_surface": "Oberfläche",
+    "surface_panel": "Panel",
+    "surface_glas": "Glas",
+    "surface_kontur": "Kontur",
+    "surface_opacity": "Deckkraft",
+    "surface_blur": "Unschärfe",
+    "font_display": "Überschriften",
+    "font_body": "Text",
+    "font_data": "Zahlen & Zeiten",
+    "font_same_as_text": "Wie Text",
+    "section_galaxy": "Galaxie-Ebenen",
+    "galaxy_stars": "Sternenfeld",
+    "galaxy_grid": "Koordinatenraster",
+    "galaxy_constellation": "Sternbild im Seitenkopf",
+    "galaxy_grain": "Körnung",
+    "color_star": "Sternlicht"
   },
   "monitoring": {
     "title": "Monitoring-Übersicht",
@@ -620,6 +648,9 @@
     "metrics": {
       "events_minute_chart": "Aktivitäten (24h)",
       "errors_by_category": "Fehler & Warnungen nach Kategorie"
-    }
+    },
+    "eyebrow_audit": "Admin / Audit",
+    "eyebrow_monitoring": "Admin / Monitoring",
+    "eyebrow_moderation": "Admin / Moderation"
   }
 }

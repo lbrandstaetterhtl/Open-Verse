@@ -21,10 +21,10 @@ export function TopCreatorsSection({ data, loading }: Props) {
                     {loading ? (
                         Array(5).fill(0).map((_, i) => (
                             <div key={i} className="flex items-center space-x-4 animate-pulse">
-                                <div className="h-10 w-10 rounded-full bg-muted" />
+                                <div className="ov-avatar h-10 w-10 bg-muted" />
                                 <div className="space-y-2">
-                                    <div className="h-4 w-24 bg-muted rounded" />
-                                    <div className="h-3 w-16 bg-muted rounded" />
+                                    <div className="h-4 w-24 rounded-sm bg-muted" />
+                                    <div className="h-3 w-16 rounded-sm bg-muted" />
                                 </div>
                             </div>
                         ))
@@ -32,19 +32,19 @@ export function TopCreatorsSection({ data, loading }: Props) {
                         data?.map((creator, index) => (
                             <div key={creator.id} className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
-                                    <div className="text-sm font-medium text-muted-foreground w-4">{index + 1}</div>
+                                    <div className="ov-data w-4 text-sm text-muted-foreground">{index + 1}</div>
                                     <Avatar className="h-9 w-9">
                                         <AvatarImage src={creator.profilePictureUrl || ""} />
                                         <AvatarFallback>{creator.username[0]}</AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <div className="text-sm font-medium leading-none">{creator.username}</div>
-                                        <div className="text-xs text-muted-foreground">{creator.newPosts} {t("analytics.new_posts_count", "posts this period")}</div>
+                                        <div className="text-sm font-semibold leading-none">{creator.username}</div>
+                                        <div className="mt-1 text-xs text-muted-foreground"><span className="ov-data">{creator.newPosts}</span> {t("analytics.new_posts_count", "posts this period")}</div>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-sm font-bold">+{creator.newFollowers}</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase">{t("analytics.growth", "Growth")}</div>
+                                    <div className="ov-data text-sm font-semibold">+{creator.newFollowers}</div>
+                                    <div className="ov-label">{t("analytics.growth", "Growth")}</div>
                                 </div>
                             </div>
                         ))

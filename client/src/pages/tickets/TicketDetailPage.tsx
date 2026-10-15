@@ -8,7 +8,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +16,7 @@ import { Loader2, History, User, Clock, UserCircle2 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/layout/page-header";
 import { cn } from "@/lib/utils";
 
 export default function TicketDetailPage() {
@@ -26,7 +26,7 @@ export default function TicketDetailPage() {
   const { t } = useTranslation("tickets");
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const { data, isLoading, isError, error, refetch } = useTicket(ticketId);
   const { mutateAsync: addComment, isPending: isAddingComment } = useAddComment();
   const { mutateAsync: updateTicket, isPending: isUpdating } = useUpdateTicket();
@@ -51,7 +51,7 @@ export default function TicketDetailPage() {
   if (isError || !data) {
     return (
       <div className="pt-20 flex flex-col items-center justify-center text-center">
-        <p className="text-red-500 mb-2">{(error as any)?.message || "Failed to load"}</p>
+        <p className="text-destructive mb-2">{(error as any)?.message || "Failed to load"}</p>
         <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
       </div>
     );
@@ -104,103 +104,104 @@ export default function TicketDetailPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
       >
-        <BackButton fallback="/tickets" className="mb-10 -ml-4 font-black uppercase tracking-widest text-[10px] opacity-60 hover:opacity-100 hover:-translate-x-2 transition-all" />
+        <BackButton fallback="/tickets" className="mb-2 -ml-3" />
 
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-12 border-b border-white/5 pb-10 relative overflow-hidden">
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="font-mono text-[10px] font-black tracking-widest text-primary/60 bg-primary/5 px-3 py-1 rounded-full border border-primary/10">#{ticket.ticketNumber}</span>
-              <TicketStatusBadge status={ticket.status} />
-              <TicketPriorityBadge priority={ticket.priority} />
-            </div>
-            <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic italic-primary leading-[0.9]">{ticket.title}</h1>
-          </div>
-          <div className="flex gap-4 w-full lg:w-auto">
-            {isOwner && ticket.status !== 'closed' && (
-              <Button variant="destructive" disabled={isUpdating || isDeleting} className="h-14 px-8 rounded-full font-black uppercase tracking-widest text-[10px] shadow-xl shadow-red-500/20" onClick={async () => {
-                 if (confirm("Are you sure you want to delete this ticket?")) {
-                   try {
-                     await deleteTicket(ticket.id);
-                     toast({ title: t("success.ticketDeleted", "Ticket deleted successfully") });
-                     setLocation("/tickets");
-                   } catch (err: any) {
-                     toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+        <PageHeader
+          eyebrow={t("title", "Tickets")}
+          title={ticket.title}
+          actions={
+            <>
+              {isOwner && ticket.status !== 'closed' && (
+                <Button variant="destructive" disabled={isUpdating || isDeleting} onClick={async () => {
+                   if (confirm("Are you sure you want to delete this ticket?")) {
+                     try {
+                       await deleteTicket(ticket.id);
+                       toast({ title: t("success.ticketDeleted", "Ticket deleted successfully") });
+                       setLocation("/tickets");
+                     } catch (err: any) {
+                       toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+                     }
                    }
-                 }
-              }}>
-                {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Decommission Signal"}
-              </Button>
-            )}
-            {(!isOwner && ticket.status !== 'closed') && (
-              <Button variant="destructive" disabled={isUpdating} className="h-14 px-8 rounded-full font-black uppercase tracking-widest text-[10px] shadow-xl shadow-red-500/20" onClick={() => handleUpdateStatus('closed')}>
-                Deactivate Transmission
-              </Button>
-            )}
+                }}>
+                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Decommission Signal"}
+                </Button>
+              )}
+              {(!isOwner && ticket.status !== 'closed') && (
+                <Button variant="destructive" disabled={isUpdating} onClick={() => handleUpdateStatus('closed')}>
+                  Deactivate Transmission
+                </Button>
+              )}
+            </>
+          }
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="ov-data text-sm text-muted-foreground">#{ticket.ticketNumber}</span>
+            <TicketStatusBadge status={ticket.status} />
+            <TicketPriorityBadge priority={ticket.priority} />
           </div>
-        </div>
+        </PageHeader>
 
-        <div className="grid lg:grid-cols-[1fr,350px] gap-12">
-          <div className="space-y-10">
+        <div className="mt-8 grid lg:grid-cols-[1fr,350px] gap-8">
+          <div className="space-y-8">
             {/* Main Description */}
-            <Card className="glass-premium border-white/10 shadow-2xl overflow-hidden group">
-              <div className="absolute inset-0 nebula-banner opacity-5 group-hover:opacity-10 transition-opacity duration-1000" />
-              <CardHeader className="relative z-10 p-8 pb-4 border-b border-white/5 bg-white/5">
-                <div className="flex items-center gap-4 text-xs font-bold">
-                  <UserCircle2 className="w-5 h-5 text-primary" />
-                  <span className="text-foreground">{ticket.creatorUsername}</span>
-                  <span className="opacity-40 font-medium">initiated signal</span>
-                  <span className="opacity-40 font-medium ml-auto" title={format(new Date(ticket.createdAt), "PPpp")}>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}</span>
+            <Card className="overflow-hidden">
+              <CardHeader className="px-6 py-4 ov-rule">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                  <UserCircle2 className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-foreground">{ticket.creatorUsername}</span>
+                  <span className="text-muted-foreground">initiated signal</span>
+                  <span className="ov-data text-xs text-muted-foreground ml-auto" title={format(new Date(ticket.createdAt), "PPpp")}>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}</span>
                 </div>
               </CardHeader>
-              <CardContent className="relative z-10 p-10">
-                <div className="prose dark:prose-invert max-w-none text-base font-medium leading-relaxed opacity-90 whitespace-pre-wrap">
+              <CardContent className="p-6">
+                <div className="prose dark:prose-invert max-w-none text-base leading-relaxed whitespace-pre-wrap">
                   {ticket.description}
                 </div>
               </CardContent>
             </Card>
 
             {/* Activity Timeline */}
-            <div className="space-y-8">
-              <div className="flex items-center justify-between px-2">
-                <h3 className="font-black uppercase tracking-[0.3em] text-[10px] text-primary flex items-center gap-3">
-                  <History className="w-4 h-4" />
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-lg font-semibold flex items-center gap-2">
+                  <History className="w-4 h-4 text-primary" />
                   Transmission History
                 </h3>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {comments.map(comment => {
                   if (comment.isSystem) {
                     return (
-                      <div key={comment.id} className="relative flex items-center gap-4 px-6 py-3 rounded-full glass-premium border-white/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-8 group">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
-                        <span className="italic truncate">{comment.content}</span>
-                        <span className="ml-auto opacity-40 shrink-0" title={format(new Date(comment.createdAt), "PPpp")}>{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</span>
+                      <div key={comment.id} className="relative flex items-center gap-3 ml-8 pl-4 pr-2 py-2 border-l border-border text-xs text-muted-foreground group">
+                        <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+                        <span className="truncate">{comment.content}</span>
+                        <span className="ov-data ml-auto shrink-0" title={format(new Date(comment.createdAt), "PPpp")}>{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</span>
                       </div>
                     );
                   }
 
                   return (
                     <div key={comment.id} className={cn(
-                      "group relative flex gap-6 p-8 rounded-[2.5rem] transition-all duration-500",
-                      comment.isInternal ? "glass-premium border-orange-500/20 bg-orange-500/5" : "glass-premium border-white/5 hover:border-white/10"
+                      "ov-panel group flex gap-4 p-5",
+                      comment.isInternal && "[--ov-line:hsl(var(--star)/0.45)]"
                     )}>
-                      <div className="relative">
-                        <div className="w-12 h-12 rounded-2xl glass-premium border-white/10 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
-                          <User className="w-6 h-6 text-primary" />
+                      <div className="relative shrink-0">
+                        <div className="ov-avatar w-10 h-10 bg-primary/10 flex items-center justify-center">
+                          <User className="w-5 h-5 text-primary" />
                         </div>
-                        {comment.authorRole === 'owner' && <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 border-2 border-background animate-pulse" />}
+                        {comment.authorRole === 'owner' && <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-destructive border-2 border-background" />}
                       </div>
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-center gap-3">
-                          <span className="font-black uppercase tracking-widest text-[11px]">{comment.authorUsername}</span>
-                          {comment.authorRole === 'owner' && <Badge variant="destructive" className="h-4 text-[8px] font-black tracking-widest px-2">COMMANDER</Badge>}
-                          <span className="text-[10px] font-bold opacity-40" title={format(new Date(comment.createdAt), "PPpp")}>
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span className="text-sm font-semibold">{comment.authorUsername}</span>
+                          {comment.authorRole === 'owner' && <span className="ov-chip ov-chip-danger">COMMANDER</span>}
+                          <span className="ov-data text-xs text-muted-foreground" title={format(new Date(comment.createdAt), "PPpp")}>
                             {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                           </span>
-                          {comment.isInternal && <Badge variant="outline" className="h-4 text-[8px] font-black tracking-widest px-2 bg-orange-500/20 text-orange-400 border-none ml-auto">INTERNAL SIGNAL</Badge>}
+                          {comment.isInternal && <span className="ov-chip ov-chip-star ml-auto">INTERNAL SIGNAL</span>}
                         </div>
-                        <div className="text-[15px] font-medium leading-relaxed opacity-80 whitespace-pre-wrap">
+                        <div className="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap">
                           {comment.content}
                         </div>
                       </div>
@@ -211,25 +212,24 @@ export default function TicketDetailPage() {
 
               {/* Comment Form */}
               {ticket.status !== 'closed' && (
-                <div className="mt-12 glass-premium border-white/10 rounded-[3rem] overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-2xl group">
-                  <div className="absolute inset-0 nebula-banner opacity-5 pointer-events-none" />
-                  <Textarea 
-                    className="relative z-10 border-0 focus-visible:ring-0 rounded-none bg-transparent p-10 min-h-[160px] font-medium text-base resize-none"
+                <div className="ov-panel mt-8 overflow-hidden focus-within:[--ov-line:hsl(var(--primary)/0.6)]">
+                  <Textarea
+                    className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent p-5 min-h-[160px] text-base resize-none"
                     placeholder={t("comments.placeholder", "Inject your response into the transmission...")}
                     value={commentText}
                     onChange={e => setCommentText(e.target.value)}
                   />
-                  <div className="relative z-10 bg-white/5 border-t border-white/5 p-6 px-10 flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div className="border-t border-border px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div>
                       {isOwner && (
-                        <div className="flex items-center gap-4">
-                          <Switch id="internal-mode" checked={isInternal} onCheckedChange={setIsInternal} className="data-[state=checked]:bg-orange-500" />
-                          <Label htmlFor="internal-mode" className="text-[10px] font-black uppercase tracking-widest cursor-pointer select-none text-orange-400">Secure Internal Channel</Label>
+                        <div className="flex items-center gap-3">
+                          <Switch id="internal-mode" checked={isInternal} onCheckedChange={setIsInternal} className="data-[state=checked]:bg-star" />
+                          <Label htmlFor="internal-mode" className="text-sm font-medium cursor-pointer select-none text-star">Secure Internal Channel</Label>
                         </div>
                       )}
                     </div>
-                    <Button disabled={!commentText.trim() || isAddingComment} onClick={handleCommentSubmit} className="h-14 px-10 rounded-full font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/30 nebula-glow w-full sm:w-56">
-                      {isAddingComment ? <Loader2 className="w-5 h-5 animate-spin" /> : "Transmit Response"}
+                    <Button disabled={!commentText.trim() || isAddingComment} onClick={handleCommentSubmit} className="w-full sm:w-48">
+                      {isAddingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : "Transmit Response"}
                     </Button>
                   </div>
                 </div>
@@ -239,72 +239,71 @@ export default function TicketDetailPage() {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            <Card className="glass-premium border-white/10 shadow-2xl sticky top-28 overflow-hidden group">
-              <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-              <CardHeader className="p-8 pb-4 border-b border-white/5 relative z-10">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Signal Core</CardTitle>
+            <Card className="sticky top-28">
+              <CardHeader className="px-6 py-4 ov-rule">
+                <CardTitle className="text-lg">Signal Core</CardTitle>
               </CardHeader>
-              <CardContent className="p-8 space-y-8 relative z-10">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-1">Status Phase</label>
+              <CardContent className="p-6 space-y-6">
+                <div className="space-y-2">
+                  <label className="ov-label block">Status Phase</label>
                   {isOwner ? (
                     <Select value={ticket.status} onValueChange={handleUpdateStatus} disabled={isUpdating}>
-                      <SelectTrigger className="h-12 rounded-full glass-input border-white/5 font-bold text-xs uppercase tracking-widest">
+                      <SelectTrigger className="h-10">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="glass-premium border-white/10">
+                      <SelectContent>
                         {['open', 'in_progress', 'on_hold', 'resolved', 'closed'].map(s => (
-                          <SelectItem key={s} value={s} className="font-bold text-xs uppercase tracking-widest">{t(`status.${s}`, s)}</SelectItem>
+                          <SelectItem key={s} value={s}>{t(`status.${s}`, s)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <div className="h-10 flex items-center pl-1"><TicketStatusBadge status={ticket.status} /></div>
+                    <div className="h-10 flex items-center"><TicketStatusBadge status={ticket.status} /></div>
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-1">Priority Level</label>
+                <div className="space-y-2">
+                  <label className="ov-label block">Priority Level</label>
                   {isOwner ? (
                     <Select value={ticket.priority} onValueChange={handleUpdatePriority} disabled={isUpdating}>
-                      <SelectTrigger className="h-12 rounded-full glass-input border-white/5 font-bold text-xs uppercase tracking-widest">
+                      <SelectTrigger className="h-10">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="glass-premium border-white/10">
+                      <SelectContent>
                         {['low', 'medium', 'high', 'critical'].map(p => (
-                          <SelectItem key={p} value={p} className="font-bold text-xs uppercase tracking-widest">{t(`priority.${p}`, p)}</SelectItem>
+                          <SelectItem key={p} value={p}>{t(`priority.${p}`, p)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <div className="h-10 flex items-center pl-1"><TicketPriorityBadge priority={ticket.priority} /></div>
+                    <div className="h-10 flex items-center"><TicketPriorityBadge priority={ticket.priority} /></div>
                   )}
                 </div>
 
-                <div className="pt-8 border-t border-white/5 space-y-5">
-                  <div className="flex justify-between items-center px-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Type</span>
-                    <span className="text-xs font-black uppercase tracking-widest text-foreground">{t(`types.${ticket.type}`, ticket.type)}</span>
+                <div className="pt-6 border-t border-border space-y-4">
+                  <div className="flex justify-between items-center gap-3">
+                    <span className="ov-label">Type</span>
+                    <span className="ov-chip">{t(`types.${ticket.type}`, ticket.type)}</span>
                   </div>
-                  
+
                   {ticket.relatedUrl && (
-                    <div className="flex flex-col gap-2 px-1">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Related Signal</span>
-                      <a href={ticket.relatedUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-primary hover:text-accent truncate transition-colors drop-shadow-sm">{ticket.relatedUrl}</a>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="ov-label">Related Signal</span>
+                      <a href={ticket.relatedUrl} target="_blank" rel="noreferrer" className="ov-data text-xs text-primary hover:underline underline-offset-4 truncate">{ticket.relatedUrl}</a>
                     </div>
                   )}
-                  
-                  <div className="flex flex-col gap-3 px-1 pt-4 border-t border-white/5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Assigned Personnel</span>
+
+                  <div className="flex flex-col gap-2 pt-4 border-t border-border">
+                    <span className="ov-label">Assigned Personnel</span>
                     {isOwner ? (
                       <Select value={ticket.assignedTo ? String(ticket.assignedTo) : "unassigned"} onValueChange={(v) => handleUpdateAssignment(v === "unassigned" ? null : parseInt(v))} disabled={isUpdating}>
-                        <SelectTrigger className="h-12 rounded-full glass-input border-white/5 font-bold text-xs uppercase tracking-widest">
+                        <SelectTrigger className="h-10">
                           <SelectValue placeholder="Select Staff" />
                         </SelectTrigger>
-                        <SelectContent className="glass-premium border-white/10">
-                          <SelectItem value="unassigned" className="font-bold text-xs uppercase tracking-widest">Awaiting Pilot</SelectItem>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Awaiting Pilot</SelectItem>
                           {staffUsers.map(admin => (
-                            <SelectItem key={admin.id} value={String(admin.id)} className="font-bold text-xs uppercase tracking-widest">
+                            <SelectItem key={admin.id} value={String(admin.id)}>
                               {admin.username}
                             </SelectItem>
                           ))}
@@ -312,7 +311,7 @@ export default function TicketDetailPage() {
                       </Select>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <div className={cn("h-8 px-4 rounded-full flex items-center text-[9px] font-black uppercase tracking-widest", ticket.assignedTo ? "bg-primary/10 text-primary" : "bg-orange-500/10 text-orange-400 border border-orange-500/20 animate-pulse")}>
+                        <div className={cn("ov-chip", ticket.assignedTo ? "ov-chip-primary" : "ov-chip-star")}>
                           {ticket.assignedTo ? 'Personnel Active' : 'Awaiting Pilot'}
                         </div>
                       </div>

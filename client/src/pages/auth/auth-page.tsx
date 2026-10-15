@@ -48,11 +48,11 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Mobile Header - Only visible on mobile */}
-      <div className="lg:hidden p-6 bg-primary/5">
+      <div className="lg:hidden p-6 bg-primary/5 border-b border-border">
         <div className="flex items-center space-x-2">
           <OpenVerseIcon className="h-24 w-auto object-contain text-primary" />
           <div>
-            <h1 className="text-2xl font-bold">{settings.site_name}</h1>
+            <h1 className="font-display text-2xl font-semibold">{settings.site_name}</h1>
             <p className="text-xs text-muted-foreground">{settings.site_description || "Version 0.2.0"}</p>
           </div>
         </div>
@@ -67,9 +67,9 @@ export default function AuthPage() {
       >
         <div className="mx-auto max-w-md w-full space-y-6">
           {isVerified && (
-            <Alert className="bg-green-50 border-green-200">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-700">
+            <Alert className="bg-primary/5 border-primary/30">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-foreground">
                 Your email has been verified! You can now log in.
               </AlertDescription>
             </Alert>
@@ -89,14 +89,14 @@ export default function AuthPage() {
                   {settings.maintenance_mode && (
                     <Alert className="mb-4 bg-primary/5 border-primary/20">
                       <ShieldCheck className="h-4 w-4 text-primary" />
-                      <AlertDescription className="text-xs font-bold text-primary uppercase tracking-wider">
+                      <AlertDescription className="text-xs font-semibold text-primary">
                         Maintenance Mode Active: Only Staff Login Allowed
                       </AlertDescription>
                     </Alert>
                   )}
                   <LoginForm />
                   {(!settings.registration_enabled || settings.maintenance_mode) && (
-                    <p className="text-center text-xs text-muted-foreground mt-4 italic">
+                    <p className="text-center text-xs text-muted-foreground mt-4">
                       {settings.maintenance_mode 
                         ? "Site is currently under maintenance. Registration is disabled."
                         : "Registration is currently disabled by the administrator."}
@@ -116,23 +116,23 @@ export default function AuthPage() {
 
           {/* Feature Highlights - Mobile Only */}
           <div className="lg:hidden space-y-4 py-4">
-            <h2 className="text-lg font-semibold text-center">Why Join Osiris?</h2>
+            <h2 className="font-display text-lg font-semibold text-center">Why Join Osiris?</h2>
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-primary/5 rounded-lg">
+              <div className="ov-panel p-3">
                 <Newspaper className="h-5 w-5 text-primary mb-2" />
-                <h3 className="text-sm font-medium">Quality News</h3>
+                <h3 className="text-sm font-semibold">Quality News</h3>
               </div>
-              <div className="p-3 bg-primary/5 rounded-lg">
+              <div className="ov-panel p-3">
                 <MessageSquare className="h-5 w-5 text-primary mb-2" />
-                <h3 className="text-sm font-medium">Discussions</h3>
+                <h3 className="text-sm font-semibold">Discussions</h3>
               </div>
-              <div className="p-3 bg-primary/5 rounded-lg">
+              <div className="ov-panel p-3">
                 <TrendingUp className="h-5 w-5 text-primary mb-2" />
-                <h3 className="text-sm font-medium">Trends</h3>
+                <h3 className="text-sm font-semibold">Trends</h3>
               </div>
-              <div className="p-3 bg-primary/5 rounded-lg">
+              <div className="ov-panel p-3">
                 <Users className="h-5 w-5 text-primary mb-2" />
-                <h3 className="text-sm font-medium">Community</h3>
+                <h3 className="text-sm font-semibold">Community</h3>
               </div>
             </div>
           </div>
@@ -140,12 +140,12 @@ export default function AuthPage() {
       </motion.div>
 
       {/* Desktop Features Section - Hidden on mobile */}
-      <div className="hidden lg:flex flex-col justify-center p-8 bg-primary/5">
+      <div className="hidden lg:flex flex-col justify-center p-8 bg-primary/5 border-l border-border">
         <div className="mx-auto max-w-md w-full">
           <div className="flex items-center space-x-2 mb-8">
             <OpenVerseIcon className="h-48 w-auto object-contain text-primary" />
             <div>
-              <h1 className="text-4xl font-bold">{settings.site_name}</h1>
+              <h1 className="font-display text-4xl font-semibold tracking-[-0.01em]">{settings.site_name}</h1>
               <p className="text-sm text-muted-foreground">{settings.site_description || "Version 0.2.0"}</p>
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function AuthPage() {
           </motion.div>
 
             {/* Latest Updates Section */}
-            <div className="mt-12 border-t pt-6">
+            <div className="mt-12 border-t border-border pt-6">
               <div className="flex items-center space-x-2 mb-4">
                 <Info className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold">Latest Updates</h3>

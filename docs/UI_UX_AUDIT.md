@@ -35,15 +35,9 @@ This document evaluates the current user interface and experience of Osiris, ide
 
 ---
 
-## 🛰️ "Weightless Universe" Aesthetic Gaps
+## 🛰️ Visual Language ✅ Replaced
 
-### 1. Motion & Physics
-- **Observation**: Current transitions are standard linear or simple spring animations.
-- **Opportunity**: To achieve a "Zero-Gravity" feel, we need more "drifting" physics—where elements have subtle inertia when scrolling or appearing.
-
-### 2. Depth & Layering
-- **Observation**: Glassmorphism is used, but it's relatively "flat" (mostly just blur).
-- **Opportunity**: Add subtle "depth-parallax" effects where the background stars move slightly slower than the foreground cards.
+The "Weightless Universe" look (glassmorphism, glow, floating elements) was replaced by the angular "Sternkarte" design language in October 2026; see `docs/DESIGN.md`. The motion/parallax proposals that were listed here no longer apply.
 
 ---
 

@@ -65,15 +65,8 @@ export default function MyProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Dynamic Background Elements */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-b from-primary/10 via-transparent to-transparent opacity-30" />
-        <div className="absolute top-[20%] right-[10%] w-[30vw] h-[30vw] bg-accent/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[20%] left-[5%] w-[25vw] h-[25vw] bg-primary/10 rounded-full blur-[100px]" />
-      </div>
-
-      <main className="relative z-10 max-w-7xl mx-auto border-x border-white/5 bg-background/50 backdrop-blur-3xl shadow-2xl min-h-screen">
+    <div className="min-h-screen relative">
+      <main className="relative z-10 max-w-7xl mx-auto min-h-screen">
         <ProfileCover 
           username={enrichedUser.username}
           avatarUrl={enrichedUser.avatarUrl}

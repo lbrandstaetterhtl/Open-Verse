@@ -141,15 +141,15 @@ export default function ChatPage() {
   return (
     <div className="w-full flex flex-col h-[calc(100vh-theme(spacing.14))] md:h-screen overflow-hidden">
       <main className="flex-1 flex flex-col min-h-0 bg-background">
-        <div className="w-full flex items-center justify-between px-4 h-16 border-b bg-background/80 backdrop-blur-md">
+        <div className="w-full flex items-center justify-between px-4 h-16 border-b bg-background">
           <div className="flex items-center gap-4">
-            <BackButton fallback="/feed" className="h-10 w-10 rounded-full" />
-            <h1 className="text-xl md:text-2xl font-black tracking-tight uppercase">Messages</h1>
+            <BackButton fallback="/feed" className="h-10 px-3" />
+            <h1 className="font-display text-xl md:text-2xl font-semibold">Messages</h1>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden h-10 w-10 rounded-full hover:bg-muted"
+            className="lg:hidden hover:bg-muted"
             onClick={() => setShowUserList(!showUserList)}
           >
             <Menu className="h-5 w-5" />
@@ -163,7 +163,7 @@ export default function ChatPage() {
             !showUserList && "hidden lg:flex"
           )}>
             <div className="p-4 border-b">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Mutual Connections</h3>
+              <h3 className="ov-label">Mutual Connections</h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {mutualFollowers?.length === 0 && (
@@ -178,18 +178,18 @@ export default function ChatPage() {
                 <div
                   key={followedUser.id}
                   className={cn(
-                    "flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all active:scale-95 group",
-                    selectedUserId === followedUser.id ? "bg-primary/10 text-primary" : "hover:bg-accent/50"
+                    "ov-cut flex items-center gap-3 p-3 rounded-sm cursor-pointer transition-colors group",
+                    selectedUserId === followedUser.id ? "ov-nav-active" : "hover:bg-accent/50"
                   )}
                   onClick={() => {
                     setSelectedUserId(followedUser.id);
                     setShowUserList(false);
                   }}
                 >
-                  <UserAvatar user={followedUser} size="sm" className="h-10 w-10 border-2 border-transparent group-hover:border-primary/20" />
+                  <UserAvatar user={followedUser} size="sm" className="h-10 w-10" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate">{followedUser.username}</p>
-                    <p className="text-[10px] opacity-70 uppercase font-black">Active now</p>
+                    <p className="text-sm font-semibold truncate">{followedUser.username}</p>
+                    <p className="ov-label">Active now</p>
                   </div>
                 </div>
               ))}
@@ -204,14 +204,14 @@ export default function ChatPage() {
             {selectedUserId ? (
               <>
                 {/* Chat Header */}
-                <div className="px-6 h-16 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm">
+                <div className="px-6 h-16 border-b flex items-center justify-between bg-background/50">
                    <div className="flex items-center gap-3">
                       <UserAvatar 
                         user={mutualFollowers?.find(u => u.id === selectedUserId)!} 
                         size="sm" 
                         className="h-9 w-9"
                       />
-                      <span className="font-bold text-sm">
+                      <span className="font-semibold text-sm">
                         {mutualFollowers?.find(u => u.id === selectedUserId)?.username}
                       </span>
                    </div>
@@ -242,14 +242,14 @@ export default function ChatPage() {
                           />
                           <div
                             className={cn(
-                              "rounded-2xl p-4 max-w-[85%] md:max-w-[70%] shadow-lg transition-all hover:scale-[1.02]",
+                              "rounded-sm px-4 py-3 max-w-[85%] md:max-w-[70%]",
                               isMe
-                                ? "bg-primary text-primary-foreground rounded-br-none shadow-primary/10"
-                                : "bg-card border border-border/40 rounded-bl-none shadow-black/5"
+                                ? "ov-cut bg-primary text-primary-foreground"
+                                : "bg-secondary text-secondary-foreground"
                             )}
                           >
                             <p className="text-sm leading-relaxed break-words">{message.content}</p>
-                            <p className="text-[9px] mt-2 opacity-50 font-bold uppercase tracking-widest tabular-nums">
+                            <p className="ov-data text-[11px] mt-1.5 opacity-60">
                               {format(new Date(message.createdAt), "HH:mm")}
                             </p>
                           </div>
@@ -257,14 +257,14 @@ export default function ChatPage() {
                       );
                     })
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full opacity-30 italic">
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                       <p className="text-sm">Start of conversation</p>
                     </div>
                   )}
                 </div>
 
                 {/* Input Field */}
-                <div className="p-4 md:p-6 bg-background/80 backdrop-blur-xl border-t">
+                <div className="p-4 md:p-6 bg-background border-t">
                   <div className="flex gap-3 max-w-4xl mx-auto">
                     <Input
                       placeholder="Share your thoughts..."
@@ -273,12 +273,12 @@ export default function ChatPage() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && messageInput.trim()) handleSendMessage();
                       }}
-                      className="h-12 px-6 rounded-2xl bg-muted/30 border-transparent focus:bg-background transition-all shadow-inner"
+                      className="h-12 px-4 bg-muted/30 focus:bg-background transition-colors"
                     />
                     <Button
                       onClick={handleSendMessage}
                       disabled={!messageInput.trim() || sendMessageMutation.isPending}
-                      className="h-12 w-12 md:w-auto md:px-8 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                      className="h-12 w-12 px-0 md:w-auto md:px-6"
                     >
                       {sendMessageMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
                     </Button>
@@ -286,16 +286,16 @@ export default function ChatPage() {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-                 <div className="p-8 rounded-[3rem] bg-muted/20 border-2 border-dashed border-white/10">
-                    <MessageSquare className="h-20 w-20 mx-auto text-muted-foreground/10 mb-6" />
-                    <h2 className="text-2xl font-black uppercase tracking-tighter mb-2">No Chat Selected</h2>
-                    <p className="text-sm text-muted-foreground font-medium max-w-xs">
+              <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 text-center">
+                 <div className="ov-panel p-8">
+                    <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
+                    <h2 className="font-display text-xl font-semibold mb-2">No Chat Selected</h2>
+                    <p className="text-sm text-muted-foreground max-w-xs">
                       Pick a friend from the list and start vibing.
                     </p>
                     <Button 
                       variant="outline" 
-                      className="mt-8 lg:hidden rounded-xl font-bold uppercase text-[10px]"
+                      className="mt-6 lg:hidden"
                       onClick={() => setShowUserList(true)}
                     >
                       View Connections

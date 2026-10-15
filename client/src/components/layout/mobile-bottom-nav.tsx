@@ -9,7 +9,7 @@ import { CreatePostSelectorDialog } from "@/components/post/create-post-selector
 
 /**
  * MOBILE-NAV [UI-M-002]: iOS-style Tab Bar
- * Implements a premium, blurred bottom navigation with 44px+ touch targets.
+ * Flat bottom navigation with a hairline top border and 44px+ touch targets.
  */
 export function MobileBottomNav() {
   const { t } = useTranslation();
@@ -59,16 +59,13 @@ export function MobileBottomNav() {
       // Positioning
       "fixed bottom-0 left-0 right-0 z-50",
       // Styling
-      "bg-background/80 backdrop-blur-xl saturate-150",
-      "border-t border-border/50",
+      "bg-background/95",
+      "border-t border-border",
       // Safe Area
       "pb-[env(safe-area-inset-bottom,0px)]",
       // Height (56px standard + safe area)
       "h-[calc(56px+env(safe-area-inset-bottom,0px))]",
     )}>
-      {/* Visual Accent Top Line */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-
       <div className="flex items-center justify-around h-14">
         {tabs.map(tab => {
           const isActive = tab.to === "/profile" 
@@ -85,18 +82,14 @@ export function MobileBottomNav() {
                 "min-w-[44px] min-h-[44px] flex-1",
                 "gap-0.5 relative",
                 // Transitions
-                "transition-all duration-150",
+                "transition-colors duration-150",
                 // Active/Inactive
-                isActive ? "text-primary" : "text-muted-foreground",
+                isActive ? "text-foreground" : "text-muted-foreground",
               )}
             >
               {/* Avatar instead of Icon for Profile */}
               {tab.avatar ? (
-                <div className={cn(
-                  "h-6 w-6 rounded-full overflow-hidden",
-                  "ring-2 transition-all duration-150",
-                  isActive ? "ring-primary" : "ring-transparent",
-                )}>
+                <div className="ov-avatar h-6 w-6">
                   <img src={tab.avatar} alt="" className="w-full h-full object-cover" />
                 </div>
               ) : tab.isPrimary ? (
@@ -111,27 +104,22 @@ export function MobileBottomNav() {
                     "flex flex-col items-center justify-center flex-1 min-h-[44px] gap-0.5 relative"
                   )}
                 >
-                  <div className={cn(
-                    "h-10 w-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 -mt-8 border-4 border-background transition-transform active:scale-90"
-                  )}>
-                    <tab.icon className="h-6 w-6" />
+                  <div className="ov-cut-2 h-7 w-11 bg-primary text-primary-foreground flex items-center justify-center">
+                    <tab.icon className="h-5 w-5" />
                   </div>
-                  <span className="text-[10px] font-bold mt-1 uppercase tracking-widest text-primary">{tab.label}</span>
+                  <span className="text-[10px] font-semibold leading-none text-foreground">{tab.label}</span>
                 </button>
               ) : (
                 // Standard Icon
                 <div className="relative">
-                  <tab.icon className={cn(
-                    "h-6 w-6 transition-all duration-150",
-                    isActive && "scale-110",
-                  )} />
+                  <tab.icon className="h-6 w-6" />
                   {/* Badge */}
                   {tab.badge !== undefined && tab.badge > 0 && (
                     <span className={cn(
                       "absolute -top-1.5 -right-1.5",
-                      "min-w-[16px] h-4 rounded-full",
-                      "bg-destructive text-destructive-foreground",
-                      "text-[10px] font-bold",
+                      "min-w-[16px] h-4 rounded-xs",
+                      "bg-primary text-primary-foreground",
+                      "font-data text-[10px] font-semibold tabular-nums",
                       "flex items-center justify-center px-1",
                       "animate-scale-in border border-background",
                     )}>
@@ -144,17 +132,17 @@ export function MobileBottomNav() {
               {/* Label – small and clear */}
               {!tab.isPrimary && (
                 <span className={cn(
-                  "text-[10px] font-medium leading-none",
-                  "transition-all duration-150",
-                  isActive ? "text-primary font-bold" : "text-muted-foreground",
+                  "text-[10px] leading-none",
+                  "transition-colors duration-150",
+                  isActive ? "text-foreground font-semibold" : "text-muted-foreground font-medium",
                 )}>
                   {tab.label}
                 </span>
               )}
 
-              {/* Active Dot indicator */}
+              {/* Active indicator: short bar under the label */}
               {isActive && !tab.isPrimary && (
-                <div className="absolute -bottom-1 w-1 h-1 rounded-full bg-primary animate-fade-in" />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[14px] h-[2px] bg-primary animate-fade-in" />
               )}
             </Link>
           );
