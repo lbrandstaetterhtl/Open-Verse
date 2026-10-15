@@ -782,7 +782,6 @@ export function importTheme(jsonString: string): CustomTheme | null {
     // Validate basic structure
     if (!theme.light || !theme.dark) return null;
 
-    // Migrate to v2
     const migrated = migrateTheme(theme);
 
     // Sanitize background image URL if present
