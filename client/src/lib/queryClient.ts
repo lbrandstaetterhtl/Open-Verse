@@ -31,34 +31,21 @@ export async function apiRequest(
   const doRequest = async () => {
     const isFormData = data instanceof FormData;
     const headers: Record<string, string> = {
+      ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
       "Cache-Control": "no-cache, no-store, must-revalidate",
       "Pragma": "no-cache",
       "Expires": "0",
     };
 
-    // SEC-FIX [CSRF-001]: For FormData, add CSRF token as form field, not header
-    let body: BodyInit | undefined;
-    if (isFormData) {
-      const formData = data as FormData;
-      if (csrfToken) {
-        formData.append("x-csrf-token", csrfToken);
-      }
-      body = formData;
-    } else {
-      // For JSON, CSRF token goes in header
-      if (csrfToken) {
-        headers["x-csrf-token"] = csrfToken;
-      }
-      if (data) {
-        headers["Content-Type"] = "application/json";
-        body = JSON.stringify(data);
-      }
+    // The server checks CSRF before multer parses multipart bodies, so the token must stay in the header.
+    if (data && !isFormData) {
+      headers["Content-Type"] = "application/json";
     }
 
     return fetch(url, {
       method,
       headers,
-      body,
+      body: isFormData ? (data as FormData) : data ? JSON.stringify(data) : undefined,
       credentials: "include",
     });
   };

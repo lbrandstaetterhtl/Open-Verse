@@ -4,13 +4,6 @@ import { anomalyDetector } from "./anomaly-detector";
 import type { Request } from "express";
 import { logger } from "../logger";
 
-/**
- * APE-FIX [LOG-001]: Explicit Unix Timestamps
- */
-function nowUnix(): number {
-  return Math.floor(Date.now() / 1000);
-}
-
 export interface LogEntry {
   userId?: number;
   userEmail?: string;
@@ -80,7 +73,7 @@ class ActivityLoggerService {
     if (this.queue.length === 0) return;
     const batch = this.queue.splice(0);
     this.flushTimer = null;
-    const now = nowUnix();
+    const now = new Date();
 
     try {
       const recordsToInsert = batch.map(entry => {
@@ -102,7 +95,7 @@ class ActivityLoggerService {
           deviceBrowser: deviceInfo.browser,
           status: entry.status ?? 'success',
           severity: entry.severity ?? 'info',
-          createdAt: now, // Explicit Integer
+          createdAt: now,
         };
       });
 

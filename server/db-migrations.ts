@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { storage } from './storage';
 import bcrypt from 'bcrypt';
+import { randomBytes } from 'node:crypto';
 
 /**
  * Run all pending Drizzle migrations.
@@ -83,10 +84,8 @@ export async function runMigrations() {
     console.log("[MIGRATIONS] ✓ All migrations completed successfully!");
     logger.info('db', "All migrations completed successfully");
 
-    // Seed test account for development
-    await seedTestAccount().catch(err => {
-      console.warn('[SEED] Error during test account seeding:', err.message);
-    });
+    await disableLegacyTestAdmin();
+    await seedInitialOwner();
   } catch (err) {
     console.error("[MIGRATIONS] ✗ CRITICAL ERROR:", err);
     logger.critical('db', "Failed to run migrations", err);
@@ -94,52 +93,43 @@ export async function runMigrations() {
   }
 }
 
-async function seedTestAccount() {
+// Earlier versions created "testadmin" with a password that is public in this repository.
+// If that account still uses it, replace the password with a random one so it can't be used to log in.
+async function disableLegacyTestAdmin() {
   try {
-    const testUsername = "testadmin";
-    const testEmail = "test@example.com";
-    const testPassword = "TestPassword123!";
+    const legacy = await storage.getUserByUsername("testadmin");
+    if (!legacy || !(await bcrypt.compare("TestPassword123!", legacy.password))) return;
+    await storage.updateUserPassword(legacy.id, await bcrypt.hash(randomBytes(32).toString("hex"), 12));
+    logger.critical('db', 'Disabled legacy "testadmin" account that used the publicly known default password. Use INITIAL_OWNER_USERNAME / INITIAL_OWNER_PASSWORD to create your own owner.');
+  } catch (err) {
+    logger.error('db', 'Failed to check legacy testadmin account', err);
+  }
+}
 
-    // Hash password with bcrypt
-    const passwordHash = await bcrypt.hash(testPassword, 12);
+async function seedInitialOwner() {
+  const username = process.env.INITIAL_OWNER_USERNAME;
+  const password = process.env.INITIAL_OWNER_PASSWORD;
+  if (!username || !password) return;
 
-    // Check if test account already exists
-    const existingUser = await storage.getUserByUsername(testUsername);
+  if (password.length < 12) {
+    logger.warn('db', 'INITIAL_OWNER_PASSWORD must be at least 12 characters; initial owner was not created');
+    return;
+  }
 
-    if (existingUser) {
-      // Update password to ensure it's correct
-      console.log(`[SEED] Test account '${testUsername}' exists, updating password...`);
-      await storage.updateUserPassword(existingUser.id, passwordHash);
-      console.log(`[SEED] ✓ Password updated for testadmin`);
-      console.log(`[SEED]   Username: ${testUsername}`);
-      console.log(`[SEED]   Password: ${testPassword}`);
-      console.log(`[SEED]   ID: ${existingUser.id}`);
-      return;
-    }
+  try {
+    if (await storage.getUserByUsername(username)) return;
 
-    // Create test owner account
-    const user = await storage.createUser({
-      username: testUsername,
-      email: testEmail,
-      password: passwordHash,
+    await storage.createUser({
+      username,
+      email: process.env.INITIAL_OWNER_EMAIL || `${username}@localhost`,
+      password: await bcrypt.hash(password, 12),
       role: 'owner',
+      isAdmin: 1,
       verified: 1,
-      displayName: 'Test Admin'
-    } as any);
-
-    console.log(`[SEED] ✓ Test account created!`);
-    console.log(`[SEED]   Username: ${testUsername}`);
-    console.log(`[SEED]   Email: ${testEmail}`);
-    console.log(`[SEED]   Password: ${testPassword}`);
-    console.log(`[SEED]   Role: owner`);
-    console.log(`[SEED]   ID: ${user.id}`);
-    logger.info('db', `Test owner account created: ${testUsername}`);
-  } catch (err: any) {
-    if (err.message?.includes('duplicate') || err.code === '23505') {
-      console.log(`[SEED] Test account already exists (constraint violation)`);
-    } else {
-      console.error(`[SEED] Error creating test account:`, err.message);
-      logger.warn('db', `Failed to seed test account`, err);
-    }
+      emailVerified: 1,
+    });
+    logger.info('db', `Initial owner account created: ${username}`);
+  } catch (err) {
+    logger.error('db', 'Failed to create initial owner account', err);
   }
 }

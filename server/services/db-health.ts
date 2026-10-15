@@ -29,9 +29,14 @@ export class DbHealthService {
             missingTables: []
         };
 
+        const isSqlite = process.env.USE_SQLITE === "true";
+        // The better-sqlite3 driver has no execute(); it returns rows from all() instead.
+        const queryRows = async (query: ReturnType<typeof sql>): Promise<any[]> =>
+            isSqlite ? db.all(query) : (await db.execute(query)).rows;
+
         try {
             // 1. Check Connection
-            await db.execute(sql`SELECT 1`);
+            await queryRows(sql`SELECT 1`);
 
             // 2. Check Tables
             const expectedTables: string[] = [];
@@ -52,16 +57,9 @@ export class DbHealthService {
             }
 
             // Fetch actual tables from DB
-            let actualTables: string[] = [];
-            const isSqlite = process.env.USE_SQLITE === "true";
-
-            if (isSqlite) {
-                const result = await db.execute(sql`SELECT name FROM sqlite_master WHERE type='table'`) as any;
-                actualTables = result.map((r: any) => r.name);
-            } else {
-                const result = await db.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`) as any;
-                actualTables = result.rows.map((r: any) => r.table_name);
-            }
+            const actualTables: string[] = isSqlite
+                ? (await queryRows(sql`SELECT name FROM sqlite_master WHERE type='table'`)).map((r) => r.name)
+                : (await queryRows(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`)).map((r) => r.table_name);
 
             status.missingTables = expectedTables.filter(t => !actualTables.includes(t));
             

@@ -156,7 +156,7 @@ class AutoPunishmentEngine {
 
         case 'freeze':
           await db.update(users)
-            .set({ isFrozen: 1, frozenUntil: expiresAt, freezeReason: rule.actionReason })
+            .set({ isFrozen: 1, frozenUntil: expiresAtDate, freezeReason: rule.actionReason })
             .where(eq(users.id, anomaly.userId!));
           break;
 

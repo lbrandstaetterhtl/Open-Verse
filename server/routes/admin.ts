@@ -2,17 +2,20 @@ import { Router } from "express";
 import { db } from "../db";
 import { users, posts, reports, comments, activityLogs, adminSettings } from "@shared/schema";
 import { adminUpdateUserSchema, adminUpdateReportSchema } from "@shared/schema";
-import { eq, desc, count, sql, and, or } from "drizzle-orm";
+import { eq, desc, count, sql, and, or, inArray, like } from "drizzle-orm";
 import { activityLogger } from "../services/activity-logger";
 import rateLimit from "express-rate-limit";
 import { SettingsService } from "../services/settings";
 import { bulkActionService } from "../services/bulk-action-service";
 import { bans, autoPunishmentRules, autoPunishmentExecutions, insertAutoPunishmentRuleSchema } from "@shared/schema";
-import { hasPermission } from "../middleware/auth";
+import { hasPermission, isAdmin, isOwner } from "../middleware/auth";
+import { sanitizeUser } from "../storage";
+import { parsePagination } from "../utils/pagination";
 
 const router = Router();
 
-// Individual permissions apply to each route below
+// Every admin route requires an admin or owner; routes below add their specific permission on top.
+router.use(isAdmin);
 
 router.get("/stats", hasPermission("dashboard"), async (req, res) => {
     try {
@@ -51,7 +54,7 @@ router.get("/users", hasPermission("users"), async (req, res) => {
         const allUsers = await db.select().from(users).orderBy(desc(users.id));
         // Normalize: SQLite stores timestamps as Unix seconds integers.
         // If createdAt is null or 0, provide a fallback ISO string.
-        const normalized = allUsers.map((u: any) => ({
+        const normalized = allUsers.map(({ password: _password, ...u }: any) => ({
             ...u,
             createdAt: u.createdAt
                 ? (typeof u.createdAt === "number"
@@ -76,11 +79,10 @@ router.get("/reports", hasPermission("reports"), async (req, res) => {
         const postIds = [...new Set(allReports.filter(r => r.postId).map(r => r.postId))];
         const commentIds = [...new Set(allReports.filter(r => r.commentId).map(r => r.commentId))];
 
-        // Batch fetch all needed data
         const [reportersData, postsData, commentsData] = await Promise.all([
-            reporterIds.length > 0 ? db.select().from(users).where(sql`${users.id} IN (${reporterIds.join(',')})`) : [],
-            postIds.length > 0 ? db.select().from(posts).where(sql`${posts.id} IN (${postIds.join(',')})`) : [],
-            commentIds.length > 0 ? db.select().from(comments).where(sql`${comments.id} IN (${commentIds.join(',')})`) : []
+            reporterIds.length > 0 ? db.select().from(users).where(inArray(users.id, reporterIds)) : [],
+            postIds.length > 0 ? db.select().from(posts).where(inArray(posts.id, postIds)) : [],
+            commentIds.length > 0 ? db.select().from(comments).where(inArray(comments.id, commentIds)) : []
         ]);
 
         // Batch fetch all post/comment authors
@@ -89,7 +91,7 @@ router.get("/reports", hasPermission("reports"), async (req, res) => {
             ...commentsData.map(c => c.authorId)
         ])];
         const authorsData = authorIds.length > 0
-            ? await db.select().from(users).where(sql`${users.id} IN (${authorIds.join(',')})`)
+            ? await db.select().from(users).where(inArray(users.id, authorIds))
             : [];
 
         // Create maps for O(1) lookups
@@ -218,7 +220,7 @@ router.patch("/users/:id", hasPermission("users"), async (req, res) => {
             status: "success",
         }).catch(err => console.error('[Monitor] user.settings_change failed:', err));
 
-        res.json(updatedUser);
+        res.json(sanitizeUser(updatedUser));
     } catch (error) {
         console.error("Failed to update user:", error);
         res.status(500).send("Internal Server Error");
@@ -288,9 +290,9 @@ router.delete("/users/:id", hasPermission("users"), async (req, res) => {
     }
 });
 
-router.post("/reset-roles", async (req, res) => {
+router.post("/reset-roles", isOwner, async (req, res) => {
     try {
-        await db.update(users).set({ role: "user", isAdmin: false }).where(sql`role != 'owner'`);
+        await db.update(users).set({ role: "user", isAdmin: 0 }).where(sql`role != 'owner'`);
         res.json({ success: true });
     } catch (error) {
         console.error("Failed to reset roles:", error);
@@ -331,15 +333,20 @@ router.patch("/reports/:id", hasPermission("reports"), async (req, res) => {
 router.get("/logs", hasPermission("logs"), async (req, res) => {
     try {
         const { category, severity, status, search, adminId } = req.query;
-        const query = db.select().from(activityLogs);
         const conditions = [];
 
         if (category) conditions.push(eq(activityLogs.category, category as string));
         if (severity) conditions.push(eq(activityLogs.severity, severity as any));
         if (status) conditions.push(eq(activityLogs.status, status as any));
-        if (adminId) conditions.push(eq(activityLogs.adminId, parseInt(adminId as string)));
+        if (adminId) conditions.push(eq(activityLogs.userId, parseInt(adminId as string)));
         if (search) {
-            conditions.push(sql`description LIKE ${`%${search}%`} OR target_label LIKE ${`%${search}%`} OR admin_email LIKE ${`%${search}%`}`);
+            const pattern = `%${search}%`;
+            conditions.push(or(
+                like(activityLogs.description, pattern),
+                like(activityLogs.targetLabel, pattern),
+                like(activityLogs.userEmail, pattern),
+                like(activityLogs.userUsername, pattern),
+            ));
         }
 
         const logs = await db.select()
@@ -355,18 +362,16 @@ router.get("/logs", hasPermission("logs"), async (req, res) => {
     }
 });
 
-// SEC-FIX [SEC-009]: Dedicated Admin Rate Limiter (Stricter than global API)
-const adminLimiter = rateLimit({
+// Stricter limit for exports and write-heavy admin tools; read-only dashboard routes above stay unthrottled.
+router.use(rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 200, // 200 requests per 15 minutes for admin suite
+    max: 200,
     message: "Admin request limit reached. Please wait 15 minutes."
-});
-router.use(adminLimiter);
+}));
 
-router.get("/logs/export", async (req, res) => {
+router.get("/logs/export", hasPermission("logs"), async (req, res) => {
     try {
-        const limit = Math.min(parseInt(req.query.limit as string) || 5000, 5000);
-        const offset = parseInt(req.query.offset as string) || 0;
+        const { limit, offset } = parsePagination(req.query, { defaultLimit: 5000, maxLimit: 5000 });
 
         // SEC-FIX [SEC-010]: Prevent DoS by capping export size
         const pagedLogs = await db.select()
@@ -427,7 +432,7 @@ router.patch("/settings/:id", hasPermission("settings"), async (req, res) => {
     }
 });
 
-router.post("/settings/clear-cache", async (req, res) => {
+router.post("/settings/clear-cache", hasPermission("settings"), async (req, res) => {
     try {
         SettingsService.clearCache();
         res.json({ success: true, message: "Settings cache cleared" });
@@ -437,7 +442,7 @@ router.post("/settings/clear-cache", async (req, res) => {
     }
 });
 
-router.post("/settings/seed", async (req, res) => {
+router.post("/settings/seed", hasPermission("settings"), async (req, res) => {
     try {
         await SettingsService.seed();
         res.json({ success: true });
@@ -448,7 +453,7 @@ router.post("/settings/seed", async (req, res) => {
 });
 
 // BULK ACTIONS
-router.post("/bulk/users", async (req, res) => {
+router.post("/bulk/users", hasPermission("security"), async (req, res) => {
     try {
         const result = await bulkActionService.bulkBanUsers({
             userIds: req.body.user_ids,
@@ -463,7 +468,7 @@ router.post("/bulk/users", async (req, res) => {
     }
 });
 
-router.post("/bulk/reports", async (req, res) => {
+router.post("/bulk/reports", hasPermission("reports"), async (req, res) => {
     try {
         const result = await bulkActionService.bulkCloseReports({
             reportIds: req.body.report_ids,
@@ -477,7 +482,7 @@ router.post("/bulk/reports", async (req, res) => {
     }
 });
 
-router.post("/bulk/posts", async (req, res) => {
+router.post("/bulk/posts", hasPermission("reports"), async (req, res) => {
     try {
         const result = await bulkActionService.bulkDeletePosts({
             postIds: req.body.post_ids,
@@ -501,11 +506,11 @@ router.get("/bans", hasPermission("security"), async (req, res) => {
     }
 });
 
-router.post("/bans", async (req, res) => {
+router.post("/bans", hasPermission("security"), async (req, res) => {
     try {
         const body = req.body;
-        const now = Math.floor(Date.now() / 1000);
-        const expiresAt = body.duration_hours ? now + (body.duration_hours * 3600) : null;
+        const now = new Date();
+        const expiresAt = body.duration_hours ? new Date(now.getTime() + body.duration_hours * 3600 * 1000) : null;
         const newBan = await db.insert(bans).values({
             banType: body.ban_type,
             userId: body.user_id,
@@ -535,9 +540,9 @@ router.post("/bans", async (req, res) => {
     }
 });
 
-router.patch("/bans/:id/revoke", async (req, res) => {
+router.patch("/bans/:id/revoke", hasPermission("security"), async (req, res) => {
     try {
-        const now = Math.floor(Date.now() / 1000);
+        const now = new Date();
         const updated = await db.update(bans).set({
             isActive: 0,
             revokedBy: (req.user as any).id,
@@ -572,10 +577,10 @@ router.get("/auto-punishments", hasPermission("security"), async (req, res) => {
     }
 });
 
-router.post("/auto-punishments/rules", async (req, res) => {
+router.post("/auto-punishments/rules", hasPermission("security"), async (req, res) => {
     try {
         const payload = insertAutoPunishmentRuleSchema.parse(req.body);
-        const now = Math.floor(Date.now() / 1000);
+        const now = new Date();
         const newRule = await db.insert(autoPunishmentRules).values({
             ...payload,
             createdBy: (req.user as any).id,
@@ -588,11 +593,11 @@ router.post("/auto-punishments/rules", async (req, res) => {
     }
 });
 
-router.patch("/auto-punishments/rules/:id", async (req, res) => {
+router.patch("/auto-punishments/rules/:id", hasPermission("security"), async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const payload = insertAutoPunishmentRuleSchema.partial().parse(req.body);
-        const now = Math.floor(Date.now() / 1000);
+        const now = new Date();
         
         const updateData: any = { ...payload, updatedAt: now };
         if (typeof payload.isActive === 'boolean') {
@@ -611,7 +616,7 @@ router.patch("/auto-punishments/rules/:id", async (req, res) => {
     }
 });
 
-router.delete("/auto-punishments/rules/:id", async (req, res) => {
+router.delete("/auto-punishments/rules/:id", hasPermission("security"), async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const deleted = await db.delete(autoPunishmentRules)

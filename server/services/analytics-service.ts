@@ -118,7 +118,7 @@ export class AnalyticsService {
             ? ((newPostsResult?.count ?? 0) + (newCommentsResult?.count ?? 0) + (newLikesResult?.count ?? 0)) / (dauResult?.count ?? 1)
             : 0,
         d1Retention: d1Retention,
-        createdAt: Math.floor(Date.now() / 1000)
+        createdAt: new Date()
       };
 
       await db.insert(analyticsSnapshots)
@@ -167,7 +167,7 @@ export class AnalyticsService {
         newPosts: newPosts?.count ?? 0,
         activeMembers: activeMembers?.count ?? 0,
         engagementScore: ((newPosts?.count ?? 0) * 10) + ((activeMembers?.count ?? 0) * 5),
-        createdAt: Math.floor(Date.now() / 1000)
+        createdAt: new Date()
       };
 
       await db.insert(communityAnalytics)
@@ -204,7 +204,7 @@ export class AnalyticsService {
             newPosts: newPosts?.count ?? 0,
             newFollowers: newFollowers?.count ?? 0,
             engagementScore: ((newPosts?.count ?? 0) * 20) + ((newFollowers?.count ?? 0) * 50),
-            createdAt: Math.floor(Date.now() / 1000)
+            createdAt: new Date()
         };
 
         await db.insert(creatorAnalytics)
@@ -231,7 +231,7 @@ export class AnalyticsService {
   }
 
   async getGrowthOverview(days: number = 30) {
-    const limitDate = Math.floor(subDays(new Date(), days).getTime() / 1000);
+    const limitDate = subDays(new Date(), days);
     return await db.select()
         .from(analyticsSnapshots)
         .where(gte(analyticsSnapshots.createdAt, limitDate))

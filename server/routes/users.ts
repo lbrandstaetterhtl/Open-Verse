@@ -1,11 +1,10 @@
 import { Router } from "express";
-import { storage } from "../storage";
+import { storage, sanitizeUser } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
 import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
 import { profileUpload, checkFileSignature, sanitizeImage } from "../utils/file-upload";
 import fs from "node:fs";
-import path from "node:path";
 
 const router = Router();
 
@@ -89,7 +88,7 @@ router.delete("/follow/:userId", isAuthenticated, async (req, res) => {
 router.get("/followers", isAuthenticated, async (req, res) => {
     try {
         const followers = await storage.getFollowers((req.user as any).id);
-        res.json(followers);
+        res.json(followers.map(({ password: _password, email: _email, ...u }) => u));
     } catch (error) {
         console.error("Error getting followers:", error);
         res.status(500).send("Failed to get followers");
@@ -99,7 +98,7 @@ router.get("/followers", isAuthenticated, async (req, res) => {
 router.get("/following", isAuthenticated, async (req, res) => {
     try {
         const following = await storage.getFollowing((req.user as any).id);
-        res.json(following);
+        res.json(following.map(({ password: _password, email: _email, ...u }) => u));
     } catch (error) {
         console.error("Error getting following:", error);
         res.status(500).send("Failed to get following");
@@ -238,6 +237,18 @@ router.get("/moderated-communities", isAuthenticated, async (req, res) => {
     }
 });
 
+router.get("/search", isAuthenticated, async (req, res) => {
+    try {
+        const query = req.query.q as string;
+        if (!query) return res.json([]);
+        const users = await storage.searchUsers(query);
+        res.json(users.map(u => sanitizeUser(u)));
+    } catch (error) {
+        console.error("Error searching users:", error);
+        res.status(500).send("Failed to search users");
+    }
+});
+
 router.get("/:username", async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
@@ -268,8 +279,12 @@ router.get("/:username", async (req, res) => {
             }
         }
 
+        const { password: _password, email, ...publicUser } = user;
+        const isSelf = req.isAuthenticated() && (req.user as any).id === user.id;
+
         res.json({
-            ...user,
+            ...publicUser,
+            ...(isSelf ? { email } : {}),
             stats: {
                 followers: followersCount,
                 following: followingCount,
@@ -282,18 +297,6 @@ router.get("/:username", async (req, res) => {
     } catch (error) {
         console.error("Error fetching user profile:", error);
         res.status(500).send("Failed to fetch user profile");
-    }
-});
-
-router.get("/search", isAuthenticated, async (req, res) => {
-    try {
-        const query = req.query.q as string;
-        if (!query) return res.json([]);
-        const users = await storage.searchUsers(query);
-        res.json(users.map(u => storage.sanitizeUser(u)));
-    } catch (error) {
-        console.error("Error searching users:", error);
-        res.status(500).send("Failed to search users");
     }
 });
 
@@ -372,24 +375,6 @@ router.post("/profile-upload", isAuthenticated, profileUpload.single("image"), a
             fs.unlinkSync(req.file.path);
         }
         res.status(500).json({ error: "Failed to upload profile image" });
-    }
-});
-
-// DEBUG: List uploads to verify existence
-router.get("/debug-uploads", async (req, res) => {
-    try {
-        const uploadsDir = path.join(process.cwd(), "uploads");
-        if (!fs.existsSync(uploadsDir)) {
-            return res.json({ error: "Uploads directory does not exist", path: uploadsDir });
-        }
-        const files = fs.readdirSync(uploadsDir);
-        const details = files.map(f => {
-            const stat = fs.statSync(path.join(uploadsDir, f));
-            return { name: f, size: stat.size, mtime: stat.mtime };
-        });
-        res.json({ path: uploadsDir, files: details });
-    } catch (err) {
-        res.status(500).json({ error: String(err) });
     }
 });
 

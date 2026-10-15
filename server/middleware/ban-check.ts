@@ -12,7 +12,6 @@ import crypto from "node:crypto";
 export async function banCheckMiddleware(req: Request, res: Response, next: NextFunction) {
   const ip = req.ip || req.socket.remoteAddress || "unknown";
   const userAgent = (req.headers["user-agent"] as string) || "";
-  const now = Math.floor(Date.now() / 1000);
   const userId = (req.user as any)?.id;
   
   const deviceFingerprint = generateFingerprint(userAgent, req.headers);
@@ -62,7 +61,10 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
         .from(users).where(eq(users.id, userId)).limit(1);
 
       if (user?.isFrozen) {
-        if (!user.frozenUntil || user.frozenUntil > now) {
+        const frozenUntilMs = user.frozenUntil instanceof Date
+          ? user.frozenUntil.getTime()
+          : Number(user.frozenUntil) * 1000;
+        if (!user.frozenUntil || frozenUntilMs > Date.now()) {
           if (req.method !== "GET") {
             return res.status(403).json({
               error: "Account vorübergehend eingefroren",

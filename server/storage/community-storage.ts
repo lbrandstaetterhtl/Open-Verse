@@ -270,7 +270,7 @@ export class CommunityStorage {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const rows = sqlite.prepare(`
-        SELECT cm.*, u.username, u.email, u.created_at, u.email_verified, u.is_admin, u.verified, u.karma, u.bio
+        SELECT cm.*, u.username, u.created_at, u.email_verified, u.is_admin, u.verified, u.karma, u.bio
         FROM community_members cm
         JOIN users u ON cm.user_id = u.id
         WHERE cm.community_id = ?
@@ -285,7 +285,6 @@ export class CommunityStorage {
         user: {
           id: row.user_id,
           username: row.username,
-          email: row.email,
           createdAt: new Date(Number(row.created_at) * 1000),
           emailVerified: Boolean(row.email_verified),
           isAdmin: Boolean(row.is_admin),
@@ -304,7 +303,6 @@ export class CommunityStorage {
         role: communityMembers.role,
         joinedAt: communityMembers.joinedAt,
         username: users.username,
-        email: users.email,
         bio: users.bio,
         profilePictureUrl: users.profilePictureUrl,
       })
@@ -321,7 +319,6 @@ export class CommunityStorage {
       user: {
         id: row.userId,
         username: row.username,
-        email: row.email,
         bio: row.bio,
         profilePictureUrl: row.profilePictureUrl,
       } as User,

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocation } from "wouter";
 import { Users, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { BackButton } from "@/components/ui/back-button";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "react-i18next";

@@ -279,6 +279,7 @@ if (useSqlite) {
       performance_score REAL DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_mod_perf_snapshot_unique ON moderator_performance_snapshots(moderator_id, snapshot_date, period);
     CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
     
     -- PHASE 2: NEW ACTIVITY_LOGS

@@ -25,7 +25,7 @@ export class MessageStorage {
         senderId: message.senderId,
         receiverId: message.receiverId,
         content: message.content,
-        read: false,
+        read: 0,
         createdAt: new Date(createdAt * 1000),
       };
     }
@@ -73,7 +73,7 @@ export class MessageStorage {
     const result = await db
       .select({ count: sql<number>`count(*)` })
       .from(messages)
-      .where(and(eq(messages.receiverId, userId), eq(messages.read, false)));
+      .where(and(eq(messages.receiverId, userId), eq(messages.read, 0)));
 
     return result[0].count;
   }
@@ -84,6 +84,6 @@ export class MessageStorage {
       sqlite.prepare("UPDATE messages SET read = 1 WHERE id = ?").run(messageId);
       return;
     }
-    await db.update(messages).set({ read: true }).where(eq(messages.id, messageId));
+    await db.update(messages).set({ read: 1 }).where(eq(messages.id, messageId));
   }
 }

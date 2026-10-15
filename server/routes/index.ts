@@ -36,6 +36,7 @@ import { dbLogger } from "../logger/service-loggers";
 
 
 import { DbHealthService } from "../services/db-health";
+import { parsePagination } from "../utils/pagination";
 
 export async function registerRoutes(app: Express): Promise<Server> {
     // 0. Performance: Compression
@@ -233,10 +234,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!req.isAuthenticated()) {
             return res.status(401).send("Unauthorized");
         }
+        const userId = (req.user as any).id;
         try {
-            const userId = (req.user as any).id;
-            const limit = parseInt(req.query.limit as string) || 50;
-            const offset = parseInt(req.query.offset as string) || 0;
+            const { limit, offset } = parsePagination(req.query);
 
             const posts = await storage.getCommunityFeedPosts(userId, { limit, offset });
             

@@ -34,7 +34,7 @@ class BulkActionService {
             continue;
           }
 
-            expiresAt: params.durationHours ? new Date(Date.now() + params.durationHours * 3600 * 1000) : null,
+          const expiresAt = params.durationHours ? new Date(Date.now() + params.durationHours * 3600 * 1000) : null;
 
           // Ban-Eintrag erstellen
           await tx.insert(bans).values({
@@ -56,7 +56,7 @@ class BulkActionService {
             revokedAt: null,
             revokedBy: null,
             anomalyId: null,
-            deviceFingerprint: params.deviceFingerprint?.[0] || null,
+            deviceFingerprint: params.deviceFingerprints?.[0] || null,
             ipRange: null
           });
 
