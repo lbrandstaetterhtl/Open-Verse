@@ -64,6 +64,8 @@ export interface GalaxyConfig {
   stars: boolean;
   grid: boolean;
   constellation: boolean;
+  /** Which star chart the page headers draw; "auto" picks one per page. */
+  constellationName: ConstellationName;
   grain: number; // 0..0.3
 }
 
@@ -96,7 +98,9 @@ export const defaultParticles: Required<ParticleConfig> = {
 export const defaultShape: ShapeConfig = { style: "fase", size: 10, avatar: "achteck" };
 export const defaultSurface: SurfaceConfig = { mode: "panel", opacity: 0.9, blur: 0 };
 export const defaultFonts: FontConfig = { display: "Chakra Petch", body: "Instrument Sans", data: "JetBrains Mono" };
-export const defaultGalaxy: GalaxyConfig = { stars: true, grid: true, constellation: true, grain: 0.06 };
+export const CONSTELLATION_NAMES = ["auto", "orion", "ursa-major", "cassiopeia", "cygnus", "leo", "lyra"] as const;
+export type ConstellationName = (typeof CONSTELLATION_NAMES)[number];
+export const defaultGalaxy: GalaxyConfig = { stars: true, grid: true, constellation: true, constellationName: "auto", grain: 0.06 };
 
 const SHAPE_STYLES: ShapeStyle[] = ["fase", "kante", "rund"];
 const AVATAR_SHAPES: AvatarShape[] = ["achteck", "quadrat", "kreis"];
@@ -205,6 +209,9 @@ export function normalizeGalaxy(galaxy?: Partial<GalaxyConfig>): GalaxyConfig {
     stars: typeof galaxy?.stars === "boolean" ? galaxy.stars : defaultGalaxy.stars,
     grid: typeof galaxy?.grid === "boolean" ? galaxy.grid : defaultGalaxy.grid,
     constellation: typeof galaxy?.constellation === "boolean" ? galaxy.constellation : defaultGalaxy.constellation,
+    constellationName: CONSTELLATION_NAMES.includes(galaxy?.constellationName as ConstellationName)
+      ? (galaxy!.constellationName as ConstellationName)
+      : defaultGalaxy.constellationName,
     grain: clamp(finiteOr(galaxy?.grain, defaultGalaxy.grain), 0, 0.3),
   };
 }
@@ -556,6 +563,7 @@ export function applyDesign(design: DesignSettings): void {
   root.dataset.stars = galaxy.stars ? "on" : "off";
   root.dataset.grid = galaxy.grid ? "on" : "off";
   root.dataset.constellation = galaxy.constellation ? "on" : "off";
+  root.dataset.constellationName = galaxy.constellationName;
 
   const size = shape.size;
   const radii = shape.style === "rund"

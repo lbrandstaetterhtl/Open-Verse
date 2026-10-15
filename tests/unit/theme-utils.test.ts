@@ -102,7 +102,7 @@ test("current-version themes keep their design settings", () => {
     shape: { style: "rund", size: 16, avatar: "kreis" },
     surface: { mode: "glas", opacity: 0.5, blur: 14 },
     fonts: { display: "Oxanium", body: "Archivo", data: "Fira Code" },
-    galaxy: { stars: false, grid: false, constellation: true, grain: 0.12 },
+    galaxy: { stars: false, grid: false, constellation: true, constellationName: "lyra", grain: 0.12 },
   };
   const migrated = migrateTheme(theme);
   assert.deepEqual(migrated.shape, theme.shape);
@@ -138,8 +138,11 @@ test("normalizers clamp numbers and reject unknown values", () => {
     stars: defaultGalaxy.stars,
     grid: false,
     constellation: defaultGalaxy.constellation,
+    constellationName: defaultGalaxy.constellationName,
     grain: 0.3,
   });
+  assert.equal(normalizeGalaxy({ constellationName: "orion" }).constellationName, "orion");
+  assert.equal(normalizeGalaxy({ constellationName: "andromeda" as never }).constellationName, "auto");
   assert.equal(normalizeGalaxy({ grain: -1 }).grain, 0);
 });
 

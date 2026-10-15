@@ -1,21 +1,12 @@
 import type { ReactNode } from "react";
+import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { StarChart } from "./star-chart";
 
-/** Star-chart line drawn behind page titles. Hidden when the theme turns constellations off. */
+/** Star chart behind page titles; the constellation follows the theme ("auto" varies per page). */
 export function Constellation({ className }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 420 120" className={cn("ov-constellation pointer-events-none", className)}>
-      <polyline points="14,96 92,52 176,70 262,22 340,48 404,18" fill="none" strokeWidth="1" className="stroke-star/50" />
-      <polyline points="262,22 286,104" fill="none" strokeWidth="1" className="stroke-star/30" />
-      <circle cx="14" cy="96" r="2" className="fill-foreground/80" />
-      <circle cx="92" cy="52" r="2" className="fill-foreground/80" />
-      <circle cx="176" cy="70" r="2.6" className="fill-star" />
-      <circle cx="262" cy="22" r="3" className="fill-star" />
-      <circle cx="340" cy="48" r="2" className="fill-foreground/80" />
-      <circle cx="404" cy="18" r="2" className="fill-foreground/80" />
-      <circle cx="286" cy="104" r="1.8" className="fill-foreground/70" />
-    </svg>
-  );
+  const [location] = useLocation();
+  return <StarChart className={className} seed={location} />;
 }
 
 interface PageHeaderProps {
@@ -33,7 +24,7 @@ interface PageHeaderProps {
 export function PageHeader({ eyebrow, title, description, actions, children, className }: PageHeaderProps) {
   return (
     <header className={cn("ov-rule relative flex flex-col gap-4 pb-5 pt-6 md:pt-8", className)}>
-      <Constellation className="absolute right-[6%] top-0 hidden h-24 w-auto max-w-[55%] sm:block" />
+      <Constellation className="absolute right-0 top-0 hidden h-28 w-auto max-w-[60%] sm:block" />
       <div className="relative flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-2">
           {eyebrow && <span className="ov-label">{eyebrow}</span>}

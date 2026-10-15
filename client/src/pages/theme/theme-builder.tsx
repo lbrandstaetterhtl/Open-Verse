@@ -68,7 +68,8 @@ import type {
   FontConfig,
   GalaxyConfig,
 } from "@/lib/theme-utils";
-import { galaxyGradients, defaultBackground, defaultParticles, applyParticleConfig } from "@/lib/theme-utils";
+import { galaxyGradients, defaultBackground, defaultParticles, applyParticleConfig, CONSTELLATION_NAMES } from "@/lib/theme-utils";
+import { StarChart, STAR_CHARTS } from "@/components/layout/star-chart";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -1020,6 +1021,37 @@ export default function ThemeBuilderPage() {
                     checked={galaxy.constellation}
                     onChange={(constellation) => handleGalaxyChange({ constellation })}
                   />
+
+                  <div className={`space-y-2 ${galaxy.constellation ? "" : "opacity-60"}`}>
+                    <Label className="text-xs font-semibold">{t("theme_builder.constellation_choice", "Constellation")}</Label>
+                    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("theme_builder.constellation_choice", "Constellation")}>
+                      {CONSTELLATION_NAMES.map((name) => {
+                        const active = galaxy.constellationName === name;
+                        return (
+                          <button
+                            key={name}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            disabled={!galaxy.constellation}
+                            onClick={() => handleGalaxyChange({ constellationName: name })}
+                            className={`ov-panel ov-panel-hover flex flex-col gap-1 p-2 text-left ${active ? "ov-panel-active" : ""}`}
+                          >
+                            {name === "auto" ? (
+                              <span className="flex h-12 items-center justify-center font-data text-xs text-muted-foreground">
+                                {t("theme_builder.constellation_auto_hint", "different on every page")}
+                              </span>
+                            ) : (
+                              <StarChart name={name} className="h-12 w-full !block" />
+                            )}
+                            <span className="text-xs font-medium">
+                              {name === "auto" ? t("theme_builder.constellation_auto", "Changing") : STAR_CHARTS[name].label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
                   <Separator />
 

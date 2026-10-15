@@ -620,7 +620,10 @@
     "galaxy_grid": "Coordinate grid",
     "galaxy_constellation": "Constellation in page headers",
     "galaxy_grain": "Grain",
-    "color_star": "Starlight"
+    "color_star": "Starlight",
+    "constellation_choice": "Constellation",
+    "constellation_auto": "Changing",
+    "constellation_auto_hint": "different on every page"
   },
   "footer": {
     "default_tagline": "Unleash your creativity. Build the universe.",
