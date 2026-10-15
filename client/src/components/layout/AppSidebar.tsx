@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
-import { Home, MessageSquare, MessagesSquare, Users, Bell, User, Shield, LayoutDashboard, Flag, Activity, Zap, Ticket, ArrowLeft, Settings, ChevronLeft, ChevronRight, X, BarChart3, Award, ShieldAlert, Radar, ShieldBan, Bot, Palette, LogOut, MoreHorizontal, Menu, Sparkles } from "lucide-react";
+import { Home, Send, MessagesSquare, Users, Bell, User, Shield, LayoutDashboard, Flag, Activity, Zap, Ticket, ArrowLeft, Settings, ChevronLeft, ChevronRight, X, BarChart3, Award, ShieldAlert, Radar, ShieldBan, Bot, Palette, LogOut, MoreHorizontal, Menu, Sparkles } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   DropdownMenu,
@@ -136,7 +136,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
     { href: "/feed/discussions", icon: MessagesSquare, label: t("navbar.discussions_feed", "Discussions") },
     { href: "/feed/communities", icon: Users, label: t("navbar.communities", "Communities") },
     { href: "/notifications", icon: Bell, label: t("navigation.notifications", "Notifications") },
-    { href: "/chat", icon: MessageSquare, label: t("navbar.messages", "Messages") },
+    { href: "/chat", icon: Send, label: t("navbar.messages", "Messages") },
     { href: "/ai-generator", icon: Bot, label: "AI Generator" },
     { href: "/theme-builder", icon: Palette, label: "Theme Builder" },
     { href: "/profile", icon: User, label: t("navbar.profile", "Profile") },

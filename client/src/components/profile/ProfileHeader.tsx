@@ -1,19 +1,7 @@
 import type { User } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  BadgeCheck, 
-  MapPin, 
-  Link as LinkIcon, 
-  Calendar, 
-  Trophy,
-  UserPlus,
-  UserMinus,
-  MessageSquare,
-  Settings,
-  Share2,
-  ExternalLink
-} from "lucide-react";
+import { BadgeCheck, MapPin, Link as LinkIcon, Calendar, Trophy, UserPlus, UserMinus, Send, Settings, Share2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { MutualFollowers } from "./MutualFollowers";
@@ -65,7 +53,7 @@ export function ProfileHeader({
                  variant="outline"
                  size="icon"
               >
-                <MessageSquare className="h-4 w-4" />
+                <Send className="h-4 w-4" />
               </Button>
 
               <Button
