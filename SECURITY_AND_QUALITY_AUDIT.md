@@ -58,6 +58,7 @@ Mit dem Redesign „Sternkarte“ (2026-10-15, siehe `docs/DESIGN.md`) zusätzli
 - Moderator-Rangliste zeigte „NaN“ als Rang; Activity-Log-Zeilen hatten doppelte React-Keys (`ResponsiveTable`).
 - Auf Tablets (768–1023 px) lag die Seitenleiste über den ersten 56 px des Inhalts.
 - Fokus-Rahmen fehlten bei Panels, Tabs und Navigation; Schieberegler hatten keinen zugänglichen Namen.
+- **Leere Seite beim ersten Laden** (React-Fehler #426, schon vor dem Redesign): `useTranslation` suspendierte außerhalb jeder `Suspense`-Grenze, wenn die Übersetzungen später ankamen als der Login-Check. Vorher 7 von 24 kalten Aufrufen betroffen, mit der `Suspense`-Grenze in `client/src/main.tsx` 0 von 24.
 
 ## 4. Punkte des alten Audits, die nicht zutrafen
 
@@ -83,7 +84,6 @@ Mit dem Redesign „Sternkarte“ (2026-10-15, siehe `docs/DESIGN.md`) zusätzli
 | Mittel | Keine Unique-Constraints auf `post_likes(user_id, post_id)` und `followers` in Postgres. | Vorher Duplikate bereinigen, dann Constraint anlegen. |
 | Mittel | `POST /api/tickets` übernimmt den kompletten Request-Body in die Datenbank. | Felder explizit auswählen. |
 | Niedrig | Einige Admin-/Ticket-Routen geben `error.message` an den Client weiter. | Generische Fehlermeldung, Details nur ins Log. |
-| Mittel | **Sporadischer React-Fehler #426** („A component suspended while responding to synchronous input“) beim ersten Laden einer Seite: in ca. 25–30 % der kalten Aufrufe, Desktop und Mobil, **schon vor dem Redesign** (gemessen auf `main`, Commit `788db1d`). Die Seite wird trotzdem angezeigt, der Fehler landet aber als unbehandelter Fehler in der Konsole. Tritt der Fehler auf, bleibt die Seite leer (React entfernt die ganze App). Vermutlich suspendiert `useTranslation` in einer Komponente außerhalb der `Suspense`-Grenzen, wenn die Übersetzungen später ankommen als der Login-Check. **Gegenmaßnahme eingebaut:** `Suspense`-Grenze um die ganze App in `client/src/main.tsx`. Die Wirkung ist noch nicht gemessen. | Nach dem Deploy mehrfach kalt laden (Cache leeren) und die Konsole auf #426 prüfen; falls er bleibt, mit Entwicklungs-Build den Komponenten-Stack lesen. |
 | Niedrig | Hooks nach einem frühen `return` (Rules of Hooks) in `AutoPunishmentPage`, `GrowthDashboardPage` und `StressTestPage`. | Berechtigungsprüfung nach den Hooks ausführen. |
 | Niedrig | Viele fest codierte englische Texte (Profil, Admin, Chat, Ticket-Details), teils im Sci-Fi-Ton („Stationed Since“, „Change Essence“). `BansPage` nutzt den nicht registrierten i18n-Namespace `admin`. | Texte nach `translation.json` verschieben. |
 | Niedrig | Seiten rendern ein eigenes `<main>` innerhalb des `<main>` aus `AppLayout`. | Seiten-Wrapper zu `<div>` ändern. |
