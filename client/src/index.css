@@ -41,21 +41,21 @@
     --card-foreground: 232 40% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 232 40% 12%;
-    --primary: 262 70% 52%;
+    --primary: 262 70% 37%;
     --primary-foreground: 0 0% 100%;
     --secondary: 228 30% 92%;
     --secondary-foreground: 232 40% 12%;
     --muted: 228 30% 93%;
-    --muted-foreground: 232 15% 38%;
+    --muted-foreground: 232 18% 27%;
     --accent: 262 80% 95%;
     --accent-foreground: 262 70% 40%;
-    --destructive: 0 72% 48%;
+    --destructive: 0 75% 36%;
     --destructive-foreground: 0 0% 100%;
-    --border: 228 22% 82%;
-    --input: 228 22% 84%;
-    --ring: 262 70% 52%;
-    --star: 30 90% 32%;
-    --success: 152 70% 26%;
+    --border: 228 20% 55%;
+    --input: 228 20% 50%;
+    --ring: 262 70% 37%;
+    --star: 30 90% 22%;
+    --success: 152 70% 20%;
     /* Charts follow the theme colours, so a custom palette recolours them too. */
     --chart-1: var(--primary);
     --chart-2: var(--star);
@@ -74,7 +74,7 @@
     --cut-sm: 6px;
 
     /* Surface */
-    --surface-opacity: 0.9;
+    --surface-opacity: 1;
     --surface-blur: 0px;
 
     /* Galaxy */
@@ -92,19 +92,19 @@
     --card-foreground: 231 58% 95%;
     --popover: 233 48% 12%;
     --popover-foreground: 231 58% 95%;
-    --primary: 264 100% 74%;
+    --primary: 264 100% 86%;
     --primary-foreground: 250 56% 8%;
     --secondary: 233 40% 18%;
     --secondary-foreground: 231 58% 95%;
     --muted: 233 40% 16%;
-    --muted-foreground: 233 32% 75%;
+    --muted-foreground: 233 32% 80%;
     --accent: 264 45% 22%;
     --accent-foreground: 231 58% 95%;
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 232 39% 27%;
-    --input: 232 39% 24%;
-    --ring: 264 100% 74%;
+    --destructive: 0 90% 75%;
+    --destructive-foreground: 0 0% 8%;
+    --border: 232 30% 53%;
+    --input: 232 30% 57%;
+    --ring: 264 100% 86%;
     --star: 38 100% 74%;
     --success: 152 55% 50%;
   }
@@ -196,7 +196,7 @@
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
   .tabular-nums {
@@ -316,7 +316,7 @@
   .ov-label,
   label.ov-label {
     font-family: var(--font-data);
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.3;
     font-weight: 500;
     letter-spacing: 0.08em;

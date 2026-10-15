@@ -35,6 +35,7 @@ import {
   Heart,
   MessageCircle,
   BadgeCheck,
+  Lock,
 } from "lucide-react";
 import {
   exportTheme,
@@ -225,6 +226,7 @@ export default function ThemeBuilderPage() {
   const [, _setLocation] = useLocation();
   const {
     customTheme,
+    isStandard,
     isDark: _isDark,
     updateColor: _updateColor,
     resetTheme,
@@ -237,9 +239,19 @@ export default function ThemeBuilderPage() {
   } = useCustomTheme();
   const { toast } = useToast();
   
-  const [activeMode, setActiveMode] = useState<"light" | "dark">("light");
+  // Start the preview in the mode the app is in, so the page never mixes light colours with dark mode.
+  const [activeMode, setActiveMode] = useState<"light" | "dark">(() =>
+    document.documentElement.classList.contains("dark") ? "dark" : "light",
+  );
+  // Follow the app's light/dark switch (it can be applied after this page mounts).
+  useEffect(() => {
+    setActiveMode(_isDark ? "dark" : "light");
+  }, [_isDark]);
   const [workingTheme, setWorkingTheme] = useState<CustomTheme>(customTheme);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  // The standard design is fixed. Editing always starts from a copy ("New" or "Import").
+  const [editingCopy, setEditingCopy] = useState(false);
+  const locked = isStandard && !editingCopy;
   const [themeName, setThemeName] = useState("My Custom Theme");
   const [activeThemeId, setActiveThemeId] = useState<string | number | null>(null);
   const [unifiedMode, setUnifiedMode] = useState(false);
@@ -289,6 +301,7 @@ export default function ThemeBuilderPage() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (locked) return;
       if ((e.ctrlKey || e.metaKey) && e.key === "z") {
         e.preventDefault();
         if (e.shiftKey) redo();
@@ -305,7 +318,7 @@ export default function ThemeBuilderPage() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [workingTheme, themeName, activeThemeId]);
+  }, [workingTheme, themeName, activeThemeId, locked]);
 
   /* THEME-REDESIGN [TB-005]: Unsaved changes guard */
   useEffect(() => {
@@ -365,7 +378,7 @@ export default function ThemeBuilderPage() {
   useEffect(() => {
     // Apply the colors from the tab the user is currently editing
     const isDarkMode = activeMode === "dark";
-    applyTheme(workingTheme[activeMode], isDarkMode, workingTheme.font, workingTheme.background, workingTheme);
+    applyTheme(workingTheme[activeMode], isDarkMode, workingTheme.font, locked ? undefined : workingTheme.background, workingTheme);
     
     // Toggle the .dark class on the root to ensure shadcn components respond correctly
     if (isDarkMode) {
@@ -375,7 +388,7 @@ export default function ThemeBuilderPage() {
     }
     
     window.dispatchEvent(new CustomEvent("open-verse-preview-bg", { 
-      detail: workingTheme.background ?? null 
+      detail: locked ? null : workingTheme.background ?? null
     }));
     
     // Cleanup: restore global theme when leaving component
@@ -384,7 +397,7 @@ export default function ThemeBuilderPage() {
       // This is a bit tricky since we don't want to break the app's dark mode setting,
       // but the ThemeProvider will usually take over on next render or mount.
     };
-  }, [workingTheme, activeMode]);
+  }, [workingTheme, activeMode, locked]);
 
   const handleColorChange = (key: keyof ThemeColors, value: string) => {
     setWorkingTheme((prev) => {
@@ -502,12 +515,24 @@ export default function ThemeBuilderPage() {
   };
 
   const handleCreateNew = () => {
-    setThemeName("New Theme");
+    setEditingCopy(true);
+    setThemeName(t("theme_builder.new_theme_name", "My theme"));
     setActiveThemeId(null);
     clearActiveThemeInfo();
     setWorkingTheme(defaultTheme);
     setUnifiedMode(false);
     setHasUnsavedChanges(true);
+    pushToHistory(defaultTheme);
+  };
+
+  /** Switch back to the fixed standard design and lock the editor again. */
+  const handleUseStandard = () => {
+    resetTheme();
+    setEditingCopy(false);
+    setActiveThemeId(null);
+    setThemeName(t("theme_builder.standard_name", "Standard"));
+    setWorkingTheme(defaultTheme);
+    setHasUnsavedChanges(false);
     pushToHistory(defaultTheme);
   };
 
@@ -533,6 +558,7 @@ export default function ThemeBuilderPage() {
       reader.onload = (event) => {
         const theme = importTheme(event.target?.result as string);
         if (theme) {
+          setEditingCopy(true);
           setWorkingTheme(theme);
           setHasUnsavedChanges(true);
           pushToHistory(theme);
@@ -640,7 +666,8 @@ export default function ThemeBuilderPage() {
                         </Label>
                         <Input
                           id="theme-name"
-                          value={themeName}
+                          readOnly={locked}
+                          value={locked ? t("theme_builder.standard_name", "Standard") : themeName}
                           onChange={(e) => {
                             setThemeName(e.target.value);
                             setHasUnsavedChanges(true);
@@ -661,10 +688,10 @@ export default function ThemeBuilderPage() {
                       </div>
                     </div>
                     <div className="flex gap-1.5">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={undo} disabled={historyIndex.current <= 0} title="Undo (Ctrl+Z)">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={undo} disabled={locked || historyIndex.current <= 0} title="Undo (Ctrl+Z)">
                         <History className="h-4 w-4 rotate-180" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={redo} disabled={historyIndex.current >= history.current.length - 1} title="Redo (Ctrl+Y)">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={redo} disabled={locked || historyIndex.current >= history.current.length - 1} title="Redo (Ctrl+Y)">
                         <History className="h-4 w-4" />
                       </Button>
                     </div>
@@ -673,22 +700,24 @@ export default function ThemeBuilderPage() {
                 <CardContent className="space-y-4">
                   <div className="flex gap-2">
                     <Select 
-                      value={activeThemeId?.toString() || ""} 
+                      value={locked ? "standard" : activeThemeId?.toString() || ""}
                       onValueChange={(val) => {
+                        if (val === "standard") return handleUseStandard();
                         const theme = savedThemes.find(t => t.id.toString() === val);
                         if (theme) loadTheme(theme);
                       }}
                     >
-                      <SelectTrigger className="flex-1 h-9">
+                      <SelectTrigger className="flex-1 h-9" aria-label={t("theme_builder.choose_theme", "Choose theme")}>
                         <SelectValue placeholder="Select Theme..." />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="standard">{t("theme_builder.standard_name", "Standard")}</SelectItem>
                         {savedThemes.map(t => (
                           <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button onClick={handleSave} className="h-9 gap-2" disabled={!hasUnsavedChanges && activeThemeId !== null}>
+                    <Button onClick={handleSave} className="h-9 gap-2" disabled={locked || (!hasUnsavedChanges && activeThemeId !== null)}>
                       <Save className="h-4 w-4" />
                       Save
                     </Button>
@@ -706,14 +735,14 @@ export default function ThemeBuilderPage() {
                     <Button variant="outline" size="sm" onClick={handleExport} className="text-xs h-8">
                       <Download className="h-3 w-3 mr-1.5" /> Export
                     </Button>
-                    <Button variant="outline" size="sm" onClick={resetTheme} className="text-xs h-8 text-destructive hover:text-destructive">
-                      <RotateCcw className="h-3 w-3 mr-1.5" /> Reset
+                    <Button variant="outline" size="sm" onClick={handleUseStandard} disabled={locked} className="text-xs h-8">
+                      <RotateCcw className="h-3 w-3 mr-1.5" /> {t("theme_builder.use_standard", "Standard")}
                     </Button>
                   </div>
                   
                   <Separator />
                   
-                  <div className="flex gap-2">
+                  {!locked && <div className="flex gap-2">
                     <Button variant="secondary" size="sm" onClick={handleShuffle} className="flex-1 text-xs h-9 bg-primary/10 text-primary hover:bg-primary/20">
                       <Shuffle className="h-3.5 w-3.5 mr-2" />
                       Shuffle
@@ -722,10 +751,34 @@ export default function ThemeBuilderPage() {
                       <Sparkles className="h-3.5 w-3.5 mr-2" />
                       Harmonize
                     </Button>
-                  </div>
+                  </div>}
                 </CardContent>
               </Card>
 
+              {locked && (
+                <Card className="ov-panel-active">
+                  <CardHeader className="pb-2 px-4">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <Lock className="h-5 w-5" />
+                      {t("theme_builder.standard_locked_title", "Standard design")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4 space-y-3 text-sm">
+                    <p>
+                      {t("theme_builder.standard_locked_desc", "The standard design is tuned for accessibility: all text meets WCAG AAA contrast (at least 7:1), borders and input fields at least 3:1, and motion stops when your system asks for reduced motion. That is why it cannot be changed.")}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {t("theme_builder.standard_locked_hint", "To change colours, shapes or fonts, create your own theme. It starts as a copy of the standard design.")}
+                    </p>
+                    <Button onClick={handleCreateNew} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      {t("theme_builder.create_own", "Create your own theme")}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {!locked && (<>
               {/* Shape: corner style, corner size, avatar shape */}
               <Card>
                 <CardHeader className="pb-3 px-4">
@@ -1368,6 +1421,7 @@ export default function ThemeBuilderPage() {
                   />
                 </div>
               </Tabs>
+              </>)}
             </div>
           </ScrollArea>
         </div>
@@ -1383,7 +1437,9 @@ export default function ThemeBuilderPage() {
               <Button 
                 variant={previewSize === "desktop" ? "default" : "ghost"} 
                 size="icon" 
-                className="h-7 w-7" 
+                className="h-7 w-7"
+                aria-label="Desktop preview"
+                aria-pressed={previewSize === "desktop"}
                 onClick={() => setPreviewSize("desktop")}
               >
                 <Monitor className="h-4 w-4" />
@@ -1391,7 +1447,9 @@ export default function ThemeBuilderPage() {
               <Button 
                 variant={previewSize === "mobile" ? "default" : "ghost"} 
                 size="icon" 
-                className="h-7 w-7" 
+                className="h-7 w-7"
+                aria-label="Mobile preview"
+                aria-pressed={previewSize === "mobile"}
                 onClick={() => setPreviewSize("mobile")}
               >
                 <Smartphone className="h-4 w-4" />
@@ -1403,7 +1461,7 @@ export default function ThemeBuilderPage() {
             <div className={`mx-auto relative transition-all duration-300 ${previewSize === "mobile" ? "max-w-[375px] border-[8px] border-border rounded-xl h-[700px] overflow-hidden bg-background" : "max-w-4xl"}`}>
               {/* THEME-REDESIGN [TB-001]: Background preview inside the mockup frame */}
               <div className="absolute inset-0 -z-10 overflow-hidden rounded-lg">
-                <ThemeBackground background={workingTheme.background} isDark={activeMode === "dark"} />
+                <ThemeBackground background={locked ? undefined : workingTheme.background} isDark={activeMode === "dark"} />
               </div>
 
               {/* THEME-REDESIGN [TB-002]: Realistic UI Preview */}

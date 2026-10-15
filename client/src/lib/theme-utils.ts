@@ -1,6 +1,6 @@
 // Theme utility functions for custom theme builder
 export const CUSTOM_THEME_EVENT = "custom-theme-changed";
-export const THEME_VERSION = 3;
+export const THEME_VERSION = 4;
 
 export interface ThemeColors {
   background: string;
@@ -96,7 +96,7 @@ export const defaultParticles: Required<ParticleConfig> = {
 };
 
 export const defaultShape: ShapeConfig = { style: "fase", size: 10, avatar: "achteck" };
-export const defaultSurface: SurfaceConfig = { mode: "panel", opacity: 0.9, blur: 0 };
+export const defaultSurface: SurfaceConfig = { mode: "panel", opacity: 1, blur: 0 };
 export const defaultFonts: FontConfig = { display: "Chakra Petch", body: "Instrument Sans", data: "JetBrains Mono" };
 export const CONSTELLATION_NAMES = ["auto", "orion", "ursa-major", "cassiopeia", "cygnus", "leo", "lyra"] as const;
 export type ConstellationName = (typeof CONSTELLATION_NAMES)[number];
@@ -226,9 +226,20 @@ const LEGACY_V2_DARK: ThemeColors = {
   border: "230 30% 20%", input: "230 30% 15%", ring: "270 90% 70%",
 };
 
+// The v3 default palette (October 2026, before the contrast pass). Only the values that changed matter.
+const LEGACY_V3_DARK: Partial<ThemeColors> = {
+  background: "230 56% 6%", foreground: "231 58% 95%", card: "233 51% 14%", primary: "264 100% 74%",
+  mutedForeground: "233 32% 75%", destructive: "0 72% 55%", destructiveForeground: "0 0% 100%",
+  border: "232 39% 27%", input: "232 39% 24%", ring: "264 100% 74%",
+};
+
+function matches(colors: ThemeColors | undefined, legacy: Partial<ThemeColors>): boolean {
+  return !!colors && (Object.keys(legacy) as (keyof ThemeColors)[]).every((key) => colors[key] === legacy[key]);
+}
+
 function isLegacyDefaultPalette(theme: CustomTheme): boolean {
   if (!theme.dark) return true;
-  return (Object.keys(LEGACY_V2_DARK) as (keyof ThemeColors)[]).every((key) => theme.dark[key] === LEGACY_V2_DARK[key]);
+  return matches(theme.dark, LEGACY_V2_DARK) || matches(theme.dark, LEGACY_V3_DARK);
 }
 
 function normalizeBackground(background: BackgroundConfig | undefined, legacyPalette: boolean): BackgroundConfig {
@@ -325,20 +336,20 @@ export const defaultTheme: CustomTheme = {
     cardForeground: "232 40% 12%",
     popover: "0 0% 100%",
     popoverForeground: "232 40% 12%",
-    primary: "262 70% 52%",
+    primary: "262 70% 37%",
     primaryForeground: "0 0% 100%",
     secondary: "228 30% 92%",
     secondaryForeground: "232 40% 12%",
     muted: "228 30% 93%",
-    mutedForeground: "232 15% 38%",
+    mutedForeground: "232 18% 27%",
     accent: "262 80% 95%",
     accentForeground: "262 70% 40%",
-    destructive: "0 72% 48%",
+    destructive: "0 75% 36%",
     destructiveForeground: "0 0% 100%",
-    border: "228 22% 82%",
-    input: "228 22% 84%",
-    ring: "262 70% 52%",
-    star: "30 90% 32%",
+    border: "228 20% 55%",
+    input: "228 20% 50%",
+    ring: "262 70% 37%",
+    star: "30 90% 22%",
   },
   dark: {
     background: "230 56% 6%",
@@ -347,23 +358,24 @@ export const defaultTheme: CustomTheme = {
     cardForeground: "231 58% 95%",
     popover: "233 48% 12%",
     popoverForeground: "231 58% 95%",
-    primary: "264 100% 74%",
+    primary: "264 100% 86%",
     primaryForeground: "250 56% 8%",
     secondary: "233 40% 18%",
     secondaryForeground: "231 58% 95%",
     muted: "233 40% 16%",
-    mutedForeground: "233 32% 75%",
+    mutedForeground: "233 32% 80%",
     accent: "264 45% 22%",
     accentForeground: "231 58% 95%",
-    destructive: "0 72% 55%",
-    destructiveForeground: "0 0% 100%",
-    border: "232 39% 27%",
-    input: "232 39% 24%",
-    ring: "264 100% 74%",
+    destructive: "0 90% 75%",
+    destructiveForeground: "0 0% 8%",
+    border: "232 30% 53%",
+    input: "232 30% 57%",
+    ring: "264 100% 86%",
     star: "38 100% 74%",
   },
   background: defaultBackground,
-  particles: defaultParticles,
+  // Cursor particles stay off in the standard design; custom themes can turn them on.
+  particles: { ...defaultParticles, enabled: false },
   shape: defaultShape,
   surface: defaultSurface,
   fonts: defaultFonts,
@@ -654,13 +666,53 @@ export function saveCustomTheme(theme: CustomTheme): void {
   window.dispatchEvent(new Event(CUSTOM_THEME_EVENT));
 }
 
-// Load custom theme from localStorage
+/**
+ * True when a theme looks exactly like the standard design. Copies saved before v4 had panel
+ * opacity 0.9 and cursor particles on by default; those still count as the standard.
+ */
+export function isStandardTheme(theme: CustomTheme): boolean {
+  const m = migrateTheme(theme);
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const old = (theme.version ?? 0) < 4;
+  const surface = m.surface!;
+  const surfaceIsStandard = surface.mode === "panel" && surface.blur === 0 && (surface.opacity === 1 || (old && surface.opacity === 0.9));
+  const particlesAreStandard = old || same(m.particles, defaultTheme.particles);
+  return (
+    surfaceIsStandard &&
+    particlesAreStandard &&
+    same(m.light, defaultTheme.light) &&
+    same(m.dark, defaultTheme.dark) &&
+    same(m.shape, defaultTheme.shape) &&
+    same(m.fonts, defaultTheme.fonts) &&
+    same(m.galaxy, defaultTheme.galaxy) &&
+    m.background?.mode === defaultTheme.background?.mode &&
+    m.background?.gradient === defaultTheme.background?.gradient &&
+    !m.background?.image
+  );
+}
+
+/** Switches back to the fixed standard design. */
+export function clearCustomTheme(): void {
+  localStorage.removeItem("customTheme");
+  localStorage.removeItem(ACTIVE_THEME_KEY);
+  window.dispatchEvent(new Event(CUSTOM_THEME_EVENT));
+  window.dispatchEvent(new Event(ACTIVE_THEME_EVENT));
+}
+
+/**
+ * Loads the user's own theme. Returns null while the standard design is active; a stored copy of the
+ * standard design is removed, so the standard always comes from defaultTheme and cannot be altered.
+ */
 export function loadCustomTheme(): CustomTheme | null {
   const stored = localStorage.getItem("customTheme");
   if (!stored) return null;
   try {
-    const theme = JSON.parse(stored);
-    return migrateTheme(theme);
+    const theme = migrateTheme(JSON.parse(stored));
+    if (isStandardTheme(theme)) {
+      localStorage.removeItem("customTheme");
+      return null;
+    }
+    return theme;
   } catch {
     return null;
   }

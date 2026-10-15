@@ -618,7 +618,16 @@
     "color_star": "Sternlicht",
     "constellation_choice": "Sternbild",
     "constellation_auto": "Wechselnd",
-    "constellation_auto_hint": "auf jeder Seite anders"
+    "constellation_auto_hint": "auf jeder Seite anders",
+    "standard_name": "Standard",
+    "use_standard": "Standard",
+    "new_theme_name": "Mein Theme",
+    "design_label": "Design",
+    "standard_locked_title": "Standard-Design",
+    "standard_locked_desc": "Das Standard-Design ist auf Barrierefreiheit abgestimmt: Alle Texte erfüllen WCAG-AAA-Kontrast (mindestens 7:1), Rahmen und Eingabefelder mindestens 3:1, und Animationen stoppen, wenn dein System weniger Bewegung wünscht. Deshalb kann es nicht verändert werden.",
+    "standard_locked_hint": "Um Farben, Formen oder Schriften zu ändern, erstelle ein eigenes Theme. Es beginnt als Kopie des Standard-Designs.",
+    "create_own": "Eigenes Theme erstellen",
+    "choose_theme": "Theme wählen"
   },
   "monitoring": {
     "title": "Monitoring-Übersicht",

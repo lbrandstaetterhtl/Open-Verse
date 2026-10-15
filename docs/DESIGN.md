@@ -51,6 +51,15 @@ Tailwind kennt zusätzlich `font-display`, `font-data`, `text-star`, `bg-star/�
 - Fokus: Klassen mit eigener Linie (`ov-panel`, `ov-chip`, `ov-tab-active`, …) zeigen den Fokus als innere 2-px-Linie in `--ring`.
 - Animation nur für Zustände (Laden, Öffnen). Keine dauerhaft schwebenden oder pulsierenden Elemente.
 
+## Standard-Design und Barrierefreiheit
+
+Das Standard-Design (Hell und Dunkel) ist fest und im Theme-Builder nicht veränderbar. Es ist aktiv, solange kein eigenes Theme gespeichert ist; „Standard“ im Theme-Menü schaltet zurück. Eigene Themes beginnen als Kopie („Eigenes Theme erstellen“).
+
+- **Kontrast:** alle Texte und Button-Beschriftungen mindestens 7:1 (WCAG AAA), auch auf den leicht getönten Flächen (aktive Navigation, Chips, Avatare); Rahmen, Eingabefelder und Fokusrahmen mindestens 3:1. Geprüft per Unit-Test (`npm run test:unit`) und axe-core auf allen Hauptseiten.
+- **Flächen:** Panels deckend (keine durchscheinenden Sterne hinter Text); im hellen Modus heller Hintergrund statt Galaxie-Verlauf.
+- **Bewegung:** Cursor-Partikel aus; bei „Bewegung reduzieren“ stehen Sternenfeld und Animationen still.
+- **Bedienung:** Zoomen auf Mobilgeräten erlaubt, sichtbarer Fokusrahmen, beschriftete Icon-Buttons und Formularfelder.
+
 ## Theme-Migration
 
-Gespeicherte Themes haben `version: 3`. Ältere Themes werden beim Laden mit `migrateTheme()` umgewandelt: Eine unveränderte alte Standard-Palette bekommt die neue Palette, eigene Farben bleiben erhalten und erhalten nur `star` dazu. Eine eigene Schrift wird zu Überschrift und Text. Tests: `npm run test:unit`.
+Gespeicherte Themes haben `version: 4`. Ältere Themes werden beim Laden mit `migrateTheme()` umgewandelt: Eine unveränderte alte Standard-Palette bekommt die neue Palette, eigene Farben bleiben erhalten und erhalten nur `star` dazu. Eine eigene Schrift wird zu Überschrift und Text. Tests: `npm run test:unit`.

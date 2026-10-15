@@ -66,6 +66,7 @@ export default function TicketsPage() {
                 <TabsTrigger
                   key={status}
                   value={status}
+                  aria-controls="ticket-results"
                   className="flex-1 sm:flex-none gap-2 px-4 h-9"
                 >
                   {t(status === "all" ? "filters.allStatus" : `status.${status}`)}
@@ -93,7 +94,7 @@ export default function TicketsPage() {
           </div>
 
           <Select value={filters.sortBy || "newest"} onValueChange={(val) => setFilters(f => ({ ...f, sortBy: val, page: 1 }))}>
-            <SelectTrigger className="w-[200px] h-10">
+            <SelectTrigger className="w-[200px] h-10" aria-label="Sort tickets">
               <SelectValue placeholder="Sort Projection" />
             </SelectTrigger>
             <SelectContent>
@@ -110,7 +111,7 @@ export default function TicketsPage() {
               if (val === "me") setFilters(f => ({ ...f, assignedTo: user?.id, createdBy: undefined, page: 1 }));
               if (val === "created") setFilters(f => ({ ...f, assignedTo: undefined, createdBy: user?.id, page: 1 }));
             }}>
-              <SelectTrigger className="w-[220px] h-10">
+              <SelectTrigger className="w-[220px] h-10" aria-label="Filter tickets">
                 <SelectValue placeholder="Signal Source" />
               </SelectTrigger>
               <SelectContent>
@@ -123,7 +124,7 @@ export default function TicketsPage() {
         </div>
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1" id="ticket-results">
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              {[1,2,3,4].map(i => <div key={i} className="ov-panel h-48 animate-pulse" />)}
