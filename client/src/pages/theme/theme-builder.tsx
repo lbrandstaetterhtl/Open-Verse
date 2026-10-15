@@ -82,6 +82,7 @@ const COLOR_METADATA: Record<keyof ThemeColors, { label: string; description: st
   border: { label: "Border Color", description: "Lines between layout sections" },
   input: { label: "Input Border", description: "Borders of text and select fields" },
   ring: { label: "Focus Outline", description: "Ring visible when an element is focused" },
+  star: { label: "Starlight", description: "Warm highlight for badges, markers and single stars", contrastAgainst: "card" },
 };
 
 export default function ThemeBuilderPage() {
@@ -229,7 +230,7 @@ export default function ThemeBuilderPage() {
   useEffect(() => {
     // Apply the colors from the tab the user is currently editing
     const isDarkMode = activeMode === "dark";
-    applyTheme(workingTheme[activeMode], isDarkMode, workingTheme.font, workingTheme.background);
+    applyTheme(workingTheme[activeMode], isDarkMode, workingTheme.font, workingTheme.background, workingTheme);
     
     // Toggle the .dark class on the root to ensure shadcn components respond correctly
     if (isDarkMode) {

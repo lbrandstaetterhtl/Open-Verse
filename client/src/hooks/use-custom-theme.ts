@@ -12,7 +12,6 @@ import {
   loadCustomTheme,
   saveCustomTheme,
   CUSTOM_THEME_EVENT,
-  THEME_VERSION,
   type SavedTheme,
   getSavedThemes,
   saveNamedTheme,
@@ -36,15 +35,9 @@ export function useCustomTheme() {
   // Load custom theme from localStorage on mount and listen for changes
   useEffect(() => {
     const loadTheme = () => {
+      // loadCustomTheme migrates older versions; customised colours are kept.
       const stored = loadCustomTheme();
       if (stored) {
-        // AUTO-UPDATE: If stored theme version is older than THEME_VERSION, reset to new defaults
-        if (!stored.version || stored.version < THEME_VERSION) {
-          console.log("[Theme] Outdated theme version detected. Applying Starlight Frost overhaul...");
-          setCustomTheme(defaultTheme);
-          saveCustomTheme(defaultTheme);
-          return;
-        }
         setCustomTheme(stored);
       }
     };
@@ -107,7 +100,7 @@ export function useCustomTheme() {
   // Apply theme whenever it changes or dark mode toggles
   useEffect(() => {
     const colors = isDark ? customTheme.dark : customTheme.light;
-    applyTheme(colors, isDark, customTheme.font, customTheme.background);
+    applyTheme(colors, isDark, customTheme.font, customTheme.background, customTheme);
     applyParticleConfig(customTheme.particles);
   }, [customTheme, isDark]);
 

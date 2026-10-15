@@ -40,15 +40,26 @@ export default {
         '3xl':  ['34px', { lineHeight: '40px' }],
       },
 
-      // ── BORDER RADIUS ───────────────────────────────────
+      // ── BORDER RADIUS: driven by the theme's shape setting (see applyDesign) ──
       borderRadius: {
-        'xs':   '4px',    // Tags, Badges
-        'sm':   '8px',    // Inputs, Buttons
-        'md':   '12px',   // Cards
-        'lg':   '16px',   // Modals, Bottom Sheets
-        'xl':   '20px',   // Large Containers
-        '2xl':  '24px',   // Floating Elements
-        'full': '9999px', // Avatare, Pills
+        'xs':      'var(--radius-xs, 2px)',
+        'sm':      'var(--radius-sm, 2px)',
+        DEFAULT:   'var(--radius-sm, 2px)',
+        'md':      'var(--radius-md, 2px)',
+        'lg':      'var(--radius-md, 2px)',
+        'xl':      'var(--radius-lg, 2px)',
+        '2xl':     'var(--radius-lg, 2px)',
+        '3xl':     'var(--radius-lg, 2px)',
+        'pill':    'var(--radius-pill, 2px)',
+        'full':    '9999px', // true circles only: status dots, spinners
+      },
+
+      // ── FONT ROLES: display (headings), body (text), data (numbers, timestamps, labels) ──
+      fontFamily: {
+        sans:    ['var(--font-body)'],
+        display: ['var(--font-display)'],
+        data:    ['var(--font-data)'],
+        mono:    ['var(--font-data)'],
       },
 
       // ── SHADOWS: Depth System ───────────────────────────
@@ -93,6 +104,9 @@ export default {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+        },
+        star: {
+          DEFAULT: "hsl(var(--star))",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

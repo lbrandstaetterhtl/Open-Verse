@@ -37,7 +37,7 @@ export function ThemeGroup({
             key={key}
             label={key}
             description={descriptions[key]}
-            value={colors[key]}
+            value={colors[key] ?? ""}
             defaultValue={defaultColors?.[key]}
             contrastAgainst={contrastPairs[key] ? colors[contrastPairs[key]!] : undefined}
             onChange={(value) => onColorChange(key, value)}
