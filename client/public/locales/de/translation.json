@@ -615,7 +615,10 @@
     "galaxy_grid": "Koordinatenraster",
     "galaxy_constellation": "Sternbild im Seitenkopf",
     "galaxy_grain": "Körnung",
-    "color_star": "Sternlicht"
+    "color_star": "Sternlicht",
+    "constellation_choice": "Sternbild",
+    "constellation_auto": "Wechselnd",
+    "constellation_auto_hint": "auf jeder Seite anders"
   },
   "monitoring": {
     "title": "Monitoring-Übersicht",

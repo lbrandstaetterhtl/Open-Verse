@@ -408,6 +408,22 @@
     background-image: none;
   }
 
+  /* Halo around the brightest star of a star chart. */
+  .ov-star-pulse {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ov-star-pulse 4.8s ease-in-out infinite;
+  }
+
+  @keyframes ov-star-pulse {
+    0%, 100% { opacity: 0.55; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ov-star-pulse { animation: none; }
+  }
+
   html[data-grid="off"] .ov-grid-layer,
   html[data-stars="off"] .ov-stars-layer,
   html[data-constellation="off"] .ov-constellation {
