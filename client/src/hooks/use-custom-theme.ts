@@ -6,8 +6,6 @@ import {
   type BackgroundImage,
   defaultTheme,
   defaultBackground,
-  applyTheme,
-  applyParticleConfig,
   migrateTheme,
   loadCustomTheme,
   saveCustomTheme,
@@ -29,11 +27,12 @@ import type { Theme } from "@shared/schema";
 
 export function useCustomTheme() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [customTheme, setCustomTheme] = useState<CustomTheme>(defaultTheme);
+  // State starts from storage (not from the defaults), so nothing switches after the first render.
+  const [customTheme, setCustomTheme] = useState<CustomTheme>(() => loadCustomTheme() ?? defaultTheme);
   // The standard design is active whenever no own theme is stored; it is fixed and not editable.
-  const [isStandard, setIsStandard] = useState(true);
+  const [isStandard, setIsStandard] = useState(() => loadCustomTheme() === null);
   const [localSavedThemes, setLocalSavedThemes] = useState<SavedTheme[]>([]);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
 
   // Load custom theme from localStorage on mount and listen for changes
   useEffect(() => {
@@ -99,13 +98,8 @@ export function useCustomTheme() {
     }
   }, [user, isAuthLoading, prevUserId]);
 
-  // Apply theme whenever it changes or dark mode toggles
-  useEffect(() => {
-    const colors = isDark ? customTheme.dark : customTheme.light;
-    // The standard design has no fixed background: light mode gets the light surface, dark mode the galaxy.
-    applyTheme(colors, isDark, customTheme.font, isStandard ? undefined : customTheme.background, customTheme);
-    applyParticleConfig(customTheme.particles);
-  }, [customTheme, isDark, isStandard]);
+  // Applying the theme happens in one place only (GlobalThemeApplier via applyStoredTheme), not in every
+  // component that reads theme state.
 
   // Fetch server themes if logged in
   const { data: serverThemes } = useQuery<Theme[]>({

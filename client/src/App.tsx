@@ -140,12 +140,17 @@ function Router() {
 
 import { useEffect, useState } from "react";
 import { useCustomTheme } from "@/hooks/use-custom-theme";
-import type { BackgroundConfig } from "@/lib/theme-utils";
+import { applyStoredTheme, type BackgroundConfig } from "@/lib/theme-utils";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 
 function GlobalThemeApplier() {
-  const { background, isDark } = useCustomTheme();
+  const { background, isDark, customTheme, isStandard } = useCustomTheme();
   const [previewBg, setPreviewBg] = useState<BackgroundConfig | null>(null);
+
+  // The single place that applies the stored theme after start-up (theme change, light/dark switch).
+  useEffect(() => {
+    applyStoredTheme();
+  }, [customTheme, isDark, isStandard]);
 
   useEffect(() => {
     const handlePreview = (e: any) => {

@@ -11,7 +11,6 @@ import {
   migrateTheme,
   importTheme,
   exportTheme,
-  isStandardTheme,
   getContrastRatio,
   normalizeShape,
   normalizeSurface,
@@ -220,19 +219,9 @@ test("an untouched copy of the previous (v3) default moves to the accessible pal
   const migrated = migrateTheme(v3);
   assert.deepEqual(migrated.dark, defaultTheme.dark);
   assert.deepEqual(migrated.light, defaultTheme.light);
-  assert.equal(isStandardTheme(v3), true);
 });
 
-test("standard detection: the default is standard, any own change is not", () => {
-  assert.equal(isStandardTheme(defaultTheme), true);
-  assert.equal(isStandardTheme({ ...defaultTheme, dark: { ...defaultTheme.dark, primary: "150 80% 45%" } }), false);
-  assert.equal(isStandardTheme({ ...defaultTheme, shape: { style: "rund", size: 12, avatar: "kreis" } }), false);
-  assert.equal(isStandardTheme({ ...defaultTheme, fonts: { ...defaultTheme.fonts!, body: "Archivo" } }), false);
-  assert.equal(isStandardTheme({ ...defaultTheme, surface: { mode: "glas", opacity: 0.55, blur: 16 } }), false);
-  assert.equal(isStandardTheme({ ...defaultTheme, particles: { ...defaultTheme.particles!, enabled: true } }), false);
-});
-
-test("the standard design keeps panels opaque and cursor particles off", () => {
+test("the standard design keeps panels opaque and cursor particles on", () => {
   assert.equal(defaultTheme.surface?.opacity, 1);
-  assert.equal(defaultTheme.particles?.enabled, false);
+  assert.equal(defaultTheme.particles?.enabled, true);
 });

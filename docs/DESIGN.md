@@ -53,12 +53,16 @@ Tailwind kennt zusätzlich `font-display`, `font-data`, `text-star`, `bg-star/�
 
 ## Standard-Design und Barrierefreiheit
 
-Das Standard-Design (Hell und Dunkel) ist fest und im Theme-Builder nicht veränderbar. Es ist aktiv, solange kein eigenes Theme gespeichert ist; „Standard“ im Theme-Menü schaltet zurück. Eigene Themes beginnen als Kopie („Eigenes Theme erstellen“).
+Das Standard-Design (Hell und Dunkel) ist fest und im Theme-Builder nicht veränderbar. Es ist aktiv, solange kein eigenes Theme gespeichert ist (gespeicherte Themes werden nie automatisch zurückgesetzt); „Standard“ im Theme-Menü schaltet zurück. Eigene Themes beginnen als Kopie („Eigenes Theme erstellen“).
 
 - **Kontrast:** alle Texte und Button-Beschriftungen mindestens 7:1 (WCAG AAA), auch auf den leicht getönten Flächen (aktive Navigation, Chips, Avatare); Rahmen, Eingabefelder und Fokusrahmen mindestens 3:1. Geprüft per Unit-Test (`npm run test:unit`) und axe-core auf allen Hauptseiten.
 - **Flächen:** Panels deckend (keine durchscheinenden Sterne hinter Text); im hellen Modus heller Hintergrund statt Galaxie-Verlauf.
-- **Bewegung:** Cursor-Partikel aus; bei „Bewegung reduzieren“ stehen Sternenfeld und Animationen still.
+- **Bewegung:** Bei „Bewegung reduzieren“ im System stehen Cursor-Partikel, Sternenfeld und Animationen still.
 - **Bedienung:** Zoomen auf Mobilgeräten erlaubt, sichtbarer Fokusrahmen, beschriftete Icon-Buttons und Formularfelder.
+
+## Anwenden beim Start
+
+`main.tsx` setzt Hell/Dunkel und das gespeicherte Theme vor dem ersten Rendern (`applyColorScheme()`, `applyStoredTheme()`), damit nach einem Neuladen nichts umspringt. Danach wendet nur `GlobalThemeApplier` das Theme an; solange der Theme-Builder offen ist, hat seine Vorschau Vorrang.
 
 ## Theme-Migration
 

@@ -374,8 +374,7 @@ export const defaultTheme: CustomTheme = {
     star: "38 100% 74%",
   },
   background: defaultBackground,
-  // Cursor particles stay off in the standard design; custom themes can turn them on.
-  particles: { ...defaultParticles, enabled: false },
+  particles: defaultParticles,
   shape: defaultShape,
   surface: defaultSurface,
   fonts: defaultFonts,
@@ -666,31 +665,6 @@ export function saveCustomTheme(theme: CustomTheme): void {
   window.dispatchEvent(new Event(CUSTOM_THEME_EVENT));
 }
 
-/**
- * True when a theme looks exactly like the standard design. Copies saved before v4 had panel
- * opacity 0.9 and cursor particles on by default; those still count as the standard.
- */
-export function isStandardTheme(theme: CustomTheme): boolean {
-  const m = migrateTheme(theme);
-  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-  const old = (theme.version ?? 0) < 4;
-  const surface = m.surface!;
-  const surfaceIsStandard = surface.mode === "panel" && surface.blur === 0 && (surface.opacity === 1 || (old && surface.opacity === 0.9));
-  const particlesAreStandard = old || same(m.particles, defaultTheme.particles);
-  return (
-    surfaceIsStandard &&
-    particlesAreStandard &&
-    same(m.light, defaultTheme.light) &&
-    same(m.dark, defaultTheme.dark) &&
-    same(m.shape, defaultTheme.shape) &&
-    same(m.fonts, defaultTheme.fonts) &&
-    same(m.galaxy, defaultTheme.galaxy) &&
-    m.background?.mode === defaultTheme.background?.mode &&
-    m.background?.gradient === defaultTheme.background?.gradient &&
-    !m.background?.image
-  );
-}
-
 /** Switches back to the fixed standard design. */
 export function clearCustomTheme(): void {
   localStorage.removeItem("customTheme");
@@ -699,23 +673,49 @@ export function clearCustomTheme(): void {
   window.dispatchEvent(new Event(ACTIVE_THEME_EVENT));
 }
 
-/**
- * Loads the user's own theme. Returns null while the standard design is active; a stored copy of the
- * standard design is removed, so the standard always comes from defaultTheme and cannot be altered.
- */
+/** Loads the user's own theme. Returns null while the standard design is active (nothing stored). */
 export function loadCustomTheme(): CustomTheme | null {
   const stored = localStorage.getItem("customTheme");
   if (!stored) return null;
   try {
-    const theme = migrateTheme(JSON.parse(stored));
-    if (isStandardTheme(theme)) {
-      localStorage.removeItem("customTheme");
-      return null;
-    }
-    return theme;
+    return migrateTheme(JSON.parse(stored));
   } catch {
     return null;
   }
+}
+
+/** Light/dark choice from the theme menu ("osiris-theme"); "system" follows the OS. Default: dark. */
+export function applyColorScheme(): boolean {
+  let choice = "dark";
+  try {
+    choice = localStorage.getItem("osiris-theme") || "dark";
+  } catch {
+    /* storage blocked */
+  }
+  const dark = choice === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : choice === "dark";
+  const root = document.documentElement;
+  root.classList.remove("light", "dark");
+  root.classList.add(dark ? "dark" : "light");
+  return dark;
+}
+
+// While the theme builder shows a preview, the stored theme must not be re-applied over it.
+let themePreviewActive = false;
+export function setThemePreviewActive(active: boolean): void {
+  themePreviewActive = active;
+}
+
+/**
+ * Applies the stored theme (or the standard design) for the current light/dark mode. The standard design
+ * has no fixed background: light mode gets the light surface, dark mode the galaxy gradient.
+ */
+export function applyStoredTheme(): void {
+  if (themePreviewActive) return;
+  const isDark = document.documentElement.classList.contains("dark");
+  const custom = loadCustomTheme();
+  const theme = custom ?? defaultTheme;
+  applyTheme(isDark ? theme.dark : theme.light, isDark, theme.font, custom ? theme.background : undefined, theme);
+  applyParticleConfig(theme.particles);
 }
 
 // --- Named Themes Management ---
