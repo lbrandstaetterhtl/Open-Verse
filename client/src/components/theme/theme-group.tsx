@@ -11,22 +11,25 @@ interface ThemeGroupProps {
   onColorChange: (key: keyof ThemeColors, value: string) => void;
   descriptions?: Partial<Record<keyof ThemeColors, string>>;
   contrastPairs?: Partial<Record<keyof ThemeColors, keyof ThemeColors>>;
+  /** Display names for tokens; tokens without one show their key. */
+  labels?: Partial<Record<keyof ThemeColors, string>>;
 }
 
-export function ThemeGroup({ 
-  title, 
-  icon, 
-  colors, 
+export function ThemeGroup({
+  title,
+  icon,
+  colors,
   defaultColors,
-  colorKeys, 
+  colorKeys,
   onColorChange,
   descriptions = {},
-  contrastPairs = {}
+  contrastPairs = {},
+  labels = {}
 }: ThemeGroupProps) {
   return (
-    <Card className="shadow-sm">
+    <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg font-bold">
+        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
           {icon}
           {title}
         </CardTitle>
@@ -35,7 +38,7 @@ export function ThemeGroup({
         {colorKeys.map((key) => (
           <ColorPicker
             key={key}
-            label={key}
+            label={labels[key] ?? key}
             description={descriptions[key]}
             value={colors[key] ?? ""}
             defaultValue={defaultColors?.[key]}

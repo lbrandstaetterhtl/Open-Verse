@@ -25,7 +25,7 @@ export function LanguageToggle({ collapsed = false }: { collapsed?: boolean }) {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "w-full flex items-center rounded-lg h-9 transition-all hover:bg-accent gap-3 px-3",
+            "w-full flex items-center rounded-sm h-10 transition-colors hover:bg-foreground/5 gap-3 px-3 sidebar-row",
             "text-muted-foreground hover:text-foreground",
             collapsed && "justify-center px-2"
           )}
@@ -34,22 +34,22 @@ export function LanguageToggle({ collapsed = false }: { collapsed?: boolean }) {
           <Globe className="h-[18px] w-[18px] flex-shrink-0 stroke-2" />
           {!collapsed && (
             <>
-              <span className="text-[13px] font-medium flex-1 text-left">{currentLangName}</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-50" />
+              <span className="text-[13px] font-medium flex-1 text-left truncate sidebar-label">{currentLangName}</span>
+              <ChevronRight className="h-3.5 w-3.5 opacity-50 sidebar-label" />
             </>
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" side="top" className="w-52 p-1.5 bg-popover/90 backdrop-blur-xl border border-white/10 shadow-2xl">
-        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+      <DropdownMenuContent align="end" side="top" className="w-52 p-1.5">
+        <div className="ov-label px-2 pt-1 pb-1.5">
           Select Language
         </div>
-        <DropdownMenuItem className="h-8 px-2 rounded-md transition-all text-[13px] font-medium" onClick={() => loadLanguage("en")}>English</DropdownMenuItem>
-        <DropdownMenuItem className="h-8 px-2 rounded-md transition-all text-[13px] font-medium" onClick={() => loadLanguage("de")}>Deutsch</DropdownMenuItem>
-        <DropdownMenuItem className="h-8 px-2 rounded-md transition-all text-[13px] font-medium" onClick={() => loadLanguage("it")}>Italiano</DropdownMenuItem>
-        <DropdownMenuItem className="h-8 px-2 rounded-md transition-all text-[13px] font-medium" onClick={() => loadLanguage("es")}>Español</DropdownMenuItem>
-        <DropdownMenuItem className="h-8 px-2 rounded-md transition-all text-[13px] font-medium" onClick={() => loadLanguage("fr")}>Français</DropdownMenuItem>
-        <DropdownMenuItem className="h-8 px-2 rounded-md transition-all text-[13px] font-medium" onClick={() => loadLanguage("zh")}>中文 (Mandarin)</DropdownMenuItem>
+        <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("en")}>English</DropdownMenuItem>
+        <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("de")}>Deutsch</DropdownMenuItem>
+        <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("it")}>Italiano</DropdownMenuItem>
+        <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("es")}>Español</DropdownMenuItem>
+        <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("fr")}>Français</DropdownMenuItem>
+        <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("zh")}>中文 (Mandarin)</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

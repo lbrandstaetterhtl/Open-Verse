@@ -5,9 +5,9 @@ export function SkeletonFeed() {
   return (
     <div className="container max-w-4xl mx-auto p-4 space-y-6">
       {[...Array(3)].map((_, i) => (
-        <Card key={i} className="overflow-hidden border-none bg-card/50 backdrop-blur-md shadow-lg">
+        <Card key={i} className="overflow-hidden">
           <CardHeader className="flex flex-row items-center space-x-4 p-4">
-            <Skeleton className="h-12 w-12 rounded-full" />
+            <Skeleton className="ov-avatar h-12 w-12" />
             <div className="space-y-2">
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-3 w-20" />

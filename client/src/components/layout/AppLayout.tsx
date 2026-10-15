@@ -67,16 +67,16 @@ function MobileHeader({
   const isAdminArea = location.startsWith("/admin");
 
   return (
-    <header className="lg:hidden flex items-center h-14 px-4 gap-3 border-b border-border/40 bg-background/80 backdrop-blur-xl flex-shrink-0 sticky top-0 z-30">
+    <header className="lg:hidden flex items-center h-14 px-4 gap-3 border-b border-border bg-background/95 flex-shrink-0 sticky top-0 z-30">
       <button
         onClick={onOpenDrawer}
-        className="p-2 rounded-lg hover:bg-accent transition-colors -ml-2 text-muted-foreground hover:text-foreground"
+        className="p-2 rounded-sm hover:bg-foreground/5 transition-colors -ml-2 text-muted-foreground hover:text-foreground"
         aria-label="Open menu"
       >
         <Menu className="h-5 w-5" />
       </button>
 
-      <span className="font-bold text-base flex-1 truncate">
+      <span className="font-display font-semibold text-base flex-1 truncate">
         {getPageTitle(location)}
       </span>
 
@@ -84,20 +84,20 @@ function MobileHeader({
       <div className="flex items-center gap-1">
         {isAdminArea ? (
           <Link href="/feed/media">
-            <button className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground">
+            <button className="p-2 rounded-sm hover:bg-foreground/5 hover:text-foreground transition-colors text-muted-foreground">
               <ArrowLeft className="h-5 w-5" />
             </button>
           </Link>
         ) : (
           <>
             <Link href="/notifications">
-              <button className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground">
+              <button className="p-2 rounded-sm hover:bg-foreground/5 hover:text-foreground transition-colors text-muted-foreground">
                 <Bell className="h-5 w-5" />
               </button>
             </Link>
             {(location === "/feed/media" || location === "/") && (
               <Link href="/post/discussions">
-                <button className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground">
+                <button className="p-2 rounded-sm hover:bg-foreground/5 hover:text-foreground transition-colors text-muted-foreground">
                   <PenSquare className="h-5 w-5" />
                 </button>
               </Link>
@@ -151,7 +151,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* ── MOBILE OVERLAY ── */}
       {drawerOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={() => setDrawerOpen(false)}
         />
       )}
@@ -166,7 +166,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           // Base positioning
           "fixed inset-y-0 left-0 z-50 flex flex-col",
           // Background + border
-          "bg-background/80 backdrop-blur-xl border-r border-border shadow-[4px_0_24px_rgba(0,0,0,0.05)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.3)]",
+          "bg-background/95 lg:bg-background/80 border-r border-border",
           // Smooth transition
           "transition-all duration-300 ease-in-out",
           // Mobile: full-width drawer, slides in
@@ -204,8 +204,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* ── MAIN CONTENT ── (offset by the fixed 56px rail on tablets) */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden md:pl-[56px] lg:pl-0">
         {/* Mobile Header (hidden on lg+) */}
         <MobileHeader
           onOpenDrawer={() => setDrawerOpen(true)}
@@ -240,9 +240,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
         ) : (
           <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Link href="/">
-              <Button className="rounded-full shadow-2xl gap-2 px-6 h-12 bg-primary text-primary-foreground hover:scale-105 transition-transform active:scale-95 border-2 border-background/20 backdrop-blur-sm">
+              <Button className="gap-2 px-5 h-11">
                 <ArrowLeft className="h-4 w-4" />
-                <span className="font-bold text-sm">Social Feed</span>
+                <span className="text-sm">Social Feed</span>
               </Button>
             </Link>
           </div>

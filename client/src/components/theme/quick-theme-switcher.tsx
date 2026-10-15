@@ -35,7 +35,7 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "w-full flex items-center rounded-lg h-9 transition-all hover:bg-accent gap-3 px-3",
+            "w-full flex items-center rounded-sm h-10 transition-colors hover:bg-foreground/5 gap-3 px-3 sidebar-row",
             "text-muted-foreground hover:text-foreground",
             collapsed && "justify-center px-2"
           )}
@@ -44,8 +44,8 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
           <CurrentIcon className="h-[18px] w-[18px] flex-shrink-0 stroke-2" />
           {!collapsed && (
             <>
-              <span className="text-[13px] font-medium flex-1 text-left">{label} mode</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-50" />
+              <span className="text-[13px] font-medium flex-1 text-left truncate sidebar-label">{label} mode</span>
+              <ChevronRight className="h-3.5 w-3.5 opacity-50 sidebar-label" />
             </>
           )}
         </button>
@@ -55,10 +55,10 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
         side="right"
         align="end"
         sideOffset={8}
-        className="w-52 p-1.5 bg-popover/90 backdrop-blur-xl border border-white/10 shadow-2xl"
+        className="w-52 p-1.5"
       >
         {/* ── Light / Dark / System ── */}
-        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <div className="ov-label px-2 pt-1 pb-1.5">
           Mode
         </div>
 
@@ -73,10 +73,10 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
             key={value}
             onClick={() => { setTheme(value); setOpen(false); }}
             className={cn(
-              "w-full flex items-center gap-2.5 h-8 px-2 rounded-md transition-all text-[13px] font-medium",
+              "w-full flex items-center gap-2.5 h-8 px-2 rounded-sm transition-colors text-[13px] font-medium",
               theme === value
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-accent text-muted-foreground hover:text-foreground"
+                ? "ov-nav-active ov-cut"
+                : "hover:bg-foreground/5 text-muted-foreground hover:text-foreground"
             )}
           >
             <Icon className="h-3.5 w-3.5 flex-shrink-0" />
@@ -88,8 +88,8 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
         {/* ── Custom Saved Themes ── */}
         {savedThemes.length > 0 && (
           <>
-            <div className="my-1.5 border-t border-border/40" />
-            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <div className="my-1.5 border-t border-border" />
+            <div className="ov-label px-2 pt-1 pb-1.5">
               My Themes
             </div>
             <div className="max-h-48 overflow-y-auto scrollbar-none space-y-0.5">
@@ -97,11 +97,11 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
                 <button
                   key={saved.id}
                   onClick={() => { loadTheme(saved); setOpen(false); }}
-                  className="w-full flex items-center gap-2.5 h-8 px-2 rounded-md transition-all text-[13px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground"
+                  className="w-full flex items-center gap-2.5 h-8 px-2 rounded-sm transition-colors text-[13px] font-medium hover:bg-foreground/5 text-muted-foreground hover:text-foreground"
                 >
                   {/* Color preview dot */}
                   <span
-                    className="h-3 w-3 rounded-full border border-white/20 flex-shrink-0"
+                    className="h-3 w-3 rounded-full border border-border flex-shrink-0"
                     style={{
                       background: `hsl(${isDark ? saved.colors.dark.primary : saved.colors.light.primary})`,
                     }}
@@ -114,9 +114,9 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
         )}
 
         {/* ── Theme Builder Link ── */}
-        <div className="my-1.5 border-t border-border/40" />
+        <div className="my-1.5 border-t border-border" />
         <Link href="/theme-builder" onClick={() => setOpen(false)}>
-          <button className="w-full flex items-center gap-2.5 h-8 px-2 rounded-md transition-all text-[13px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground">
+          <button className="w-full flex items-center gap-2.5 h-8 px-2 rounded-sm transition-colors text-[13px] font-medium hover:bg-foreground/5 text-muted-foreground hover:text-foreground">
             <Palette className="h-3.5 w-3.5 flex-shrink-0" />
             <span>Manage Themes</span>
           </button>

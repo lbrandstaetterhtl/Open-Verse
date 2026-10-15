@@ -108,6 +108,9 @@ export default {
         star: {
           DEFAULT: "hsl(var(--star))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -148,8 +151,8 @@ export default {
           '100%': { transform: 'scale(1)' },
         },
         'shimmer': {
-          '0%':   { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
+          '0%':   { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
         },
         'count-up': {
           '0%':   { transform: 'translateY(4px)', opacity: '0' },

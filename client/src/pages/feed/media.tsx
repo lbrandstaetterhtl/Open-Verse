@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { Plus, ImageIcon, Camera, Play, Sparkles, Loader2 } from "lucide-react";
+import { Plus, ImageIcon, Camera, Play, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { PostCard } from "@/components/post/post-card";
 import type { PostWithAuthor } from "@shared/types";
@@ -12,7 +12,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { CreatePostSelectorDialog } from "@/components/post/create-post-selector-dialog";
-import { fadeIn, scaleIn, fadeInUp, staggerContainer } from "@/lib/animations";
+import { PageHeader } from "@/components/layout/page-header";
+import { fadeIn, fadeInUp, staggerContainer } from "@/lib/animations";
 
 export default function MediaFeedPage() {
   const { t } = useTranslation();
@@ -69,72 +70,36 @@ export default function MediaFeedPage() {
 
   return (
     <div className="min-h-screen bg-transparent text-foreground">
-      <main className="w-full px-4 md:px-8 py-6 md:py-12">
-        {/* Cinematic Premium Header */}
-        <motion.div 
-          variants={scaleIn}
-          initial="initial"
-          animate="animate"
-          className={cn(
-            "relative mb-12 overflow-hidden rounded-[3rem] p-8 md:p-16 lg:p-20 shadow-2xl shadow-black/20 border border-white/10",
-            "nebula-banner"
-          )}
-        >
-          {/* Animated Background Starfield */}
-          <div className="absolute inset-0 starfield opacity-40 dark:block hidden" />
-          
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10 md:gap-16">
-            <div className="space-y-6 md:space-y-8 flex-1 min-w-0">
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-primary/20 border border-primary/20 backdrop-blur-xl text-primary text-[10px] font-black uppercase tracking-[0.3em] shadow-lg shadow-primary/20"
-              >
-                <Sparkles className="h-4 w-4" />
-                {t("feed.curated", "Curated Feed")}
-              </motion.div>
-              <h1 className="text-[clamp(2.5rem,6vw,7rem)] font-black tracking-tighter leading-[0.8] uppercase italic flex flex-col sm:block overflow-hidden">
-                Media <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/60 to-accent whitespace-nowrap drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">Verse</span>
-              </h1>
-              <p className="text-lg md:text-2xl text-muted-foreground font-medium max-w-xl leading-relaxed opacity-80">
-                {t("feed.media_description", "The most visual and engaging stories curated for your exploration.")}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-6 md:gap-8 lg:items-end shrink-0">
-              <div className="p-2 rounded-full bg-background/40 border border-white/5 backdrop-blur-3xl flex flex-wrap gap-2 w-full sm:w-fit lg:ml-auto relative">
-                {["all", "news", "entertainment"].map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={cn(
-                      "relative flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-500 active:scale-95 z-10",
-                      activeCategory === cat ? "text-primary-foreground" : "text-muted-foreground/60 hover:text-foreground"
-                    )}
-                  >
-                    {activeCategory === cat && (
-                      <motion.div
-                        layoutId="activeFeedTab"
-                        className="absolute inset-0 bg-primary rounded-full shadow-2xl shadow-primary/40 z-[-1]"
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      />
-                    )}
-                    {t(`feed.${cat}`)}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-4 w-full sm:w-auto lg:ml-auto pt-4">
-                <Button 
-                  onClick={() => setIsCreateDialogOpen(true)}
-                  className="w-full sm:w-auto h-16 md:h-20 px-10 md:px-14 rounded-full shadow-2xl shadow-primary/30 gap-4 font-black uppercase tracking-widest text-[11px] md:text-xs transition-all hover:shadow-primary/50 hover:-translate-y-2 active:translate-y-0 active:scale-95 nebula-glow"
+      <main className="w-full px-4 md:px-8 pb-12 md:pb-16">
+        <motion.div variants={fadeIn} initial="initial" animate="animate" className="mb-8 md:mb-10">
+          <PageHeader
+            eyebrow={t("feed.eyebrow_media", "Feed / Media")}
+            title={t("navbar.media_feed")}
+            description={t("feed.media_description", "The most visual and engaging stories curated for your exploration.")}
+            actions={
+              <Button onClick={() => setIsCreateDialogOpen(true)} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4" />
+                {t("feed.create_story", "Create story")}
+              </Button>
+            }
+          >
+            <div className="inline-flex w-full flex-wrap gap-1 rounded-pill border border-border bg-background/40 p-1 sm:w-fit">
+              {["all", "news", "entertainment"].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={cn(
+                    "flex-1 rounded-pill px-4 py-1.5 text-sm transition-colors duration-150 sm:flex-none",
+                    activeCategory === cat
+                      ? "ov-tab-active font-semibold"
+                      : "font-medium text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  <Plus className="h-6 w-6 stroke-[4px]" />
-                  {t("feed.create_story", "Create Story")}
-                </Button>
-              </div>
+                  {t(`feed.${cat}`)}
+                </button>
+              ))}
             </div>
-          </div>
+          </PageHeader>
         </motion.div>
 
         {/* Content Section */}
@@ -142,7 +107,7 @@ export default function MediaFeedPage() {
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="aspect-[4/5] rounded-[2rem] bg-white/5 animate-pulse border border-white/10 shadow-inner" />
+                <div key={i} className="ov-panel aspect-[4/5] animate-pulse" />
               ))}
             </div>
           ) : error ? (
@@ -156,15 +121,15 @@ export default function MediaFeedPage() {
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-20 md:py-40 text-center rounded-[2rem] md:rounded-[3rem] bg-white/5 border border-dashed border-white/10"
+              className="ov-panel flex flex-col items-center justify-center px-6 py-16 md:py-24 text-center"
             >
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6 md:mb-8 border border-primary/20">
-                <Camera className="h-8 w-8 md:h-10 md:h-10 text-primary" />
+              <div className="ov-cut mb-6 flex h-14 w-14 items-center justify-center rounded-sm bg-primary/10 md:h-16 md:w-16">
+                <Camera className="h-7 w-7 text-primary md:h-8 md:w-8" />
               </div>
-              <h3 className="text-2xl md:text-3xl font-black tracking-tighter uppercase mb-2 md:mb-4">{t("feed.no_media", "Silence in the Verse")}</h3>
-              <p className="text-muted-foreground text-sm md:text-lg max-w-sm font-medium px-4">{t("feed.no_media_desc", "Be the spark that ignites this feed. Share your first media post now.")}</p>
+              <h3 className="font-display text-xl md:text-2xl font-semibold mb-2">{t("feed.no_media", "Silence in the Verse")}</h3>
+              <p className="text-muted-foreground text-sm md:text-base max-w-sm px-4">{t("feed.no_media_desc", "Be the spark that ignites this feed. Share your first media post now.")}</p>
               <Link href="/post/news" className="mt-8">
-                <Button variant="outline" className="rounded-xl border-2 font-bold uppercase tracking-widest text-[10px]">
+                <Button variant="outline">
                   Ignite Discovery
                 </Button>
               </Link>
@@ -196,11 +161,11 @@ export default function MediaFeedPage() {
                 {isFetchingNextPage && (
                   <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Expanding Verse...</p>
+                    <p className="ov-label">Expanding Verse...</p>
                   </div>
                 )}
                 {!hasNextPage && posts.length > 0 && (
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/40">You've reached the Edge of the Verse</p>
+                  <p className="ov-label">You've reached the Edge of the Verse</p>
                 )}
               </div>
             </>

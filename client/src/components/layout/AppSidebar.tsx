@@ -30,6 +30,7 @@ import {
   LogOut,
   MoreHorizontal,
   Menu,
+  Sparkle,
 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
@@ -86,24 +87,23 @@ function NavItemRow({
   const rowContent = (
     <div
       className={cn(
-        "flex items-center rounded-lg transition-all duration-150 cursor-pointer select-none group relative",
-        "h-9",
+        "flex items-center rounded-sm transition-colors duration-150 cursor-pointer select-none group relative sidebar-row",
+        "h-10",
         collapsed ? "justify-center px-2" : "px-3 gap-3",
         isActive
-          ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          ? "ov-nav-active ov-cut"
+          : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
       )}
       onClick={hasSubItems ? () => setSubOpen((v) => !v) : onNavigate}
     >
       <item.icon
         className={cn(
-          "h-[18px] w-[18px] flex-shrink-0 transition-transform",
-          isActive ? "stroke-[2.5]" : "stroke-2",
-          !collapsed && "group-hover:scale-105"
+          "h-[18px] w-[18px] flex-shrink-0",
+          isActive ? "stroke-[2.25] text-primary" : "stroke-2"
         )}
       />
       {!collapsed && (
-        <span className="text-[13px] font-medium flex-1 truncate sidebar-label">
+        <span className={cn("text-[13px] flex-1 truncate sidebar-label", isActive ? "font-semibold" : "font-medium")}>
           {item.label}
         </span>
       )}
@@ -130,7 +130,7 @@ function NavItemRow({
 
       {/* Sub-items (desktop only, when not collapsed) */}
       {hasSubItems && subOpen && !collapsed && (
-        <div className="ml-7 mt-0.5 space-y-0.5">
+        <div className="ml-5 mt-0.5 space-y-0.5 border-l border-border pl-2">
           {item.subItems!.map((sub) => {
             const subActive =
               location === sub.href || location.startsWith(sub.href + "/");
@@ -138,10 +138,10 @@ function NavItemRow({
               <Link key={sub.href} href={sub.href} onClick={onNavigate}>
                 <div
                   className={cn(
-                    "h-8 flex items-center px-3 rounded-lg text-[12px] font-medium transition-all cursor-pointer",
+                    "h-8 flex items-center px-3 rounded-sm text-[12px] font-medium transition-colors cursor-pointer",
                     subActive
-                      ? "text-primary bg-primary/5"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      ? "ov-nav-active ov-cut font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                   )}
                 >
                   {sub.label}
@@ -205,22 +205,27 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── HEADER ── */}
-      <div className="flex items-center h-14 px-3 border-b border-border/40 flex-shrink-0 gap-2">
-        <Link href="/" onClick={onClose} className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 shadow-sm shadow-primary/30">
-            <span className="text-primary-foreground text-sm font-black">O</span>
+      <div className={cn(
+        "flex items-center h-14 px-3 border-b border-border flex-shrink-0 gap-2",
+        collapsed && "lg:justify-center"
+      )}>
+        <Link
+          href="/"
+          onClick={onClose}
+          className={cn("flex items-center gap-2.5 flex-1 min-w-0", collapsed && "lg:hidden")}
+        >
+          <div className="ov-panel h-8 w-8 flex items-center justify-center flex-shrink-0">
+            <Sparkle className="h-4 w-4 text-star fill-current" aria-hidden="true" />
           </div>
           {!collapsed && (
-            <span className="font-black text-[15px] tracking-tight truncate sidebar-label">Osiris</span>
+            <span className="font-display font-semibold text-[16px] truncate sidebar-label">Osiris</span>
           )}
         </Link>
-
-
 
         {/* Desktop Collapse Toggle */}
         <button
           onClick={onToggleCollapse}
-          className="hidden lg:flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground flex-shrink-0 sidebar-toggle"
+          className="hidden lg:flex items-center justify-center h-7 w-7 rounded-sm hover:bg-foreground/5 transition-colors text-muted-foreground hover:text-foreground flex-shrink-0 sidebar-toggle"
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -232,7 +237,8 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
         {/* Mobile Close */}
         <button
           onClick={onClose}
-          className="lg:hidden flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors text-muted-foreground flex-shrink-0"
+          aria-label="Close menu"
+          className="md:hidden flex items-center justify-center h-7 w-7 rounded-sm hover:bg-foreground/5 hover:text-foreground transition-colors text-muted-foreground flex-shrink-0"
         >
           <X className="h-4 w-4" />
         </button>
@@ -245,15 +251,24 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
           <>
             <Link href="/feed/media" onClick={onClose}>
               <div className={cn(
-                "flex items-center rounded-lg h-9 transition-all cursor-pointer gap-3 px-3 text-muted-foreground hover:bg-accent hover:text-foreground",
+                "flex items-center rounded-sm h-10 transition-colors cursor-pointer gap-3 px-3 text-muted-foreground hover:bg-foreground/5 hover:text-foreground sidebar-row",
                 collapsed && "justify-center px-2"
               )}>
                 <ArrowLeft className="h-[18px] w-[18px] flex-shrink-0 stroke-2" />
                 {!collapsed && <span className="text-[13px] font-medium sidebar-label">Back to App</span>}
               </div>
             </Link>
-            <div className="my-2 mx-1 border-t border-border/40 sidebar-label" />
+            <div className="my-2 mx-1 border-t border-border sidebar-label" />
           </>
+        )}
+
+        {/* Section heading */}
+        {!collapsed && (
+          <div className="ov-label px-3 pt-1 pb-2 sidebar-label">
+            {isAdmin
+              ? t("navbar.section_admin", "Administration")
+              : t("navbar.navigation", "Navigation")}
+          </div>
         )}
 
         {navItems.map((item) => (
@@ -268,7 +283,12 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
         {/* Admin link for admins in public mode */}
         {!isAdmin && ["admin", "owner"].includes(user?.role ?? "") && (
           <>
-            <div className="my-2 mx-1 border-t border-border/40" />
+            <div className="my-2 mx-1 border-t border-border" />
+            {!collapsed && (
+              <div className="ov-label px-3 pt-1 pb-2 sidebar-label">
+                {t("navbar.section_admin", "Administration")}
+              </div>
+            )}
             <NavItemRow
               item={{ href: "/admin", icon: Shield, label: "Admin Panel" }}
               collapsed={collapsed}
@@ -279,7 +299,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
       </nav>
 
       {/* ── USER FOOTER ── */}
-      <div className="border-t border-border/40 p-2 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-4 flex-shrink-0 space-y-0.5">
+      <div className="border-t border-border p-2 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-4 flex-shrink-0 space-y-2">
         {/* Quick Theme Switcher — always visible, ≤2 clicks */}
         <div className="flex flex-col gap-0.5">
           <QuickThemeSwitcher collapsed={collapsed} />
@@ -290,18 +310,18 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "w-full flex items-center rounded-lg h-10 hover:bg-accent transition-colors gap-2.5 px-2",
+                "ov-panel ov-panel-hover w-full flex items-center h-12 gap-2.5 px-2 sidebar-row",
                 collapsed && "justify-center"
               )}
             >
               <UserAvatar user={user} size="sm" className="flex-shrink-0" />
               {!collapsed && (
                 <>
-                  <div className="flex-1 min-w-0 text-left sidebar-label">
-                    <p className="text-[12px] font-semibold truncate leading-tight">
+                  <div className="flex-1 min-w-0 text-left space-y-0.5 sidebar-label">
+                    <p className="text-[13px] font-semibold truncate leading-tight">
                       {user?.username}
                     </p>
-                    <p className="text-[11px] text-muted-foreground truncate leading-tight capitalize">
+                    <p className="ov-label truncate">
                       {user?.role}
                     </p>
                   </div>

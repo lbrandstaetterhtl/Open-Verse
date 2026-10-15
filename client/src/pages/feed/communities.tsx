@@ -11,6 +11,7 @@ import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { PageTransition } from "@/components/ui/page-transition";
+import { PageHeader } from "@/components/layout/page-header";
 import { useTranslation } from "react-i18next";
 import { queryClient } from "@/lib/queryClient";
 
@@ -76,6 +77,13 @@ export default function CommunityFeedPage() {
   return (
     <PageTransition>
       <main className="w-full">
+        <div className="px-4 md:px-6">
+          <PageHeader
+            eyebrow={t("communities_feed.eyebrow", "Feed / Communities")}
+            title={t("communities_feed.header_title")}
+            description={t("communities_feed.header_desc")}
+          />
+        </div>
         <div className="flex flex-col lg:flex-row min-h-screen">
           
           {/* Left Sidebar - Communities & Search */}
@@ -88,34 +96,34 @@ export default function CommunityFeedPage() {
                     placeholder={t("communities_feed.search_placeholder")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-12 rounded-2xl bg-muted/30 border-transparent focus:bg-background focus:ring-primary/20 transition-all text-sm shadow-sm"
+                    className="pl-10 h-11 bg-muted/30 focus:bg-background transition-colors text-sm"
                   />
                 </div>
 
                 {/* My Communities */}
                 <div>
-                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4 px-2">
+                   <h3 className="ov-label mb-3 px-2">
                      {t("communities_feed.my_communities")}
                    </h3>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-1">
                       {communitiesLoading ? (
-                        Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-2xl" />)
+                        Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-md" />)
                       ) : myCommunities?.map((c) => (
                         <Link key={c.id} href={`/c/${c.slug}`}>
-                          <div className="flex items-center gap-3 p-3 rounded-2xl hover:bg-accent/50 cursor-pointer transition-all active:scale-95 group border border-transparent hover:border-border/40">
-                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary font-bold text-sm shadow-inner">
+                          <div className="ov-cut flex items-center gap-3 p-2.5 hover:bg-accent/50 cursor-pointer transition-colors group">
+                            <div className="ov-avatar h-10 w-10 bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary font-semibold text-sm">
                               {c.name.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                               <p className="text-sm font-bold truncate">{c.name}</p>
-                               <p className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">{c.role || "member"}</p>
+                               <p className="text-sm font-semibold truncate">{c.name}</p>
+                               <p className="ov-label">{c.role || "member"}</p>
                             </div>
                           </div>
                         </Link>
                       ))}
-                      
+
                       <Link href="/create-community">
-                        <Button variant="outline" className="w-full h-14 rounded-2xl border-dashed border-2 gap-2 font-bold text-xs uppercase tracking-widest mt-2">
+                        <Button variant="outline" className="w-full mt-2">
                           <Plus className="h-4 w-4" />
                           {t("communities_feed.create_button")}
                         </Button>
@@ -139,9 +147,9 @@ export default function CommunityFeedPage() {
                     />
                   </div>
                 ) : posts?.length === 0 ? (
-                  <div className="p-20 text-center rounded-[2rem] bg-white/5 border border-dashed border-white/10">
-                    <Users className="h-16 w-16 mx-auto text-muted-foreground/20 mb-4" />
-                    <h2 className="text-xl font-bold tracking-tight uppercase">{t("communities_feed.no_posts")}</h2>
+                  <div className="ov-panel p-10 md:p-12 text-center">
+                    <Users className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+                    <h2 className="font-display text-xl font-semibold">{t("communities_feed.no_posts")}</h2>
                     <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">{t("communities_feed.no_posts_desc")}</p>
                   </div>
                 ) : (
@@ -158,12 +166,12 @@ export default function CommunityFeedPage() {
           {/* Right Sidebar - Suggestions (Responsive visibility) */}
           <aside className="hidden xl:block w-80 flex-shrink-0 border-l border-border/40 p-8">
              <div className="sticky top-6">
-                <div className="p-6 rounded-[2rem] bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10 shadow-xl shadow-primary/5">
-                   <h3 className="font-black text-xs uppercase tracking-[0.2em] mb-4 text-primary">Discover Communities</h3>
-                   <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                <div className="ov-panel p-5">
+                   <h3 className="font-display text-lg font-semibold mb-2">Discover Communities</h3>
+                   <p className="text-sm text-muted-foreground leading-relaxed mb-5">
                      Find people with similar interests in over 1,000 topic areas. Join the conversation and share your passion.
                    </p>
-                   <Button variant="secondary" className="w-full rounded-xl font-bold text-[10px] uppercase tracking-widest h-10">
+                   <Button variant="secondary" className="w-full">
                       Explore All
                    </Button>
                 </div>

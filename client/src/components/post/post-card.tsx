@@ -82,26 +82,18 @@ export const PostCard = React.memo(function PostCard({
     <motion.article 
       initial="initial"
       animate="animate"
-      whileHover="whileHover"
       whileTap="whileTap"
       variants={{
         initial: { opacity: 0, y: 20 },
         animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-        whileHover: { y: -4, transition: { duration: 0.3 } },
         whileTap: { scale: 0.98, transition: { duration: 0.1 } }
       }}
       onMouseEnter={() => prefetchPost(post.id)}
       className={cn(
-        "group w-full glass-card transition-all duration-500",
-        isMediaVariant 
-          ? "rounded-[2.5rem] p-6" 
-          : "md:mb-6 md:rounded-[2rem] border-b md:border border-border/40 p-5 md:p-8",
-        "relative overflow-hidden"
+        "ov-panel ov-panel-hover group w-full overflow-hidden",
+        isMediaVariant ? "p-5 md:p-6" : "md:mb-6 p-5 md:p-6"
       )}
     >
-      {/* Premium Background Light Reflection */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-
       <div className={cn("flex gap-4", isMediaVariant ? "flex-col" : "flex-row")}>
         {/* AVATAR SECTION (Conditional for Default Variant) */}
         {!isMediaVariant && (
@@ -110,12 +102,12 @@ export const PostCard = React.memo(function PostCard({
               <div className="relative group/avatar">
                 <UserAvatar 
                   user={author} 
-                  className="h-14 w-14 rounded-2xl ring-4 ring-background shadow-xl transition-all group-hover/avatar:ring-primary/40 group-hover/avatar:scale-105" 
+                  className="h-12 w-12" 
                 />
-                <div className="absolute inset-0 rounded-2xl bg-primary/10 opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none" />
+                <div className="ov-avatar absolute inset-0 bg-primary/10 opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none" />
                 {author.role === 'owner' && (
-                  <div className="absolute -top-1 -right-1 bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full p-1 shadow-lg ring-2 ring-background nebula-glow">
-                    <BadgeCheck className="h-3.5 w-3.5 text-white" />
+                  <div className="absolute -top-1 -right-1 rounded-sm border border-star/40 bg-card p-0.5 text-star">
+                    <BadgeCheck className="h-3.5 w-3.5" />
                   </div>
                 )}
               </div>
@@ -130,17 +122,17 @@ export const PostCard = React.memo(function PostCard({
             <div className="flex items-center gap-3 min-w-0">
               {isMediaVariant && (
                 <Link href={`/users/${author.username}`}>
-                  <UserAvatar user={author} className="h-10 w-10 rounded-xl" />
+                  <UserAvatar user={author} className="h-10 w-10" />
                 </Link>
               )}
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <Link href={`/users/${author.username}`} className="font-black text-[14px] md:text-[15px] hover:text-primary transition-colors truncate tracking-tight">
+                  <Link href={`/users/${author.username}`} className="font-semibold text-[14px] md:text-[15px] hover:text-primary transition-colors truncate">
                     {author.username || "User"}
                   </Link>
-                  {author.verified && <BadgeCheck className="h-3.5 w-3.5 text-primary" />}
+                  {author.verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-star" />}
                 </div>
-                <div className="text-muted-foreground/60 text-[11px] font-medium flex items-center gap-1">
+                <div className="font-data text-xs text-muted-foreground flex items-center gap-1 min-w-0">
                   <span>@{author.username || "user"}</span>
                   <span>·</span>
                   <span className="truncate">
@@ -163,7 +155,7 @@ export const PostCard = React.memo(function PostCard({
             {post.title && post.title !== post.content && (
               <Link href={`/posts/${post.id}`}>
                 <h3 className={cn(
-                  "font-black tracking-tighter hover:text-primary transition-colors line-clamp-2 leading-tight",
+                  "font-display font-semibold hover:text-primary transition-colors line-clamp-2 leading-snug",
                   isMediaVariant ? "text-xl" : "text-lg md:text-xl"
                 )}>
                   {post.title}
@@ -172,7 +164,7 @@ export const PostCard = React.memo(function PostCard({
             )}
 
             <p className={cn(
-              "text-[15px] md:text-[16px] text-foreground/80 leading-relaxed break-words font-medium tracking-tight",
+              "text-[15px] md:text-[16px] text-foreground/80 leading-relaxed break-words",
               (compact || isMediaVariant) && "line-clamp-3"
             )}>
               {post.content}
@@ -183,17 +175,16 @@ export const PostCard = React.memo(function PostCard({
           {post.mediaUrl && !imageLoadError && (
             <motion.div 
               className={cn(
-                "overflow-hidden bg-muted/20 relative group/media mb-4",
-                "rounded-[2.5rem] border border-white/5 shadow-2xl",
+                "ov-cut-2 overflow-hidden rounded-xl bg-muted/30 relative group/media mb-4",
                 isMediaVariant ? "aspect-square" : "aspect-[16/10] md:aspect-auto min-h-[250px] max-h-[700px]",
-                isMediaVariant ? "order-first mb-8" : ""
+                isMediaVariant ? "order-first mb-5" : ""
               )}
             >
               {post.mediaType === "image" ? (
                 <img
                   src={`/uploads/${post.mediaUrl}`}
                   alt={post.title || "Post image"}
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover/media:scale-110"
+                  className="w-full h-full object-cover"
                   onError={() => setImageLoadError(true)}
                   loading="lazy"
                   decoding="async"
@@ -207,24 +198,23 @@ export const PostCard = React.memo(function PostCard({
                 />
               ) : null}
               
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/media:opacity-100 transition-opacity duration-500" />
-              <div className="absolute top-4 right-4 p-2 rounded-xl bg-black/20 backdrop-blur-md border border-white/20 opacity-0 group-hover/media:opacity-100 transition-all duration-500 translate-y-2 group-hover/media:translate-y-0">
-                {post.mediaType === "video" ? <Play className="h-4 w-4 text-white fill-white" /> : <ImageIcon className="h-4 w-4 text-white" />}
+              <div className="absolute top-3 right-3 rounded-sm bg-background/80 p-1.5 text-foreground opacity-0 group-hover/media:opacity-100 transition-opacity duration-300">
+                {post.mediaType === "video" ? <Play className="h-4 w-4 fill-current" /> : <ImageIcon className="h-4 w-4" />}
               </div>
             </motion.div>
           )}
 
           {imageLoadError && (
-            <div className="mb-4 p-8 rounded-[2rem] bg-muted/5 border border-dashed border-border/60 flex flex-col items-center justify-center gap-3 text-muted-foreground/40">
+            <div className="ov-cut-2 mb-4 p-8 rounded-xl bg-muted/30 flex flex-col items-center justify-center gap-3 text-muted-foreground/60">
               <ImageOff className="h-8 w-8" />
-              <span className="text-[10px] uppercase font-black tracking-[0.2em]">{t("media_feed.load_error")}</span>
+              <span className="ov-label">{t("media_feed.load_error")}</span>
             </div>
           )}
 
           {/* ACTION BAR */}
           <div className={cn(
             "flex items-center justify-between pt-4 -ml-2",
-            isMediaVariant ? "border-t border-white/5" : "border-t border-transparent"
+            isMediaVariant ? "border-t border-border" : "border-t border-transparent"
           )}>
             <div className="flex items-center gap-1">
               <ActionButton 
@@ -239,10 +229,10 @@ export const PostCard = React.memo(function PostCard({
                 count={post.reactions?.likes} 
                 label="Like"
                 active={post.userReaction?.isLike}
-                activeColor="text-red-500 fill-red-500 bg-red-500/5"
+                activeColor="text-destructive bg-destructive/10"
                 onClick={handleLike}
                 animate="like-pop"
-                className="hover:text-red-500 hover:bg-red-500/10"
+                className="hover:text-destructive hover:bg-destructive/10"
               />
             </div>
             <div className="flex items-center gap-1">
@@ -250,7 +240,7 @@ export const PostCard = React.memo(function PostCard({
                 icon={Bookmark} 
                 label="Save"
                 onClick={() => {}} 
-                className="hover:text-yellow-500 hover:bg-yellow-500/10"
+                className="hover:text-star hover:bg-star/10"
               />
               <ActionButton 
                 icon={Share2} 
@@ -260,7 +250,7 @@ export const PostCard = React.memo(function PostCard({
                     navigator.share({ title: post.title, text: post.content, url: window.location.origin + `/posts/${post.id}` });
                   }
                 }} 
-                className="hover:text-blue-500 hover:bg-blue-500/10"
+                className="hover:text-primary hover:bg-primary/10"
               />
             </div>
           </div>
@@ -305,8 +295,8 @@ function ActionButton({
 
   const Content = (
     <div className={cn(
-      "flex items-center gap-2 text-muted-foreground transition-all duration-150",
-      "rounded-full p-2 group-active:scale-90",
+      "ov-cut flex items-center gap-1.5 rounded-sm p-2 text-muted-foreground transition-colors duration-150",
+      "group-active:scale-95",
       active && activeColor,
       className
     )}>
@@ -316,7 +306,7 @@ function ActionButton({
         isAnimating && animate && `animate-${animate}`
       )} />
       {count !== undefined && count > 0 && (
-        <span className="text-xs md:text-sm tabular-nums font-medium">{count}</span>
+        <span className="ov-data text-xs md:text-sm">{count}</span>
       )}
     </div>
   );
@@ -348,7 +338,7 @@ function PostMenu({ post, isOwner, onDelete, reportType }: { post: any, isOwner:
       {isOwner && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
               <Trash2 className="h-4 w-4" />
             </Button>
           </AlertDialogTrigger>

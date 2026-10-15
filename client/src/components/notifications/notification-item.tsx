@@ -54,19 +54,19 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
     switch (notification.type) {
       case "like_post":
       case "like_comment":
-        return <Heart className="h-4 w-4 text-pink-500 fill-pink-500" />;
+        return <Heart className="h-4 w-4 text-star fill-star" />;
       case "comment_post":
       case "comment_reply":
-        return <MessageSquare className="h-4 w-4 text-blue-500" />;
+        return <MessageSquare className="h-4 w-4 text-primary" />;
       case "new_follower":
-        return <UserPlus className="h-4 w-4 text-green-500" />;
+        return <UserPlus className="h-4 w-4 text-primary" />;
       case "mention_post":
       case "mention_comment":
-        return <AtSign className="h-4 w-4 text-purple-500" />;
+        return <AtSign className="h-4 w-4 text-primary" />;
       case "community_join_approved":
-        return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-primary" />;
       case "community_join_request":
-        return <Users className="h-4 w-4 text-amber-500" />;
+        return <Users className="h-4 w-4 text-star" />;
       case "community_kick":
         return <ShieldAlert className="h-4 w-4 text-destructive" />;
       case "report_resolved":
@@ -106,7 +106,7 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
           <span className="text-muted-foreground">{content.replace(actorName, "").trim()}</span>
         </p>
         {notification.preview && (
-          <p className="text-xs text-muted-foreground line-clamp-1 italic italic-muted">
+          <p className="text-xs text-muted-foreground line-clamp-1 italic">
              "{notification.preview}"
           </p>
         )}
@@ -117,20 +117,20 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
   return (
     <div 
       className={cn(
-        "group relative flex items-start gap-3 px-4 py-3 transition-all cursor-pointer",
+        "group relative flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer",
         "hover:bg-accent/50 active:bg-accent/70",
         !notification.read && "bg-primary/5"
       )}
       onClick={handleAction}
     >
-      {/* Indicator Line */}
+      {/* Unread indicator dot */}
       {!notification.read && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
+        <span aria-hidden="true" className="absolute left-1.5 top-[30px] h-1.5 w-1.5 rounded-full bg-primary" />
       )}
 
       <div className="relative flex-shrink-0">
         <UserAvatar user={{ username: notification.actor?.username || "U" }} size="sm" className="h-10 w-10 md:h-11 md:w-11" />
-        <div className="absolute -bottom-1 -right-1 rounded-full bg-background p-1 shadow-sm border border-border/40 scale-90">
+        <div className="absolute -bottom-1 -right-1 rounded-sm bg-background p-1 border border-border scale-90">
           {getIcon()}
         </div>
       </div>
@@ -138,7 +138,7 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         <div className="flex items-center justify-between gap-2">
            {getContent()}
-           <span className="text-[10px] text-muted-foreground whitespace-nowrap tabular-nums">
+           <span className="ov-data text-[11px] text-muted-foreground whitespace-nowrap">
               {formatDistanceToNow(new Date(notification.createdAt), {
                 addSuffix: false,
                 locale: locales[i18n.language] || locales.en
@@ -150,7 +150,7 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
            <Button 
              variant="ghost" 
              size="sm" 
-             className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider"
+             className="h-7 px-2 text-xs"
              onClick={(e) => {
                e.stopPropagation();
                deleteNotification.mutate(notification.id);

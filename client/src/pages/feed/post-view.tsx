@@ -7,7 +7,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -217,8 +216,8 @@ export default function PostViewPage() {
                         >
                           {post.author.username}
                         </Link>
-                        {post.author.verified && <BadgeCheck className="h-4 w-4 text-primary" />}
-                        <span className="text-xs lg:text-sm text-muted-foreground">
+                        {post.author.verified && <BadgeCheck className="h-4 w-4 shrink-0 text-star" />}
+                        <span className="font-data text-xs text-muted-foreground">
                           {" • "}
                           {format(new Date(post.createdAt), "PPP")}
                         </span>
@@ -226,9 +225,9 @@ export default function PostViewPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-primary text-xs lg:text-sm">
+                    <span className="ov-chip ov-chip-primary">
                       {post.category}
-                    </Badge>
+                    </span>
                     {post.author.id !== user?.id && (
                       <Button
                         variant={post.author.isFollowing ? "default" : "outline"}
@@ -253,13 +252,13 @@ export default function PostViewPage() {
                 <p className="text-sm lg:text-base whitespace-pre-wrap mb-4">{post.content}</p>
 
                 {post.mediaUrl && !imageLoadError && (
-                  <div className="mt-4 rounded-lg overflow-hidden bg-muted/10">
+                  <div className="ov-cut-2 mt-4 rounded-xl overflow-hidden bg-muted/20">
                     {post.mediaType === "image" ? (
                       <div className="flex items-center justify-center min-h-[200px] max-h-[500px] bg-muted/5">
                         <img
                           src={`/uploads/${post.mediaUrl}`}
                           alt={post.title || "Post image"}
-                          className="max-w-full h-auto max-h-[500px] rounded-lg"
+                          className="max-w-full h-auto max-h-[500px]"
                           onError={() => setImageLoadError(true)}
                           loading="lazy"
                         />
@@ -269,7 +268,7 @@ export default function PostViewPage() {
                         <video
                           src={`/uploads/${post.mediaUrl}`}
                           controls
-                          className="max-w-full max-h-[500px] rounded-lg"
+                          className="max-w-full max-h-[500px]"
                           onError={() => setImageLoadError(true)}
                         />
                       </div>
@@ -278,14 +277,14 @@ export default function PostViewPage() {
                 )}
 
                 {imageLoadError && (
-                  <div className="mt-4 p-4 rounded-lg bg-muted/10 flex items-center justify-center gap-2 text-muted-foreground">
+                  <div className="ov-cut-2 mt-4 p-4 rounded-xl bg-muted/20 flex items-center justify-center gap-2 text-muted-foreground">
                     <ImageOff className="h-5 w-5" />
-                    <span>Media failed to load</span>
+                    <span>{t("media_feed.load_error", "Media failed to load")}</span>
                   </div>
                 )}
 
                 <div className="mt-6 space-y-4">
-                  <h3 className="text-sm lg:text-base font-semibold flex items-center gap-2">
+                  <h3 className="font-display text-lg font-semibold flex items-center gap-2">
                     <MessageCircle className="h-4 w-4" />
                     {t("comments.title")}
                   </h3>
@@ -321,7 +320,7 @@ export default function PostViewPage() {
 
                   <div className="space-y-3">
                     {post.comments?.map((comment) => (
-                      <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
+                      <div key={comment.id} className="ov-panel p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 min-w-0">
                             <Link
@@ -334,15 +333,15 @@ export default function PostViewPage() {
                               <div className="flex items-center gap-1">
                                 <Link
                                   href={`/users/${comment.author.username}`}
-                                  className="text-xs lg:text-sm font-medium hover:underline"
+                                  className="text-xs lg:text-sm font-semibold hover:underline"
                                 >
                                   {comment.author.username}
                                 </Link>
                                 {comment.author.verified && (
-                                  <BadgeCheck className="h-4 w-4 text-primary" />
+                                  <BadgeCheck className="h-4 w-4 shrink-0 text-star" />
                                 )}
                               </div>
-                              <span className="text-xs text-muted-foreground block">
+                              <span className="font-data text-xs text-muted-foreground block">
                                 {format(new Date(comment.createdAt), "PPp")}
                               </span>
                             </div>
@@ -358,7 +357,7 @@ export default function PostViewPage() {
                               <Heart
                                 className={`h-4 w-4 mr-1 ${comment.isLiked ? "fill-current" : ""}`}
                               />
-                              <span className="text-xs">{comment.likes}</span>
+                              <span className="ov-data text-xs">{comment.likes}</span>
                             </Button>
                             {(comment.author.username === user?.username ||
                               user?.role === "owner" ||
@@ -414,7 +413,7 @@ export default function PostViewPage() {
                     <ThumbsUp
                       className={`h-4 w-4 mr-1 ${post.userVote?.isLike ? "fill-current" : ""}`}
                     />
-                    <span className="text-xs lg:text-sm">{post.likes > 0 ? post.likes : 0}</span>
+                    <span className="ov-data text-xs lg:text-sm">{post.likes > 0 ? post.likes : 0}</span>
                   </Button>
                   <Button
                     variant={post.userVote?.isLike === false ? "default" : "ghost"}

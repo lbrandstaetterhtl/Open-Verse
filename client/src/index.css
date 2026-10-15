@@ -55,11 +55,13 @@
     --input: 228 22% 84%;
     --ring: 262 70% 52%;
     --star: 30 90% 32%;
-    --chart-1: 262 70% 52%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --success: 152 70% 26%;
+    /* Charts follow the theme colours, so a custom palette recolours them too. */
+    --chart-1: var(--primary);
+    --chart-2: var(--star);
+    --chart-3: var(--success);
+    --chart-4: var(--destructive);
+    --chart-5: var(--muted-foreground);
 
     /* Shape: "fase" cuts two corners by --cut; "kante" and "rund" only use the radii. */
     --radius: 2px;
@@ -104,6 +106,7 @@
     --input: 232 39% 24%;
     --ring: 264 100% 74%;
     --star: 38 100% 74%;
+    --success: 152 55% 50%;
   }
 
   /* Dark background is handled by ThemeBackground component and applyTheme() */
@@ -237,9 +240,11 @@
     background-color: hsl(var(--primary) / 0.1);
   }
 
-  html[data-blur="on"] .ov-panel,
-  html[data-blur="on"] .glass-premium,
-  html[data-blur="on"] .glass-card {
+  .ov-panel-danger {
+    --ov-line: hsl(var(--destructive) / 0.5);
+  }
+
+  html[data-blur="on"] .ov-panel {
     -webkit-backdrop-filter: blur(var(--surface-blur));
     backdrop-filter: blur(var(--surface-blur));
   }
@@ -306,8 +311,10 @@
     border-radius: 9999px;
   }
 
-  /* Small uppercase label in the data font: eyebrows, column heads, section labels. */
-  .ov-label {
+  /* Small uppercase label in the data font: eyebrows, column heads, section labels.
+     label.ov-label outranks the text-sm/leading-none utilities the Label component adds. */
+  .ov-label,
+  label.ov-label {
     font-family: var(--font-data);
     font-size: 11px;
     line-height: 1.3;
@@ -356,9 +363,9 @@
   }
 
   .ov-chip-success {
-    color: hsl(152 55% 45%);
-    background-color: hsl(152 55% 45% / 0.08);
-    box-shadow: inset 0 0 0 1px hsl(152 55% 45% / 0.4);
+    color: hsl(var(--success));
+    background-color: hsl(var(--success) / 0.08);
+    box-shadow: inset 0 0 0 1px hsl(var(--success) / 0.45);
   }
 
   /* Selected tab / segment: tinted fill plus an accent baseline. */
@@ -377,6 +384,16 @@
 
   .ov-rule {
     box-shadow: inset 0 -1px 0 hsl(var(--border));
+  }
+
+  /* These classes draw their lines with box-shadow, which would replace the base focus ring in every shape. */
+  .ov-panel:focus-visible,
+  .ov-avatar:focus-visible,
+  .ov-chip:focus-visible,
+  .ov-tab-active:focus-visible,
+  .ov-nav-active:focus-visible,
+  .ov-rule:focus-visible {
+    box-shadow: inset 0 0 0 2px hsl(var(--ring));
   }
 
   /* Star-chart coordinate grid. */
@@ -404,66 +421,7 @@
   }
 }
 
-/* ── Legacy utility names, mapped onto the Sternkarte look ─────────────────── */
-
-@layer utilities {
-  .glass-premium,
-  .glass-card {
-    background-color: hsl(var(--card) / var(--surface-opacity));
-    box-shadow: inset 0 0 0 1px hsl(var(--border));
-  }
-
-  .glass-input {
-    background-color: hsl(var(--background) / 0.6);
-    border: 1px solid hsl(var(--input));
-    border-radius: var(--radius-sm);
-    transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
-  }
-
-  .glass-input:focus,
-  .glass-input:focus-within {
-    border-color: hsl(var(--primary) / 0.6);
-    background-color: hsl(var(--background) / 0.8);
-  }
-
-  .nebula-banner {
-    position: relative;
-    overflow: hidden;
-    background-color: hsl(var(--card) / var(--surface-opacity));
-    box-shadow: inset 0 0 0 1px hsl(var(--border));
-  }
-
-  .italic-primary {
-    font-style: normal;
-    color: hsl(var(--primary));
-  }
-
-  .nav-blur {
-    background-color: hsl(var(--background) / 0.9);
-    box-shadow: inset 0 -1px 0 hsl(var(--border));
-  }
-
-  .active-glow {
-    box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.5);
-  }
-
-  .nebula-glow {
-    position: relative;
-  }
-}
-
 /* ── Motion ──────────────────────────────────────────── */
-
-@keyframes drift {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  33% { transform: translate(4px, 6px) rotate(0.8deg); }
-  66% { transform: translate(-2px, 4px) rotate(-0.8deg); }
-  100% { transform: translate(0, 0) rotate(0deg); }
-}
-
-.weightless-float {
-  animation: drift 12s ease-in-out infinite;
-}
 
 main {
   animation: pageEnter 240ms var(--ease-standard);

@@ -18,9 +18,9 @@ export function MutualFollowers({ followers }: MutualFollowersProps) {
     <div className="flex items-center gap-2 mt-4">
       <div className="flex -space-x-2">
         {displayFollowers.map((user, i) => (
-          <div 
-            key={user.id} 
-            className="ring-2 ring-background rounded-full overflow-hidden transition-transform hover:scale-110"
+          <div
+            key={user.id}
+            className="ov-avatar bg-background p-0.5"
             style={{ zIndex: displayFollowers.length - i }}
           >
             <UserAvatar user={user} className="h-6 w-6" />

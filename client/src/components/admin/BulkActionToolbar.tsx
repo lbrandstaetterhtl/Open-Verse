@@ -28,12 +28,11 @@ export function BulkActionToolbar({ type, count, onAction, onClear }: BulkAction
   return (
     <div className={cn(
       "fixed bottom-6 left-1/2 -translate-x-1/2 z-50",
-      "flex items-center gap-3 px-4 py-3 rounded-2xl",
-      "bg-card border shadow-2xl backdrop-blur-sm",
+      "ov-panel ov-panel-solid flex items-center gap-3 px-4 py-3",
       "animate-in slide-in-from-bottom-4 duration-300"
     )}>
-      <span className="text-sm font-bold text-muted-foreground pr-2 border-r">
-        {count} selected
+      <span className="text-sm text-muted-foreground pr-3 border-r border-border">
+        <span className="ov-data font-semibold text-foreground">{count}</span> selected
       </span>
       <div className="flex items-center gap-2">
         {actions.map((action) => (
@@ -41,7 +40,7 @@ export function BulkActionToolbar({ type, count, onAction, onClear }: BulkAction
             key={action.id}
             size="sm"
             variant={action.variant}
-            className="h-8 text-xs font-bold gap-1.5"
+            className="h-8 text-xs gap-1.5"
             onClick={() => onAction(action.id)}
           >
             <action.icon className="h-3.5 w-3.5" />

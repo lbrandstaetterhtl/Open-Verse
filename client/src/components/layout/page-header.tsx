@@ -37,7 +37,7 @@ export function PageHeader({ eyebrow, title, description, actions, children, cla
       <div className="relative flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-2">
           {eyebrow && <span className="ov-label">{eyebrow}</span>}
-          <h1 className="font-display text-[32px] font-semibold leading-none tracking-[-0.01em] md:text-[40px]">{title}</h1>
+          <h1 className="font-display text-[32px] font-semibold leading-[1.1] tracking-[-0.01em] [overflow-wrap:anywhere] md:text-[40px]">{title}</h1>
           {description && <p className="max-w-prose text-[15px] leading-relaxed text-muted-foreground">{description}</p>}
         </div>
         {actions && <div className="relative flex flex-wrap items-center gap-3">{actions}</div>}

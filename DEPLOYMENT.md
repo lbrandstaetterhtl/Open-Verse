@@ -93,9 +93,14 @@ docker compose down -v
 
 ```bash
 git pull
-docker compose build app
+docker compose build --no-cache
 docker compose up -d
 ```
+
+Daten (Datenbank-Volume `postgres_data`, Uploads-Volume `uploads_data`) bleiben dabei erhalten; Migrationen laufen beim Start automatisch. Gespeicherte Themes der Nutzer werden im Browser auf das neue Design umgestellt, eigene Farben bleiben erhalten.
+
+> [!IMPORTANT]
+> **Einmalig beim Upgrade von einer Version vor Oktober 2026:** Falls du dich bisher als `testadmin` eingeloggt hast, setze vor `docker compose up -d` in `.env` `INITIAL_OWNER_USERNAME` und `INITIAL_OWNER_PASSWORD` (siehe Abschnitt 4). Sonst hast du nach dem Upgrade keinen Owner-Zugang mehr, weil das öffentlich bekannte `testadmin`-Passwort deaktiviert wird.
 
 ---
 

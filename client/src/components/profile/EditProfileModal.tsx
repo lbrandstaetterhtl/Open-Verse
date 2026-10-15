@@ -3,11 +3,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
 import { z } from "zod";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeIn, scaleIn } from "@/lib/animations";
 import { cn } from "@/lib/utils";
+import { Constellation } from "@/components/layout/page-header";
 
 interface EditProfileModalProps {
   user: User;
@@ -51,7 +52,7 @@ export function EditProfileModal({
   const { t } = useTranslation();
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
-  
+
   // Create a form-specific schema that allows boolean for the switch
   const formSchema = updateProfileSchema.extend({
     isPrivate: z.boolean().optional(),
@@ -81,7 +82,7 @@ export function EditProfileModal({
       ...data,
       isPrivate: data.isPrivate ? 1 : 0
     };
-    
+
     onSubmit(processedData as any);
     // The parent now handles closing, but we call it here too to be safe
     onClose();
@@ -89,19 +90,18 @@ export function EditProfileModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[700px] overflow-hidden p-0 rounded-[2.5rem] border border-white/10 shadow-2xl glass-premium">
-        <div className="bg-gradient-to-br from-primary/15 via-accent/5 to-transparent p-10 pb-6 relative overflow-hidden">
-          <div className="absolute inset-0 nebula-banner opacity-20 pointer-events-none" />
-          <div className="absolute inset-0 starfield opacity-10 pointer-events-none" />
-          
-          <DialogHeader className="relative z-10">
-            <DialogTitle className="text-4xl font-black tracking-tighter flex items-center gap-4">
-              <div className="h-14 w-14 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30 nebula-glow">
-                <UserIcon className="h-7 w-7 text-primary-foreground" />
+      <DialogContent className="sm:max-w-[700px] overflow-hidden p-0">
+        <div className="px-6 pt-6 md:px-8 md:pt-8 relative overflow-hidden">
+          <Constellation className="absolute right-12 top-2 hidden h-16 w-auto max-w-[45%] opacity-70 sm:block" />
+
+          <DialogHeader className="relative">
+            <DialogTitle className="font-display text-2xl font-semibold leading-tight tracking-normal flex items-center gap-3">
+              <div className="ov-cut h-10 w-10 shrink-0 bg-primary/10 flex items-center justify-center">
+                <UserIcon className="h-5 w-5 text-primary" />
               </div>
               {t('profile.edit_title')}
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground font-medium text-lg mt-2">
+            <DialogDescription className="text-[15px] text-muted-foreground mt-1">
               {t('profile.edit_description')}
             </DialogDescription>
           </DialogHeader>
@@ -111,24 +111,24 @@ export function EditProfileModal({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)}>
               <Tabs defaultValue="general" className="w-full">
-                <div className="px-10 border-b border-white/5 bg-white/5">
-                  <TabsList className="bg-transparent h-16 w-full justify-start gap-8 p-0">
-                    <TabsTrigger value="general" className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-black text-xs uppercase tracking-[0.2em] transition-all">
+                <div className="ov-rule px-6 md:px-8">
+                  <TabsList className="h-12 w-full justify-start gap-1 rounded-none bg-transparent p-0 shadow-none">
+                    <TabsTrigger value="general" className="h-full rounded-none px-3">
                       <Info className="w-4 h-4 mr-2" />
                       {t('admin.tabs.users')}
                     </TabsTrigger>
-                    <TabsTrigger value="appearance" className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-black text-xs uppercase tracking-[0.2em] transition-all">
+                    <TabsTrigger value="appearance" className="h-full rounded-none px-3">
                       <Palette className="w-4 h-4 mr-2" />
                       Appearance
                     </TabsTrigger>
-                    <TabsTrigger value="privacy" className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-black text-xs uppercase tracking-[0.2em] transition-all">
+                    <TabsTrigger value="privacy" className="h-full rounded-none px-3">
                       <Shield className="w-4 h-4 mr-2" />
                       Privacy
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
-                <div className="p-10 h-[450px] overflow-y-auto scrollbar-none">
+                <div className="p-6 md:p-8 h-[450px] overflow-y-auto scrollbar-none">
                   <AnimatePresence mode="wait">
                     <TabsContent value="general" className="mt-0 space-y-8 outline-none">
                       <motion.div variants={fadeIn} initial="initial" animate="animate" className="space-y-8">
@@ -138,12 +138,12 @@ export function EditProfileModal({
                           name="displayName"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">
+                              <FormLabel className="ov-label flex items-center gap-2 text-[11px]">
                                 <AtSign className="h-3 w-3" />
                                 {t('profile.form.name')}
                               </FormLabel>
                               <FormControl>
-                                <Input placeholder="John Doe" {...field} className="glass-input h-14 rounded-2xl px-6 font-bold text-base border-white/10" />
+                                <Input placeholder="John Doe" {...field} className="h-11 px-4" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -156,15 +156,15 @@ export function EditProfileModal({
                           name="bio"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">{t('profile.form.bio')}</FormLabel>
+                              <FormLabel className="ov-label text-[11px]">{t('profile.form.bio')}</FormLabel>
                               <FormControl>
-                                <Textarea 
-                                  placeholder={t('profile.form.bio_placeholder')} 
-                                  className="glass-input resize-none rounded-3xl p-6 font-medium min-h-[140px] border-white/10 leading-relaxed" 
-                                  {...field} 
+                                <Textarea
+                                  placeholder={t('profile.form.bio_placeholder')}
+                                  className="resize-none p-4 min-h-[140px] leading-relaxed"
+                                  {...field}
                                 />
                               </FormControl>
-                              <FormDescription className="text-[10px] font-bold opacity-40 uppercase tracking-widest pl-2">
+                              <FormDescription className="text-xs">
                                 {t('profile.form.bio_description')}
                               </FormDescription>
                               <FormMessage />
@@ -179,12 +179,12 @@ export function EditProfileModal({
                             name="location"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">
+                                <FormLabel className="ov-label flex items-center gap-2 text-[11px]">
                                   <MapPin className="h-3 w-3" />
                                   {t('profile.form.location')}
                                 </FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Berlin, Germany" {...field} className="glass-input h-14 rounded-2xl px-6 font-bold text-sm border-white/10" />
+                                  <Input placeholder="Berlin, Germany" {...field} className="h-11 px-4" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -195,12 +195,12 @@ export function EditProfileModal({
                             name="website"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">
+                                <FormLabel className="ov-label flex items-center gap-2 text-[11px]">
                                   <Globe className="h-3 w-3" />
                                   {t('profile.form.website')}
                                 </FormLabel>
                                 <FormControl>
-                                  <Input placeholder="example.com" {...field} className="glass-input h-14 rounded-2xl px-6 font-bold text-sm border-white/10" />
+                                  <Input placeholder="example.com" {...field} className="h-11 px-4" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -218,63 +218,64 @@ export function EditProfileModal({
                           name="avatarUrl"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">
+                              <FormLabel className="ov-label flex items-center gap-2 text-[11px]">
                                 <Camera className="h-3 w-3" />
                                 Profile Picture
                               </FormLabel>
-                              <div className="flex items-center gap-6 p-6 rounded-[2rem] border border-white/5 bg-white/5">
-                                <div className="h-24 w-24 rounded-3xl border-2 border-white/10 overflow-hidden bg-white/5 shadow-2xl relative group">
+                              <div className="ov-panel flex items-center gap-6 p-5">
+                                <div className="ov-avatar h-24 w-24 shrink-0 bg-muted relative group">
                                   {isUploadingAvatar ? (
-                                    <div className="w-full h-full flex items-center justify-center bg-black/40">
+                                    <div className="w-full h-full flex items-center justify-center bg-background/60">
                                       <Loader2 className="h-8 w-8 text-primary animate-spin" />
                                     </div>
                                   ) : field.value ? (
-                                    <img src={field.value} alt="Avatar Preview" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                    <img src={field.value} alt="Avatar Preview" className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
                                       <UserIcon className="h-10 w-10" />
                                     </div>
                                   )}
-                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
-                                    <Camera className="h-6 w-6 text-white" />
+                                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
+                                    <Camera className="h-6 w-6 text-foreground" />
                                   </div>
                                 </div>
                                 <div className="flex-1 space-y-3">
                                   <div className="flex gap-3">
-                                    <Button 
-                                      type="button" 
-                                      variant="outline" 
-                                      className="rounded-xl h-10 px-4 text-[10px] font-black uppercase tracking-widest border-white/10"
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
                                       onClick={() => document.getElementById('avatar-upload')?.click()}
                                     >
                                       Change Avatar
                                     </Button>
                                     {field.value && (
-                                      <Button 
-                                        type="button" 
-                                        variant="ghost" 
-                                        className="rounded-xl h-10 px-4 text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300"
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                         onClick={() => field.onChange("")}
                                       >
                                         Remove
                                       </Button>
                                     )}
                                   </div>
-                                  <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">JPG, PNG or WebP. Max 2MB.</p>
+                                  <p className="text-xs text-muted-foreground">JPG, PNG or WebP. Max 2MB.</p>
                                 </div>
-                                <input 
-                                  id="avatar-upload" 
-                                  type="file" 
-                                  accept="image/jpeg,image/png,image/webp" 
-                                  className="hidden" 
+                                <input
+                                  id="avatar-upload"
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  className="hidden"
                                   onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
-                                    
+
                                     const formData = new FormData();
                                     formData.append("image", file);
                                     formData.append("type", "avatar");
-                                    
+
                                     setIsUploadingAvatar(true);
                                     try {
                                       const res = await apiRequest("POST", "/api/profile-upload", formData);
@@ -299,62 +300,62 @@ export function EditProfileModal({
                           name="coverUrl"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 pl-2">
+                              <FormLabel className="ov-label flex items-center gap-2 text-[11px]">
                                 <ImageIcon className="h-3 w-3" />
                                 Cover Image
                               </FormLabel>
                               <div className="space-y-4">
-                                <div 
-                                  className="relative rounded-[2rem] border border-white/5 bg-white/5 overflow-hidden aspect-[3/1] group cursor-pointer"
+                                <div
+                                  className="ov-cut-2 relative bg-muted/60 overflow-hidden aspect-[3/1] group cursor-pointer"
                                   onClick={() => document.getElementById('cover-upload')?.click()}
                                 >
                                   {isUploadingCover ? (
-                                    <div className="w-full h-full flex flex-col items-center justify-center bg-black/40 gap-3">
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-background/60 gap-3">
                                       <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Uploading...</span>
+                                      <span className="ov-label text-primary">Uploading...</span>
                                     </div>
                                   ) : field.value ? (
-                                    <img src={field.value} alt="Cover Preview" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                    <img src={field.value} alt="Cover Preview" className="w-full h-full object-cover" />
                                   ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/20 gap-2">
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/40 gap-2">
                                       <ImageIcon className="h-12 w-12" />
-                                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Upload Banner</span>
+                                      <span className="ov-label">Upload Banner</span>
                                     </div>
                                   )}
-                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 flex items-center gap-3">
-                                      <Camera className="h-4 w-4" />
-                                      <span className="text-xs font-black uppercase tracking-widest">Update Banner</span>
+                                  <div className="absolute inset-0 bg-background/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="ov-chip bg-background text-foreground">
+                                      <Camera className="h-3.5 w-3.5" />
+                                      <span>Update Banner</span>
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex justify-between items-center px-4">
-                                  <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">Recommended: 1500x500px</p>
+                                <div className="flex justify-between items-center px-1">
+                                  <p className="text-xs text-muted-foreground">Recommended: <span className="ov-data">1500x500px</span></p>
                                   {field.value && (
-                                    <Button 
-                                      type="button" 
-                                      variant="ghost" 
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
                                       size="sm"
-                                      className="h-8 text-[10px] font-black uppercase tracking-widest text-red-400"
+                                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                       onClick={(e) => { e.stopPropagation(); field.onChange(""); }}
                                     >
                                       Remove Banner
                                     </Button>
                                   )}
                                 </div>
-                                <input 
-                                  id="cover-upload" 
-                                  type="file" 
-                                  accept="image/jpeg,image/png,image/webp" 
-                                  className="hidden" 
+                                <input
+                                  id="cover-upload"
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  className="hidden"
                                   onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
-                                    
+
                                     const formData = new FormData();
                                     formData.append("image", file);
                                     formData.append("type", "cover");
-                                    
+
                                     setIsUploadingCover(true);
                                     try {
                                       const res = await apiRequest("POST", "/api/profile-upload", formData);
@@ -381,15 +382,15 @@ export function EditProfileModal({
                           control={form.control}
                           name="isPrivate"
                           render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-[2rem] border border-white/5 p-8 bg-white/5 group transition-all hover:bg-white/10">
+                            <FormItem className="ov-panel flex flex-row items-center justify-between gap-6 p-6">
                               <div className="space-y-2">
-                                <FormLabel className="flex items-center gap-3 text-lg font-black tracking-tight">
-                                  <div className="h-10 w-10 rounded-xl bg-background flex items-center justify-center border border-white/10">
+                                <FormLabel className="flex items-center gap-3 font-display text-lg font-semibold">
+                                  <div className="ov-cut h-10 w-10 shrink-0 bg-primary/10 flex items-center justify-center">
                                     <Lock className="h-5 w-5 text-primary" />
                                   </div>
                                   {t('profile.form.privacy')}
                                 </FormLabel>
-                                <FormDescription className="text-sm font-medium text-muted-foreground/80 pl-[52px]">
+                                <FormDescription className="text-sm pl-[52px]">
                                   {t('profile.form.privacy_description')}
                                 </FormDescription>
                               </div>
@@ -397,7 +398,6 @@ export function EditProfileModal({
                                 <Switch
                                   checked={!!field.value}
                                   onCheckedChange={field.onChange}
-                                  className="data-[state=checked]:bg-primary scale-125"
                                 />
                               </FormControl>
                             </FormItem>
@@ -409,12 +409,12 @@ export function EditProfileModal({
                 </div>
               </Tabs>
 
-              <div className="p-10 pt-6 bg-white/5 border-t border-white/5 flex justify-end gap-4">
-                <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting} className="rounded-full px-8 h-14 font-black text-xs uppercase tracking-[0.2em] hover:bg-white/5">
+              <div className="px-6 md:px-8 py-4 border-t border-border flex justify-end gap-3">
+                <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
                   {t('common.cancel')}
                 </Button>
-                <Button type="submit" disabled={isSubmitting} className="rounded-full px-12 h-14 font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all nebula-glow">
-                  {isSubmitting ? <Loader2 className="mr-3 h-5 w-5 animate-spin" /> : <Shield className="mr-3 h-5 w-5" />}
+                <Button type="submit" disabled={isSubmitting} className="px-6">
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
                   {t('common.save')}
                 </Button>
               </div>

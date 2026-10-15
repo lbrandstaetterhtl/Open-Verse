@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { 
-  Settings, 
   Users, 
   Shield, 
   Mail, 
@@ -19,12 +18,12 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -82,13 +81,11 @@ export default function AdminSettingsPage() {
   return (
     <AdminLayout>
       <div className="space-y-8 animate-in fade-in duration-500 pb-12">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
-            <Settings className="h-8 w-8 text-primary" />
-            Admin Settings
-          </h2>
-          <p className="text-muted-foreground font-medium">Configure global system behavior and interface defaults.</p>
-        </div>
+        <PageHeader
+          eyebrow={t("admin.settings_eyebrow", "Admin / Settings")}
+          title="Admin Settings"
+          description="Configure global system behavior and interface defaults."
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Category Sidebar */}
@@ -97,7 +94,7 @@ export default function AdminSettingsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Search settings..." 
-                className="pl-10 bg-card border-none h-10 shadow-sm"
+                className="h-10 pl-10"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -108,15 +105,15 @@ export default function AdminSettingsPage() {
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all border border-transparent",
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-0",
                     activeCategory === cat.id 
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 -translate-x-1" 
-                      : "text-muted-foreground hover:bg-card hover:border-muted hover:text-foreground"
+                      ? "ov-nav-active ov-cut" 
+                      : "text-muted-foreground hover:bg-card hover:text-foreground"
                   )}
                 >
                   <cat.icon className="h-4 w-4" />
                   {cat.label}
-                  {activeCategory === cat.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground/40" />}
+                  {activeCategory === cat.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
                 </button>
               ))}
             </nav>
@@ -125,42 +122,42 @@ export default function AdminSettingsPage() {
           {/* Settings Content */}
           <div className="lg:col-span-9 space-y-6">
              <div className="mb-6">
-                <h3 className="text-xl font-black tracking-tight mb-1">{CATEGORIES.find(c => c.id === activeCategory)?.label}</h3>
+                <h3 className="font-display text-xl font-semibold mb-1">{CATEGORIES.find(c => c.id === activeCategory)?.label}</h3>
                 <p className="text-sm text-muted-foreground font-medium">{CATEGORIES.find(c => c.id === activeCategory)?.description}</p>
              </div>
 
              <div className="space-y-4">
                {isLoading ? (
                  [...Array(3)].map((_, i) => (
-                    <Card key={i} className="border-none shadow-sm"><CardContent className="p-6"><Skeleton className="h-20 w-full" /></CardContent></Card>
+                    <Card key={i}><CardContent className="p-6"><Skeleton className="h-20 w-full" /></CardContent></Card>
                  ))
                ) : filteredSettings.length === 0 ? (
-                 <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl gap-3">
-                    <div className="p-4 rounded-2xl bg-muted/50 text-muted-foreground">
+                 <div className="ov-panel h-64 flex flex-col items-center justify-center gap-3">
+                    <div className="ov-cut-2 p-4 bg-muted/50 text-muted-foreground">
                        <Search className="h-10 w-10" />
                     </div>
-                    <p className="text-muted-foreground font-bold leading-tight text-center">No settings found in this category.</p>
+                    <p className="text-muted-foreground font-semibold leading-tight text-center">No settings found in this category.</p>
                  </div>
                ) : (
                  filteredSettings.map((setting) => (
-                   <Card key={setting.id} className="border-none shadow-sm bg-card hover:bg-card/80 transition-colors duration-300">
+                   <Card key={setting.id}>
                      <CardContent className="p-6">
                         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                           <div className="flex-1 space-y-1">
                              <div className="flex items-center gap-2">
-                                <label className="text-sm font-black uppercase tracking-widest text-foreground leading-none">
+                                <label className="text-sm font-semibold text-foreground leading-none">
                                   {setting.label}
                                 </label>
-                                {Boolean(setting.isSensitive) && <Badge variant="outline" className="text-[9px] font-black tracking-tighter uppercase px-1.5 py-0 h-4 bg-orange-500/10 text-orange-500 border-none">Sensitive</Badge>}
-                                {Boolean(setting.isReadonly) && <Badge variant="outline" className="text-[9px] font-black tracking-tighter uppercase px-1.5 py-0 h-4 bg-muted text-muted-foreground border-none">Readonly</Badge>}
+                                {Boolean(setting.isSensitive) && <div className="ov-chip ov-chip-star h-5 px-2 text-[11px]">Sensitive</div>}
+                                {Boolean(setting.isReadonly) && <div className="ov-chip h-5 px-2 text-[11px]">Readonly</div>}
                              </div>
                              <p className="text-xs text-muted-foreground font-medium max-w-md">{setting.description || "No description provided for this configuration value."}</p>
                              <div className="flex items-center gap-4 pt-2">
-                               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full font-bold">
+                               <div className="ov-chip h-6 px-2 text-[11px]">
                                   <Clock className="h-3 w-3" />
-                                  Last saved: {format(new Date(setting.updatedAt), "PP")}
+                                  Last saved: <span className="font-data">{format(new Date(setting.updatedAt), "PP")}</span>
                                </div>
-                               <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1">
+                               <button className="text-xs font-semibold capitalize text-primary hover:underline flex items-center gap-1">
                                   <RotateCcw className="h-2.5 w-2.5" /> reset
                                 </button>
                              </div>
@@ -168,7 +165,7 @@ export default function AdminSettingsPage() {
                           
                           <div className="shrink-0 flex items-center justify-end">
                              {setting.isReadonly ? (
-                               <div className="bg-muted p-2 rounded px-4 text-xs font-mono font-bold text-muted-foreground border italic">
+                               <div className="bg-muted py-2 px-4 rounded-sm border border-border font-data text-xs font-semibold text-muted-foreground">
                                  {setting.value}
                                 </div>
                              ) : (
@@ -189,12 +186,12 @@ export default function AdminSettingsPage() {
 
              {/* Danger Zone */}
              {activeCategory === "security" && (
-                <div className="mt-12 p-6 rounded-3xl border-2 border-red-500/20 bg-red-500/5 space-y-4">
-                  <div className="flex items-center gap-3 text-red-500">
+                <div className="ov-panel mt-12 p-6 space-y-4 bg-destructive/5 [--ov-line:hsl(var(--destructive)/0.4)]">
+                  <div className="flex items-center gap-3 text-destructive">
                     <AlertTriangle className="h-6 w-6" />
-                    <h4 className="text-lg font-black tracking-tight">System Security Danger Zone</h4>
+                    <h4 className="font-display text-lg font-semibold">System Security Danger Zone</h4>
                   </div>
-                  <p className="text-sm text-red-500/80 font-medium">Changes here affect authentication and global access controls. Verify settings before applying.</p>
+                  <p className="text-sm text-destructive/80">Changes here affect authentication and global access controls. Verify settings before applying.</p>
                 </div>
              )}
           </div>
@@ -222,7 +219,7 @@ function SettingControl({ setting, updateMutation, showSensitive, toggleSensitiv
           checked={setting.value === "true"} 
           onCheckedChange={(checked) => updateMutation.mutate({ id: setting.id, value: checked.toString() })}
         />
-        <span className="text-xs font-bold text-muted-foreground uppercase">{setting.value === "true" ? "Enabled" : "Disabled"}</span>
+        <span className="ov-label">{setting.value === "true" ? "Enabled" : "Disabled"}</span>
       </div>
     );
   }
@@ -231,7 +228,7 @@ function SettingControl({ setting, updateMutation, showSensitive, toggleSensitiv
     return (
       <div className="flex flex-col gap-2 w-full max-w-xl">
         <Textarea 
-           className="bg-muted/50 border-none min-h-[100px]"
+           className="min-h-[100px]"
            value={localValue}
            onChange={(e) => setLocalValue(e.target.value)}
         />
@@ -252,7 +249,7 @@ function SettingControl({ setting, updateMutation, showSensitive, toggleSensitiv
       <div className="relative group/control">
         <Input 
           type={isSensitive && !isShowing ? "password" : "text"}
-          className="bg-muted/50 border-none h-10 pr-10"
+          className="h-10 pr-10"
           value={localValue}
           onChange={(e) => setLocalValue(e.target.value)}
         />

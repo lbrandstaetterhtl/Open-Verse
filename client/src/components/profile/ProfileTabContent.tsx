@@ -20,7 +20,7 @@ export function ProfileTabContent({ type, data, isLoading }: ProfileTabContentPr
     return (
       <div className="space-y-4 pt-6">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-48 w-full bg-muted animate-pulse rounded-2xl" />
+          <div key={i} className="ov-panel h-48 w-full animate-pulse" />
         ))}
       </div>
     );
@@ -55,23 +55,22 @@ export function ProfileTabContent({ type, data, isLoading }: ProfileTabContentPr
           {type === "posts" || type === "liked" || type === "saved" ? (
             <PostCard post={item} />
           ) : (
-            <Card className="glass-card hover:bg-card/60 transition-all rounded-3xl border-border/40 overflow-hidden relative group">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <CardContent className="pt-8 relative z-10">
-                <div className="flex items-center justify-between mb-6 text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-background/40 rounded-full border border-border/20">
-                    <Calendar className="h-3 w-3 opacity-50" />
+            <Card className="group overflow-hidden">
+              <CardContent className="p-5 md:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                  <div className="ov-chip ov-data">
+                    <Calendar className="h-3 w-3" />
                     {item.createdAt ? format(new Date(item.createdAt), "PPp") : ""}
                   </div>
                   {item.post && (
-                    <Link href={`/post/${item.post.id}`} className="text-primary hover:text-primary/80 transition-all hover:translate-x-1 inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 rounded-full border border-primary/10">
-                      <span className="opacity-50">{t('profile.on_post')}</span>
-                      <span>{item.post.title}</span>
+                    <Link href={`/post/${item.post.id}`} className="ov-chip ov-chip-primary min-w-0 max-w-full transition-colors hover:bg-primary/15">
+                      <span className="shrink-0 text-muted-foreground">{t('profile.on_post')}</span>
+                      <span className="truncate">{item.post.title}</span>
                     </Link>
                   )}
                 </div>
-                <div className="pl-4 border-l-2 border-primary/20 group-hover:border-primary/40 transition-colors">
-                  <p className="text-base text-foreground/80 leading-relaxed font-medium">
+                <div className="pl-4 border-l border-primary/40 group-hover:border-primary transition-colors">
+                  <p className="text-[15px] text-foreground/90 leading-relaxed">
                     {item.content}
                   </p>
                 </div>

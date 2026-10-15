@@ -20,14 +20,14 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
 
   if (isMaintenance) {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/95 backdrop-blur-md p-6">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/95 p-6">
         <div className="max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in duration-300">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-2">
-            <Hammer className="h-10 w-10 text-primary animate-pulse" />
+          <div className="ov-panel inline-flex items-center justify-center w-20 h-20 bg-primary/10 mb-2">
+            <Hammer className="h-10 w-10 text-primary" />
           </div>
-          
+
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">{settings.site_name}</h1>
+            <h1 className="font-display text-3xl font-semibold tracking-[-0.01em]">{settings.site_name}</h1>
             <p className="text-xl font-medium text-foreground/80">Under Maintenance</p>
           </div>
 

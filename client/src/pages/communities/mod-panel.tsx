@@ -85,8 +85,8 @@ export default function ModPanel() {
 
   return (
     <>
-            <main className="container mx-auto px-4 pt-24 pb-12">
-        <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
+            <main className="container mx-auto px-4 pt-6 md:pt-8 pb-12">
+        <h1 className="ov-rule font-display text-[32px] md:text-[40px] font-semibold leading-none tracking-[-0.01em] pb-5 mb-8 flex items-center gap-3">
           <ShieldAlert className="h-8 w-8 text-primary" />
           {t("mod_panel.title")}
         </h1>
@@ -103,7 +103,7 @@ export default function ModPanel() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Sidebar for Community Selection */}
             <div className="md:col-span-1 space-y-2">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <h2 className="ov-label mb-2">
                 {t("mod_panel.my_communities")}
               </h2>
               {communities.map((c) => (
@@ -150,7 +150,7 @@ function ModContext({ communityId }: { communityId: number }) {
         <TabsTrigger value="requests" className="relative">
           {t("mod_panel.tabs.requests")}
           {pendingCount > 0 && (
-            <Badge variant="destructive" className="ml-2 px-1.5 py-0.5 text-[10px] min-w-[18px] justify-center">
+            <Badge variant="destructive" className="ov-data ml-2 px-1.5 py-0.5 text-[10px] min-w-[18px] justify-center">
               {pendingCount}
             </Badge>
           )}
@@ -245,15 +245,15 @@ function ReportsManager({ communityId }: { communityId: number }) {
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="ov-panel">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("mod_panel.reports.table.type")}</TableHead>
-              <TableHead>{t("mod_panel.reports.table.reason")}</TableHead>
-              <TableHead>{t("mod_panel.reports.table.status")}</TableHead>
-              <TableHead>{t("mod_panel.reports.table.date")}</TableHead>
-              <TableHead className="text-right">{t("mod_panel.reports.table.actions")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.reports.table.type")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.reports.table.reason")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.reports.table.status")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.reports.table.date")}</TableHead>
+              <TableHead className="ov-label text-right">{t("mod_panel.reports.table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -291,11 +291,12 @@ function ReportsManager({ communityId }: { communityId: number }) {
                             ? "default"
                             : "secondary"
                       }
+                      className="capitalize"
                     >
-                      {report.status.toUpperCase()}
+                      {report.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{new Date(report.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="ov-data">{new Date(report.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       {report.status === "pending" && (
@@ -308,7 +309,7 @@ function ReportsManager({ communityId }: { communityId: number }) {
                             }
                             disabled={updateReportMutation.isPending}
                           >
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-primary" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -472,12 +473,12 @@ function MembersManager({ communityId }: { communityId: number }) {
                       className="flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xs">
+                        <div className="ov-avatar h-8 w-8 bg-primary/10 flex items-center justify-center font-semibold text-xs text-primary">
                           {user.username.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="text-sm font-medium">{user.username}</p>
-                          <p className="text-[10px] text-muted-foreground font-mono">ID: {user.id}</p>
+                          <p className="ov-data text-[10px] text-muted-foreground">ID: {user.id}</p>
                         </div>
                       </div>
                       <Button
@@ -503,8 +504,8 @@ function MembersManager({ communityId }: { communityId: number }) {
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
+                <div className="relative flex justify-center">
+                  <span className="ov-label bg-background px-2">
                     {t("mod_panel.staff.add_dialog.or_by_id")}
                   </span>
                 </div>
@@ -535,13 +536,13 @@ function MembersManager({ communityId }: { communityId: number }) {
         </Dialog>
       </div>
 
-      <div className="rounded-md border">
+      <div className="ov-panel">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("mod_panel.members.table.user")}</TableHead>
-              <TableHead>{t("mod_panel.members.table.role")}</TableHead>
-              <TableHead className="text-right">{t("mod_panel.members.table.actions")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.members.table.user")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.members.table.role")}</TableHead>
+              <TableHead className="ov-label text-right">{t("mod_panel.members.table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -565,16 +566,16 @@ function MembersManager({ communityId }: { communityId: number }) {
                       <div className="flex flex-col">
                         <span className="flex items-center gap-1">
                           {member.user.username}
-                          {member.role === "owner" && <Crown className="h-3 w-3 text-amber-500 fill-amber-500" />}
+                          {member.role === "owner" && <Crown className="h-3 w-3 text-star fill-star" />}
                         </span>
-                        <span className="text-[9px] font-mono text-muted-foreground">ID: {member.user.id}</span>
+                        <span className="ov-data text-[10px] text-muted-foreground">ID: {member.user.id}</span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={member.role === "member" ? "secondary" : "default"} className="flex items-center gap-1 w-fit">
+                    <Badge variant={member.role === "member" ? "secondary" : "default"} className="flex items-center gap-1 w-fit capitalize">
                       {member.role === "owner" && <Crown className="h-2.5 w-2.5" />}
-                      {member.role.toUpperCase()}
+                      {member.role}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -782,14 +783,14 @@ function BansManager({ communityId }: { communityId: number }) {
         </Dialog>
       </div>
 
-      <div className="rounded-md border">
+      <div className="ov-panel">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("mod_panel.bans.table.user")}</TableHead>
-              <TableHead>{t("mod_panel.bans.table.reason")}</TableHead>
-              <TableHead>{t("mod_panel.bans.table.date")}</TableHead>
-              <TableHead className="text-right">{t("mod_panel.bans.table.actions")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.bans.table.user")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.bans.table.reason")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.bans.table.date")}</TableHead>
+              <TableHead className="ov-label text-right">{t("mod_panel.bans.table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -810,12 +811,12 @@ function BansManager({ communityId }: { communityId: number }) {
                 <TableRow key={ban.id}>
                   <TableCell>
                     <div className="font-medium">{ban.user.username}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="ov-data text-xs text-muted-foreground">
                       {t("mod_panel.bans.table.id")} {ban.userId}
                     </div>
                   </TableCell>
                   <TableCell>{ban.reason || t("mod_panel.bans.table.no_reason")}</TableCell>
-                  <TableCell>{new Date(ban.bannedAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="ov-data">{new Date(ban.bannedAt).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -924,7 +925,7 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">{t("mod_panel.staff.title")}</h3>
+        <h3 className="font-display text-lg font-semibold">{t("mod_panel.staff.title")}</h3>
         <Dialog open={modDialogOpen} onOpenChange={setModDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -964,12 +965,12 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
                       className="flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xs">
+                        <div className="ov-avatar h-8 w-8 bg-primary/10 flex items-center justify-center font-semibold text-xs text-primary">
                           {user.username.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="text-sm font-medium">{user.username}</p>
-                          <p className="text-[10px] text-muted-foreground font-mono">ID: {user.id}</p>
+                          <p className="ov-data text-[10px] text-muted-foreground">ID: {user.id}</p>
                         </div>
                       </div>
                       <Button
@@ -995,8 +996,8 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
+                <div className="relative flex justify-center">
+                  <span className="ov-label bg-background px-2">
                     {t("mod_panel.staff.add_dialog.or_by_id")}
                   </span>
                 </div>
@@ -1027,13 +1028,13 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
         </Dialog>
       </div>
 
-      <div className="rounded-md border">
+      <div className="ov-panel">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("mod_panel.members.table.user")}</TableHead>
-              <TableHead>{t("mod_panel.members.table.role")}</TableHead>
-              <TableHead className="text-right">{t("mod_panel.members.table.actions")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.members.table.user")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.members.table.role")}</TableHead>
+              <TableHead className="ov-label text-right">{t("mod_panel.members.table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1048,7 +1049,7 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
                 <TableRow key={mod.id}>
                   <TableCell className="font-medium">{mod.user.username}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{mod.role.toUpperCase()}</Badge>
+                    <Badge variant="secondary" className="capitalize">{mod.role}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     {mod.role !== "owner" && (
@@ -1121,13 +1122,13 @@ function RequestsManager({ communityId }: { communityId: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
+      <div className="ov-panel">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("mod_panel.requests.table.user")}</TableHead>
-              <TableHead>{t("mod_panel.requests.table.date")}</TableHead>
-              <TableHead className="text-right">{t("mod_panel.requests.table.actions")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.requests.table.user")}</TableHead>
+              <TableHead className="ov-label">{t("mod_panel.requests.table.date")}</TableHead>
+              <TableHead className="ov-label text-right">{t("mod_panel.requests.table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1151,15 +1152,15 @@ function RequestsManager({ communityId }: { communityId: number }) {
                 <TableRow key={request.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                       <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-[10px] font-bold">
+                       <div className="ov-avatar h-6 w-6 bg-primary/10 flex items-center justify-center">
+                        <span className="text-[10px] font-semibold text-primary">
                           {request.user?.username?.charAt(0).toUpperCase() || "?"}
                         </span>
                       </div>
                       {request.user?.username || "Unknown User"}
                     </div>
                   </TableCell>
-                  <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="ov-data">{new Date(request.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
@@ -1168,7 +1169,7 @@ function RequestsManager({ communityId }: { communityId: number }) {
                         onClick={() => approveMutation.mutate(request.userId)}
                         disabled={approveMutation.isPending}
                       >
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="h-4 w-4 text-primary" />
                       </Button>
                       <Button
                         variant="ghost"

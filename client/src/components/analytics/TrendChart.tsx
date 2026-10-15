@@ -9,9 +9,9 @@ interface TrendChartProps {
     loading?: boolean;
 }
 
-export function TrendChart({ data, dataKey, label, color = "#3b82f6", loading }: TrendChartProps) {
+export function TrendChart({ data, dataKey, label, color = "hsl(var(--primary))", loading }: TrendChartProps) {
     if (loading) {
-        return <div className="h-64 w-full animate-pulse rounded-lg bg-muted" />;
+        return <div className="h-64 w-full animate-pulse rounded-sm bg-muted" />;
     }
 
     const config = {

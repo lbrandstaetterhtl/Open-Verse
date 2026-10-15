@@ -11,11 +11,17 @@ The **Theme Builder** is a powerful tool in Open-Verse that allows users to crea
 ### 2. Advanced Backgrounds
 - **Solid Colors**: Classic flat backgrounds.
 - **Gradients**: A curated collection of "Space-Themed" gradients (Galaxy, Nebula, Stardust).
-- **Custom Images**: Upload your own background images with automatic glassmorphism effects for the UI.
+- **Custom Images**: Upload your own background images, with overlay, blur, brightness and contrast controls.
 
-### 3. Real-Time Typography
-- **Google Fonts Integration**: Switch between premium fonts like Inter, Roboto, Outfit, and more.
+### 3. Design Settings (Sternkarte, theme version 3)
+- **Shape**: corner style *Chamfer* (default), *Sharp* or *Round*, corner size 0–24 px, avatar shape *Octagon*, *Square* or *Circle*.
+- **Surface**: *Panel*, *Glass* (adds blur) or *Outline* (transparent panels), plus opacity and blur.
+- **Fonts**: separate Google Fonts for headings, text and numbers & times.
+- **Galaxy layers**: star field, coordinate grid, constellation in page headers and grain, each switchable.
+- **Starlight**: the warm accent colour `star`, editable like any other colour token.
 - **Live Sync**: Changes are applied instantly to the whole application.
+
+See `docs/DESIGN.md` for the CSS classes these settings drive.
 
 ### 4. Professional Workflow
 - **Undo/Redo (Ctrl+Z / Ctrl+Y)**: Full history management for all theme changes.
@@ -29,7 +35,9 @@ The system revolves around the `useCustomTheme` hook and the `applyTheme` utilit
 
 - **Storage**: Themes are stored in the `themes` table in the database and cached in `localStorage` for instant application on load.
 - **CSS Variables**: The builder converts color tokens into HSL values and injects them into the `:root` element.
-- **Dynamic Backgrounds**: Uses the `ThemeBackground` component which handles glassmorphism and layer blending.
+- **Design settings**: `applyDesign()` turns shape, surface, fonts and galaxy settings into CSS variables and `data-*` attributes on `<html>`.
+- **Migration**: `migrateTheme()` upgrades stored, imported and server themes to version 3. Untouched old default palettes get the new palette; custom colours are kept. Covered by `npm run test:unit`.
+- **Dynamic Backgrounds**: Uses the `ThemeBackground` component, which draws the background, star field, grid and grain layers.
 
 ### File Structure
 - `client/src/pages/theme/theme-builder.tsx`: The main UI.
@@ -47,6 +55,7 @@ The system revolves around the `useCustomTheme` hook and the `applyTheme` utilit
 | `accent` | Highlight color for hover states. |
 | `destructive` | Color for dangerous actions (delete, error). |
 | `muted` | Subtle background for secondary UI elements. |
+| `star` | "Starlight" accent for highlights, the constellation and key numbers. |
 
 ## 🔮 Planned Improvements
 - [ ] **Image-to-Theme**: Automatically generate a color palette from an uploaded background.

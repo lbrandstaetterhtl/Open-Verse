@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,7 +19,6 @@ export default function UserProfilePage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("posts");
   const [, setLocation] = useLocation();
-  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Fetch enriched public profile data
   const { data: profile, isLoading: isProfileLoading, error: profileError } = useQuery<any>({
@@ -27,9 +26,14 @@ export default function UserProfilePage() {
     enabled: !!username,
   });
 
+  const { data: tabData = [], isLoading: isTabLoading } = useQuery<any[]>({
+    queryKey: [`/api/users/${username}/${activeTab}`],
+    enabled: !!username,
+  });
+
   const followMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", `/api/users/${profile.id}/follow`);
+      await apiRequest("POST", `/api/follow/${profile.id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${username}`] });
@@ -39,7 +43,7 @@ export default function UserProfilePage() {
 
   const unfollowMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", `/api/users/${profile.id}/unfollow`);
+      await apiRequest("DELETE", `/api/follow/${profile.id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${username}`] });
@@ -62,15 +66,8 @@ export default function UserProfilePage() {
   const isOwnProfile = currentUser?.username === profile.username;
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Dynamic Background Elements */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-b from-primary/10 via-transparent to-transparent opacity-30" />
-        <div className="absolute top-[20%] right-[10%] w-[30vw] h-[30vw] bg-accent/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[20%] left-[5%] w-[25vw] h-[25vw] bg-primary/10 rounded-full blur-[100px]" />
-      </div>
-
-      <main className="relative z-10 max-w-7xl mx-auto border-x border-white/5 bg-background/50 backdrop-blur-3xl shadow-2xl min-h-screen">
+    <div className="min-h-screen relative">
+      <main className="relative z-10 max-w-7xl mx-auto min-h-screen">
         <ProfileCover 
           username={profile.username}
           avatarUrl={profile.avatarUrl}
@@ -106,9 +103,10 @@ export default function UserProfilePage() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <ProfileTabContent 
-                  activeTab={activeTab}
-                  userId={profile.id}
+                <ProfileTabContent
+                  type={activeTab as any}
+                  data={tabData}
+                  isLoading={isTabLoading}
                 />
               </motion.div>
             </AnimatePresence>

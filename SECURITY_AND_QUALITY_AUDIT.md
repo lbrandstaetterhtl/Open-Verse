@@ -1,6 +1,6 @@
 # Open-Verse – Sicherheits- & Qualitäts-Audit
 
-**Stand:** 2026-10-14 · **Ersetzt:** das Audit vom selben Tag (Commit `e3371f2`), dessen Punkte hier einzeln nachgeprüft wurden.
+**Stand:** 2026-10-15 (Redesign ergänzt) · **Ersetzt:** das Audit vom selben Tag (Commit `e3371f2`), dessen Punkte hier einzeln nachgeprüft wurden.
 **Methode:** Code-Review, `tsc`, `knip`, End-to-End-Tests gegen einen Produktions-Build mit PostgreSQL 16 (frische Installation **und** Upgrade einer bestehenden Datenbank) sowie Browser-Tests mit Chromium.
 
 | Prüfung | Vorher (Commit `8d7ffc4`) | Nachher |
@@ -50,6 +50,15 @@
 - Öffentlicher Debug-Endpunkt `/api/users/debug-uploads` entfernt.
 - SQLite: Health-Check nutzte `db.execute` (gibt es dort nicht), Settings-Seed stürzte auf frischer DB ab.
 
+Mit dem Redesign „Sternkarte“ (2026-10-15, siehe `docs/DESIGN.md`) zusätzlich behoben:
+
+- Fremde Profile zeigten immer „Keine Beiträge“ (`user-profile.tsx` übergab falsche Props an `ProfileTabContent`).
+- „Folgen“/„Entfolgen“ auf Profilseiten riefen nicht existierende Endpunkte auf (`/api/users/:id/follow`); die Buttons hießen „Synchronize“/„Disconnect“.
+- Gemeinsame Follower wurden nie angezeigt (Prop-Name `users` statt `followers`).
+- Moderator-Rangliste zeigte „NaN“ als Rang; Activity-Log-Zeilen hatten doppelte React-Keys (`ResponsiveTable`).
+- Auf Tablets (768–1023 px) lag die Seitenleiste über den ersten 56 px des Inhalts.
+- Fokus-Rahmen fehlten bei Panels, Tabs und Navigation; Schieberegler hatten keinen zugänglichen Namen.
+
 ## 4. Punkte des alten Audits, die nicht zutrafen
 
 | Alter Punkt | Befund |
@@ -74,7 +83,11 @@
 | Mittel | Keine Unique-Constraints auf `post_likes(user_id, post_id)` und `followers` in Postgres. | Vorher Duplikate bereinigen, dann Constraint anlegen. |
 | Mittel | `POST /api/tickets` übernimmt den kompletten Request-Body in die Datenbank. | Felder explizit auswählen. |
 | Niedrig | Einige Admin-/Ticket-Routen geben `error.message` an den Client weiter. | Generische Fehlermeldung, Details nur ins Log. |
-| Niedrig | 154 TypeScript-Fehler (`npm run check` schlägt fehl), Fehlerformat gemischt (`send` vs. `json`), `console` statt `logger`. | Schrittweise abbauen. |
+| Mittel | **Sporadischer React-Fehler #426** („A component suspended while responding to synchronous input“) beim ersten Laden einer Seite: in ca. 25–30 % der kalten Aufrufe, Desktop und Mobil, **schon vor dem Redesign** (gemessen auf `main`, Commit `788db1d`). Die Seite wird trotzdem angezeigt, der Fehler landet aber als unbehandelter Fehler in der Konsole. Tritt der Fehler auf, bleibt die Seite leer (React entfernt die ganze App). Vermutlich suspendiert `useTranslation` in einer Komponente außerhalb der `Suspense`-Grenzen, wenn die Übersetzungen später ankommen als der Login-Check. **Gegenmaßnahme eingebaut:** `Suspense`-Grenze um die ganze App in `client/src/main.tsx`. Die Wirkung ist noch nicht gemessen. | Nach dem Deploy mehrfach kalt laden (Cache leeren) und die Konsole auf #426 prüfen; falls er bleibt, mit Entwicklungs-Build den Komponenten-Stack lesen. |
+| Niedrig | Hooks nach einem frühen `return` (Rules of Hooks) in `AutoPunishmentPage`, `GrowthDashboardPage` und `StressTestPage`. | Berechtigungsprüfung nach den Hooks ausführen. |
+| Niedrig | Viele fest codierte englische Texte (Profil, Admin, Chat, Ticket-Details), teils im Sci-Fi-Ton („Stationed Since“, „Change Essence“). `BansPage` nutzt den nicht registrierten i18n-Namespace `admin`. | Texte nach `translation.json` verschieben. |
+| Niedrig | Seiten rendern ein eigenes `<main>` innerhalb des `<main>` aus `AppLayout`. | Seiten-Wrapper zu `<div>` ändern. |
+| Niedrig | 124 TypeScript-Fehler (`npm run check` schlägt fehl), Fehlerformat gemischt (`send` vs. `json`), `console` statt `logger`. | Schrittweise abbauen. |
 | Niedrig | GIF-Uploads werden nicht neu kodiert; Legacy-scrypt-Fallback; kein Timeout beim SendGrid-Versand. | Bei Gelegenheit. |
 | Niedrig | Ungenutzte Abhängigkeiten laut `knip`: `@types/helmet`, `xss`; `drizzle-kit` steht doppelt in `dependencies` und `devDependencies`. | Entfernen. |
 
