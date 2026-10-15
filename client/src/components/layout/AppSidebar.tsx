@@ -197,6 +197,8 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
         {/* Desktop Collapse Toggle */}
         <button
           onClick={onToggleCollapse}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
           className="hidden lg:flex items-center justify-center h-7 w-7 rounded-sm hover:bg-foreground/5 transition-colors text-muted-foreground hover:text-foreground flex-shrink-0 sidebar-toggle"
         >
           {collapsed ? (

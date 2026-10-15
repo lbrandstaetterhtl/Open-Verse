@@ -6,7 +6,8 @@
  * Placed in the AppSidebar footer so it's always visible.
  */
 import { useState } from "react";
-import { Moon, Sun, Monitor, Palette, Check, ChevronRight } from "lucide-react";
+import { Moon, Sun, Monitor, Palette, Check, ChevronRight, Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/components/theme/theme-provider";
 import { useCustomTheme } from "@/hooks/use-custom-theme";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,8 @@ interface QuickThemeSwitcherProps {
 
 export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProps) {
   const { theme, setTheme } = useTheme();
-  const { savedThemes, loadTheme, isDark } = useCustomTheme();
+  const { savedThemes, loadTheme, isDark, isStandard, resetTheme } = useCustomTheme();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   // Icon reflecting current state
@@ -85,13 +87,25 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
           </button>
         ))}
 
-        {/* ── Custom Saved Themes ── */}
+        {/* ── Standard design and saved themes ── */}
+        <div className="my-1.5 border-t border-border" />
+        <div className="ov-label px-2 pt-1 pb-1.5">
+          {t("theme_builder.design_label", "Design")}
+        </div>
+        <button
+          onClick={() => { resetTheme(); setOpen(false); }}
+          aria-pressed={isStandard}
+          className={cn(
+            "w-full flex items-center gap-2.5 h-8 px-2 rounded-sm transition-colors text-[13px] font-medium hover:bg-foreground/5",
+            isStandard ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="flex-1 text-left">{t("theme_builder.standard_name", "Standard")}</span>
+          {isStandard && <Check className="h-3 w-3" />}
+        </button>
         {savedThemes.length > 0 && (
           <>
-            <div className="my-1.5 border-t border-border" />
-            <div className="ov-label px-2 pt-1 pb-1.5">
-              My Themes
-            </div>
             <div className="max-h-48 overflow-y-auto scrollbar-none space-y-0.5">
               {savedThemes.map((saved) => (
                 <button

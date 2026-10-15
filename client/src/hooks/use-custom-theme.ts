@@ -11,6 +11,7 @@ import {
   migrateTheme,
   loadCustomTheme,
   saveCustomTheme,
+  clearCustomTheme,
   CUSTOM_THEME_EVENT,
   type SavedTheme,
   getSavedThemes,
@@ -29,6 +30,8 @@ import type { Theme } from "@shared/schema";
 export function useCustomTheme() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [customTheme, setCustomTheme] = useState<CustomTheme>(defaultTheme);
+  // The standard design is active whenever no own theme is stored; it is fixed and not editable.
+  const [isStandard, setIsStandard] = useState(true);
   const [localSavedThemes, setLocalSavedThemes] = useState<SavedTheme[]>([]);
   const [isDark, setIsDark] = useState(false);
 
@@ -37,9 +40,8 @@ export function useCustomTheme() {
     const loadTheme = () => {
       // loadCustomTheme migrates older versions; customised colours are kept.
       const stored = loadCustomTheme();
-      if (stored) {
-        setCustomTheme(stored);
-      }
+      setCustomTheme(stored ?? defaultTheme);
+      setIsStandard(!stored);
     };
 
     const loadSaved = () => {
@@ -100,9 +102,10 @@ export function useCustomTheme() {
   // Apply theme whenever it changes or dark mode toggles
   useEffect(() => {
     const colors = isDark ? customTheme.dark : customTheme.light;
-    applyTheme(colors, isDark, customTheme.font, customTheme.background, customTheme);
+    // The standard design has no fixed background: light mode gets the light surface, dark mode the galaxy.
+    applyTheme(colors, isDark, customTheme.font, isStandard ? undefined : customTheme.background, customTheme);
     applyParticleConfig(customTheme.particles);
-  }, [customTheme, isDark]);
+  }, [customTheme, isDark, isStandard]);
 
   // Fetch server themes if logged in
   const { data: serverThemes } = useQuery<Theme[]>({
@@ -180,9 +183,11 @@ export function useCustomTheme() {
     });
   };
 
+  /** Back to the fixed standard design. */
   const resetTheme = () => {
     setCustomTheme(defaultTheme);
-    saveCustomTheme(defaultTheme);
+    setIsStandard(true);
+    clearCustomTheme();
   };
 
   const importTheme = (theme: CustomTheme) => {
@@ -307,7 +312,7 @@ export function useCustomTheme() {
 
   // --- Background helpers ---
 
-  const background = customTheme.background;
+  const background = isStandard ? undefined : customTheme.background;
 
   const updateBackground = (partial: Partial<BackgroundConfig>) => {
     setCustomTheme((prev) => {
@@ -355,6 +360,7 @@ export function useCustomTheme() {
 
   return {
     customTheme,
+    isStandard,
     savedThemes,
     isDark,
     updateColor,

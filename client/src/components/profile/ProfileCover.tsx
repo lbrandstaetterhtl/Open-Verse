@@ -24,6 +24,7 @@ export function ProfileCover({
   onEditAvatar,
 }: ProfileCoverProps) {
   const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
+  const [avatarFocused, setAvatarFocused] = useState(false);
 
   return (
     <div className="relative w-full">
@@ -80,8 +81,11 @@ export function ProfileCover({
 
              {isOwnProfile && (
                <motion.button
-                 animate={{ opacity: isHoveringAvatar ? 1 : 0 }}
+                 animate={{ opacity: isHoveringAvatar || avatarFocused ? 1 : 0 }}
                  onClick={onEditAvatar}
+                 onFocus={() => setAvatarFocused(true)}
+                 onBlur={() => setAvatarFocused(false)}
+                 aria-label="Change avatar"
                  className="ov-avatar absolute inset-0 z-10 flex items-center justify-center bg-background/60 text-foreground transition-colors"
                >
                  <Pencil className="h-7 w-7" />

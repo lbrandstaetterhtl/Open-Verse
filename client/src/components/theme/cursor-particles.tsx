@@ -37,7 +37,7 @@ function readParticleColors(): ResolvedColors {
 function readEnabled(): boolean {
   const v = getComputedStyle(document.documentElement)
     .getPropertyValue("--particle-enabled").trim();
-  return v !== "0";
+  return v !== "0" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 interface ParticleSettings {

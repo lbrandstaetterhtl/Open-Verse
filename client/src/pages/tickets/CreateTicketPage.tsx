@@ -74,9 +74,9 @@ export default function CreateTicketPage() {
 
                 <div className="grid sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="ov-label block">{t("fields.type")} *</label>
+                    <label htmlFor="ticket-type" className="ov-label block">{t("fields.type")} *</label>
                     <Select value={formData.type} onValueChange={v => setFormData({ ...formData, type: v })}>
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger id="ticket-type" className="h-11">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -87,9 +87,9 @@ export default function CreateTicketPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <label className="ov-label block">{t("fields.priority")} *</label>
+                    <label htmlFor="ticket-priority" className="ov-label block">{t("fields.priority")} *</label>
                     <Select value={formData.priority} onValueChange={v => setFormData({ ...formData, priority: v })}>
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger id="ticket-priority" className="h-11">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

@@ -623,7 +623,16 @@
     "color_star": "Starlight",
     "constellation_choice": "Constellation",
     "constellation_auto": "Changing",
-    "constellation_auto_hint": "different on every page"
+    "constellation_auto_hint": "different on every page",
+    "standard_name": "Standard",
+    "use_standard": "Standard",
+    "new_theme_name": "My theme",
+    "design_label": "Design",
+    "standard_locked_title": "Standard design",
+    "standard_locked_desc": "The standard design is tuned for accessibility: all text meets WCAG AAA contrast (at least 7:1), borders and input fields at least 3:1, and motion stops when your system asks for reduced motion. That is why it cannot be changed.",
+    "standard_locked_hint": "To change colours, shapes or fonts, create your own theme. It starts as a copy of the standard design.",
+    "create_own": "Create your own theme",
+    "choose_theme": "Choose theme"
   },
   "footer": {
     "default_tagline": "Unleash your creativity. Build the universe.",

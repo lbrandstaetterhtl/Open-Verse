@@ -11,6 +11,8 @@ import {
   migrateTheme,
   importTheme,
   exportTheme,
+  isStandardTheme,
+  getContrastRatio,
   normalizeShape,
   normalizeSurface,
   normalizeFonts,
@@ -184,4 +186,53 @@ test("importTheme migrates, sanitises and round-trips with exportTheme", () => {
 test("importTheme rejects malformed input", () => {
   assert.equal(importTheme("not json"), null);
   assert.equal(importTheme(JSON.stringify({ dark: V2_DARK })), null);
+});
+
+// WCAG targets for the fixed standard design: 7:1 (AAA) for text, 4.5:1 for red on surfaces,
+// 3:1 for borders, input outlines and the focus ring.
+const CONTRAST_PAIRS: [keyof ThemeColors, keyof ThemeColors, number][] = [
+  ["foreground", "background", 7], ["foreground", "card", 7], ["cardForeground", "card", 7], ["popoverForeground", "popover", 7],
+  ["mutedForeground", "background", 7], ["mutedForeground", "card", 7], ["mutedForeground", "muted", 7], ["mutedForeground", "popover", 7],
+  ["primaryForeground", "primary", 7], ["secondaryForeground", "secondary", 7], ["accentForeground", "accent", 7],
+  ["destructiveForeground", "destructive", 7], ["primary", "background", 7], ["primary", "card", 7],
+  ["star", "background", 7], ["star", "card", 7], ["destructive", "card", 4.5], ["destructive", "background", 4.5],
+  ["border", "card", 3], ["border", "background", 3], ["input", "background", 3], ["input", "card", 3],
+  ["ring", "background", 3], ["ring", "card", 3],
+];
+
+for (const mode of ["light", "dark"] as const) {
+  test(`standard ${mode} palette meets the contrast targets`, () => {
+    const colors = defaultTheme[mode];
+    const failures = CONTRAST_PAIRS.map(([fg, bg, min]) => [fg, bg, min, getContrastRatio(colors[fg]!, colors[bg]!)] as const)
+      .filter(([, , min, ratio]) => ratio < min)
+      .map(([fg, bg, min, ratio]) => `${fg} on ${bg}: ${ratio.toFixed(2)} < ${min}`);
+    assert.deepEqual(failures, []);
+  });
+}
+
+test("an untouched copy of the previous (v3) default moves to the accessible palette", () => {
+  const v3 = {
+    ...defaultTheme,
+    version: 3,
+    dark: { ...defaultTheme.dark, mutedForeground: "233 32% 75%", primary: "264 100% 74%", destructive: "0 72% 55%", destructiveForeground: "0 0% 100%", border: "232 39% 27%", input: "232 39% 24%", ring: "264 100% 74%" },
+    light: { ...defaultTheme.light, primary: "262 70% 52%" },
+  } as CustomTheme;
+  const migrated = migrateTheme(v3);
+  assert.deepEqual(migrated.dark, defaultTheme.dark);
+  assert.deepEqual(migrated.light, defaultTheme.light);
+  assert.equal(isStandardTheme(v3), true);
+});
+
+test("standard detection: the default is standard, any own change is not", () => {
+  assert.equal(isStandardTheme(defaultTheme), true);
+  assert.equal(isStandardTheme({ ...defaultTheme, dark: { ...defaultTheme.dark, primary: "150 80% 45%" } }), false);
+  assert.equal(isStandardTheme({ ...defaultTheme, shape: { style: "rund", size: 12, avatar: "kreis" } }), false);
+  assert.equal(isStandardTheme({ ...defaultTheme, fonts: { ...defaultTheme.fonts!, body: "Archivo" } }), false);
+  assert.equal(isStandardTheme({ ...defaultTheme, surface: { mode: "glas", opacity: 0.55, blur: 16 } }), false);
+  assert.equal(isStandardTheme({ ...defaultTheme, particles: { ...defaultTheme.particles!, enabled: true } }), false);
+});
+
+test("the standard design keeps panels opaque and cursor particles off", () => {
+  assert.equal(defaultTheme.surface?.opacity, 1);
+  assert.equal(defaultTheme.particles?.enabled, false);
 });
