@@ -62,7 +62,8 @@
     "editComment": "Bearbeiten",
     "deleteComment": "Löschen",
     "markInternal": "Als intern markieren",
-    "viewHistory": "Verlauf anzeigen"
+    "viewHistory": "Verlauf anzeigen",
+    "backToTickets": "Zu meinen Tickets"
   },
   "comments": {
     "title": "Aktivität",
@@ -128,7 +129,9 @@
     "commentFailed": "Kommentar konnte nicht hinzugefügt werden",
     "forbidden": "Keine Berechtigung",
     "notFound": "Ticket nicht gefunden",
-    "invalidTransition": "Nicht erlaubter Statuswechsel"
+    "invalidTransition": "Nicht erlaubter Statuswechsel",
+    "notFoundHint": "Dieses Ticket gibt es nicht, oder du hast keinen Zugriff darauf.",
+    "tryAgainHint": "Bitte versuche es gleich noch einmal."
   },
   "success": {
     "created": "Ticket {{number}} wurde erstellt",

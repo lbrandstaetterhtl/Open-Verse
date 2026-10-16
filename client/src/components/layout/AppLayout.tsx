@@ -113,7 +113,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { user } = useAuth();
 
-  const isAdminArea = location.startsWith("/admin") || location.startsWith("/tickets");
+  const isAdminArea = location.startsWith("/admin");
   const isAuthPage = location === "/auth";
 
   // Sidebar collapse state (desktop only), persisted

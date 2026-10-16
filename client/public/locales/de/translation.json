@@ -674,6 +674,16 @@
     "copy_failed": "Diesen Link kopieren",
     "delete_post": "Beitrag löschen",
     "delete_comment": "Kommentar löschen",
-    "like_comment": "Kommentar gefällt mir"
+    "like_comment": "Kommentar gefällt mir",
+    "load_failed": "Der Beitrag konnte nicht geladen werden.",
+    "load_failed_title": "Etwas ist schiefgelaufen",
+    "not_found": "Beitrag nicht gefunden",
+    "not_found_hint": "Diesen Beitrag gibt es nicht mehr, oder der Link ist falsch."
+  },
+  "not_found": {
+    "title": "Seite nicht gefunden",
+    "hint": "Der Link ist alt oder falsch geschrieben, oder der Inhalt wurde gelöscht.",
+    "home": "Zum Feed",
+    "back": "Zurück"
   }
 }

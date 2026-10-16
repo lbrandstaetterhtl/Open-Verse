@@ -683,6 +683,16 @@
     "copy_failed": "Copy this link",
     "delete_post": "Delete post",
     "delete_comment": "Delete comment",
-    "like_comment": "Like comment"
+    "like_comment": "Like comment",
+    "load_failed": "The post could not be loaded.",
+    "load_failed_title": "Something went wrong",
+    "not_found": "Post not found",
+    "not_found_hint": "This post doesn't exist anymore or the link is wrong."
+  },
+  "not_found": {
+    "title": "Page not found",
+    "hint": "The link is outdated or mistyped, or the content was deleted.",
+    "home": "Go to feed",
+    "back": "Back"
   }
 }

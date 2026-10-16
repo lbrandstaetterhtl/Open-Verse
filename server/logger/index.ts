@@ -249,6 +249,10 @@ ${'═'.repeat(60)}
     // ── Terminal Output (Development) ────────────────
     if (textLine) {
       process.stdout.write(textLine + '\n');
+    } else if (LOG_LEVEL_NUM[entry.level] >= LOG_LEVEL_NUM.warn) {
+      // Production: warnings and errors also go to stdout so `docker compose logs` shows them
+      // (the log files live inside the container and are lost on rebuild).
+      process.stdout.write(jsonLine + '\n');
     }
 
     // ── File Output ──────────────────────────────────

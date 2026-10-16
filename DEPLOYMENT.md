@@ -57,7 +57,25 @@ INITIAL_OWNER_USERNAME=deinname
 INITIAL_OWNER_PASSWORD=<mindestens 12 Zeichen>
 ```
 
-Das Konto wird nur angelegt, wenn der Name noch nicht existiert; das Passwort wird nie zurückgesetzt oder geloggt. Nach dem ersten Start beide Werte wieder aus `.env` entfernen.
+Danach `docker compose up -d` und prüfen, was passiert ist:
+
+```bash
+docker compose logs app | grep -i "initial owner"
+```
+
+| Log-Meldung | Bedeutung |
+|---|---|
+| `account "deinname" created` | Owner angelegt, Login möglich |
+| `existing account "deinname" is now owner` | Name gab es schon mit diesem Passwort, jetzt Owner |
+| `already exists and is owner` | nichts zu tun |
+| `already exists with a different password` | Name gibt es schon mit anderem Passwort, nichts geändert (siehe unten) |
+| `email … already belongs to …` | E-Mail ist vergeben, anderes `INITIAL_OWNER_EMAIL` setzen |
+| `must be at least 12 characters` | Passwort zu kurz |
+| keine Meldung | Variablen kommen nicht im Container an: `docker compose exec app printenv \| grep INITIAL_OWNER` |
+
+**Zugang zurückholen:** Existiert der Name schon mit unbekanntem Passwort, einmal mit `INITIAL_OWNER_RESET_PASSWORD=true` starten. Dann wird `INITIAL_OWNER_PASSWORD` gesetzt und das Konto zum Owner. Danach den Wert wieder auf `false` setzen.
+
+Das Passwort wird nie geloggt. Nach dem ersten erfolgreichen Start können die Werte aus `.env` entfernt werden.
 
 > [!WARNING]
 > Ältere Versionen haben bei jedem Start ein Owner-Konto `testadmin` mit dem öffentlich bekannten Passwort `TestPassword123!` angelegt. Ab dieser Version bekommt dieses Konto beim Start ein zufälliges Passwort. Wer sich bisher damit eingeloggt hat, legt über `INITIAL_OWNER_*` ein eigenes Owner-Konto an. Prüfe außerdem, ob unbekannte Admins existieren:
