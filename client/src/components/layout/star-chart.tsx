@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { CONSTELLATION_NAMES, type ConstellationName } from "@/lib/theme-utils";
 
@@ -124,11 +124,38 @@ function hash(text: string): number {
   return h >>> 0;
 }
 
-/** Deterministic faint background stars, so a chart looks the same on every render. */
-function fieldStars(seed: number, count = 46) {
+/** Deterministic faint background stars across a chart of the given size, the same on every render. */
+function fieldStars(seed: number, width = 420, height = 130, count = 46) {
   let state = seed || 1;
   const next = () => (state = (Math.imul(state, 1664525) + 1013904223) >>> 0) / 4294967296;
-  return Array.from({ length: count }, () => ({ x: 6 + next() * 408, y: 4 + next() * 122, r: 0.4 + next() * 0.7, o: 0.18 + next() * 0.4 }));
+  return Array.from({ length: count }, () => ({ x: 6 + next() * (width - 12), y: 4 + next() * (height - 8), r: 0.4 + next() * 0.7, o: 0.18 + next() * 0.4 }));
+}
+
+const BASE_WIDTH = 420;
+const BASE_HEIGHT = 130;
+/** In fill mode one chart unit is this many CSS pixels, so stars and labels look the same on every page. */
+const FILL_SCALE = 1.2;
+
+/**
+ * Size of the drawing in chart units matching the element's pixel size (fill mode).
+ * Lets the chart span a whole header instead of sitting in one corner.
+ */
+function useFillSize(enabled: boolean) {
+  const ref = useRef<SVGSVGElement>(null);
+  const [size, setSize] = useState({ w: BASE_WIDTH, h: BASE_HEIGHT });
+  useEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el) return;
+    const update = () => {
+      const { width, height } = el.getBoundingClientRect();
+      if (width > 0 && height > 0) setSize({ w: Math.round(width / FILL_SCALE), h: Math.round(height / FILL_SCALE) });
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [enabled]);
+  return { ref, ...(enabled ? size : { w: BASE_WIDTH, h: BASE_HEIGHT }) };
 }
 
 /** The constellation chosen in the theme (data-constellation-name on <html>), kept in sync with theme changes. */
@@ -149,28 +176,37 @@ interface StarChartProps {
   seed?: string;
   /** Overrides the theme choice, e.g. for previews in the theme builder. */
   name?: ConstellationName;
+  /** Spread the chart over the whole element (e.g. a page header) instead of keeping its 420×130 shape. */
+  fill?: boolean;
 }
 
 /** Star-chart drawing behind page titles. Hidden when the theme turns constellations off. */
-export function StarChart({ className, seed = "", name }: StarChartProps) {
+export function StarChart({ className, seed = "", name, fill = false }: StarChartProps) {
   const chosen = useChosenConstellation();
   const wanted = name ?? chosen;
   const key = wanted === "auto" ? CHART_KEYS[hash(seed) % CHART_KEYS.length] : wanted;
+  const { ref, w: W, h: H } = useFillSize(fill);
+  // Positions stretch with the drawing; stars and text keep their size.
+  const sx = W / BASE_WIDTH;
+  const sy = H / BASE_HEIGHT;
   const chart = STAR_CHARTS[key];
-  const byId = Object.fromEntries(chart.stars.map((s) => [s.id, s]));
-  const field = fieldStars(hash(key));
+  const stars = chart.stars.map((s) => ({ ...s, x: s.x * sx, y: 6 + (s.y - 6) * sy }));
+  const byId = Object.fromEntries(stars.map((s) => [s.id, s]));
+  const field = fieldStars(hash(key), W, H, Math.round(46 * Math.max(1, sx * sy)));
+  const hourLines = [[96 * sx, -12], [324 * sx, 12]];
 
   return (
-    <svg aria-hidden="true" viewBox="0 0 420 130" className={cn("ov-constellation ov-star-chart pointer-events-none", className)}>
-      {/* Coordinate grid: one declination arc and hour lines, very faint. */}
+    <svg ref={ref} aria-hidden="true" viewBox={`0 0 ${W} ${H}`} className={cn("ov-constellation ov-star-chart pointer-events-none", className)}>
+      {/* Coordinate grid: two declination arcs and hour lines, very faint. */}
       <g className="stroke-foreground/10" fill="none" strokeWidth="0.6">
-        <path d="M0 98 Q210 74 420 98" strokeDasharray="2 4" />
-        <path d="M0 40 Q210 18 420 40" strokeDasharray="2 4" />
-        <line x1="96" y1="0" x2="84" y2="130" strokeDasharray="2 4" />
-        <line x1="324" y1="0" x2="336" y2="130" strokeDasharray="2 4" />
+        <path d={`M0 ${98 * sy} Q${W / 2} ${74 * sy} ${W} ${98 * sy}`} strokeDasharray="2 4" />
+        <path d={`M0 ${40 * sy} Q${W / 2} ${18 * sy} ${W} ${40 * sy}`} strokeDasharray="2 4" />
+        {hourLines.map(([x, slant]) => (
+          <line key={x} x1={x} y1="0" x2={x + slant} y2={H} strokeDasharray="2 4" />
+        ))}
       </g>
-      <text x="100" y="10" className="fill-muted-foreground/60 font-data" fontSize="7">{chart.ra}</text>
-      <text x="4" y="94" className="fill-muted-foreground/60 font-data" fontSize="7">{chart.dec}</text>
+      <text x={hourLines[0][0] + 4} y="10" className="fill-muted-foreground/60 font-data" fontSize="7">{chart.ra}</text>
+      <text x="4" y={94 * sy} className="fill-muted-foreground/60 font-data" fontSize="7">{chart.dec}</text>
 
       {field.map((s, i) => (
         <circle key={i} cx={s.x} cy={s.y} r={s.r} className="fill-foreground" opacity={s.o} />
@@ -180,7 +216,7 @@ export function StarChart({ className, seed = "", name }: StarChartProps) {
         <line key={a + b} x1={byId[a].x} y1={byId[a].y} x2={byId[b].x} y2={byId[b].y} className="stroke-star/45" strokeWidth="0.9" />
       ))}
 
-      {chart.stars.map((s) => (
+      {stars.map((s) => (
         <g key={s.id}>
           {s.mag === 1 && <circle cx={s.x} cy={s.y} r="7" className="fill-star/10 stroke-star/40 ov-star-pulse" strokeWidth="0.6" />}
           <circle cx={s.x} cy={s.y} r={s.mag === 1 ? 3 : s.mag === 2 ? 2.1 : 1.4} className={s.mag === 1 ? "fill-star" : "fill-foreground/85"} />
@@ -192,7 +228,7 @@ export function StarChart({ className, seed = "", name }: StarChartProps) {
         </g>
       ))}
 
-      <text x="416" y="126" textAnchor="end" className="fill-star/80 font-data" fontSize="8" letterSpacing="1.2">
+      <text x={W - 4} y={H - 4} textAnchor="end" className="fill-star/80 font-data" fontSize="8" letterSpacing="1.2">
         {chart.label.toUpperCase()} · {chart.abbr}
       </text>
     </svg>

@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils";
 import { StarChart } from "./star-chart";
 
 /** Star chart behind page titles; the constellation follows the theme ("auto" varies per page). */
-export function Constellation({ className }: { className?: string }) {
+export function Constellation({ className, fill }: { className?: string; fill?: boolean }) {
   const [location] = useLocation();
-  return <StarChart className={className} seed={location} />;
+  return <StarChart className={className} seed={location} fill={fill} />;
 }
 
 interface PageHeaderProps {
@@ -24,7 +24,11 @@ interface PageHeaderProps {
 export function PageHeader({ eyebrow, title, description, actions, children, className }: PageHeaderProps) {
   return (
     <header className={cn("ov-rule relative flex flex-col gap-4 pb-5 pt-6 md:pt-8", className)}>
-      <Constellation className="absolute right-0 top-0 hidden h-28 w-auto max-w-[60%] sm:block" />
+      {/* Spans the whole header; fades towards the left so title and description stay readable. */}
+      <Constellation
+        fill
+        className="absolute inset-0 hidden h-full w-full opacity-80 [mask-image:linear-gradient(to_right,rgba(0,0,0,0.3),rgba(0,0,0,0.55)_40%,black_75%)] sm:block"
+      />
       <div className="relative flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-2">
           {eyebrow && <span className="ov-label">{eyebrow}</span>}
