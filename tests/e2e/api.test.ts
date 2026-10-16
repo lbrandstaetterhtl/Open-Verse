@@ -833,3 +833,67 @@ describe("profile images", () => {
     }
   });
 });
+
+describe("community moderation from the member list", () => {
+  let cid: number;
+  let mod1: TestUser;
+  let mod2: TestUser;
+  let member: TestUser;
+  const members = async () => (await (await admin.get(`/api/communities/${cid}/members`)).json()) as any[];
+  const bans = async () => (await (await admin.get(`/api/communities/${cid}/bans`)).json()) as any[];
+
+  before(async () => {
+    const res = await admin.post("/api/communities", { name: `Mod list ${RUN_ID}`, description: "moderation test" });
+    await expectStatus(res, 200, 201);
+    cid = (await res.json()).id;
+    mod1 = await newUser("cmod1");
+    mod2 = await newUser("cmod2");
+    member = await newUser("cmem");
+    for (const u of [mod1, mod2, member]) await expectStatus(await u.client.post(`/api/communities/${cid}/join`), 200);
+    for (const u of [mod1, mod2]) {
+      await expectStatus(await admin.patch(`/api/communities/${cid}/members/${u.id}/role`, { role: "moderator" }), 200);
+    }
+  });
+
+  test("moderators cannot kick, ban or re-role other moderators", async () => {
+    assert.equal((await mod1.client.post(`/api/communities/${cid}/ban`, { userId: mod2.id, reason: "x" })).status, 403);
+    assert.equal((await mod1.client.delete(`/api/communities/${cid}/members/${mod2.id}`)).status, 403);
+    assert.equal((await mod1.client.patch(`/api/communities/${cid}/members/${member.id}/role`, { role: "moderator" })).status, 403);
+  });
+
+  test("nobody can ban the owner, themselves, or an invalid user", async () => {
+    const ownerId = (await members()).find((m) => m.role === "owner").user.id;
+    assert.equal((await mod1.client.post(`/api/communities/${cid}/ban`, { userId: ownerId })).status, 403);
+    assert.equal((await mod1.client.post(`/api/communities/${cid}/ban`, { userId: mod1.id })).status, 400);
+    assert.equal((await mod1.client.post(`/api/communities/${cid}/ban`, { userId: "abc" })).status, 400);
+    assert.equal((await mod1.client.post(`/api/communities/${cid}/ban`, { userId: 999999999 })).status, 404);
+  });
+
+  test("a moderator bans a member: removed from members, listed with reason, cannot rejoin", async () => {
+    await expectStatus(await mod1.client.post(`/api/communities/${cid}/ban`, { userId: member.id, reason: "spam" }), 200);
+    assert.ok(!(await members()).some((m) => m.user.id === member.id), "banned user is still a member");
+    const ban = (await bans()).find((b) => b.userId === member.id);
+    assert.equal(ban?.reason, "spam");
+    assert.equal((await member.client.post(`/api/communities/${cid}/join`)).status, 403);
+    assert.equal((await mod1.client.post(`/api/communities/${cid}/ban`, { userId: member.id })).status, 409, "double ban");
+  });
+
+  test("lifting the ban lets the user join again", async () => {
+    await expectStatus(await mod1.client.delete(`/api/communities/${cid}/ban/${member.id}`), 200);
+    assert.ok(!(await bans()).some((b) => b.userId === member.id));
+    await expectStatus(await member.client.post(`/api/communities/${cid}/join`), 200);
+  });
+
+  test("the owner can demote, kick and ban moderators", async () => {
+    await expectStatus(await admin.patch(`/api/communities/${cid}/members/${mod2.id}/role`, { role: "member" }), 200);
+    assert.equal((await members()).find((m) => m.user.id === mod2.id)?.role, "member");
+    await expectStatus(await admin.post(`/api/communities/${cid}/ban`, { userId: mod1.id, reason: "test" }), 200);
+    await expectStatus(await admin.delete(`/api/communities/${cid}/members/${mod2.id}`), 200);
+    const left = (await members()).map((m) => m.user.id);
+    assert.ok(!left.includes(mod1.id) && !left.includes(mod2.id));
+  });
+
+  test("regular members cannot see the ban list", async () => {
+    assert.equal((await member.client.get(`/api/communities/${cid}/bans`)).status, 403);
+  });
+});

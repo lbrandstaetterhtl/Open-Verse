@@ -519,10 +519,21 @@
       },
       "kick_dialog": {
         "title": "Mitglied kicken?",
-        "desc": "Bist du sicher, dass du {{name}} aus der Community entfernen möchtest? Er kann später wieder beitreten.",
+        "desc": "Möchtest du {{name}} wirklich aus der Community entfernen? Die Person kann später wieder beitreten.",
         "confirm": "Benutzer kicken",
         "cancel": "Abbrechen"
-      }
+      },
+      "you": "du",
+      "actions_for": "Aktionen für {{name}}",
+      "view_profile": "Profil ansehen",
+      "make_mod": "Zum Moderator machen",
+      "kick": "Aus Community entfernen",
+      "ban": "Sperren …",
+      "unban": "Sperre aufheben",
+      "no_rights": "Für diese Person darfst du nichts weiter ändern.",
+      "banned_since": "Gesperrt seit {{date}}",
+      "ban_dialog_title": "{{name}} sperren?",
+      "ban_dialog_desc": "Die Person wird aus der Community entfernt und kann erst wieder beitreten, wenn du die Sperre aufhebst."
     },
     "bans": {
       "banned_title": "Benutzer verbannt",
@@ -572,6 +583,12 @@
         "or_by_id": "Oder per ID",
         "manual_id": "Manuelle User-ID"
       }
+    },
+    "roles": {
+      "owner": "Inhaber",
+      "moderator": "Moderator",
+      "member": "Mitglied",
+      "banned": "Gesperrt"
     }
   },
   "communities_feed": {
