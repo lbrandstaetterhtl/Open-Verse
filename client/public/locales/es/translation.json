@@ -615,7 +615,7 @@
       },
       "kick_dialog": {
         "title": "¿Expulsar miembro?",
-        "desc": "¿Seguro que quieres expulsar a {{name}} de esta comunidad?",
+        "desc": "¿Seguro que quieres expulsar a {{name}} de esta comunidad? Podrá volver a unirse más tarde.",
         "cancel": "Cancelar",
         "confirm": "Expulsar"
       },

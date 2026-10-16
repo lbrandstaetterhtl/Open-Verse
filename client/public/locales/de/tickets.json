@@ -11,29 +11,29 @@
     "title": "Titel",
     "titlePlaceholder": "Kurze, präzise Beschreibung des Problems",
     "description": "Beschreibung",
-    "descriptionPlaceholder": "Beschreibe das Problem so detailliert wie möglich...",
+    "descriptionPlaceholder": "Beschreibe das Problem so detailliert wie möglich…",
     "type": "Typ",
     "priority": "Priorität",
     "status": "Status",
     "assignedTo": "Zugewiesen an",
-    "relatedUser": "Betroffener User",
-    "relatedPost": "Betroffener Post",
+    "relatedUser": "Betroffener Benutzer",
+    "relatedPost": "Betroffener Beitrag",
     "relatedUrl": "Externe URL",
     "tags": "Tags",
     "createdBy": "Erstellt von",
-    "createdAt": "Erstellt",
-    "updatedAt": "Aktualisiert",
-    "resolvedAt": "Gelöst",
-    "closedAt": "Geschlossen",
+    "createdAt": "Erstellt am",
+    "updatedAt": "Aktualisiert am",
+    "resolvedAt": "Gelöst am",
+    "closedAt": "Geschlossen am",
     "optional": "(optional)"
   },
   "types": {
-    "bug_report": "Bug Report",
+    "bug_report": "Fehlerbericht",
     "feature_request": "Feature-Wunsch",
-    "user_complaint": "User-Beschwerde",
-    "content_issue": "Content-Problem",
+    "user_complaint": "Beschwerde über Benutzer",
+    "content_issue": "Problem mit Inhalten",
     "security_concern": "Sicherheitsproblem",
-    "performance_issue": "Performance-Problem",
+    "performance_issue": "Leistungsproblem",
     "access_request": "Zugriffsanfrage",
     "data_issue": "Datenproblem",
     "other": "Sonstiges"
@@ -41,7 +41,7 @@
   "status": {
     "open": "Offen",
     "in_progress": "In Bearbeitung",
-    "on_hold": "Wartend",
+    "on_hold": "Zurückgestellt",
     "resolved": "Gelöst",
     "closed": "Geschlossen"
   },
@@ -71,9 +71,9 @@
   },
   "comments": {
     "title": "Aktivität",
-    "placeholder": "Kommentar hinzufügen...",
+    "placeholder": "Kommentar hinzufügen…",
     "internal": "Intern",
-    "internalHint": "Nur für Owner sichtbar",
+    "internalHint": "Nur für Inhaber sichtbar",
     "system": "System",
     "edited": "(bearbeitet)",
     "noComments": "Noch keine Kommentare"
@@ -86,7 +86,7 @@
     "unassigned": "Zuweisung entfernt"
   },
   "filters": {
-    "search": "Tickets durchsuchen...",
+    "search": "Tickets durchsuchen…",
     "allStatus": "Alle Status",
     "allTypes": "Alle Typen",
     "allPriorities": "Alle Prioritäten",
@@ -109,8 +109,8 @@
   "stats": {
     "total": "Gesamt",
     "open": "Offen",
-    "inProgress": "In Bear.",
-    "onHold": "Wartend",
+    "inProgress": "In Bearbeitung",
+    "onHold": "Zurückgestellt",
     "critical": "Kritisch",
     "avgResolutionTime": "Ø Lösungszeit",
     "hours": "{{count}} Stunden"
@@ -131,8 +131,8 @@
     "deleteTicketDescription": "Das Ticket {{number}} wird unwiderruflich gelöscht.",
     "deleteComment": "Kommentar wirklich löschen?",
     "closeTicket": "Ticket schließen?",
-    "closeTicketDescription": "Geschlossene Tickets können nur vom Owner wieder geöffnet werden.",
-    "deleteTicketConfirm": "Willst du dieses Ticket wirklich löschen?"
+    "closeTicketDescription": "Geschlossene Tickets können nur von einem Inhaber wieder geöffnet werden.",
+    "deleteTicketConfirm": "Möchtest du dieses Ticket wirklich löschen?"
   },
   "errors": {
     "loadFailed": "Tickets konnten nicht geladen werden",
@@ -145,28 +145,29 @@
     "invalidTransition": "Nicht erlaubter Statuswechsel",
     "notFoundHint": "Dieses Ticket gibt es nicht, oder du hast keinen Zugriff darauf.",
     "tryAgainHint": "Bitte versuche es gleich noch einmal.",
-    "assignFailed": "Ticket konnte nicht zugewiesen werden"
+    "assignFailed": "Ticket konnte nicht zugewiesen werden",
+    "loadTicketFailed": "Das Ticket konnte nicht geladen werden"
   },
   "success": {
     "created": "Ticket {{number}} wurde erstellt",
     "updated": "Ticket wurde aktualisiert",
     "deleted": "Ticket wurde gelöscht",
-    "statusChanged": "Status wurde auf '{{status}}' geändert",
+    "statusChanged": "Status wurde auf „{{status}}“ geändert",
     "commentAdded": "Kommentar wurde hinzugefügt",
     "assigned": "Ticket wurde zugewiesen",
     "ticketDeleted": "Ticket erfolgreich gelöscht",
     "assignmentUpdated": "Zuweisung aktualisiert"
   },
   "help": {
-    "title": "Gutes Ticket schreiben",
-    "bug_report": "Beschreibe: Was hast du erwartet? Was ist passiert? Reproduzierbar?",
+    "title": "So schreibst du ein gutes Ticket",
+    "bug_report": "Beschreibe: Was hast du erwartet? Was ist passiert? Wie lässt sich der Fehler reproduzieren?",
     "feature_request": "Beschreibe: Welches Problem löst das Feature? Wer profitiert?",
-    "security_concern": "Sicherheitslücke ohne sensible Details melden.",
-    "priority_guide": "Prioritäts-Guide",
+    "security_concern": "Melde Sicherheitslücken, ohne sensible Details offenzulegen.",
+    "priority_guide": "Prioritäten-Leitfaden",
     "priority_low": "Kann mehrere Wochen warten",
     "priority_medium": "Sollte bald bearbeitet werden",
     "priority_high": "Sollte in den nächsten Tagen bearbeitet werden",
-    "priority_critical": "Sollte sofort bearbeitet werden"
+    "priority_critical": "Muss sofort bearbeitet werden"
   },
   "subtitle": "Support-Hub",
   "pageDescription": "Verwalte und verfolge Support-Anfragen auf der ganzen Plattform – in Schwerelosigkeit.",

@@ -615,7 +615,7 @@
       },
       "kick_dialog": {
         "title": "Retirer le membre ?",
-        "desc": "Tu veux vraiment retirer {{name}} de cette communauté ?",
+        "desc": "Tu veux vraiment retirer {{name}} de cette communauté ? Cette personne pourra la rejoindre plus tard.",
         "cancel": "Annuler",
         "confirm": "Retirer"
       },

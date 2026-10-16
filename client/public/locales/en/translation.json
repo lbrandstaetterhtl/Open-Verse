@@ -615,7 +615,7 @@
       },
       "kick_dialog": {
         "title": "Kick Member?",
-        "desc": "Are you sure you want to remove {{name}} from this community?",
+        "desc": "Are you sure you want to remove {{name}} from this community? They can join again later.",
         "cancel": "Cancel",
         "confirm": "Kick"
       },

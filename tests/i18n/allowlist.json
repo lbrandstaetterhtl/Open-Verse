@@ -41,6 +41,9 @@
     ],
     "it": [
       "translation:nav.stress_test"
+    ],
+    "de": [
+      "translation:auth.version_label"
     ]
   }
 }

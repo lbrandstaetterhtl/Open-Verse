@@ -615,7 +615,7 @@
       },
       "kick_dialog": {
         "title": "Rimuovere il membro?",
-        "desc": "Sei sicuro di voler rimuovere {{name}} da questa comunità?",
+        "desc": "Sei sicuro di voler rimuovere {{name}} da questa comunità? Potrà unirsi di nuovo in seguito.",
         "cancel": "Annulla",
         "confirm": "Rimuovi"
       },
