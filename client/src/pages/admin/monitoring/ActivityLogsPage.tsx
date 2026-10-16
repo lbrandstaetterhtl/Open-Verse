@@ -116,7 +116,7 @@ export function ActivityLogsPage() {
             {
               key: "action",
               label: t("monitoring.action", "Action"),
-              render: ({ log }) => <code className="font-data text-xs bg-muted/50 px-2 py-0.5 rounded-sm text-primary">{log.action}</code>
+              render: ({ log }) => <span className="text-sm font-medium" title={log.action}>{t(`admin_logs.actions.${log.action}`, String(log.action))}</span>
             },
             {
               key: "description",
@@ -143,7 +143,7 @@ export function ActivityLogsPage() {
                     </span>
                     <span className="ov-data text-xs text-muted-foreground">{format(new Date(log.createdAt), 'HH:mm:ss')}</span>
                  </div>
-                 <code className="font-data text-xs font-semibold text-primary">{log.action}</code>
+                 <span className="text-sm font-semibold text-primary" title={log.action}>{t(`admin_logs.actions.${log.action}`, String(log.action))}</span>
               </div>
               <div>
                  <p className="text-xs font-semibold mb-1">{user?.username || log.userEmail || t("monitoring.system", "System")}</p>

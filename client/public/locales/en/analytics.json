@@ -31,5 +31,7 @@
   "growth": "Growth",
   "new_posts_count": "posts this period",
   "access_restricted": "Access Restricted",
-  "access_restricted_desc": "You do not have the required permissions to access product analytics."
+  "access_restricted_desc": "You do not have the required permissions to access product analytics.",
+  "range_short_7": "7d",
+  "range_short_30": "30d"
 }

@@ -28,6 +28,13 @@ export default function TicketDetailPage() {
   const ticketId = parseInt(id);
   const { t } = useTranslation("tickets");
   const dateLocale = useDateLocale();
+  // System comments are stored in English by the server; render them from their change data instead.
+  const systemMessage = (c: { content: string; changeType?: string | null; changeFrom?: string | null; changeTo?: string | null }) => {
+    if (!c.changeType) return c.content;
+    const label = (v?: string | null) =>
+      !v ? "" : c.changeType === "status_change" ? t(`status.${v}`, v) : c.changeType === "priority_change" ? t(`priority.${v}`, v) : v;
+    return t(`systemMessages.${c.changeType}`, { from: label(c.changeFrom), to: label(c.changeTo), defaultValue: c.content });
+  };
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -194,7 +201,7 @@ export default function TicketDetailPage() {
                     return (
                       <div key={comment.id} className="relative flex items-center gap-3 ml-8 pl-4 pr-2 py-2 border-l border-border text-xs text-muted-foreground group">
                         <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
-                        <span className="truncate">{comment.content}</span>
+                        <span className="truncate">{systemMessage(comment)}</span>
                         <span className="ov-data ml-auto shrink-0" title={format(new Date(comment.createdAt), "PPpp", { locale: dateLocale })}>{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: dateLocale })}</span>
                       </div>
                     );

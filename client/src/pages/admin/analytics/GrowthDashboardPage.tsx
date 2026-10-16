@@ -119,8 +119,8 @@ export default function GrowthDashboardPage() {
                         <CardTitle className="text-lg">{t("analytics:growth_trends", "Growth Trends")}</CardTitle>
                         <Tabs defaultValue="30" onValueChange={(v) => setDays(parseInt(v))} className="w-full sm:w-auto">
                             <TabsList className="w-full">
-                                <TabsTrigger value="7" className="flex-1 px-4 font-data text-xs">7d</TabsTrigger>
-                                <TabsTrigger value="30" className="flex-1 px-4 font-data text-xs">30d</TabsTrigger>
+                                <TabsTrigger value="7" className="flex-1 px-4 font-data text-xs">{t("analytics:range_short_7", "7d")}</TabsTrigger>
+                                <TabsTrigger value="30" className="flex-1 px-4 font-data text-xs">{t("analytics:range_short_30", "30d")}</TabsTrigger>
                                 <TabsTrigger value="90" className="flex-1 px-4 font-data text-xs">90d</TabsTrigger>
                             </TabsList>
                         </Tabs>

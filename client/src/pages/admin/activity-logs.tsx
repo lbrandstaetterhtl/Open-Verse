@@ -217,9 +217,9 @@ export default function ActivityLogsPage() {
                 key: "action",
                 label: t("admin_logs.col_action", "Action"),
                 render: (log) => (
-                  <code className="font-data text-xs bg-primary/10 px-2 py-0.5 rounded-sm text-primary">
-                    {log.action}
-                  </code>
+                  <span className="text-sm font-medium" title={log.action}>
+                    {t(`admin_logs.actions.${log.action}`, String(log.action))}
+                  </span>
                 )
               },
               {
@@ -249,7 +249,7 @@ export default function ActivityLogsPage() {
                               <Shield className="h-6 w-6" />
                             </div>
                             <div className="flex flex-col items-start text-left space-y-1">
-                              <SheetTitle className="font-display text-2xl font-semibold">{log.action}</SheetTitle>
+                              <SheetTitle className="font-display text-2xl font-semibold" title={log.action}>{t(`admin_logs.actions.${log.action}`, String(log.action))}</SheetTitle>
                               <SheetDescription><span className="ov-label">{t("admin_logs.audit_entry", { id: log.id, defaultValue: "Audit Entry • Event #{{id}}" })}</span></SheetDescription>
                             </div>
                           </div>
@@ -342,7 +342,7 @@ export default function ActivityLogsPage() {
                                  <div className={cn("ov-cut p-3", severityIconColors[log.severity as keyof typeof severityIconColors])}>
                                     <Shield className="h-6 w-6" />
                                  </div>
-                                 <h2 className="font-display text-xl font-semibold leading-tight">{log.action}</h2>
+                                 <h2 className="font-display text-xl font-semibold leading-tight" title={log.action}>{t(`admin_logs.actions.${log.action}`, String(log.action))}</h2>
                               </div>
                               <div className="space-y-1">
                                  <p className="ov-label">{t("admin_logs.admin", "Admin")}</p>

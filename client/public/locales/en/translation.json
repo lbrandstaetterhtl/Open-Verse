@@ -1296,6 +1296,66 @@
       "failure": "Failed",
       "warning": "Warning",
       "blocked": "Blocked"
+    },
+    "actions": {
+      "admin": {
+        "bulk_action": "Bulk action",
+        "settings_change": "Settings changed",
+        "group_create": "Group created",
+        "group_delete": "Group deleted",
+        "group_update": "Group updated",
+        "user_group_assign": "User assigned to group"
+      },
+      "auth": {
+        "login": "Login",
+        "login_failed": "Failed login",
+        "logout": "Logout",
+        "register": "Registration"
+      },
+      "comment": {
+        "create": "Comment written",
+        "delete": "Comment deleted"
+      },
+      "community": {
+        "ban_member": "Member banned from community",
+        "unban_member": "Community ban lifted",
+        "create": "Community created",
+        "join": "Joined community",
+        "leave": "Left community"
+      },
+      "follow": {
+        "add": "Followed user",
+        "remove": "Unfollowed user"
+      },
+      "post": {
+        "create": "Post created",
+        "delete": "Post deleted"
+      },
+      "report": {
+        "resolve": "Report handled",
+        "submit": "Report submitted"
+      },
+      "security": {
+        "auth_bypass_attempt": "Auth bypass attempt",
+        "suspicious_request": "Suspicious request"
+      },
+      "system": {
+        "error": "System error"
+      },
+      "ticket": {
+        "comment": "Ticket comment",
+        "create": "Ticket created",
+        "status_change": "Ticket status changed"
+      },
+      "user": {
+        "upload_rejected": "Upload rejected",
+        "upload_avatar": "Profile picture uploaded",
+        "upload_cover": "Cover image uploaded",
+        "delete_account": "Account deleted",
+        "settings_change": "User settings changed",
+        "update_avatar": "Profile picture changed",
+        "update_cover": "Cover image changed"
+      }
     }
   },
   "admin_dashboard": {
