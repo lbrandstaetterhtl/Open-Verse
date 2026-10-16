@@ -152,6 +152,13 @@ if (useSqlite) {
       created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_post_likes_user_post ON post_likes(user_id, post_id);
+    CREATE TABLE IF NOT EXISTS saved_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      post_id INTEGER NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_posts_user_post ON saved_posts(user_id, post_id);
     CREATE TABLE IF NOT EXISTS comment_likes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,

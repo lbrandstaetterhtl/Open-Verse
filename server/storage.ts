@@ -76,6 +76,11 @@ export interface IStorage {
   getUserPostReaction(userId: number, postId: number): Promise<{ isLike: boolean } | null>;
   getPostReactions(postId: number): Promise<{ likes: number; dislikes: number }>;
   getBatchPostReactions(postIds: number[]): Promise<Map<number, { likes: number; dislikes: number }>>;
+  savePost(userId: number, postId: number): Promise<void>;
+  unsavePost(userId: number, postId: number): Promise<void>;
+  getSavedPostIds(userId: number, postIds: number[]): Promise<Set<number>>;
+  getSavedPostsByUser(userId: number): Promise<Post[]>;
+  getBatchCommentCounts(postIds: number[]): Promise<Map<number, number>>;
   
   likeComment(userId: number, commentId: number): Promise<void>;
   unlikeComment(userId: number, commentId: number): Promise<void>;
@@ -240,6 +245,11 @@ export class DatabaseStorage implements IStorage {
   async getUserPostReaction(uId: number, pId: number) { return this.contentStore.getUserPostReaction(uId, pId); }
   async getPostReactions(pId: number) { return this.contentStore.getPostReactions(pId); }
   async getBatchPostReactions(ids: number[]) { return this.contentStore.getBatchPostReactions(ids); }
+  async savePost(uId: number, pId: number) { return this.contentStore.savePost(uId, pId); }
+  async unsavePost(uId: number, pId: number) { return this.contentStore.unsavePost(uId, pId); }
+  async getSavedPostIds(uId: number, ids: number[]) { return this.contentStore.getSavedPostIds(uId, ids); }
+  async getSavedPostsByUser(uId: number) { return this.contentStore.getSavedPostsByUser(uId); }
+  async getBatchCommentCounts(ids: number[]) { return this.contentStore.getBatchCommentCounts(ids); }
   async likeComment(uId: number, cId: number) { return this.contentStore.likeComment(uId, cId); }
   async unlikeComment(uId: number, cId: number) { return this.contentStore.unlikeComment(uId, cId); }
   async getUserCommentLike(uId: number, cId: number) { return this.contentStore.getUserCommentLike(uId, cId); }

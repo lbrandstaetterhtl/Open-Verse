@@ -6,6 +6,7 @@ import {
   comments,
   posts,
   commentLikes,
+  savedPosts,
 } from "@shared/schema";
 import { db, getSqlite } from "../db";
 import { eq, and, desc, sql, inArray, isNull } from "drizzle-orm";
@@ -284,7 +285,8 @@ export class ContentStorage {
       return reaction ? { isLike: !!reaction.isLike } : null;
     }
     const [reaction] = await db.select().from(postLikes).where(and(eq(postLikes.userId, userId), eq(postLikes.postId, postId)));
-    return reaction ? { isLike: reaction.isLike } : null;
+    // is_like is an integer column in Postgres; the client compares with true/false.
+    return reaction ? { isLike: !!reaction.isLike } : null;
   }
 
   async getPostReactions(postId: number): Promise<{ likes: number; dislikes: number }> {
@@ -294,8 +296,8 @@ export class ContentStorage {
       const dislikes = sqlite.prepare("SELECT COUNT(*) as count FROM post_likes WHERE post_id = ? AND is_like = 0").get(postId) as { count: number };
       return { likes: likes.count, dislikes: dislikes.count };
     }
-    const likes = await db.select({ count: sql<number>`count(*)` }).from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.isLike, 1)));
-    const dislikes = await db.select({ count: sql<number>`count(*)` }).from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.isLike, 0)));
+    const likes = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.isLike, 1)));
+    const dislikes = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.isLike, 0)));
     return { likes: likes[0].count, dislikes: dislikes[0].count };
   }
 
@@ -323,7 +325,7 @@ export class ContentStorage {
       return results;
     }
 
-    const rows = await db.select({ postId: postLikes.postId, isLike: postLikes.isLike, count: sql<number>`count(*)` }).from(postLikes).where(inArray(postLikes.postId, postIds)).groupBy(postLikes.postId, postLikes.isLike);
+    const rows = await db.select({ postId: postLikes.postId, isLike: postLikes.isLike, count: sql<number>`count(*)`.mapWith(Number) }).from(postLikes).where(inArray(postLikes.postId, postIds)).groupBy(postLikes.postId, postLikes.isLike);
     postIds.forEach(id => results.set(id, { likes: 0, dislikes: 0 }));
     rows.forEach((row: { postId: number; isLike: boolean; count: number }) => {
       const stats = results.get(row.postId) || { likes: 0, dislikes: 0 };
@@ -369,7 +371,7 @@ export class ContentStorage {
       const result = sqlite.prepare("SELECT COUNT(*) as count FROM comment_likes WHERE comment_id = ?").get(commentId) as { count: number };
       return result.count;
     }
-    const result = await db.select({ count: sql<number>`count(*)` }).from(commentLikes).where(eq(commentLikes.commentId, commentId));
+    const result = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(commentLikes).where(eq(commentLikes.commentId, commentId));
     return result[0].count;
   }
 
@@ -394,6 +396,83 @@ export class ContentStorage {
       .where(eq(comments.authorId, userId))
       .orderBy(desc(comments.createdAt))
       .limit(100);
+  }
+
+  // --- Bookmarks ("Merken") ---
+
+  async savePost(userId: number, postId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite.prepare("INSERT OR IGNORE INTO saved_posts (user_id, post_id) VALUES (?, ?)").run(userId, postId);
+      return;
+    }
+    await db.insert(savedPosts).values({ userId, postId }).onConflictDoNothing();
+  }
+
+  async unsavePost(userId: number, postId: number): Promise<void> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      sqlite.prepare("DELETE FROM saved_posts WHERE user_id = ? AND post_id = ?").run(userId, postId);
+      return;
+    }
+    await db.delete(savedPosts).where(and(eq(savedPosts.userId, userId), eq(savedPosts.postId, postId)));
+  }
+
+  /** Which of the given posts the user has saved. */
+  async getSavedPostIds(userId: number, postIds: number[]): Promise<Set<number>> {
+    if (postIds.length === 0) return new Set();
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite
+        .prepare(`SELECT post_id FROM saved_posts WHERE user_id = ? AND post_id IN (${postIds.map(() => "?").join(",")})`)
+        .all(userId, ...postIds) as { post_id: number }[];
+      return new Set(rows.map((r) => r.post_id));
+    }
+    const rows = await db
+      .select({ postId: savedPosts.postId })
+      .from(savedPosts)
+      .where(and(eq(savedPosts.userId, userId), inArray(savedPosts.postId, postIds)));
+    return new Set(rows.map((r: { postId: number }) => r.postId));
+  }
+
+  /** Saved posts of a user, newest bookmark first. */
+  async getSavedPostsByUser(userId: number): Promise<Post[]> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const ids = sqlite
+        .prepare("SELECT post_id FROM saved_posts WHERE user_id = ? ORDER BY created_at DESC")
+        .all(userId) as { post_id: number }[];
+      const found = await Promise.all(ids.map((r) => this.getPost(r.post_id)));
+      return found.filter((p): p is Post => !!p);
+    }
+    const result = await db
+      .select({ post: posts })
+      .from(savedPosts)
+      .innerJoin(posts, eq(savedPosts.postId, posts.id))
+      .where(eq(savedPosts.userId, userId))
+      .orderBy(desc(savedPosts.createdAt));
+    return result.map((r: { post: Post }) => r.post);
+  }
+
+  /** Number of comments per post, for the feed cards. */
+  async getBatchCommentCounts(postIds: number[]): Promise<Map<number, number>> {
+    const counts = new Map<number, number>();
+    if (postIds.length === 0) return counts;
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite
+        .prepare(`SELECT post_id, COUNT(*) AS n FROM comments WHERE post_id IN (${postIds.map(() => "?").join(",")}) GROUP BY post_id`)
+        .all(...postIds) as { post_id: number; n: number }[];
+      rows.forEach((r) => counts.set(r.post_id, Number(r.n)));
+      return counts;
+    }
+    const rows = await db
+      .select({ postId: comments.postId, n: sql<number>`count(*)`.mapWith(Number) })
+      .from(comments)
+      .where(inArray(comments.postId, postIds))
+      .groupBy(comments.postId);
+    rows.forEach((r: { postId: number; n: number }) => counts.set(r.postId, Number(r.n)));
+    return counts;
   }
 
   async getLikedPostsByUser(userId: number): Promise<Post[]> {

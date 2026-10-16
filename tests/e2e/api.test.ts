@@ -327,6 +327,56 @@ describe("posts and comments", () => {
   });
 });
 
+describe("post actions", () => {
+  test("liking again removes the like and leaves no dislike", async () => {
+    const before = await (await bob.client.get(`/api/posts/${alicePostId}`)).json();
+    assert.equal(before.userVote?.isLike, true, "bob liked the post in the previous suite");
+    await expectStatus(await bob.client.post(`/api/posts/${alicePostId}/react`, { isLike: true }), 200);
+    const after = await (await bob.client.get(`/api/posts/${alicePostId}`)).json();
+    assert.equal(after.likes, 0);
+    assert.equal(after.userVote, null);
+    const feed = await (await bob.client.get("/api/posts?category=discussion")).json();
+    const card = feed.find((p: any) => p.id === alicePostId);
+    assert.deepEqual(card.reactions, { likes: 0, dislikes: 0 });
+  });
+
+  test("feed reports the like state as a boolean and the comment count", async () => {
+    await expectStatus(await bob.client.post(`/api/posts/${alicePostId}/react`, { isLike: true }), 200);
+    const feed = await (await bob.client.get("/api/posts?category=discussion")).json();
+    const card = feed.find((p: any) => p.id === alicePostId);
+    assert.equal(card.userReaction?.isLike, true);
+    assert.ok(card.commentCount >= 1, `commentCount=${card.commentCount}`);
+  });
+
+  test("save and unsave a post", async () => {
+    await expectStatus(await bob.client.post(`/api/posts/${alicePostId}/save`), 200);
+    await expectStatus(await bob.client.post(`/api/posts/${alicePostId}/save`), 200); // idempotent
+    const detail = await (await bob.client.get(`/api/posts/${alicePostId}`)).json();
+    assert.equal(detail.isSaved, true);
+    const feed = await (await bob.client.get("/api/posts?category=discussion")).json();
+    assert.equal(feed.find((p: any) => p.id === alicePostId).isSaved, true);
+    const saved = await (await bob.client.get(`/api/users/${bob.username}/saved`)).json();
+    assert.deepEqual(saved.map((p: any) => p.id), [alicePostId]);
+    assert.equal(saved[0].isSaved, true);
+
+    await expectStatus(await bob.client.delete(`/api/posts/${alicePostId}/save`), 200);
+    const after = await (await bob.client.get(`/api/users/${bob.username}/saved`)).json();
+    assert.equal(after.length, 0);
+  });
+
+  test("saved posts are private", async () => {
+    assert.equal((await alice.client.get(`/api/users/${bob.username}/saved`)).status, 403);
+    assert.equal((await new Client().get(`/api/users/${bob.username}/saved`)).status, 401);
+  });
+
+  test("saving needs a login and an existing post", async () => {
+    const anon = new Client();
+    await anon.refreshCsrf();
+    assert.equal((await anon.post(`/api/posts/${alicePostId}/save`)).status, 401);
+    assert.equal((await bob.client.post("/api/posts/999999999/save")).status, 404);
+  });
+});
+
 describe("uploads", () => {
   test("image post upload works with the CSRF header and the file is served", async () => {
     const u = await newUser("upload");

@@ -86,6 +86,7 @@ export default function MyProfilePage() {
           <ProfileTabs 
             activeTab={activeTab} 
             onTabChange={setActiveTab} 
+            showSaved
             counts={{
               posts: enrichedUser.stats?.posts || 0,
               comments: enrichedUser.stats?.comments || 0,

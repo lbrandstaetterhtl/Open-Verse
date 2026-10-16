@@ -5,6 +5,7 @@ import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
 import { profileUpload, checkFileSignature, sanitizeImage } from "../utils/file-upload";
 import fs from "node:fs";
+import { getPostExtras } from "../utils/post-extras";
 
 const router = Router();
 
@@ -117,6 +118,7 @@ router.get("/:username/posts", async (req, res) => {
         const postIds = posts.map(p => p.id);
         const batchReactions = await storage.getBatchPostReactions(postIds);
         const currentUserId = (req.user as any)?.id;
+        const extras = await getPostExtras(postIds, currentUserId);
 
         const postsWithDetails = await Promise.all(posts.map(async (post) => {
             const isFollowing = currentUserId ? await storage.isFollowing(currentUserId, post.authorId) : false;
@@ -134,7 +136,8 @@ router.get("/:username/posts", async (req, res) => {
                 },
                 reactions,
                 userReaction,
-                comments: [] // Posts already have comments in the detailed view if needed
+                comments: [], // Posts already have comments in the detailed view if needed
+                ...extras(post.id)
             };
         }));
 
@@ -170,49 +173,66 @@ router.get("/:username/comments", async (req, res) => {
     }
 });
 
+/** Adds author, reactions, saved state and comment count to posts written by various users. */
+async function enrichPosts(posts: Awaited<ReturnType<typeof storage.getLikedPostsByUser>>, currentUserId?: number) {
+    const authorIds = [...new Set(posts.map(p => p.authorId))];
+    const authors = await storage.getUsersByIds(authorIds);
+    const authorsMap = new Map(authors.map(u => [u.id, u]));
+    const postIds = posts.map(p => p.id);
+    const batchReactions = await storage.getBatchPostReactions(postIds);
+    const extras = await getPostExtras(postIds, currentUserId);
+
+    return Promise.all(posts.map(async (post) => {
+        const author = authorsMap.get(post.authorId);
+        const isFollowing = currentUserId ? await storage.isFollowing(currentUserId, post.authorId) : false;
+        const reactions = batchReactions.get(post.id) || { likes: 0, dislikes: 0 };
+        const userReaction = currentUserId ? await storage.getUserPostReaction(currentUserId, post.id) : null;
+        return {
+            ...post,
+            author: {
+                id: author?.id,
+                username: author?.username || 'Unknown',
+                verified: author?.verified || false,
+                isFollowing,
+                role: author?.role || 'member'
+            },
+            reactions,
+            userReaction,
+            comments: [],
+            ...extras(post.id)
+        };
+    }));
+}
+
 router.get("/:username/liked", async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
             return res.status(404).send("User not found");
         }
-
         const posts = await storage.getLikedPostsByUser(user.id);
-        
-        // Enrich posts
-        const authorIds = [...new Set(posts.map(p => p.authorId))];
-        const authors = await storage.getUsersByIds(authorIds);
-        const authorsMap = new Map(authors.map(u => [u.id, u]));
-
-        const postIds = posts.map(p => p.id);
-        const batchReactions = await storage.getBatchPostReactions(postIds);
-        const currentUserId = (req.user as any)?.id;
-
-        const postsWithDetails = await Promise.all(posts.map(async (post) => {
-            const author = authorsMap.get(post.authorId);
-            const isFollowing = currentUserId ? await storage.isFollowing(currentUserId, post.authorId) : false;
-            const reactions = batchReactions.get(post.id) || { likes: 0, dislikes: 0 };
-            const userReaction = currentUserId ? await storage.getUserPostReaction(currentUserId, post.id) : null;
-
-            return {
-                ...post,
-                author: {
-                    id: author?.id,
-                    username: author?.username || 'Unknown',
-                    verified: author?.verified || false,
-                    isFollowing,
-                    role: author?.role || 'member'
-                },
-                reactions,
-                userReaction,
-                comments: []
-            };
-        }));
-
-        res.json(postsWithDetails);
+        res.json(await enrichPosts(posts, (req.user as any)?.id));
     } catch (error) {
         console.error("Error getting liked posts:", error);
         res.status(500).send("Failed to get liked posts");
+    }
+});
+
+// Saved posts ("Merken") are private: only the user themselves can list them.
+router.get("/:username/saved", isAuthenticated, async (req, res) => {
+    try {
+        const user = await storage.getUserByUsername(req.params.username);
+        if (!user) {
+            return res.status(404).send("User not found");
+        }
+        if ((req.user as any).id !== user.id) {
+            return res.status(403).send("Saved posts are private");
+        }
+        const posts = await storage.getSavedPostsByUser(user.id);
+        res.json(await enrichPosts(posts, user.id));
+    } catch (error) {
+        console.error("Error getting saved posts:", error);
+        res.status(500).send("Failed to get saved posts");
     }
 });
 

@@ -1,3 +1,4 @@
+import { applyStoredTheme } from "@/lib/theme-utils";
 import { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light" | "system";
@@ -40,10 +41,11 @@ export function ThemeProvider({
         : "light";
 
       root.classList.add(systemTheme);
-      return;
+    } else {
+      root.classList.add(theme);
     }
-
-    root.classList.add(theme);
+    // Swap the palette in the same step as the class, so the new mode never shows the old colours.
+    applyStoredTheme();
   }, [theme]);
 
   const value = {

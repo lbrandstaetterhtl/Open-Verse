@@ -436,7 +436,7 @@ export class UserStorage {
       return row.count;
     }
     const result = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(followers)
       .where(eq(followers.followingId, userId));
     return Number(result[0].count);
@@ -451,7 +451,7 @@ export class UserStorage {
       return row.count;
     }
     const result = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(followers)
       .where(eq(followers.followerId, userId));
     return Number(result[0].count);

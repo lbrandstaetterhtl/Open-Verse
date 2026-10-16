@@ -673,5 +673,16 @@
     "eyebrow_audit": "Admin / Audit",
     "eyebrow_monitoring": "Admin / Monitoring",
     "eyebrow_moderation": "Admin / Moderation"
+  },
+  "post_actions": {
+    "comment": "Comment",
+    "like": "Like",
+    "save": "Save",
+    "share": "Share",
+    "link_copied": "Link copied",
+    "copy_failed": "Copy this link",
+    "delete_post": "Delete post",
+    "delete_comment": "Delete comment",
+    "like_comment": "Like comment"
   }
 }

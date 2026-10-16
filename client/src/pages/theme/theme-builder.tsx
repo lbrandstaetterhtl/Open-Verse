@@ -69,7 +69,7 @@ import type {
   FontConfig,
   GalaxyConfig,
 } from "@/lib/theme-utils";
-import { galaxyGradients, defaultBackground, defaultParticles, applyParticleConfig, CONSTELLATION_NAMES } from "@/lib/theme-utils";
+import { galaxyGradients, defaultBackground, defaultParticles, applyParticleConfig, CONSTELLATION_NAMES, setThemePreviewActive, applyColorScheme, applyStoredTheme } from "@/lib/theme-utils";
 import { StarChart, STAR_CHARTS } from "@/components/layout/star-chart";
 import { Input } from "@/components/ui/input";
 import {
@@ -372,6 +372,18 @@ export default function ThemeBuilderPage() {
     };
     window.addEventListener(ACTIVE_THEME_EVENT, handleActiveThemeChange);
     return () => window.removeEventListener(ACTIVE_THEME_EVENT, handleActiveThemeChange);
+  }, []);
+
+  // While the builder is open its preview wins; on leaving, the stored theme and the chosen light/dark
+  // mode come back (the preview switches the .dark class and the colours).
+  useEffect(() => {
+    setThemePreviewActive(true);
+    return () => {
+      setThemePreviewActive(false);
+      window.dispatchEvent(new CustomEvent("open-verse-preview-bg", { detail: null }));
+      applyColorScheme();
+      applyStoredTheme();
+    };
   }, []);
 
   // Live Preview Sync - [FIX: Follow activeMode instead of global isDark]
