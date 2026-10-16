@@ -24,7 +24,8 @@
     "createdAt": "Erstellt",
     "updatedAt": "Aktualisiert",
     "resolvedAt": "Gelöst",
-    "closedAt": "Geschlossen"
+    "closedAt": "Geschlossen",
+    "optional": "(optional)"
   },
   "types": {
     "bug_report": "Bug Report",
@@ -63,7 +64,10 @@
     "deleteComment": "Löschen",
     "markInternal": "Als intern markieren",
     "viewHistory": "Verlauf anzeigen",
-    "backToTickets": "Zu meinen Tickets"
+    "backToTickets": "Zu meinen Tickets",
+    "tryAgain": "Erneut versuchen",
+    "decommission": "Signal stilllegen",
+    "deactivate": "Übertragung beenden"
   },
   "comments": {
     "title": "Aktivität",
@@ -92,7 +96,15 @@
     "priority": "Priorität (Kritisch zuerst)",
     "lastUpdated": "Zuletzt aktualisiert",
     "resetFilters": "Filter zurücksetzen",
-    "activeFilters": "{{count}} aktive Filter"
+    "activeFilters": "{{count}} aktive Filter",
+    "refine": "Signal verfeinern:",
+    "sortAria": "Tickets sortieren",
+    "sortPlaceholder": "Sortierung",
+    "ownerAria": "Tickets filtern",
+    "sourcePlaceholder": "Signalquelle",
+    "allSources": "Alle Projektionen",
+    "assignedToMe": "Mir zugewiesen",
+    "createdByMe": "Von mir erstellt"
   },
   "stats": {
     "total": "Gesamt",
@@ -119,7 +131,8 @@
     "deleteTicketDescription": "Das Ticket {{number}} wird unwiderruflich gelöscht.",
     "deleteComment": "Kommentar wirklich löschen?",
     "closeTicket": "Ticket schließen?",
-    "closeTicketDescription": "Geschlossene Tickets können nur vom Owner wieder geöffnet werden."
+    "closeTicketDescription": "Geschlossene Tickets können nur vom Owner wieder geöffnet werden.",
+    "deleteTicketConfirm": "Willst du dieses Ticket wirklich löschen?"
   },
   "errors": {
     "loadFailed": "Tickets konnten nicht geladen werden",
@@ -131,7 +144,8 @@
     "notFound": "Ticket nicht gefunden",
     "invalidTransition": "Nicht erlaubter Statuswechsel",
     "notFoundHint": "Dieses Ticket gibt es nicht, oder du hast keinen Zugriff darauf.",
-    "tryAgainHint": "Bitte versuche es gleich noch einmal."
+    "tryAgainHint": "Bitte versuche es gleich noch einmal.",
+    "assignFailed": "Ticket konnte nicht zugewiesen werden"
   },
   "success": {
     "created": "Ticket {{number}} wurde erstellt",
@@ -139,7 +153,9 @@
     "deleted": "Ticket wurde gelöscht",
     "statusChanged": "Status wurde auf '{{status}}' geändert",
     "commentAdded": "Kommentar wurde hinzugefügt",
-    "assigned": "Ticket wurde zugewiesen"
+    "assigned": "Ticket wurde zugewiesen",
+    "ticketDeleted": "Ticket erfolgreich gelöscht",
+    "assignmentUpdated": "Zuweisung aktualisiert"
   },
   "help": {
     "title": "Gutes Ticket schreiben",
@@ -151,5 +167,27 @@
     "priority_medium": "Sollte bald bearbeitet werden",
     "priority_high": "Sollte in den nächsten Tagen bearbeitet werden",
     "priority_critical": "Sollte sofort bearbeitet werden"
+  },
+  "subtitle": "Support-Hub",
+  "pageDescription": "Verwalte und verfolge Support-Anfragen auf der ganzen Plattform – in Schwerelosigkeit.",
+  "createDescription": "Sende ein neues Signal, das das Team in Schwerelosigkeit bearbeitet.",
+  "detail": {
+    "initiatedSignal": "hat das Signal gesendet",
+    "history": "Übertragungsverlauf",
+    "commanderBadge": "KOMMANDANT",
+    "internalBadge": "INTERNES SIGNAL",
+    "internalChannel": "Sicherer interner Kanal",
+    "transmit": "Antwort senden",
+    "sidebarTitle": "Signalkern",
+    "statusPhase": "Statusphase",
+    "priorityLevel": "Prioritätsstufe",
+    "relatedSignal": "Verknüpftes Signal",
+    "assignedPersonnel": "Zugewiesenes Personal",
+    "selectStaff": "Teammitglied auswählen"
+  },
+  "assignment": {
+    "unassigned": "Wartet auf Pilot",
+    "assigned": "Personal aktiv",
+    "active": "Aktiv"
   }
 }

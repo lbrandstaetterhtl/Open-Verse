@@ -49,12 +49,12 @@ export function TicketCard({ ticket, showOwnerFeatures }: { ticket: TicketWithMe
                 {ticket.assignedTo ? (
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span className="text-primary">Active</span>
+                    <span className="text-primary">{t("assignment.active", "Active")}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-star" />
-                    <span className="text-star">Awaiting Pilot</span>
+                    <span className="text-star">{t("assignment.unassigned", "Awaiting Pilot")}</span>
                   </div>
                 )}
               </>

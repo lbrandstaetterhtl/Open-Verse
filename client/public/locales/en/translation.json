@@ -35,7 +35,65 @@
     },
     "login_failed": "Login failed",
     "register_failed": "Registration failed",
-    "logout_failed": "Logout failed"
+    "logout_failed": "Logout failed",
+    "version_label": "Version {{version}}",
+    "email_verified": "Your email has been verified! You can now log in.",
+    "register": "Register",
+    "maintenance_active": "Maintenance mode active: only staff login allowed",
+    "registration_disabled_maintenance": "Site is currently under maintenance. Registration is disabled.",
+    "registration_disabled_admin": "Registration is currently disabled by the administrator.",
+    "why_join": "Why join {{name}}?",
+    "features_short": {
+      "news": "Quality News",
+      "discussions": "Discussions",
+      "trends": "Trends",
+      "community": "Community"
+    },
+    "default_description": "Join our vibrant community where informed citizens connect, share, and discuss current events, politics, and entertainment.",
+    "features": {
+      "news": {
+        "title": "Quality News Coverage",
+        "description": "Access fact-checked news and in-depth analysis from reliable sources on politics and current events."
+      },
+      "discussions": {
+        "title": "Meaningful Discussions",
+        "description": "Engage in civil discourse about important political and social issues that matter."
+      },
+      "trends": {
+        "title": "Entertainment & Trends",
+        "description": "Stay updated with the latest in entertainment, culture, and trending topics."
+      },
+      "community": {
+        "title": "Community Impact",
+        "description": "Connect with others who share your interests in politics, news, and entertainment."
+      }
+    },
+    "latest_updates": {
+      "title": "Latest Updates",
+      "new_in": "New in version {{version}}:",
+      "items": {
+        "theme_builder": "Advanced Custom Theme Builder",
+        "cursor_particles": "Interactive Dynamic Cursor Particles",
+        "light_dark": "Light & Dark Mode Overhaul",
+        "roles": "Global Role & Permission System",
+        "languages": "Global Language Support (6 Languages)"
+      }
+    },
+    "username": "Username",
+    "password": "Password",
+    "email": "Email",
+    "hide_password": "Hide password",
+    "show_password": "Show password",
+    "validation": {
+      "username_required": "Username is required",
+      "password_required": "Password is required",
+      "username_min": "Username must be at least {{count}} characters",
+      "username_max": "Username can be at most {{count}} characters",
+      "username_chars": "Only letters, numbers, '.', '_' and '-' are allowed",
+      "email_invalid": "Please enter a valid email address",
+      "password_min": "Password must be at least {{count}} characters",
+      "password_max": "Password can be at most {{count}} characters"
+    }
   },
   "bans": {
     "title": "Bans & Restrictions"

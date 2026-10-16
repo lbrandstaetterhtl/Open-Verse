@@ -35,7 +35,65 @@
     },
     "login_failed": "Anmeldung fehlgeschlagen",
     "register_failed": "Registrierung fehlgeschlagen",
-    "logout_failed": "Abmelden fehlgeschlagen"
+    "logout_failed": "Abmelden fehlgeschlagen",
+    "version_label": "Version {{version}}",
+    "email_verified": "Deine E-Mail-Adresse wurde bestätigt! Du kannst dich jetzt anmelden.",
+    "register": "Registrieren",
+    "maintenance_active": "Wartungsmodus aktiv: Anmeldung nur für das Team möglich",
+    "registration_disabled_maintenance": "Die Seite wird gerade gewartet. Die Registrierung ist deaktiviert.",
+    "registration_disabled_admin": "Die Registrierung ist derzeit vom Administrator deaktiviert.",
+    "why_join": "Warum {{name}} beitreten?",
+    "features_short": {
+      "news": "Hochwertige News",
+      "discussions": "Diskussionen",
+      "trends": "Trends",
+      "community": "Community"
+    },
+    "default_description": "Werde Teil unserer lebendigen Community, in der sich informierte Menschen vernetzen, austauschen und über aktuelle Ereignisse, Politik und Unterhaltung diskutieren.",
+    "features": {
+      "news": {
+        "title": "Hochwertige Berichterstattung",
+        "description": "Greif auf faktengeprüfte Nachrichten und fundierte Analysen aus verlässlichen Quellen zu Politik und aktuellen Ereignissen zu."
+      },
+      "discussions": {
+        "title": "Sinnvolle Diskussionen",
+        "description": "Beteilige dich an respektvollen Debatten über wichtige politische und gesellschaftliche Themen."
+      },
+      "trends": {
+        "title": "Unterhaltung & Trends",
+        "description": "Bleib auf dem Laufenden bei Unterhaltung, Kultur und angesagten Themen."
+      },
+      "community": {
+        "title": "Gemeinsam mehr bewegen",
+        "description": "Vernetze dich mit anderen, die dein Interesse an Politik, Nachrichten und Unterhaltung teilen."
+      }
+    },
+    "latest_updates": {
+      "title": "Neueste Updates",
+      "new_in": "Neu in Version {{version}}:",
+      "items": {
+        "theme_builder": "Erweiterter Theme-Builder",
+        "cursor_particles": "Interaktive, dynamische Cursor-Partikel",
+        "light_dark": "Überarbeiteter Hell- und Dunkelmodus",
+        "roles": "Globales Rollen- und Berechtigungssystem",
+        "languages": "Mehrsprachigkeit (6 Sprachen)"
+      }
+    },
+    "username": "Benutzername",
+    "password": "Passwort",
+    "email": "E-Mail",
+    "hide_password": "Passwort verbergen",
+    "show_password": "Passwort anzeigen",
+    "validation": {
+      "username_required": "Bitte gib deinen Benutzernamen ein",
+      "password_required": "Bitte gib dein Passwort ein",
+      "username_min": "Der Benutzername muss mindestens {{count}} Zeichen lang sein",
+      "username_max": "Der Benutzername darf höchstens {{count}} Zeichen lang sein",
+      "username_chars": "Nur Buchstaben, Zahlen, „.“, „_“ und „-“ sind erlaubt",
+      "email_invalid": "Bitte gib eine gültige E-Mail-Adresse ein",
+      "password_min": "Das Passwort muss mindestens {{count}} Zeichen lang sein",
+      "password_max": "Das Passwort darf höchstens {{count}} Zeichen lang sein"
+    }
   },
   "bans": {
     "title": "Bans & Sperren"

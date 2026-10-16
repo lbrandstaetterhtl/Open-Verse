@@ -79,7 +79,7 @@ export default function TicketDetailPage() {
   const handleUpdateStatus = async (status: string) => {
     try {
       await updateTicket({ id: ticket.id, data: { status } });
-      toast({ title: t("success.statusChanged", { status }) });
+      toast({ title: t("success.statusChanged", { status: t(`status.${status}`, status) }) });
     } catch (err: any) {
       toast({ title: t("errors.invalidTransition"), description: err.message, variant: "destructive" });
     }
@@ -89,16 +89,16 @@ export default function TicketDetailPage() {
     try {
       await updateTicket({ id: ticket.id, data: { priority } });
     } catch {
-      toast({ title: "Failed to update", variant: "destructive" });
+      toast({ title: t("errors.updateFailed", "Failed to update ticket"), variant: "destructive" });
     }
   };
 
   const handleUpdateAssignment = async (assignedTo: number | null) => {
     try {
       await updateTicket({ id: ticket.id, data: { assignedTo } });
-      toast({ title: "Assignment updated" });
+      toast({ title: t("success.assignmentUpdated", "Assignment updated") });
     } catch {
-      toast({ title: "Failed to assign", variant: "destructive" });
+      toast({ title: t("errors.assignFailed", "Failed to assign ticket"), variant: "destructive" });
     }
   };
 
@@ -130,22 +130,22 @@ export default function TicketDetailPage() {
             <>
               {isOwner && ticket.status !== 'closed' && (
                 <Button variant="destructive" disabled={isUpdating || isDeleting} onClick={async () => {
-                   if (confirm("Are you sure you want to delete this ticket?")) {
+                   if (confirm(t("confirmations.deleteTicketConfirm", "Are you sure you want to delete this ticket?"))) {
                      try {
                        await deleteTicket(ticket.id);
                        toast({ title: t("success.ticketDeleted", "Ticket deleted successfully") });
                        setLocation("/tickets");
                      } catch (err: any) {
-                       toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+                       toast({ title: t("errors.deleteFailed", "Failed to delete ticket"), description: err.message, variant: "destructive" });
                      }
                    }
                 }}>
-                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Decommission Signal"}
+                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("actions.decommission", "Decommission Signal")}
                 </Button>
               )}
               {(!isOwner && ticket.status !== 'closed') && (
                 <Button variant="destructive" disabled={isUpdating} onClick={() => handleUpdateStatus('closed')}>
-                  Deactivate Transmission
+                  {t("actions.deactivate", "Deactivate Transmission")}
                 </Button>
               )}
             </>
@@ -166,7 +166,7 @@ export default function TicketDetailPage() {
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                   <UserCircle className="w-4 h-4 text-primary" />
                   <span className="font-semibold text-foreground">{ticket.creatorUsername}</span>
-                  <span className="text-muted-foreground">initiated signal</span>
+                  <span className="text-muted-foreground">{t("detail.initiatedSignal", "initiated signal")}</span>
                   <span className="ov-data text-xs text-muted-foreground ml-auto" title={format(new Date(ticket.createdAt), "PPpp")}>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}</span>
                 </div>
               </CardHeader>
@@ -182,7 +182,7 @@ export default function TicketDetailPage() {
               <div className="flex items-center justify-between">
                 <h3 className="font-display text-lg font-semibold flex items-center gap-2">
                   <History className="w-4 h-4 text-primary" />
-                  Transmission History
+                  {t("detail.history", "Transmission History")}
                 </h3>
               </div>
 
@@ -212,11 +212,11 @@ export default function TicketDetailPage() {
                       <div className="flex-1 min-w-0 space-y-2">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                           <span className="text-sm font-semibold">{comment.authorUsername}</span>
-                          {comment.authorRole === 'owner' && <span className="ov-chip ov-chip-danger">COMMANDER</span>}
+                          {comment.authorRole === 'owner' && <span className="ov-chip ov-chip-danger">{t("detail.commanderBadge", "COMMANDER")}</span>}
                           <span className="ov-data text-xs text-muted-foreground" title={format(new Date(comment.createdAt), "PPpp")}>
                             {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                           </span>
-                          {comment.isInternal && <span className="ov-chip ov-chip-star ml-auto">INTERNAL SIGNAL</span>}
+                          {comment.isInternal && <span className="ov-chip ov-chip-star ml-auto">{t("detail.internalBadge", "INTERNAL SIGNAL")}</span>}
                         </div>
                         <div className="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap">
                           {comment.content}
@@ -241,12 +241,12 @@ export default function TicketDetailPage() {
                       {isOwner && (
                         <div className="flex items-center gap-3">
                           <Switch id="internal-mode" checked={isInternal} onCheckedChange={setIsInternal} className="data-[state=checked]:bg-star" />
-                          <Label htmlFor="internal-mode" className="text-sm font-medium cursor-pointer select-none text-star">Secure Internal Channel</Label>
+                          <Label htmlFor="internal-mode" className="text-sm font-medium cursor-pointer select-none text-star">{t("detail.internalChannel", "Secure Internal Channel")}</Label>
                         </div>
                       )}
                     </div>
                     <Button disabled={!commentText.trim() || isAddingComment} onClick={handleCommentSubmit} className="w-full sm:w-48">
-                      {isAddingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : "Transmit Response"}
+                      {isAddingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : t("detail.transmit", "Transmit Response")}
                     </Button>
                   </div>
                 </div>
@@ -258,11 +258,11 @@ export default function TicketDetailPage() {
           <div className="space-y-8">
             <Card className="sticky top-28">
               <CardHeader className="px-6 py-4 ov-rule">
-                <CardTitle className="text-lg">Signal Core</CardTitle>
+                <CardTitle className="text-lg">{t("detail.sidebarTitle", "Signal Core")}</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
                 <div className="space-y-2">
-                  <label className="ov-label block">Status Phase</label>
+                  <label className="ov-label block">{t("detail.statusPhase", "Status Phase")}</label>
                   {isOwner ? (
                     <Select value={ticket.status} onValueChange={handleUpdateStatus} disabled={isUpdating}>
                       <SelectTrigger className="h-10">
@@ -280,7 +280,7 @@ export default function TicketDetailPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="ov-label block">Priority Level</label>
+                  <label className="ov-label block">{t("detail.priorityLevel", "Priority Level")}</label>
                   {isOwner ? (
                     <Select value={ticket.priority} onValueChange={handleUpdatePriority} disabled={isUpdating}>
                       <SelectTrigger className="h-10">
@@ -299,26 +299,26 @@ export default function TicketDetailPage() {
 
                 <div className="pt-6 border-t border-border space-y-4">
                   <div className="flex justify-between items-center gap-3">
-                    <span className="ov-label">Type</span>
+                    <span className="ov-label">{t("fields.type", "Type")}</span>
                     <span className="ov-chip">{t(`types.${ticket.type}`, ticket.type)}</span>
                   </div>
 
                   {ticket.relatedUrl && (
                     <div className="flex flex-col gap-1.5">
-                      <span className="ov-label">Related Signal</span>
+                      <span className="ov-label">{t("detail.relatedSignal", "Related Signal")}</span>
                       <a href={ticket.relatedUrl} target="_blank" rel="noreferrer" className="ov-data text-xs text-primary hover:underline underline-offset-4 truncate">{ticket.relatedUrl}</a>
                     </div>
                   )}
 
                   <div className="flex flex-col gap-2 pt-4 border-t border-border">
-                    <span className="ov-label">Assigned Personnel</span>
+                    <span className="ov-label">{t("detail.assignedPersonnel", "Assigned Personnel")}</span>
                     {isOwner ? (
                       <Select value={ticket.assignedTo ? String(ticket.assignedTo) : "unassigned"} onValueChange={(v) => handleUpdateAssignment(v === "unassigned" ? null : parseInt(v))} disabled={isUpdating}>
                         <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Select Staff" />
+                          <SelectValue placeholder={t("detail.selectStaff", "Select staff")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="unassigned">Awaiting Pilot</SelectItem>
+                          <SelectItem value="unassigned">{t("assignment.unassigned", "Awaiting Pilot")}</SelectItem>
                           {staffUsers.map(admin => (
                             <SelectItem key={admin.id} value={String(admin.id)}>
                               {admin.username}
@@ -329,7 +329,7 @@ export default function TicketDetailPage() {
                     ) : (
                       <div className="flex items-center gap-3">
                         <div className={cn("ov-chip", ticket.assignedTo ? "ov-chip-primary" : "ov-chip-star")}>
-                          {ticket.assignedTo ? 'Personnel Active' : 'Awaiting Pilot'}
+                          {ticket.assignedTo ? t("assignment.assigned", "Personnel Active") : t("assignment.unassigned", "Awaiting Pilot")}
                         </div>
                       </div>
                     )}
