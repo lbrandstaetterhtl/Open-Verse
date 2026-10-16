@@ -44,7 +44,7 @@ export function ProfileHeader({
           {isOwnProfile ? (
             <Button onClick={onEditProfile}>
               <Settings className="h-4 w-4" />
-              Edit Domain
+              {t('profile.edit')}
             </Button>
           ) : (
             <>
@@ -139,7 +139,7 @@ export function ProfileHeader({
               )}
               <div className="ov-chip">
                 <Calendar className="h-3.5 w-3.5 text-primary/70" />
-                <span>Stationed Since {joinedDate}</span>
+                <span>{t('profile.joined')} {joinedDate}</span>
               </div>
             </div>
           </div>

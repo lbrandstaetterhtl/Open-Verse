@@ -1,6 +1,7 @@
 import { describe, test, before } from "node:test";
 import assert from "node:assert/strict";
-import { Client, newUser, expectStatus, ADMIN_USER, ADMIN_PASSWORD, RUN_ID, PNG_1X1, freshIp } from "./client";
+import { Client, newUser, expectStatus, ADMIN_USER, ADMIN_PASSWORD, RUN_ID, PNG_1X1, freshIp, uploadProfileImage, makeImage } from "./client";
+import sharp from "sharp";
 
 type TestUser = Awaited<ReturnType<typeof newUser>>;
 
@@ -403,6 +404,15 @@ describe("uploads", () => {
     assert.equal(res.status, 400);
   });
 
+  test("profile image upload rejects files that are not images", async () => {
+    const u = await newUser("pfbad");
+    const fake = await uploadProfileImage(u.client, "avatar", Buffer.from("<script>alert(1)</script>"), "image/png", "evil.png");
+    assert.equal(fake.status, 400);
+    const pdf = await uploadProfileImage(u.client, "avatar", Buffer.from("%PDF-1.4"), "application/pdf", "doc.pdf");
+    assert.equal(pdf.status, 400);
+    assert.match((await pdf.json()).error, /JPG|PNG|WebP|Bild/);
+  });
+
   test("path traversal in upload URLs is blocked", async () => {
     const res = await new Client().get("/uploads/..%2f..%2fpackage.json");
     assert.notEqual(res.status, 200);
@@ -683,5 +693,143 @@ describe("deleted accounts", () => {
     const like = await reader.client.post(`/api/posts/${postId}/react`, { isLike: true });
     await expectStatus(like, 200);
     assert.equal((await like.json()).reactions.likes, 1);
+  });
+});
+
+describe("profile images", () => {
+  const meta = async (url: string) => {
+    const res = await new Client().get(url);
+    assert.equal(res.status, 200, `${url} should be served`);
+    return sharp(Buffer.from(await res.arrayBuffer())).metadata();
+  };
+
+  test("avatar (PNG) upload returns a served, square WebP and does not change the profile yet", async () => {
+    const u = await newUser("pfava");
+    const res = await uploadProfileImage(u.client, "avatar", await makeImage("png", 900, 600), "image/png", "me.png");
+    await expectStatus(res, 200);
+    const { url } = await res.json();
+    assert.match(url, /^\/uploads\/profile-[\w-]+\.webp$/);
+    const m = await meta(url);
+    assert.equal(m.format, "webp");
+    assert.deepEqual([m.width, m.height], [512, 512], "avatar is cropped to 512x512");
+    const me = await (await u.client.get("/api/user")).json();
+    assert.ok(!me.avatarUrl, "upload alone must not change the profile (Cancel has to work)");
+  });
+
+  test("cover (JPEG) upload keeps its aspect ratio and is shrunk", async () => {
+    const u = await newUser("pfcov");
+    const res = await uploadProfileImage(u.client, "cover", await makeImage("jpeg", 3000, 1000), "image/jpeg", "cover.jpg");
+    await expectStatus(res, 200);
+    const m = await meta((await res.json()).url);
+    assert.equal(m.format, "webp");
+    assert.deepEqual([m.width, m.height], [1800, 600]);
+  });
+
+  test("WebP uploads work and small images are not enlarged", async () => {
+    const u = await newUser("pfwebp");
+    const res = await uploadProfileImage(u.client, "cover", await makeImage("webp", 800, 300), "image/webp", "c.webp");
+    await expectStatus(res, 200);
+    const m = await meta((await res.json()).url);
+    assert.deepEqual([m.width, m.height], [800, 300]);
+  });
+
+  test("EXIF metadata is removed", async () => {
+    const u = await newUser("pfexif");
+    const withExif = await sharp(await makeImage("jpeg", 400, 400))
+      .withExif({ IFD0: { Copyright: "secret-location-marker" } })
+      .jpeg()
+      .toBuffer();
+    assert.ok((await sharp(withExif).metadata()).exif, "fixture has EXIF");
+    const res = await uploadProfileImage(u.client, "avatar", withExif, "image/jpeg", "gps.jpg");
+    await expectStatus(res, 200);
+    const stored = await new Client().get((await res.json()).url);
+    const bytes = Buffer.from(await stored.arrayBuffer());
+    assert.equal((await sharp(bytes).metadata()).exif, undefined);
+    assert.ok(!bytes.includes("secret-location-marker"));
+  });
+
+  test("a typical phone photo (about 4 MB) is accepted", async () => {
+    const u = await newUser("pfphone");
+    const photo = await sharp(await makeImage("png", 1400, 1000)).jpeg({ quality: 100 }).toBuffer();
+    const padded = Buffer.concat([photo, Buffer.alloc(Math.max(0, 4 * 1024 * 1024 - photo.length))]);
+    const res = await uploadProfileImage(u.client, "avatar", padded, "image/jpeg", "IMG_0001.jpg");
+    await expectStatus(res, 200);
+  });
+
+  test("files above the limit get a clear 413 answer, not a server error", async () => {
+    const u = await newUser("pfbig");
+    const big = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(11 * 1024 * 1024)]);
+    const res = await uploadProfileImage(u.client, "avatar", big, "image/jpeg", "huge.jpg");
+    assert.equal(res.status, 413);
+    const body = await res.json();
+    assert.equal(body.code, "FILE_TOO_LARGE");
+    assert.match(body.error, /10 MB/);
+  });
+
+  test("invalid upload type, missing file and broken images are 400", async () => {
+    const u = await newUser("pfinv");
+    const png = await makeImage("png", 50, 50);
+    const badKind = await uploadProfileImage(u.client, "banner", png, "image/png", "x.png");
+    assert.equal(badKind.status, 400);
+    assert.equal((await badKind.json()).code, "INVALID_KIND");
+
+    const form = new FormData();
+    form.append("type", "avatar");
+    const none = await u.client.request("POST", "/api/profile-upload", { form });
+    assert.equal(none.status, 400);
+    assert.equal((await none.json()).code, "NO_FILE");
+
+    // Right magic bytes, but not a decodable image
+    const broken = Buffer.concat([Buffer.from("89504e470d0a1a0a", "hex"), Buffer.alloc(200, 7)]);
+    const res = await uploadProfileImage(u.client, "avatar", broken, "image/png", "broken.png");
+    assert.equal(res.status, 400);
+  });
+
+  test("uploading needs a login and a CSRF token", async () => {
+    const anon = new Client();
+    await anon.refreshCsrf();
+    const res = await uploadProfileImage(anon, "avatar", await makeImage("png", 20, 20), "image/png", "x.png");
+    assert.ok([401, 403].includes(res.status), `got ${res.status}`);
+
+    const u = await newUser("pfcsrf");
+    const form = new FormData();
+    form.append("type", "avatar");
+    form.append("image", new Blob([await makeImage("png", 20, 20)], { type: "image/png" }), "x.png");
+    const noCsrf = await u.client.request("POST", "/api/profile-upload", { form, csrf: false });
+    assert.equal(noCsrf.status, 403);
+  });
+
+  test("saving the profile stores both images; others see them; removing clears them", async () => {
+    const u = await newUser("pfsave");
+    const avatar = (await (await uploadProfileImage(u.client, "avatar", await makeImage("png", 300, 300), "image/png", "a.png")).json()).url;
+    const cover = (await (await uploadProfileImage(u.client, "cover", await makeImage("jpeg", 1500, 500), "image/jpeg", "c.jpg")).json()).url;
+    const saved = await u.client.patch("/api/profile", { avatarUrl: avatar, coverUrl: cover, bio: "with images" });
+    await expectStatus(saved, 200);
+
+    const me = await (await u.client.get("/api/user")).json();
+    assert.equal(me.avatarUrl, avatar);
+    assert.equal(me.coverUrl, cover);
+    assert.equal(me.profilePictureUrl, avatar, "legacy field follows the avatar");
+
+    const other = await newUser("pfview");
+    const seen = await (await other.client.get(`/api/users/${u.username}`)).json();
+    assert.equal(seen.avatarUrl, avatar);
+    assert.equal(seen.coverUrl, cover);
+
+    // Saving again without touching the images keeps them
+    await expectStatus(await u.client.patch("/api/profile", { bio: "only bio", avatarUrl: avatar, coverUrl: cover }), 200);
+    assert.equal((await (await u.client.get("/api/user")).json()).avatarUrl, avatar);
+
+    await expectStatus(await u.client.patch("/api/profile", { avatarUrl: "", coverUrl: "" }), 200);
+    const cleared = await (await u.client.get("/api/user")).json();
+    assert.ok(!cleared.avatarUrl && !cleared.coverUrl, "images removed");
+  });
+
+  test("profile image URLs must point to our own uploads", async () => {
+    const u = await newUser("pfurl");
+    for (const avatarUrl of ["https://tracker.example/pixel.png", "javascript:alert(1)", "/uploads/../package.json", "/api/user"]) {
+      const res = await u.client.patch("/api/profile", { avatarUrl });
+      assert.equal(res.status, 400, `${avatarUrl} should be rejected`);
+    }
   });
 });

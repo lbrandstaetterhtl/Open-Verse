@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import type { User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -22,6 +23,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const {
     data: user,
     error,
@@ -43,10 +45,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (data: SelectUser) => {
       queryClient.clear();
       queryClient.setQueryData(["/api/user"], data);
+      toast({
+        title: t("auth.welcome_back.title", { defaultValue: "Willkommen zurück, {{name}}!", name: data.displayName || data.username }),
+        description: t("auth.welcome_back.description", "Schön, dich wiederzusehen."),
+        duration: 4000,
+      });
     },
     onError: (err: Error) => {
       toast({
-        title: "Login failed",
+        title: t("auth.login_failed", "Anmeldung fehlgeschlagen"),
         description: err.message,
         variant: "destructive",
       });
@@ -65,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (err: Error) => {
       toast({
-        title: "Registration failed",
+        title: t("auth.register_failed", "Registrierung fehlgeschlagen"),
         description: err.message,
         variant: "destructive",
       });
@@ -82,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (err: Error) => {
       toast({
-        title: "Logout failed",
+        title: t("auth.logout_failed", "Abmelden fehlgeschlagen"),
         description: err.message,
         variant: "destructive",
       });

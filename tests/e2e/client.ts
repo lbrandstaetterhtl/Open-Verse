@@ -111,3 +111,24 @@ export async function expectStatus(res: Response, ...expected: number[]): Promis
     throw new Error(`expected HTTP ${expected.join(" or ")}, got ${res.status}: ${await res.text()}`);
   }
 }
+
+export async function uploadProfileImage(
+  client: Client,
+  type: string,
+  data: Buffer,
+  mime: string,
+  filename: string,
+): Promise<Response> {
+  const form = new FormData();
+  form.append("type", type);
+  form.append("image", new Blob([data], { type: mime }), filename);
+  return client.request("POST", "/api/profile-upload", { form });
+}
+
+// A real, noisy test image (noise keeps encoders from shrinking it to almost nothing).
+export async function makeImage(format: "png" | "jpeg" | "webp", width: number, height: number): Promise<Buffer> {
+  const sharp = (await import("sharp")).default;
+  return sharp({ create: { width, height, channels: 3, noise: { type: "gaussian", mean: 128, sigma: 40 } } })
+    .toFormat(format)
+    .toBuffer();
+}

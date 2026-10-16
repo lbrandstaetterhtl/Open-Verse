@@ -484,7 +484,19 @@ export function setupAuth(app: Express, sessionParser: any) {
       }
     }
 
-    const updatedUser = await storage.updateUserProfile(req.user!.id, result.data);
+    // Profile images must come from our own upload endpoint (or be cleared). An unchanged value
+    // is always fine, so older accounts with other URLs can still save the rest of the form.
+    const update: Record<string, unknown> = { ...result.data };
+    for (const field of ["avatarUrl", "coverUrl", "profilePictureUrl"] as const) {
+      const value = update[field];
+      if (value === undefined || value === null || value === "" || value === (req.user as any)[field]) continue;
+      if (typeof value !== "string" || !/^\/uploads\/[\w.-]+$/.test(value) || value.includes("..")) {
+        return res.status(400).json({ error: "Ungültige Bild-URL", field });
+      }
+    }
+    if (update.avatarUrl !== undefined) update.profilePictureUrl = update.avatarUrl;
+
+    const updatedUser = await storage.updateUserProfile(req.user!.id, update as typeof result.data);
     res.json(sanitizeUser(updatedUser));
   });
 

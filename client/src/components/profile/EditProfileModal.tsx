@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
@@ -32,7 +32,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeIn, scaleIn } from "@/lib/animations";
 import { cn } from "@/lib/utils";
-import { Constellation } from "@/components/layout/page-header";
+import { useToast } from "@/hooks/use-toast";
+
+// Must match PROFILE_IMAGE_MAX_BYTES on the server.
+const MAX_IMAGE_MB = 10;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+export type EditProfileTab = "general" | "appearance" | "privacy";
 
 interface EditProfileModalProps {
   user: User;
@@ -40,7 +46,21 @@ interface EditProfileModalProps {
   onClose: () => void;
   onSubmit: (data: UpdateProfile) => void;
   isSubmitting: boolean;
+  /** Tab shown when the dialog opens, e.g. "appearance" from the cover or avatar button. */
+  initialTab?: EditProfileTab;
 }
+
+const formValuesFor = (user: User) => ({
+  username: user.username,
+  email: user.email,
+  displayName: user.displayName || "",
+  bio: user.bio || "",
+  location: user.location || "",
+  website: user.website || "",
+  isPrivate: !!user.isPrivate,
+  avatarUrl: user.avatarUrl || "",
+  coverUrl: user.coverUrl || "",
+});
 
 export function EditProfileModal({
   user,
@@ -48,10 +68,15 @@ export function EditProfileModal({
   onClose,
   onSubmit,
   isSubmitting,
+  initialTab = "general",
 }: EditProfileModalProps) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [tab, setTab] = useState<EditProfileTab>(initialTab);
+  const avatarInput = useRef<HTMLInputElement>(null);
+  const coverInput = useRef<HTMLInputElement>(null);
 
   // Create a form-specific schema that allows boolean for the switch
   const formSchema = updateProfileSchema.extend({
@@ -62,18 +87,45 @@ export function EditProfileModal({
 
   const form = useForm<any>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      username: user.username,
-      email: user.email,
-      displayName: user.displayName || "",
-      bio: user.bio || "",
-      location: user.location || "",
-      website: user.website || "",
-      isPrivate: !!user.isPrivate,
-      avatarUrl: user.avatarUrl || "",
-      coverUrl: user.coverUrl || "",
-    },
+    defaultValues: formValuesFor(user),
   });
+
+  // The dialog stays mounted between openings: start from the current profile every time,
+  // otherwise a second save would send the values from the first opening (e.g. an old avatar).
+  useEffect(() => {
+    if (!isOpen) return;
+    form.reset(formValuesFor(user));
+    setTab(initialTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const uploadImage = async (kind: "avatar" | "cover", input: HTMLInputElement, onDone: (url: string) => void) => {
+    const file = input.files?.[0];
+    input.value = ""; // picking the same file again must fire onChange again
+    if (!file) return;
+    const fail = (description: string) =>
+      toast({ title: t("profile.image.upload_failed", "Bild konnte nicht hochgeladen werden"), description, variant: "destructive" });
+    if (!IMAGE_TYPES.includes(file.type)) {
+      return fail(t("profile.image.wrong_type", "Nur JPG, PNG oder WebP erlaubt."));
+    }
+    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+      return fail(t("profile.image.too_large", { defaultValue: "Die Datei ist zu groß (max. {{mb}} MB).", mb: MAX_IMAGE_MB }));
+    }
+    const formData = new FormData();
+    formData.append("type", kind);
+    formData.append("image", file);
+    const setBusy = kind === "avatar" ? setIsUploadingAvatar : setIsUploadingCover;
+    setBusy(true);
+    try {
+      const res = await apiRequest("POST", "/api/profile-upload", formData);
+      const data = await res.json();
+      onDone(data.url);
+    } catch (err) {
+      fail(uploadErrorMessage(err, t));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleFormSubmit = (data: any) => {
     console.log("Submitting Profile Data:", data);
@@ -84,16 +136,12 @@ export function EditProfileModal({
     };
 
     onSubmit(processedData as any);
-    // The parent now handles closing, but we call it here too to be safe
-    onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[700px] overflow-hidden p-0">
         <div className="px-6 pt-6 md:px-8 md:pt-8 relative overflow-hidden">
-          <Constellation className="absolute right-12 top-2 hidden h-16 w-auto max-w-[45%] opacity-70 sm:block" />
-
           <DialogHeader className="relative">
             <DialogTitle className="font-display text-2xl font-semibold leading-tight tracking-normal flex items-center gap-3">
               <div className="ov-cut h-10 w-10 shrink-0 bg-primary/10 flex items-center justify-center">
@@ -110,20 +158,20 @@ export function EditProfileModal({
         <div className="p-0 max-h-[80vh] overflow-hidden">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-              <Tabs defaultValue="general" className="w-full">
+              <Tabs value={tab} onValueChange={(v) => setTab(v as EditProfileTab)} className="w-full">
                 <div className="ov-rule px-6 md:px-8">
                   <TabsList className="h-12 w-full justify-start gap-1 rounded-none bg-transparent p-0 shadow-none">
                     <TabsTrigger value="general" className="h-full rounded-none px-3">
                       <Info className="w-4 h-4 mr-2" />
-                      {t('admin.tabs.users')}
+                      {t("profile.edit_tabs.general", "Allgemein")}
                     </TabsTrigger>
                     <TabsTrigger value="appearance" className="h-full rounded-none px-3">
                       <Palette className="w-4 h-4 mr-2" />
-                      Appearance
+                      {t("profile.edit_tabs.images", "Bilder")}
                     </TabsTrigger>
                     <TabsTrigger value="privacy" className="h-full rounded-none px-3">
                       <Shield className="w-4 h-4 mr-2" />
-                      Privacy
+                      {t("profile.edit_tabs.privacy", "Privatsphäre")}
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -220,7 +268,7 @@ export function EditProfileModal({
                             <FormItem>
                               <FormLabel className="ov-label flex items-center gap-2 text-[11px]">
                                 <Camera className="h-3 w-3" />
-                                Profile Picture
+                                {t("profile.image.avatar", "Profilbild")}
                               </FormLabel>
                               <div className="ov-panel flex items-center gap-6 p-5">
                                 <div className="ov-avatar h-24 w-24 shrink-0 bg-muted relative group">
@@ -235,7 +283,7 @@ export function EditProfileModal({
                                       <UserIcon className="h-10 w-10" />
                                     </div>
                                   )}
-                                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
+                                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => avatarInput.current?.click()}>
                                     <Camera className="h-6 w-6 text-foreground" />
                                   </div>
                                 </div>
@@ -245,9 +293,10 @@ export function EditProfileModal({
                                       type="button"
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => document.getElementById('avatar-upload')?.click()}
+                                      disabled={isUploadingAvatar}
+                                      onClick={() => avatarInput.current?.click()}
                                     >
-                                      Change Avatar
+                                      {field.value ? t("profile.image.change_avatar", "Profilbild ändern") : t("profile.image.choose_avatar", "Profilbild wählen")}
                                     </Button>
                                     {field.value && (
                                       <Button
@@ -257,36 +306,19 @@ export function EditProfileModal({
                                         className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                         onClick={() => field.onChange("")}
                                       >
-                                        Remove
+                                        {t("profile.image.remove", "Entfernen")}
                                       </Button>
                                     )}
                                   </div>
-                                  <p className="text-xs text-muted-foreground">JPG, PNG or WebP. Max 2MB.</p>
+                                  <p className="text-xs text-muted-foreground">{t("profile.image.hint", { defaultValue: "JPG, PNG oder WebP, max. {{mb}} MB.", mb: MAX_IMAGE_MB })}</p>
                                 </div>
                                 <input
+                                  ref={avatarInput}
                                   id="avatar-upload"
                                   type="file"
                                   accept="image/jpeg,image/png,image/webp"
                                   className="hidden"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-
-                                    const formData = new FormData();
-                                    formData.append("image", file);
-                                    formData.append("type", "avatar");
-
-                                    setIsUploadingAvatar(true);
-                                    try {
-                                      const res = await apiRequest("POST", "/api/profile-upload", formData);
-                                      const data = await res.json();
-                                      field.onChange(data.url);
-                                    } catch (err) {
-                                      console.error("Avatar upload error:", err);
-                                    } finally {
-                                      setIsUploadingAvatar(false);
-                                    }
-                                  }}
+                                  onChange={(e) => uploadImage("avatar", e.currentTarget, (url) => field.onChange(url))}
                                 />
                               </div>
                               <FormMessage />
@@ -302,35 +334,38 @@ export function EditProfileModal({
                             <FormItem>
                               <FormLabel className="ov-label flex items-center gap-2 text-[11px]">
                                 <ImageIcon className="h-3 w-3" />
-                                Cover Image
+                                {t("profile.image.cover", "Titelbild")}
                               </FormLabel>
                               <div className="space-y-4">
-                                <div
-                                  className="ov-cut-2 relative bg-muted/60 overflow-hidden aspect-[3/1] group cursor-pointer"
-                                  onClick={() => document.getElementById('cover-upload')?.click()}
+                                <button
+                                  type="button"
+                                  disabled={isUploadingCover}
+                                  aria-label={field.value ? t("profile.image.change_cover", "Titelbild ändern") : t("profile.image.choose_cover", "Titelbild wählen")}
+                                  className="ov-cut-2 relative block w-full bg-muted/60 overflow-hidden aspect-[3/1] group cursor-pointer"
+                                  onClick={() => coverInput.current?.click()}
                                 >
                                   {isUploadingCover ? (
                                     <div className="w-full h-full flex flex-col items-center justify-center bg-background/60 gap-3">
                                       <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                                      <span className="ov-label text-primary">Uploading...</span>
+                                      <span className="ov-label text-primary">{t("profile.image.uploading", "Wird hochgeladen …")}</span>
                                     </div>
                                   ) : field.value ? (
                                     <img src={field.value} alt="Cover Preview" className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/40 gap-2">
                                       <ImageIcon className="h-12 w-12" />
-                                      <span className="ov-label">Upload Banner</span>
+                                      <span className="ov-label">{t("profile.image.choose_cover", "Titelbild wählen")}</span>
                                     </div>
                                   )}
                                   <div className="absolute inset-0 bg-background/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                     <div className="ov-chip bg-background text-foreground">
                                       <Camera className="h-3.5 w-3.5" />
-                                      <span>Update Banner</span>
+                                      <span>{field.value ? t("profile.image.change_cover", "Titelbild ändern") : t("profile.image.choose_cover", "Titelbild wählen")}</span>
                                     </div>
                                   </div>
-                                </div>
+                                </button>
                                 <div className="flex justify-between items-center px-1">
-                                  <p className="text-xs text-muted-foreground">Recommended: <span className="ov-data">1500x500px</span></p>
+                                  <p className="text-xs text-muted-foreground">{t("profile.image.cover_hint", { defaultValue: "Querformat, z. B. 1500 × 500 px. JPG, PNG oder WebP, max. {{mb}} MB.", mb: MAX_IMAGE_MB })}</p>
                                   {field.value && (
                                     <Button
                                       type="button"
@@ -339,34 +374,17 @@ export function EditProfileModal({
                                       className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                       onClick={(e) => { e.stopPropagation(); field.onChange(""); }}
                                     >
-                                      Remove Banner
+                                      {t("profile.image.remove", "Entfernen")}
                                     </Button>
                                   )}
                                 </div>
                                 <input
+                                  ref={coverInput}
                                   id="cover-upload"
                                   type="file"
                                   accept="image/jpeg,image/png,image/webp"
                                   className="hidden"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-
-                                    const formData = new FormData();
-                                    formData.append("image", file);
-                                    formData.append("type", "cover");
-
-                                    setIsUploadingCover(true);
-                                    try {
-                                      const res = await apiRequest("POST", "/api/profile-upload", formData);
-                                      const data = await res.json();
-                                      field.onChange(data.url);
-                                    } catch (err) {
-                                      console.error("Cover upload error:", err);
-                                    } finally {
-                                      setIsUploadingCover(false);
-                                    }
-                                  }}
+                                  onChange={(e) => uploadImage("cover", e.currentTarget, (url) => field.onChange(url))}
                                 />
                               </div>
                               <FormMessage />
@@ -413,7 +431,7 @@ export function EditProfileModal({
                 <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
                   {t('common.cancel')}
                 </Button>
-                <Button type="submit" disabled={isSubmitting} className="px-6">
+                <Button type="submit" disabled={isSubmitting || isUploadingAvatar || isUploadingCover} className="px-6">
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
                   {t('common.save')}
                 </Button>
@@ -424,4 +442,19 @@ export function EditProfileModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+// Server errors arrive as "413: {\"error\":\"...\"}" from apiRequest; show the readable part.
+function uploadErrorMessage(err: unknown, t: (key: string, fallback: string) => string): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const status = Number(raw.split(":")[0]);
+  const body = raw.slice(raw.indexOf(":") + 1).trim();
+  try {
+    const parsed = JSON.parse(body);
+    if (parsed?.error) return String(parsed.error);
+  } catch {
+    // not JSON, e.g. an HTML page from a proxy
+  }
+  if (status === 413) return t("profile.image.too_large_proxy", "Die Datei ist zu groß.");
+  return t("profile.image.try_again", "Bitte versuche es noch einmal.");
 }

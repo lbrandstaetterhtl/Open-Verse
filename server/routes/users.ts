@@ -1,9 +1,10 @@
-import { Router } from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
+import multer from "multer";
 import { storage, sanitizeUser } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
 import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
-import { profileUpload, checkFileSignature, sanitizeImage } from "../utils/file-upload";
+import { profileUpload, checkFileSignature, processProfileImage, PROFILE_IMAGE_MAX_BYTES } from "../utils/file-upload";
 import fs from "node:fs";
 import { getPostExtras, DELETED_AUTHOR } from "../utils/post-extras";
 
@@ -316,81 +317,73 @@ router.get("/:username", async (req, res) => {
     }
 });
 
-router.post("/profile-upload", isAuthenticated, profileUpload.single("image"), async (req, res) => {
+// Runs multer and turns its errors (file too large, wrong type, ...) into clear 400 answers
+// instead of letting them fall through to the generic 500 handler.
+function receiveProfileImage(req: Request, res: Response, next: NextFunction) {
+    profileUpload.single("image")(req, res, (err: unknown) => {
+        if (!err) return next();
+        if (err instanceof multer.MulterError) {
+            if (err.code === "LIMIT_FILE_SIZE") {
+                return res.status(413).json({ error: `Datei zu groß (max. ${PROFILE_IMAGE_MAX_BYTES / 1024 / 1024} MB)`, code: "FILE_TOO_LARGE" });
+            }
+            return res.status(400).json({ error: "Ungültiger Upload", code: err.code });
+        }
+        return res.status(400).json({ error: "Nur JPG, PNG oder WebP erlaubt", code: "INVALID_TYPE" });
+    });
+}
+
+// Uploads an avatar or cover image and returns its URL. The profile itself is only changed
+// when the user saves the edit dialog (PATCH /api/profile), so "Cancel" really cancels.
+router.post("/profile-upload", isAuthenticated, receiveProfileImage, async (req, res) => {
+    const file = req.file;
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: "No file uploaded or invalid file type" });
+        if (!file) {
+            return res.status(400).json({ error: "Keine Bilddatei erhalten (JPG, PNG oder WebP)", code: "NO_FILE" });
         }
 
         const type = req.body.type as "avatar" | "cover";
         if (!type || !["avatar", "cover"].includes(type)) {
-            // Remove the uploaded file if type is invalid
-            fs.unlinkSync(req.file.path);
-            return res.status(400).json({ error: "Invalid upload type. Must be 'avatar' or 'cover'." });
+            fs.unlink(file.path, () => { });
+            return res.status(400).json({ error: "Ungültiger Typ. Erlaubt: 'avatar' oder 'cover'.", code: "INVALID_KIND" });
         }
 
         // SEC-002: Verify file signature
-        const isValidSignature = await checkFileSignature(req.file.path, req.file.mimetype);
+        const isValidSignature = await checkFileSignature(file.path, file.mimetype);
         if (!isValidSignature) {
-            fs.unlinkSync(req.file.path);
+            fs.unlink(file.path, () => { });
             activityLogger.logFromRequest(req, {
                 action: 'user.upload_rejected',
                 category: 'security',
                 description: `Upload rejected: Invalid file signature for ${type}`,
                 severity: 'warning'
             }).catch(e => console.error(e));
-            return res.status(400).json({ error: "Invalid file signature" });
+            return res.status(400).json({ error: "Die Datei ist kein gültiges Bild", code: "INVALID_SIGNATURE" });
         }
 
-        // SEC-003: Sanitize image (strip metadata) - only for images
-        if (req.file.mimetype.startsWith('image/')) {
-            try {
-                await sanitizeImage(req.file.path);
-
-                // Verify file exists after sanitization
-                if (!fs.existsSync(req.file.path)) {
-                    console.error(`[Upload] File missing after sanitization: ${req.file.path}`);
-                    return res.status(500).json({ error: "File processing error" });
-                }
-            } catch (error) {
-                console.error(`[Upload] Sanitization failed: ${error}`);
-                fs.unlink(req.file.path, () => { });
-                return res.status(400).json({ error: "Failed to process image metadata" });
-            }
+        // SEC-003: strip metadata, fix orientation, shrink to a sensible size, store as WebP
+        let filename: string;
+        try {
+            filename = await processProfileImage(file.path, type);
+        } catch (error) {
+            console.error(`[Upload] Processing profile image failed: ${error}`);
+            return res.status(400).json({ error: "Das Bild konnte nicht verarbeitet werden", code: "UNREADABLE_IMAGE" });
         }
 
-        const userId = (req.user as any).id;
-        const imageUrl = `/uploads/${req.file.filename}`;
-
-        console.log(`[Upload] Success! URL: ${imageUrl}, Path: ${req.file.path}, Size: ${fs.statSync(req.file.path).size} bytes`);
-
-        // Update user profile in database
-        const updateData: any = {};
-        if (type === "avatar") {
-            updateData.avatarUrl = imageUrl;
-            updateData.profilePictureUrl = imageUrl; // Update both for consistency
-        } else {
-            updateData.coverUrl = imageUrl;
-        }
-
-        await storage.updateUserProfile(userId, updateData);
-
+        const imageUrl = `/uploads/${filename}`;
         activityLogger.logFromRequest(req, {
-            action: `user.update_${type}`,
+            action: `user.upload_${type}`,
             category: 'profile',
             description: `Hat ein neues ${type}-Bild hochgeladen`,
             targetType: 'User',
-            targetId: String(userId),
+            targetId: String((req.user as any).id),
             severity: 'info'
         }).catch(err => console.error('[Monitor] profile-upload failed:', err));
 
         res.json({ url: imageUrl });
     } catch (error) {
         console.error("Error uploading profile image:", error);
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-        }
-        res.status(500).json({ error: "Failed to upload profile image" });
+        if (file) fs.unlink(file.path, () => { });
+        res.status(500).json({ error: "Bild-Upload fehlgeschlagen" });
     }
 });
 
