@@ -11,14 +11,14 @@ interface BulkActionToolbarProps {
 }
 
 const USER_ACTIONS = [
-  { id: "ban", labelKey: "admin_bulk.toolbar.ban", label: "Ban selected", icon: ShieldOff, variant: "destructive" as const },
-  { id: "unban", labelKey: "admin_bulk.toolbar.unban", label: "Unban selected", icon: Shield, variant: "default" as const },
-  { id: "delete", labelKey: "admin_bulk.toolbar.delete", label: "Delete selected", icon: Trash2, variant: "destructive" as const },
+  { id: "ban", labelKey: "admin_bulk.toolbar.ban", fallback: "Ban selected", icon: ShieldOff, variant: "destructive" as const },
+  { id: "unban", labelKey: "admin_bulk.toolbar.unban", fallback: "Unban selected", icon: Shield, variant: "default" as const },
+  { id: "delete", labelKey: "admin_bulk.toolbar.delete", fallback: "Delete selected", icon: Trash2, variant: "destructive" as const },
 ];
 
 const REPORT_ACTIONS = [
-  { id: "resolve", labelKey: "admin_bulk.toolbar.resolve", label: "Resolve all", icon: Shield, variant: "default" as const },
-  { id: "reject", labelKey: "admin_bulk.toolbar.reject", label: "Reject all", icon: ShieldOff, variant: "destructive" as const },
+  { id: "resolve", labelKey: "admin_bulk.toolbar.resolve", fallback: "Resolve all", icon: Shield, variant: "default" as const },
+  { id: "reject", labelKey: "admin_bulk.toolbar.reject", fallback: "Reject all", icon: ShieldOff, variant: "destructive" as const },
 ];
 
 export function BulkActionToolbar({ type, count, onAction, onClear }: BulkActionToolbarProps) {
@@ -46,7 +46,7 @@ export function BulkActionToolbar({ type, count, onAction, onClear }: BulkAction
             onClick={() => onAction(action.id)}
           >
             <action.icon className="h-3.5 w-3.5" />
-            {t(action.labelKey, action.label)}
+            {t(action.labelKey, action.fallback)}
           </Button>
         ))}
       </div>

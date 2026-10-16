@@ -271,6 +271,22 @@ export function findUsedKeys(files = sourceFiles()): UsedKey[] {
         };
         if (arg && (ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg))) push(arg.text);
         else if (arg && ts.isTemplateExpression(arg) && arg.head.text.endsWith(".")) push(arg.head.text.slice(0, -1), true);
+      } else if (ts.isObjectLiteralExpression(node)) {
+        // Keys kept in data, translated later with t(item.labelKey, item.fallback):
+        // { labelKey: "a.b", fallback: "Text" } / { descriptionKey: "a.c", descriptionFallback: "Text" }
+        const props = new Map<string, string>();
+        for (const p of node.properties) {
+          if (ts.isPropertyAssignment(p) && (ts.isStringLiteral(p.initializer) || ts.isNoSubstitutionTemplateLiteral(p.initializer))) {
+            props.set(p.name.getText().replace(/["']/g, ""), p.initializer.text);
+          }
+        }
+        for (const [name, value] of props) {
+          const m = name.match(/^(\w*?)Key$/);
+          if (!m || !/^[\w-]+(\.[\w-]+)+$/.test(value)) continue;
+          const base = m[1];
+          const defaultValue = props.get(base === "label" || base === "" ? "fallback" : `${base}Fallback`) ?? props.get(`${base}Fallback`);
+          out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(node.getStart()).line + 1, ns: defaultNs, key: value, defaultValue });
+        }
       }
       ts.forEachChild(node, visit);
     };

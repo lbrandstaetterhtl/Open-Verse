@@ -44,18 +44,18 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 const AVAILABLE_PERMISSIONS = [
-    { id: "dashboard", labelKey: "admin_groups.permissions.dashboard.label", label: "Dashboard Access", descriptionKey: "admin_groups.permissions.dashboard.description", icon: Activity, description: "View admin overview and statistics" },
-    { id: "users", labelKey: "admin_groups.permissions.users.label", label: "User Management", descriptionKey: "admin_groups.permissions.users.description", icon: Users, description: "Manage roles, verification, and profile data" },
-    { id: "reports", labelKey: "admin_groups.permissions.reports.label", label: "Content Moderation", descriptionKey: "admin_groups.permissions.reports.description", icon: Flag, description: "Handle reports and resolve content disputes" },
-    { id: "groups", labelKey: "admin_groups.permissions.groups.label", label: "Group Management", descriptionKey: "admin_groups.permissions.groups.description", icon: Shield, description: "Edit admin groups and permissions" },
-    { id: "security", labelKey: "admin_groups.permissions.security.label", label: "Security & Bans", descriptionKey: "admin_groups.permissions.security.description", icon: Lock, description: "Access ban system and security tools" },
-    { id: "auto_punishment", labelKey: "admin_groups.permissions.auto_punishment.label", label: "Auto-Punishment", descriptionKey: "admin_groups.permissions.auto_punishment.description", icon: Activity, description: "Manage automated rule enforcement systems" },
-    { id: "logs", labelKey: "admin_groups.permissions.logs.label", label: "Activity Monitoring", descriptionKey: "admin_groups.permissions.logs.description", icon: Activity, description: "View system logs and anomaly reports" },
-    { id: "analytics", labelKey: "admin_groups.permissions.analytics.label", label: "Platform Analytics", descriptionKey: "admin_groups.permissions.analytics.description", icon: BarChart3, description: "View growth charts and usage metrics" },
-    { id: "performance", labelKey: "admin_groups.permissions.performance.label", label: "Moderator Performance", descriptionKey: "admin_groups.permissions.performance.description", icon: Award, description: "Track moderation efficiency and stats" },
-    { id: "tickets", labelKey: "admin_groups.permissions.tickets.label", label: "Support Tickets", descriptionKey: "admin_groups.permissions.tickets.description", icon: Ticket, description: "Manage and resolve user support tickets" },
-    { id: "stress_test", labelKey: "admin_groups.permissions.stress_test.label", label: "Stress Testing", descriptionKey: "admin_groups.permissions.stress_test.description", icon: AlertTriangle, description: "Run system stress tests and performance audits" },
-    { id: "settings", labelKey: "admin_groups.permissions.settings.label", label: "System Settings", descriptionKey: "admin_groups.permissions.settings.description", icon: Settings, description: "Configure global platform parameters" },
+    { id: "dashboard", labelKey: "admin_groups.permissions.dashboard.label", fallback: "Dashboard Access", descriptionKey: "admin_groups.permissions.dashboard.description", icon: Activity, descriptionFallback: "View admin overview and statistics" },
+    { id: "users", labelKey: "admin_groups.permissions.users.label", fallback: "User Management", descriptionKey: "admin_groups.permissions.users.description", icon: Users, descriptionFallback: "Manage roles, verification, and profile data" },
+    { id: "reports", labelKey: "admin_groups.permissions.reports.label", fallback: "Content Moderation", descriptionKey: "admin_groups.permissions.reports.description", icon: Flag, descriptionFallback: "Handle reports and resolve content disputes" },
+    { id: "groups", labelKey: "admin_groups.permissions.groups.label", fallback: "Group Management", descriptionKey: "admin_groups.permissions.groups.description", icon: Shield, descriptionFallback: "Edit admin groups and permissions" },
+    { id: "security", labelKey: "admin_groups.permissions.security.label", fallback: "Security & Bans", descriptionKey: "admin_groups.permissions.security.description", icon: Lock, descriptionFallback: "Access ban system and security tools" },
+    { id: "auto_punishment", labelKey: "admin_groups.permissions.auto_punishment.label", fallback: "Auto-Punishment", descriptionKey: "admin_groups.permissions.auto_punishment.description", icon: Activity, descriptionFallback: "Manage automated rule enforcement systems" },
+    { id: "logs", labelKey: "admin_groups.permissions.logs.label", fallback: "Activity Monitoring", descriptionKey: "admin_groups.permissions.logs.description", icon: Activity, descriptionFallback: "View system logs and anomaly reports" },
+    { id: "analytics", labelKey: "admin_groups.permissions.analytics.label", fallback: "Platform Analytics", descriptionKey: "admin_groups.permissions.analytics.description", icon: BarChart3, descriptionFallback: "View growth charts and usage metrics" },
+    { id: "performance", labelKey: "admin_groups.permissions.performance.label", fallback: "Moderator Performance", descriptionKey: "admin_groups.permissions.performance.description", icon: Award, descriptionFallback: "Track moderation efficiency and stats" },
+    { id: "tickets", labelKey: "admin_groups.permissions.tickets.label", fallback: "Support Tickets", descriptionKey: "admin_groups.permissions.tickets.description", icon: Ticket, descriptionFallback: "Manage and resolve user support tickets" },
+    { id: "stress_test", labelKey: "admin_groups.permissions.stress_test.label", fallback: "Stress Testing", descriptionKey: "admin_groups.permissions.stress_test.description", icon: AlertTriangle, descriptionFallback: "Run system stress tests and performance audits" },
+    { id: "settings", labelKey: "admin_groups.permissions.settings.label", fallback: "System Settings", descriptionKey: "admin_groups.permissions.settings.description", icon: Settings, descriptionFallback: "Configure global platform parameters" },
 ];
 
 export function GroupsManagement() {
@@ -264,7 +264,7 @@ export function GroupsManagement() {
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-semibold">{m.username}</span>
-                                                <span className="ov-label">{t(`admin.roles.${m.role}`, m.role)}</span>
+                                                <span className="ov-label">{t(`admin.roles.${m.role}`, String(m.role))}</span>
                                             </div>
                                         </div>
                                         <Badge variant="outline" className="font-data font-medium text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity">{t("admin_groups.members_dialog.member_id", { id: m.id, defaultValue: "ID: {{id}}" })}</Badge>
@@ -364,10 +364,10 @@ function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="text-xs font-semibold">{t(perm.labelKey, perm.label)}</span>
+                                        <span className="text-xs font-semibold">{t(perm.labelKey, perm.fallback)}</span>
                                         <Checkbox checked={permissions.includes(perm.id)} className="h-4 w-4" />
                                     </div>
-                                    <p className="text-[11px] text-muted-foreground leading-snug">{t(perm.descriptionKey, perm.description)}</p>
+                                    <p className="text-[11px] text-muted-foreground leading-snug">{t(perm.descriptionKey, perm.descriptionFallback)}</p>
                                 </div>
                             </div>
                         ))}

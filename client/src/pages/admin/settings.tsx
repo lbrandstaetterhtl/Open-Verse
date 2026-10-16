@@ -16,18 +16,20 @@ import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { type AdminSetting } from "@shared/schema";
 
+import { useDateLocale } from "@/lib/date-locale";
 /* FEATURE [AS-007]: Admin Settings – Frontend implementation. */
 const CATEGORIES = [
-  { id: "general", labelKey: "admin_settings.categories.general", label: "General", icon: Globe, descriptionKey: "admin_settings.categories.general_desc", description: "Core site identification and status." },
-  { id: "users", labelKey: "admin_settings.categories.users", label: "Users", icon: Users, descriptionKey: "admin_settings.categories.users_desc", description: "Authentication and member management." },
-  { id: "content", labelKey: "admin_settings.categories.content", label: "Content", icon: FileText, descriptionKey: "admin_settings.categories.content_desc", description: "Posting and moderation rules." },
-  { id: "email", labelKey: "admin_settings.categories.email", label: "Email", icon: Mail, descriptionKey: "admin_settings.categories.email_desc", description: "SMTP and notification delivery." },
-  { id: "security", labelKey: "admin_settings.categories.security", label: "Security", icon: Shield, descriptionKey: "admin_settings.categories.security_desc", description: "Access control and protection." },
-  { id: "appearance", labelKey: "admin_settings.categories.appearance", label: "Appearance", icon: Palette, descriptionKey: "admin_settings.categories.appearance_desc", description: "Themes and visual branding." },
+  { id: "general", labelKey: "admin_settings.categories.general", fallback: "General", icon: Globe, descriptionKey: "admin_settings.categories.general_desc", descriptionFallback: "Core site identification and status." },
+  { id: "users", labelKey: "admin_settings.categories.users", fallback: "Users", icon: Users, descriptionKey: "admin_settings.categories.users_desc", descriptionFallback: "Authentication and member management." },
+  { id: "content", labelKey: "admin_settings.categories.content", fallback: "Content", icon: FileText, descriptionKey: "admin_settings.categories.content_desc", descriptionFallback: "Posting and moderation rules." },
+  { id: "email", labelKey: "admin_settings.categories.email", fallback: "Email", icon: Mail, descriptionKey: "admin_settings.categories.email_desc", descriptionFallback: "SMTP and notification delivery." },
+  { id: "security", labelKey: "admin_settings.categories.security", fallback: "Security", icon: Shield, descriptionKey: "admin_settings.categories.security_desc", descriptionFallback: "Access control and protection." },
+  { id: "appearance", labelKey: "admin_settings.categories.appearance", fallback: "Appearance", icon: Palette, descriptionKey: "admin_settings.categories.appearance_desc", descriptionFallback: "Themes and visual branding." },
 ];
 
 export default function AdminSettingsPage() {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeCategory, setActiveCategory] = useState("general");
@@ -98,7 +100,7 @@ export default function AdminSettingsPage() {
                   )}
                 >
                   <cat.icon className="h-4 w-4" />
-                  {t(cat.labelKey, cat.label)}
+                  {t(cat.labelKey, cat.fallback)}
                   {activeCategory === cat.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
                 </button>
               ))}
@@ -108,8 +110,8 @@ export default function AdminSettingsPage() {
           {/* Settings Content */}
           <div className="lg:col-span-9 space-y-6">
              <div className="mb-6">
-                <h3 className="font-display text-xl font-semibold mb-1">{(() => { const cat = CATEGORIES.find(c => c.id === activeCategory); return cat ? t(cat.labelKey, cat.label) : null; })()}</h3>
-                <p className="text-sm text-muted-foreground font-medium">{(() => { const cat = CATEGORIES.find(c => c.id === activeCategory); return cat ? t(cat.descriptionKey, cat.description) : null; })()}</p>
+                <h3 className="font-display text-xl font-semibold mb-1">{(() => { const cat = CATEGORIES.find(c => c.id === activeCategory); return cat ? t(cat.labelKey, cat.fallback) : null; })()}</h3>
+                <p className="text-sm text-muted-foreground font-medium">{(() => { const cat = CATEGORIES.find(c => c.id === activeCategory); return cat ? t(cat.descriptionKey, cat.descriptionFallback) : null; })()}</p>
              </div>
 
              <div className="space-y-4">
@@ -141,7 +143,7 @@ export default function AdminSettingsPage() {
                              <div className="flex items-center gap-4 pt-2">
                                <div className="ov-chip h-6 px-2 text-[11px]">
                                   <Clock className="h-3 w-3" />
-                                  {t("admin_settings.last_saved", "Last saved:")} <span className="font-data">{format(new Date(setting.updatedAt), "PP")}</span>
+                                  {t("admin_settings.last_saved", "Last saved:")} <span className="font-data">{setting.updatedAt ? format(new Date(setting.updatedAt), "PP", { locale: dateLocale }) : "—"}</span>
                                </div>
                                <button className="text-xs font-semibold capitalize text-primary hover:underline flex items-center gap-1">
                                   <RotateCcw className="h-2.5 w-2.5" /> {t("admin_settings.reset", "reset")}

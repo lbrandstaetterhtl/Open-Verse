@@ -29,16 +29,19 @@ interface LogEntry {
   type?: 'info' | 'warn' | 'error' | 'success';
 }
 
+// Fake shell prompt shown in the terminal header; not prose, intentionally untranslated.
+const TERMINAL_PROMPT = "osiris_stress_forge@system: ~";
+
 const TEST_MODULES = [
-  { id: "api-endpoints", labelKey: "stress_test.modules.api_endpoints", descriptionKey: "stress_test.modules.api_endpoints_desc", label: "API Load", icon: Globe, description: "Floods REST endpoints with concurrent HTTP traffic." },
-  { id: "database-connections", labelKey: "stress_test.modules.database_connections", descriptionKey: "stress_test.modules.database_connections_desc", label: "Database Stress", icon: Database, description: "Concurrent Drizzle/SQLite query pressure." },
-  { id: "websocket-flood", labelKey: "stress_test.modules.websocket_flood", descriptionKey: "stress_test.modules.websocket_flood_desc", label: "WebSocket Flood", icon: Activity, description: "Rapid connection establishment and message bursts." },
-  { id: "file-upload", labelKey: "stress_test.modules.file_upload", descriptionKey: "stress_test.modules.file_upload_desc", label: "File I/O", icon: Upload, description: "Multipart file upload processing and disk pressure." },
-  { id: "authentication", labelKey: "stress_test.modules.authentication", descriptionKey: "stress_test.modules.authentication_desc", label: "Auth (Bcrypt)", icon: UserCheck, description: "Heavy Bcrypt computational cycles (Login/Register)." },
-  { id: "memory-leak", labelKey: "stress_test.modules.memory_leak", descriptionKey: "stress_test.modules.memory_leak_desc", label: "Memory Pressure", icon: ShieldAlert, description: "Heap allocation monitoring and RSS tracking." },
-  { id: "cpu-intensive", labelKey: "stress_test.modules.cpu_intensive", descriptionKey: "stress_test.modules.cpu_intensive_desc", label: "CPU Burn", icon: Cpu, description: "Math-heavy blocking loops to monitor event loop lag." },
-  { id: "concurrent-users", labelKey: "stress_test.modules.concurrent_users", descriptionKey: "stress_test.modules.concurrent_users_desc", label: "User Sessions", icon: Zap, description: "Scripted multi-step user flows (Register -> Post)." },
-  { id: "all", labelKey: "stress_test.modules.all", descriptionKey: "stress_test.modules.all_desc", label: "Full Suite", icon: Zap, description: "Sequential execution of all available stress tests.", primary: true },
+  { id: "api-endpoints", labelKey: "stress_test.modules.api_endpoints", descriptionKey: "stress_test.modules.api_endpoints_desc", fallback: "API Load", icon: Globe, descriptionFallback: "Floods REST endpoints with concurrent HTTP traffic." },
+  { id: "database-connections", labelKey: "stress_test.modules.database_connections", descriptionKey: "stress_test.modules.database_connections_desc", fallback: "Database Stress", icon: Database, descriptionFallback: "Concurrent Drizzle/SQLite query pressure." },
+  { id: "websocket-flood", labelKey: "stress_test.modules.websocket_flood", descriptionKey: "stress_test.modules.websocket_flood_desc", fallback: "WebSocket Flood", icon: Activity, descriptionFallback: "Rapid connection establishment and message bursts." },
+  { id: "file-upload", labelKey: "stress_test.modules.file_upload", descriptionKey: "stress_test.modules.file_upload_desc", fallback: "File I/O", icon: Upload, descriptionFallback: "Multipart file upload processing and disk pressure." },
+  { id: "authentication", labelKey: "stress_test.modules.authentication", descriptionKey: "stress_test.modules.authentication_desc", fallback: "Auth (Bcrypt)", icon: UserCheck, descriptionFallback: "Heavy Bcrypt computational cycles (Login/Register)." },
+  { id: "memory-leak", labelKey: "stress_test.modules.memory_leak", descriptionKey: "stress_test.modules.memory_leak_desc", fallback: "Memory Pressure", icon: ShieldAlert, descriptionFallback: "Heap allocation monitoring and RSS tracking." },
+  { id: "cpu-intensive", labelKey: "stress_test.modules.cpu_intensive", descriptionKey: "stress_test.modules.cpu_intensive_desc", fallback: "CPU Burn", icon: Cpu, descriptionFallback: "Math-heavy blocking loops to monitor event loop lag." },
+  { id: "concurrent-users", labelKey: "stress_test.modules.concurrent_users", descriptionKey: "stress_test.modules.concurrent_users_desc", fallback: "User Sessions", icon: Zap, descriptionFallback: "Scripted multi-step user flows (Register -> Post)." },
+  { id: "all", labelKey: "stress_test.modules.all", descriptionKey: "stress_test.modules.all_desc", fallback: "Full Suite", icon: Zap, descriptionFallback: "Sequential execution of all available stress tests.", primary: true },
 ];
 
 export default function StressTestPage() {
@@ -161,7 +164,7 @@ export default function StressTestPage() {
       <div className="space-y-8 animate-in fade-in duration-500 pb-12">
         <PageHeader
           eyebrow={t("security.eyebrow", "Admin / Security")}
-          title="Osiris Stress Forge"
+          title={t("stress_test.title", "Osiris Stress Forge")}
           description={t("stress_test.description", "Verify platform resilience under extreme load conditions.")}
           actions={
             <div className="flex items-center gap-1 rounded-pill border border-border bg-card p-1">
@@ -214,8 +217,8 @@ export default function StressTestPage() {
                         <module.icon className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold">{t(module.labelKey, module.label)}</div>
-                        <div className="text-xs text-muted-foreground line-clamp-1">{t(module.descriptionKey, module.description)}</div>
+                        <div className="text-sm font-semibold">{t(module.labelKey, module.fallback)}</div>
+                        <div className="text-xs text-muted-foreground line-clamp-1">{t(module.descriptionKey, module.descriptionFallback)}</div>
                       </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
                     </div>
@@ -250,7 +253,7 @@ export default function StressTestPage() {
                     <div className="h-2 w-2 rounded-full bg-primary/70" />
                   </div>
                   <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-data text-[11px] text-muted-foreground">osiris_stress_forge@system: ~{isRunning ? '/running' : '/idle'}</span>
+                  <span className="font-data text-[11px] text-muted-foreground">{TERMINAL_PROMPT}{isRunning ? '/running' : '/idle'}</span>
                 </div>
                 {isRunning && (
                   <div className="flex items-center gap-2">

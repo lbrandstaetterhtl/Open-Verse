@@ -66,7 +66,7 @@ export function BansPage() {
                       </div>
                     </TableCell>
                     <TableCell className="px-6 font-data text-xs text-primary">
-                      {ban.ipAddress || ban.deviceFingerprint || `USER::${ban.userId}`}
+                      {ban.ipAddress || ban.deviceFingerprint || t("admin_bans.target_user", { id: ban.userId, defaultValue: "USER::{{id}}" })}
                     </TableCell>
                     <TableCell className="px-6 text-xs max-w-xs truncate text-muted-foreground group-hover:text-foreground transition-colors">"{ban.reason}"</TableCell>
                     <TableCell className="px-6">

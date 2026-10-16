@@ -102,7 +102,7 @@ export function ActivityLogsPage() {
               label: t("monitoring.severity", "Severity"),
               render: ({ log }) => (
                 <span className={cn("ov-chip capitalize", severityChip(log.severity))}>
-                  {t(`monitoring.severity_levels.${log.severity}`, log.severity)}
+                  {t(`monitoring.severity_levels.${log.severity}`, String(log.severity))}
                 </span>
               )
             },
@@ -139,7 +139,7 @@ export function ActivityLogsPage() {
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-2">
                     <span className={cn("ov-chip capitalize h-5", severityChip(log.severity))}>
-                       {t(`monitoring.severity_levels.${log.severity}`, log.severity)}
+                       {t(`monitoring.severity_levels.${log.severity}`, String(log.severity))}
                     </span>
                     <span className="ov-data text-xs text-muted-foreground">{format(new Date(log.createdAt), 'HH:mm:ss')}</span>
                  </div>
