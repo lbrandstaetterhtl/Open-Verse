@@ -652,3 +652,36 @@ describe("moderation", () => {
     assert.match(res.headers.get("content-type") ?? "", /text\/csv/);
   });
 });
+
+describe("deleted accounts", () => {
+  test("posts and comments of a deleted account stay visible as [deleted] and can be liked", async () => {
+    const gone = await newUser("gone");
+    const post = await gone.client.post("/api/posts", { title: `Orphan ${RUN_ID}`, content: "Written by an account that gets deleted.", category: "discussion" });
+    await expectStatus(post, 201);
+    const postId = (await post.json()).id;
+    const reader = await newUser("reader");
+    const otherPost = await reader.client.post("/api/posts", { title: `Host ${RUN_ID}`, content: "Gets a comment from the deleted account.", category: "discussion" });
+    await expectStatus(otherPost, 201);
+    const otherId = (await otherPost.json()).id;
+    await expectStatus(await gone.client.post("/api/comments", { content: "Comment before deletion", postId: otherId }), 200, 201);
+
+    await expectStatus(await admin.delete(`/api/admin/users/${gone.id}`), 200);
+
+    const detail = await reader.client.get(`/api/posts/${postId}`);
+    await expectStatus(detail, 200);
+    const body = await detail.json();
+    assert.equal(body.author?.deleted, true);
+    assert.equal(body.author?.username, "[deleted]");
+    assert.equal(body.author?.id, null);
+
+    const feed = await (await reader.client.get("/api/posts?category=discussion&limit=50")).json();
+    assert.equal(feed.find((p: any) => p.id === postId)?.author?.username, "[deleted]", "feed shows [deleted]");
+
+    const host = await (await reader.client.get(`/api/posts/${otherId}`)).json();
+    assert.equal(host.comments.find((c: any) => c.content === "Comment before deletion")?.author?.username, "[deleted]");
+
+    const like = await reader.client.post(`/api/posts/${postId}/react`, { isLike: true });
+    await expectStatus(like, 200);
+    assert.equal((await like.json()).reactions.likes, 1);
+  });
+});

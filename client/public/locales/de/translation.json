@@ -685,5 +685,10 @@
     "hint": "Der Link ist alt oder falsch geschrieben, oder der Inhalt wurde gelöscht.",
     "home": "Zum Feed",
     "back": "Zurück"
+  },
+  "page_error": {
+    "title": "Diese Seite konnte nicht angezeigt werden",
+    "hint": "Beim Anzeigen ist ein Fehler aufgetreten. Neu laden hilft meistens.",
+    "reload": "Neu laden"
   }
 }

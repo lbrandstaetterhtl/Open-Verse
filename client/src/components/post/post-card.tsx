@@ -35,6 +35,7 @@ import {
   Bookmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AuthorLink, authorName, isDeletedAuthor } from "@/components/post/author-link";
 import type { PostWithAuthor } from "@shared/types";
 import { Button } from "@/components/ui/button";
 
@@ -69,12 +70,10 @@ export const PostCard = React.memo(function PostCard({
   const isSaved = !!(post as any).isSaved;
   const commentCount = (post as any).commentCount ?? post.comments?.length;
 
-  const author = post.author ?? {
-    username: "Unknown",
-    id: 0,
-    role: "member",
-    verified: false,
-  };
+  const authorDeleted = isDeletedAuthor(post.author as any);
+  const author: any = authorDeleted
+    ? { id: null, username: "?", role: "user", verified: false, deleted: true }
+    : post.author;
 
   const isOwner = user?.id === author.id || user?.role === "owner" || (user?.role === "admin" && author.role !== "owner");
 
@@ -105,7 +104,7 @@ export const PostCard = React.memo(function PostCard({
         {/* AVATAR SECTION (Conditional for Default Variant) */}
         {!isMediaVariant && (
           <div className="flex-shrink-0">
-            <Link href={`/users/${author.username}`}>
+            <AuthorLink author={author}>
               <div className="relative group/avatar">
                 <UserAvatar 
                   user={author} 
@@ -118,7 +117,7 @@ export const PostCard = React.memo(function PostCard({
                   </div>
                 )}
               </div>
-            </Link>
+            </AuthorLink>
           </div>
         )}
 
@@ -128,20 +127,24 @@ export const PostCard = React.memo(function PostCard({
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3 min-w-0">
               {isMediaVariant && (
-                <Link href={`/users/${author.username}`}>
+                <AuthorLink author={author}>
                   <UserAvatar user={author} className="h-10 w-10" />
-                </Link>
+                </AuthorLink>
               )}
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <Link href={`/users/${author.username}`} className="font-semibold text-[14px] md:text-[15px] hover:text-primary transition-colors truncate">
-                    {author.username || "User"}
-                  </Link>
+                  <AuthorLink author={author} className="font-semibold text-[14px] md:text-[15px] hover:text-primary transition-colors truncate">
+                    {authorName(author)}
+                  </AuthorLink>
                   {author.verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-star" />}
                 </div>
                 <div className="font-data text-xs text-muted-foreground flex items-center gap-1 min-w-0">
-                  <span>@{author.username || "user"}</span>
-                  <span>·</span>
+                  {!authorDeleted && (
+                    <>
+                      <span>@{author.username}</span>
+                      <span>·</span>
+                    </>
+                  )}
                   <span className="truncate">
                     {(() => {
                       try {

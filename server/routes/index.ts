@@ -37,6 +37,7 @@ import { dbLogger } from "../logger/service-loggers";
 
 import { DbHealthService } from "../services/db-health";
 import { parsePagination } from "../utils/pagination";
+import { DELETED_AUTHOR } from "../utils/post-extras";
 
 export async function registerRoutes(app: Express): Promise<Server> {
     // 0. Performance: Compression
@@ -258,13 +259,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
                 return {
                     ...post,
-                    author: {
-                        id: author?.id,
-                        username: author?.username || 'Unknown',
-                        verified: author?.verified || false,
-                        isFollowing,
-                        role: author?.role || 'member'
-                    },
+                    author: author
+                        ? { id: author.id, username: author.username, verified: author.verified || false, isFollowing, role: author.role || 'member' }
+                        : DELETED_AUTHOR,
                     reactions,
                     userReaction
                 };

@@ -14,3 +14,6 @@ export async function getPostExtras(postIds: number[], userId?: number) {
     commentCount: commentCounts.get(postId) ?? 0,
   });
 }
+
+// Stands in for the author of posts and comments whose user was deleted (their author_id is set to 0).
+export const DELETED_AUTHOR = { id: null, username: "[deleted]", role: "user", verified: false, isShadowBanned: 0, isFollowing: false, deleted: true };
