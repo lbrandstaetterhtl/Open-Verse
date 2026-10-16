@@ -491,7 +491,7 @@ export function setupAuth(app: Express, sessionParser: any) {
       const value = update[field];
       if (value === undefined || value === null || value === "" || value === (req.user as any)[field]) continue;
       if (typeof value !== "string" || !/^\/uploads\/[\w.-]+$/.test(value) || value.includes("..")) {
-        return res.status(400).json({ error: "Ungültige Bild-URL", field });
+        return res.status(400).json({ error: "Invalid image URL", field });
       }
     }
     if (update.avatarUrl !== undefined) update.profilePictureUrl = update.avatarUrl;

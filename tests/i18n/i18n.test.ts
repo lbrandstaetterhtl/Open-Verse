@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import {
-  CLIENT_SRC, LOCALES_DIR, DEFAULT_NS, findHardcodedText, findUnlocalizedDates, findUsedKeys, loadLocales, loadAllowlist,
+  CLIENT_SRC, LOCALES_DIR, DEFAULT_NS, findHardcodedText, findServerMessages, findUnlocalizedDates, findUsedKeys, loadLocales, loadAllowlist,
   supportedLanguages, namespaces, placeholders,
 } from "./scan";
 
@@ -89,6 +89,20 @@ describe("source code", () => {
     }
     const clashes = [...seen].filter(([, v]) => v.size > 1).map(([k, v]) => `${k}: ${[...v].map((x) => JSON.stringify(x)).join(" vs ")}`);
     assert.deepEqual(clashes, [], `same key, different meaning:\n  ${list(clashes)}`);
+  });
+});
+
+describe("server messages", () => {
+  test("every error text the API sends has an entry in the server namespace", () => {
+    // client/src/lib/server-messages.ts looks texts up by their exact English wording
+    const known = new Set(Object.values(en.server ?? {}));
+    const missing = findServerMessages().filter((m) => !known.has(m.text)).map((m) => `${m.file}:${m.line} "${m.text}"`);
+    assert.deepEqual(missing, [], `add these to client/public/locales/en/server.json (and translate):\n  ${list(missing)}`);
+  });
+
+  test("server messages are English (the lookup key)", () => {
+    const german = findServerMessages().filter((m) => /[äöüÄÖÜß]/.test(m.text)).map((m) => `${m.file}:${m.line} "${m.text}"`);
+    assert.deepEqual(german, []);
   });
 });
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
+import { ApiError } from "@/lib/server-messages";
 import { z } from "zod";
 import {
   Dialog,
@@ -444,17 +445,11 @@ export function EditProfileModal({
   );
 }
 
-// Server errors arrive as "413: {\"error\":\"...\"}" from apiRequest; show the readable part.
+// Upload errors: the server's (already translated) reason, or a hint when a proxy rejected the file.
 function uploadErrorMessage(err: unknown, t: (key: string, fallback: string) => string): string {
-  const raw = err instanceof Error ? err.message : String(err);
-  const status = Number(raw.split(":")[0]);
-  const body = raw.slice(raw.indexOf(":") + 1).trim();
-  try {
-    const parsed = JSON.parse(body);
-    if (parsed?.error) return String(parsed.error);
-  } catch {
-    // not JSON, e.g. an HTML page from a proxy
+  if (err instanceof ApiError) {
+    if (err.status === 413 && !err.code) return t("profile.image.too_large_proxy", "The file is too large.");
+    if (err.code || err.status < 500) return err.message;
   }
-  if (status === 413) return t("profile.image.too_large_proxy", "The file is too large.");
   return t("profile.image.try_again", "Please try again.");
 }

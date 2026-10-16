@@ -35,12 +35,12 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
     if (activeBans.length > 0) {
       // IP Ban
       if (activeBans.some(b => b.banType === 'ip' && b.ipAddress === ip)) {
-        return res.status(403).json({ error: "Zugriff verweigert (IP-Sperre)", code: "IP_BANNED" });
+        return res.status(403).json({ error: "Access denied (IP ban)", code: "IP_BANNED" });
       }
 
       // Hardware Ban
       if (activeBans.some(b => b.banType === 'hardware' && b.deviceFingerprint === deviceFingerprint)) {
-        return res.status(403).json({ error: "Hardware gesperrt", code: "DEVICE_BANNED" });
+        return res.status(403).json({ error: "This device is banned", code: "DEVICE_BANNED" });
       }
 
       // Account Ban
@@ -50,7 +50,7 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
           if (userBan.isShadow) {
             (req as any).isShadowBanned = true;
           } else {
-            return res.status(403).json({ error: "Account gesperrt", code: "ACCOUNT_BANNED" });
+            return res.status(403).json({ error: "This account is banned", code: "ACCOUNT_BANNED" });
           }
         }
       }
@@ -67,7 +67,7 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
         if (!user.frozenUntil || frozenUntilMs > Date.now()) {
           if (req.method !== "GET") {
             return res.status(403).json({
-              error: "Account vorübergehend eingefroren",
+              error: "This account is temporarily frozen",
               code: "ACCOUNT_FROZEN",
               frozenUntil: user.frozenUntil,
             });

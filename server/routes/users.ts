@@ -4,7 +4,7 @@ import { storage, sanitizeUser } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
 import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
-import { profileUpload, checkFileSignature, processProfileImage, PROFILE_IMAGE_MAX_BYTES } from "../utils/file-upload";
+import { profileUpload, checkFileSignature, processProfileImage } from "../utils/file-upload";
 import fs from "node:fs";
 import { getPostExtras, DELETED_AUTHOR } from "../utils/post-extras";
 
@@ -324,11 +324,12 @@ function receiveProfileImage(req: Request, res: Response, next: NextFunction) {
         if (!err) return next();
         if (err instanceof multer.MulterError) {
             if (err.code === "LIMIT_FILE_SIZE") {
-                return res.status(413).json({ error: `Datei zu groß (max. ${PROFILE_IMAGE_MAX_BYTES / 1024 / 1024} MB)`, code: "FILE_TOO_LARGE" });
+                // Literal text (keep "10 MB" in sync with PROFILE_IMAGE_MAX_BYTES in utils/file-upload.ts): the client translates known messages.
+                return res.status(413).json({ error: "File too large (max. 10 MB)", code: "FILE_TOO_LARGE" });
             }
-            return res.status(400).json({ error: "Ungültiger Upload", code: err.code });
+            return res.status(400).json({ error: "Invalid upload", code: err.code });
         }
-        return res.status(400).json({ error: "Nur JPG, PNG oder WebP erlaubt", code: "INVALID_TYPE" });
+        return res.status(400).json({ error: "Only JPG, PNG or WebP images are allowed", code: "INVALID_TYPE" });
     });
 }
 
@@ -338,13 +339,13 @@ router.post("/profile-upload", isAuthenticated, receiveProfileImage, async (req,
     const file = req.file;
     try {
         if (!file) {
-            return res.status(400).json({ error: "Keine Bilddatei erhalten (JPG, PNG oder WebP)", code: "NO_FILE" });
+            return res.status(400).json({ error: "No image received (JPG, PNG or WebP)", code: "NO_FILE" });
         }
 
         const type = req.body.type as "avatar" | "cover";
         if (!type || !["avatar", "cover"].includes(type)) {
             fs.unlink(file.path, () => { });
-            return res.status(400).json({ error: "Ungültiger Typ. Erlaubt: 'avatar' oder 'cover'.", code: "INVALID_KIND" });
+            return res.status(400).json({ error: "Invalid type. Allowed: 'avatar' or 'cover'.", code: "INVALID_KIND" });
         }
 
         // SEC-002: Verify file signature
@@ -357,7 +358,7 @@ router.post("/profile-upload", isAuthenticated, receiveProfileImage, async (req,
                 description: `Upload rejected: Invalid file signature for ${type}`,
                 severity: 'warning'
             }).catch(e => console.error(e));
-            return res.status(400).json({ error: "Die Datei ist kein gültiges Bild", code: "INVALID_SIGNATURE" });
+            return res.status(400).json({ error: "The file is not a valid image", code: "INVALID_SIGNATURE" });
         }
 
         // SEC-003: strip metadata, fix orientation, shrink to a sensible size, store as WebP
@@ -366,7 +367,7 @@ router.post("/profile-upload", isAuthenticated, receiveProfileImage, async (req,
             filename = await processProfileImage(file.path, type);
         } catch (error) {
             console.error(`[Upload] Processing profile image failed: ${error}`);
-            return res.status(400).json({ error: "Das Bild konnte nicht verarbeitet werden", code: "UNREADABLE_IMAGE" });
+            return res.status(400).json({ error: "The image could not be processed", code: "UNREADABLE_IMAGE" });
         }
 
         const imageUrl = `/uploads/${filename}`;
@@ -383,7 +384,7 @@ router.post("/profile-upload", isAuthenticated, receiveProfileImage, async (req,
     } catch (error) {
         console.error("Error uploading profile image:", error);
         if (file) fs.unlink(file.path, () => { });
-        res.status(500).json({ error: "Bild-Upload fehlgeschlagen" });
+        res.status(500).json({ error: "Image upload failed" });
     }
 });
 

@@ -410,7 +410,7 @@ describe("uploads", () => {
     assert.equal(fake.status, 400);
     const pdf = await uploadProfileImage(u.client, "avatar", Buffer.from("%PDF-1.4"), "application/pdf", "doc.pdf");
     assert.equal(pdf.status, 400);
-    assert.match((await pdf.json()).error, /JPG|PNG|WebP|Bild/);
+    assert.match((await pdf.json()).error, /JPG|PNG|WebP|image/);
   });
 
   test("path traversal in upload URLs is blocked", async () => {

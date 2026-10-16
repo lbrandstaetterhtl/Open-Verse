@@ -361,3 +361,59 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.met
     fs.writeFileSync(process.argv[process.argv.indexOf("--json") + 1], JSON.stringify(findings, null, 1));
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Server messages                                                     */
+/* ------------------------------------------------------------------ */
+
+export const SERVER_SRC = path.join(ROOT, "server");
+
+export type ServerMessage = { file: string; line: number; text: string };
+
+function serverFiles(dir = SERVER_SRC): string[] {
+  const out: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...serverFiles(p));
+    else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) out.push(p);
+  }
+  return out.sort();
+}
+
+/**
+ * Error texts the API sends to the browser: res.status(4xx/5xx).send("…") and
+ * res.status(…).json({ error: "…" | message: "…" }). The client shows them in toasts, so each needs a
+ * translation in the "server" namespace (keyed by the exact English text, see client/src/lib/server-messages.ts).
+ */
+export function findServerMessages(files = serverFiles()): ServerMessage[] {
+  const out: ServerMessage[] = [];
+  for (const file of files) {
+    const rel = path.relative(ROOT, file);
+    const sf = parse(file);
+    const visit = (node: ts.Node) => {
+      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
+        ["send", "json"].includes(node.expression.name.text)) {
+        const target = node.expression.expression;
+        const statusCall = ts.isCallExpression(target) && ts.isPropertyAccessExpression(target.expression) &&
+          target.expression.name.text === "status" ? target : undefined;
+        const code = statusCall?.arguments[0];
+        const isError = code && ts.isNumericLiteral(code) && Number(code.text) >= 400;
+        const arg = node.arguments[0];
+        const add = (n: ts.Node, text: string) =>
+          out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(n.getStart()).line + 1, text });
+        if (isError && arg) {
+          if (ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg)) add(arg, arg.text);
+          else if (ts.isObjectLiteralExpression(arg)) {
+            for (const p of arg.properties) {
+              if (ts.isPropertyAssignment(p) && ["error", "message"].includes(p.name.getText()) &&
+                (ts.isStringLiteral(p.initializer) || ts.isNoSubstitutionTemplateLiteral(p.initializer))) add(p.initializer, p.initializer.text);
+            }
+          }
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+  }
+  return out;
+}
