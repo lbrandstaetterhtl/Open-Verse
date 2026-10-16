@@ -22,14 +22,16 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
+// value is what the API stores; key is the label shown in the UI.
 const REPORT_REASONS = [
-  "Spam",
-  "Harassment",
-  "Hate Speech",
-  "Inappropriate Content",
-  "Misinformation",
-  "Other",
+  { value: "Spam", key: "report.reasons.spam", label: "Spam" },
+  { value: "Harassment", key: "report.reasons.harassment", label: "Harassment" },
+  { value: "Hate Speech", key: "report.reasons.hate_speech", label: "Hate Speech" },
+  { value: "Inappropriate Content", key: "report.reasons.inappropriate", label: "Inappropriate Content" },
+  { value: "Misinformation", key: "report.reasons.misinformation", label: "Misinformation" },
+  { value: "Other", key: "report.reasons.other", label: "Other" },
 ];
 
 interface ReportDialogProps {
@@ -42,6 +44,13 @@ export function ReportDialog({ type, id, trigger }: ReportDialogProps) {
   const [reason, setReason] = useState<string>("");
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
+
+  const descriptions: Record<ReportDialogProps["type"], string> = {
+    post: t("report.description_post", "Please select a reason for reporting this post. This will verify it against our community guidelines."),
+    discussion: t("report.description_discussion", "Please select a reason for reporting this discussion. This will verify it against our community guidelines."),
+    comment: t("report.description_comment", "Please select a reason for reporting this comment. This will verify it against our community guidelines."),
+  };
 
   const reportMutation = useMutation({
     mutationFn: async () => {
@@ -54,16 +63,16 @@ export function ReportDialog({ type, id, trigger }: ReportDialogProps) {
     },
     onSuccess: () => {
       toast({
-        title: "Report submitted",
-        description: "Thank you for helping keep our community safe.",
+        title: t("report.submitted", "Report submitted"),
+        description: t("report.submitted_desc", "Thank you for helping keep our community safe."),
       });
       setIsOpen(false);
       setReason("");
     },
     onError: (error: Error) => {
       toast({
-        title: "Report Failed",
-        description: error.message || "Failed to submit report. Please try again.",
+        title: t("report.failed", "Report failed"),
+        description: error.message || t("report.failed_desc", "Failed to submit report. Please try again."),
         variant: "destructive",
       });
     },
@@ -73,8 +82,8 @@ export function ReportDialog({ type, id, trigger }: ReportDialogProps) {
     e.preventDefault();
     if (!reason) {
       toast({
-        title: "Reason required",
-        description: "Please select a reason for reporting.",
+        title: t("report.reason_required", "Reason required"),
+        description: t("report.reason_required_desc", "Please select a reason for reporting."),
         variant: "destructive",
       });
       return;
@@ -86,30 +95,29 @@ export function ReportDialog({ type, id, trigger }: ReportDialogProps) {
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
         {trigger || (
-          <Button variant="ghost" size="sm" className="h-8" aria-label="Report">
+          <Button variant="ghost" size="sm" className="h-8" aria-label={t("actions.report")}>
             <Flag className="h-4 w-4 lg:mr-1" />
-            <span className="text-xs lg:text-sm hidden lg:inline">Report</span>
+            <span className="text-xs lg:text-sm hidden lg:inline">{t("actions.report")}</span>
           </Button>
         )}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Report Content</AlertDialogTitle>
+          <AlertDialogTitle>{t("report.title", "Report content")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Please select a reason for reporting this {type}. This will verify it against our
-            community guidelines.
+            {descriptions[type]}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="py-4">
           <Select value={reason} onValueChange={setReason}>
-            <SelectTrigger aria-label="Reason">
-              <SelectValue placeholder="Select a reason" />
+            <SelectTrigger aria-label={t("report.reason", "Reason")}>
+              <SelectValue placeholder={t("report.select_reason", "Select a reason")} />
             </SelectTrigger>
             <SelectContent>
               {REPORT_REASONS.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {r}
+                <SelectItem key={r.value} value={r.value}>
+                  {t(r.key, r.label)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -117,9 +125,9 @@ export function ReportDialog({ type, id, trigger }: ReportDialogProps) {
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setReason("")}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={() => setReason("")}>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction onClick={handleSubmit} disabled={reportMutation.isPending || !reason}>
-            {reportMutation.isPending ? "Submitting..." : "Report"}
+            {reportMutation.isPending ? t("report.submitting", "Submitting...") : t("actions.report")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -78,10 +78,10 @@ export default function PostViewPage() {
         : "/feed/media";
   const backText =
     fromSource === "admin"
-      ? "Back to Admin"
+      ? t("post.back_to_admin", "Back to Admin")
       : fromSource === "profile"
-        ? "Back to Profile"
-        : "Back to Feed";
+        ? t("post.back_to_profile", "Back to Profile")
+        : t("post.back_to_feed", "Back to Feed");
 
   const {
     data: post,
@@ -121,7 +121,7 @@ export default function PostViewPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-      toast({ title: "Success", description: "User followed successfully" });
+      toast({ title: t("common.success", "Success"), description: t("post.user_followed", "User followed successfully") });
     },
   });
 
@@ -132,7 +132,7 @@ export default function PostViewPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-      toast({ title: "Success", description: "User unfollowed successfully" });
+      toast({ title: t("common.success", "Success"), description: t("post.user_unfollowed", "User unfollowed successfully") });
     },
   });
 
@@ -144,7 +144,7 @@ export default function PostViewPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-      toast({ title: "Success", description: "Comment added successfully" });
+      toast({ title: t("common.success", "Success"), description: t("comments.added", "Your comment has been added.") });
     },
   });
 
@@ -155,7 +155,7 @@ export default function PostViewPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-      toast({ title: "Success", description: "Comment deleted successfully" });
+      toast({ title: t("common.success", "Success"), description: t("comments.deleted_success", "Comment deleted successfully") });
     },
   });
 
@@ -176,7 +176,7 @@ export default function PostViewPage() {
       if (!res.ok) throw new Error(await res.text());
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Post deleted successfully" });
+      toast({ title: t("common.success", "Success"), description: t("posts.deleted_success", "Post deleted successfully") });
       navigate("/feed/media");
     },
   });
@@ -191,7 +191,7 @@ export default function PostViewPage() {
           <Link href={backLink}>
             <Button variant="ghost" size="sm" className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              {t("actions.back", backText)}
+              {backText}
             </Button>
           </Link>
 
@@ -262,7 +262,7 @@ export default function PostViewPage() {
                       <div className="flex items-center justify-center min-h-[200px] max-h-[500px] bg-muted/5">
                         <img
                           src={`/uploads/${post.mediaUrl}`}
-                          alt={post.title || "Post image"}
+                          alt={post.title || t("post.image_alt", "Post image")}
                           className="max-w-full h-auto max-h-[500px]"
                           onError={() => setImageLoadError(true)}
                           loading="lazy"
@@ -380,19 +380,18 @@ export default function PostViewPage() {
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+                                      <AlertDialogTitle>{t("comments.delete_title", "Delete comment")}</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Are you sure you want to delete this comment? This action
-                                        cannot be undone.
+                                        {t("actions.delete_comment_confirm")}
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() => deleteCommentMutation.mutate(comment.id)}
                                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                       >
-                                        Delete
+                                        {t("common.delete")}
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
@@ -472,18 +471,18 @@ export default function PostViewPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+                            <AlertDialogTitle>{t("posts.delete_title", "Delete post")}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete this post? This action cannot be undone.
+                              {t("actions.delete_post_confirm")}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => deletePostMutation.mutate()}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
-                              Delete
+                              {t("common.delete")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

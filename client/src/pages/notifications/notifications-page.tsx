@@ -35,7 +35,7 @@ export default function NotificationsPage() {
         <PageHeader
           eyebrow={t("notifications.eyebrow", "Account / Notifications")}
           title={t("notifications.title")}
-          description="Stay updated with your latest activities"
+          description={t("notifications.manage_desc")}
           className="mb-8"
           actions={
             <>
@@ -123,7 +123,7 @@ export default function NotificationsPage() {
                   
                   <div className="ov-panel bg-primary/5 p-4">
                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        "Your privacy is our priority. We only send notifications for the actions you choose to follow."
+                        {t("notifications.privacy_note", "\"Your privacy is our priority. We only send notifications for the actions you choose to follow.\"")}
                      </p>
                   </div>
                 </div>

@@ -37,8 +37,8 @@ export function AutoPunishmentPage() {
           <AlertTriangle className="h-8 w-8 text-destructive" />
         </div>
         <div className="text-center">
-          <h2 className="font-display text-xl font-semibold">Access Restricted</h2>
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto">You do not have the required permissions to manage auto-punishment rules.</p>
+          <h2 className="font-display text-xl font-semibold">{t("admin_autopunish.access_restricted.title", "Access restricted")}</h2>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto">{t("admin_autopunish.access_restricted.description", "You do not have the required permissions to manage auto-punishment rules.")}</p>
         </div>
       </div>
     );
@@ -74,7 +74,7 @@ export function AutoPunishmentPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-punishments"] });
-      toast({ title: editId ? "Rule updated successfully" : "Rule created successfully" });
+      toast({ title: editId ? t("admin_autopunish.toast.updated", "Rule updated successfully") : t("admin_autopunish.toast.created", "Rule created successfully") });
       setIsCreateOpen(false);
       setFormData(emptyForm);
       setEditId(null);
@@ -96,13 +96,13 @@ export function AutoPunishmentPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-punishments"] });
-      toast({ title: "Rule deleted" });
+      toast({ title: t("admin_autopunish.toast.deleted", "Rule deleted") });
     }
   });
 
   const handleCreate = () => {
      if (!formData.name || !formData.actionReason) {
-         return toast({ title: "Validation Error", description: "Name and Action Reason required", variant: "destructive" });
+         return toast({ title: t("admin_autopunish.toast.validation_error", "Validation error"), description: t("admin_autopunish.toast.validation_required", "Name and action reason are required"), variant: "destructive" });
      }
      const payload: any = {
          ...formData,
@@ -119,112 +119,119 @@ export function AutoPunishmentPage() {
      createMutation.mutate(payload);
   };
 
+  const severityLabels: Record<string, string> = {
+    low: t("admin_autopunish.severity.low", "Low"),
+    medium: t("admin_autopunish.severity.medium", "Medium"),
+    high: t("admin_autopunish.severity.high", "High"),
+    critical: t("admin_autopunish.severity.critical", "Critical"),
+  };
+
   return (
     <div className="space-y-8">
         <PageHeader
           eyebrow={t("monitoring.eyebrow_moderation", "Admin / Moderation")}
-          title="Auto-Punishment Engine"
-          description="Automated threat response and mitigation rules."
+          title={t("admin_autopunish.title", "Auto-punishment engine")}
+          description={t("admin_autopunish.description", "Automated threat response and mitigation rules.")}
         />
 
         <Card>
           <CardHeader className="flex flex-row justify-between items-center">
-            <CardTitle className="text-lg flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-primary" /> Active Rules</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-primary" /> {t("admin_autopunish.rules.title", "Active rules")}</CardTitle>
             <Dialog open={isCreateOpen} onOpenChange={open => { setIsCreateOpen(open); if (!open) setEditId(null); }}>
               <DialogTrigger asChild>
-                <Button size="sm" onClick={() => { setEditId(null); setFormData(emptyForm); }}><Plus className="w-4 h-4 mr-2" /> New Rule</Button>
+                <Button size="sm" onClick={() => { setEditId(null); setFormData(emptyForm); }}><Plus className="w-4 h-4 mr-2" /> {t("admin_autopunish.rules.new", "New rule")}</Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>{editId ? "Edit" : "Create"} Auto-Punishment Rule</DialogTitle>
+                  <DialogTitle>{editId ? t("admin_autopunish.dialog.edit_title", "Edit auto-punishment rule") : t("admin_autopunish.dialog.create_title", "Create auto-punishment rule")}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                    <div className="space-y-2">
-                     <Label>Rule Name</Label>
-                     <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Strict API Abuser Block" />
+                     <Label>{t("admin_autopunish.form.name", "Rule name")}</Label>
+                     <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder={t("admin_autopunish.form.name_placeholder", "e.g. Strict API abuser block")} />
                    </div>
                    <div className="space-y-2">
-                     <Label>Description <span className="text-muted-foreground text-xs">(optional)</span></Label>
-                     <Input value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="What exactly does this rule prevent?" />
+                     <Label>{t("admin_autopunish.form.description", "Description")} <span className="text-muted-foreground text-xs">{t("admin_autopunish.form.optional", "(optional)")}</span></Label>
+                     <Input value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder={t("admin_autopunish.form.description_placeholder", "What exactly does this rule prevent?")} />
                    </div>
                    <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-2">
-                       <Label>Anomaly Trigger</Label>
+                       <Label>{t("admin_autopunish.form.anomaly_trigger", "Anomaly trigger")}</Label>
                        <Select value={formData.anomalyType} onValueChange={v => setFormData({ ...formData, anomalyType: v })}>
                          <SelectTrigger><SelectValue /></SelectTrigger>
                          <SelectContent>
-                           <SelectItem value="brute_force_login">Brute Force Login</SelectItem>
-                           <SelectItem value="api_abuse">API Abuse</SelectItem>
-                           <SelectItem value="spam_content">Spam Content</SelectItem>
-                           <SelectItem value="rapid_creation">Rapid Creation</SelectItem>
-                           <SelectItem value="suspicious_ip">Suspicious IP</SelectItem>
-                           <SelectItem value="hardware_ban_evasion">HW Ban Evasion</SelectItem>
+                           <SelectItem value="brute_force_login">{t("admin_autopunish.anomaly.brute_force_login", "Brute-force login")}</SelectItem>
+                           <SelectItem value="api_abuse">{t("admin_autopunish.anomaly.api_abuse", "API abuse")}</SelectItem>
+                           <SelectItem value="spam_content">{t("admin_autopunish.anomaly.spam_content", "Spam content")}</SelectItem>
+                           <SelectItem value="rapid_creation">{t("admin_autopunish.anomaly.rapid_creation", "Rapid creation")}</SelectItem>
+                           <SelectItem value="suspicious_ip">{t("admin_autopunish.anomaly.suspicious_ip", "Suspicious IP")}</SelectItem>
+                           <SelectItem value="hardware_ban_evasion">{t("admin_autopunish.anomaly.hardware_ban_evasion", "Hardware ban evasion")}</SelectItem>
                          </SelectContent>
                        </Select>
                      </div>
                      <div className="space-y-2">
-                       <Label>Severity Threshold</Label>
+                       <Label>{t("admin_autopunish.form.severity_threshold", "Severity threshold")}</Label>
                        <Select value={formData.severityThreshold} onValueChange={v => setFormData({ ...formData, severityThreshold: v })}>
                          <SelectTrigger><SelectValue /></SelectTrigger>
                          <SelectContent>
-                           <SelectItem value="low">Low</SelectItem>
-                           <SelectItem value="medium">Medium</SelectItem>
-                           <SelectItem value="high">High</SelectItem>
-                           <SelectItem value="critical">Critical</SelectItem>
+                           <SelectItem value="low">{severityLabels.low}</SelectItem>
+                           <SelectItem value="medium">{severityLabels.medium}</SelectItem>
+                           <SelectItem value="high">{severityLabels.high}</SelectItem>
+                           <SelectItem value="critical">{severityLabels.critical}</SelectItem>
                          </SelectContent>
                        </Select>
                      </div>
                    </div>
                    <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-2">
-                       <Label>Action Execution</Label>
+                       <Label>{t("admin_autopunish.form.action", "Action")}</Label>
                        <Select value={formData.action} onValueChange={v => setFormData({ ...formData, action: v })}>
                          <SelectTrigger><SelectValue /></SelectTrigger>
                          <SelectContent>
-                           <SelectItem value="warn">Warn User</SelectItem>
-                           <SelectItem value="freeze">Freeze Account</SelectItem>
-                           <SelectItem value="shadow_ban">Shadowban</SelectItem>
-                           <SelectItem value="temp_ban">Temp IP Ban</SelectItem>
-                           <SelectItem value="ip_ban">Perm IP Ban</SelectItem>
-                           <SelectItem value="hardware_ban">Hardware Ban</SelectItem>
+                           <SelectItem value="warn">{t("admin_autopunish.action.warn", "Warn user")}</SelectItem>
+                           <SelectItem value="freeze">{t("admin_autopunish.action.freeze", "Freeze account")}</SelectItem>
+                           <SelectItem value="shadow_ban">{t("admin_autopunish.action.shadow_ban", "Shadowban")}</SelectItem>
+                           <SelectItem value="temp_ban">{t("admin_autopunish.action.temp_ban", "Temporary IP ban")}</SelectItem>
+                           <SelectItem value="ip_ban">{t("admin_autopunish.action.ip_ban", "Permanent IP ban")}</SelectItem>
+                           <SelectItem value="hardware_ban">{t("admin_autopunish.action.hardware_ban", "Hardware ban")}</SelectItem>
                          </SelectContent>
                        </Select>
                      </div>
                      <div className="space-y-2">
-                       <Label>Duration (Hours) <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                       <Label>{t("admin_autopunish.form.duration_hours", "Duration (hours)")} <span className="text-muted-foreground text-xs">{t("admin_autopunish.form.optional", "(optional)")}</span></Label>
                        <Input type="number" value={formData.actionDurationHours} onChange={e => setFormData({ ...formData, actionDurationHours: e.target.value })} />
                      </div>
                    </div>
                    
                    <div className="space-y-2 border-t pt-2">
-                     <Label className="text-muted-foreground">Advanced Configuration</Label>
+                     <Label className="text-muted-foreground">{t("admin_autopunish.form.advanced", "Advanced configuration")}</Label>
                      <div className="grid grid-cols-3 gap-4 mt-2">
                        <div className="space-y-1">
-                         <Label className="text-xs">Triggers after (Count)</Label>
+                         <Label className="text-xs">{t("admin_autopunish.form.escalate_after_count", "Triggers after (count)")}</Label>
                          <Input type="number" min="1" value={formData.escalateAfterCount} onChange={e => setFormData({ ...formData, escalateAfterCount: e.target.value })} />
-                         <p className="text-[10px] text-muted-foreground leading-tight mt-1">Anzahl der Vorfälle bevor Regel auslöst.</p>
+                         <p className="text-[10px] text-muted-foreground leading-tight mt-1">{t("admin_autopunish.form.escalate_after_count_help", "Number of incidents before the rule triggers.")}</p>
                        </div>
                        <div className="space-y-1">
-                         <Label className="text-xs">Time Window (Hours)</Label>
+                         <Label className="text-xs">{t("admin_autopunish.form.escalation_window_hours", "Time window (hours)")}</Label>
                          <Input type="number" min="1" value={formData.escalationWindowHours} onChange={e => setFormData({ ...formData, escalationWindowHours: e.target.value })} />
-                         <p className="text-[10px] text-muted-foreground leading-tight mt-1">Zeitraum, in dem der Count gesammelt wird.</p>
+                         <p className="text-[10px] text-muted-foreground leading-tight mt-1">{t("admin_autopunish.form.escalation_window_hours_help", "Period in which incidents are counted.")}</p>
                        </div>
                        <div className="space-y-1">
-                         <Label className="text-xs">Cooldown (Hours)</Label>
+                         <Label className="text-xs">{t("admin_autopunish.form.cooldown_hours", "Cooldown (hours)")}</Label>
                          <Input type="number" min="1" value={formData.cooldownHours} onChange={e => setFormData({ ...formData, cooldownHours: e.target.value })} />
-                         <p className="text-[10px] text-muted-foreground leading-tight mt-1">Sperrzeit, bis Regel erneut anschlägt.</p>
+                         <p className="text-[10px] text-muted-foreground leading-tight mt-1">{t("admin_autopunish.form.cooldown_hours_help", "Waiting time before the rule can trigger again.")}</p>
                        </div>
                      </div>
                    </div>
 
                    <div className="space-y-2 border-t pt-4">
-                     <Label>Action Reason <span className="text-destructive">*</span></Label>
-                     <Input value={formData.actionReason} onChange={e => setFormData({ ...formData, actionReason: e.target.value })} placeholder="Internal reason for this exact block..." />
+                     <Label>{t("admin_autopunish.form.action_reason", "Action reason")} <span className="text-destructive">*</span></Label>
+                     <Input value={formData.actionReason} onChange={e => setFormData({ ...formData, actionReason: e.target.value })} placeholder={t("admin_autopunish.form.action_reason_placeholder", "Internal reason for this exact block...")} />
                    </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                  <Button onClick={handleCreate} disabled={createMutation.isPending}>{createMutation.isPending ? "Saving..." : "Save"}</Button>
+                  <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>{t("common.cancel", "Cancel")}</Button>
+                  <Button onClick={handleCreate} disabled={createMutation.isPending}>{createMutation.isPending ? t("admin_autopunish.form.saving", "Saving...") : t("common.save", "Save")}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -233,27 +240,27 @@ export function AutoPunishmentPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="ov-label">Rule Name</TableHead>
-                  <TableHead className="ov-label">Trigger (Anomaly)</TableHead>
-                  <TableHead className="ov-label">Threshold</TableHead>
-                  <TableHead className="ov-label">Automated Action</TableHead>
-                  <TableHead className="ov-label">Status</TableHead>
-                  <TableHead className="ov-label text-right">Manage</TableHead>
+                  <TableHead className="ov-label">{t("admin_autopunish.rules.col_name", "Rule name")}</TableHead>
+                  <TableHead className="ov-label">{t("admin_autopunish.rules.col_trigger", "Trigger (anomaly)")}</TableHead>
+                  <TableHead className="ov-label">{t("admin_autopunish.rules.col_threshold", "Threshold")}</TableHead>
+                  <TableHead className="ov-label">{t("admin_autopunish.rules.col_action", "Automated action")}</TableHead>
+                  <TableHead className="ov-label">{t("admin_autopunish.col_status", "Status")}</TableHead>
+                  <TableHead className="ov-label text-right">{t("admin_autopunish.rules.col_manage", "Manage")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-6">Loading...</TableCell></TableRow> : null}
+                {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-6">{t("common.loading", "Loading...")}</TableCell></TableRow> : null}
                 {data?.rules?.map(rule => (
                   <TableRow key={rule.id}>
                     <TableCell className="font-medium">{rule.name}</TableCell>
                     <TableCell><span className="ov-chip font-data">{rule.anomalyType}</span></TableCell>
-                    <TableCell><span className={cn("ov-chip capitalize", severityChip[rule.severityThreshold])}>{rule.severityThreshold}</span></TableCell>
+                    <TableCell><span className={cn("ov-chip capitalize", severityChip[rule.severityThreshold])}>{severityLabels[rule.severityThreshold] ?? rule.severityThreshold}</span></TableCell>
                     <TableCell className="font-data text-xs">{rule.action}</TableCell>
                     <TableCell>
-                      {rule.isActive ? <span className="ov-chip ov-chip-success">Active</span> : <span className="ov-chip">Disabled</span>}
+                      {rule.isActive ? <span className="ov-chip ov-chip-success">{t("admin_autopunish.rules.status_active", "Active")}</span> : <span className="ov-chip">{t("admin_autopunish.rules.status_disabled", "Disabled")}</span>}
                     </TableCell>
                     <TableCell className="text-right flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => {
+                      <Button variant="ghost" size="icon" aria-label={t("admin_autopunish.rules.edit", "Edit rule")} onClick={() => {
                         setFormData({
                             name: rule.name || "",
                             description: rule.description || "",
@@ -271,10 +278,10 @@ export function AutoPunishmentPage() {
                       }}>
                          <Pencil className="w-4 h-4 text-muted-foreground" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => toggleMutation.mutate({ id: rule.id, isActive: !rule.isActive })}>
+                      <Button variant="ghost" size="icon" aria-label={rule.isActive ? t("admin_autopunish.rules.disable", "Disable rule") : t("admin_autopunish.rules.enable", "Enable rule")} onClick={() => toggleMutation.mutate({ id: rule.id, isActive: !rule.isActive })}>
                          <Power className={rule.isActive ? "text-destructive w-4 h-4" : "text-primary w-4 h-4"} />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => { if(window.confirm('Delete this rule?')) deleteMutation.mutate(rule.id) }}>
+                      <Button variant="ghost" size="icon" aria-label={t("admin_autopunish.rules.delete", "Delete rule")} onClick={() => { if(window.confirm(t("admin_autopunish.rules.delete_confirm", "Delete this rule?"))) deleteMutation.mutate(rule.id) }}>
                          <Trash2 className="text-destructive w-4 h-4" />
                       </Button>
                     </TableCell>
@@ -287,32 +294,32 @@ export function AutoPunishmentPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Recent Executions</CardTitle>
+            <CardTitle className="text-lg">{t("admin_autopunish.executions.title", "Recent executions")}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="ov-label">Time</TableHead>
-                  <TableHead className="ov-label">Rule</TableHead>
-                  <TableHead className="ov-label">Target User</TableHead>
-                  <TableHead className="ov-label">Action Taken</TableHead>
-                  <TableHead className="ov-label">Status</TableHead>
+                  <TableHead className="ov-label">{t("admin_autopunish.executions.col_time", "Time")}</TableHead>
+                  <TableHead className="ov-label">{t("admin_autopunish.executions.col_rule", "Rule")}</TableHead>
+                  <TableHead className="ov-label">{t("admin_autopunish.executions.col_target", "Target user")}</TableHead>
+                  <TableHead className="ov-label">{t("admin_autopunish.executions.col_action", "Action taken")}</TableHead>
+                  <TableHead className="ov-label">{t("admin_autopunish.col_status", "Status")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? <TableRow><TableCell colSpan={5} className="text-center py-6">Loading...</TableCell></TableRow> : null}
-                {data?.executions?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No recent executions</TableCell></TableRow>}
+                {isLoading ? <TableRow><TableCell colSpan={5} className="text-center py-6">{t("common.loading", "Loading...")}</TableCell></TableRow> : null}
+                {data?.executions?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">{t("admin_autopunish.executions.empty", "No recent executions")}</TableCell></TableRow>}
                 {data?.executions?.map(exec => (
                   <TableRow key={exec.id}>
                     <TableCell className="ov-data text-xs text-muted-foreground">
                         {new Date(exec.createdAt * 1000).toLocaleString()}
                     </TableCell>
                     <TableCell className="font-medium">{exec.ruleName}</TableCell>
-                    <TableCell>User <span className="ov-data">#{exec.userId}</span></TableCell>
+                    <TableCell>{t("admin_autopunish.executions.user", "User")} <span className="ov-data">#{exec.userId}</span></TableCell>
                     <TableCell className="font-data text-xs">{exec.actionTaken}</TableCell>
                     <TableCell>
-                      {exec.success ? <span className="ov-chip ov-chip-success">Success</span> : <span className="ov-chip ov-chip-danger">Failed</span>}
+                      {exec.success ? <span className="ov-chip ov-chip-success">{t("admin_autopunish.executions.success", "Success")}</span> : <span className="ov-chip ov-chip-danger">{t("admin_autopunish.executions.failed", "Failed")}</span>}
                     </TableCell>
                   </TableRow>
                 ))}

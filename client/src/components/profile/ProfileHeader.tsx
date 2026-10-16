@@ -108,7 +108,7 @@ export function ProfileHeader({
               </p>
               {user.isFollowingBack && (
                 <span className="ov-chip">
-                  Follows You
+                  {t("profile.follows_you", "Follows You")}
                 </span>
               )}
             </div>
@@ -149,11 +149,11 @@ export function ProfileHeader({
             <div className="ov-panel flex divide-x divide-border">
                <div className="flex flex-col items-center gap-1.5 px-5 py-3 min-w-[100px]">
                   <span className="ov-data text-2xl font-semibold leading-none text-foreground">{user.stats?.following || 0}</span>
-                  <span className="ov-label">Following</span>
+                  <span className="ov-label">{t("profile.following")}</span>
                </div>
                <div className="flex flex-col items-center gap-1.5 px-5 py-3 min-w-[100px]">
                   <span className="ov-data text-2xl font-semibold leading-none text-primary">{user.stats?.followers || 0}</span>
-                  <span className="ov-label">Followers</span>
+                  <span className="ov-label">{t("profile.followers")}</span>
                </div>
             </div>
           </div>

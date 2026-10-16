@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 export function BansPage() {
-  const { t } = useTranslation("admin");
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -23,7 +23,7 @@ export function BansPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bans"] });
-      toast({ title: t("bulk.success", "Operation successful") });
+      toast({ title: t("admin_bans.toast.revoked", "Ban revoked") });
     }
   });
 
@@ -33,30 +33,30 @@ export function BansPage() {
           eyebrow={
             <span className="inline-flex items-center gap-2">
               <ShieldOff className="h-3.5 w-3.5 text-destructive" />
-              Moderation Core
+              {t("admin_bans.eyebrow", "Moderation core")}
             </span>
           }
-          title="Ban Management"
-          description="Manage IP, Hardware, and Account Bans in zero-gravity."
+          title={t("admin_bans.title", "Ban management")}
+          description={t("admin_bans.description", "Manage IP, hardware, and account bans in zero gravity.")}
         />
 
         <div className="ov-panel overflow-hidden">
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="ov-label h-12 px-6">Type</TableHead>
-                <TableHead className="ov-label h-12 px-6">Target</TableHead>
-                <TableHead className="ov-label h-12 px-6">Reason</TableHead>
-                <TableHead className="ov-label h-12 px-6">Status</TableHead>
-                <TableHead className="ov-label h-12 px-6">Source</TableHead>
-                <TableHead className="ov-label h-12 px-6 text-right">Operations</TableHead>
+                <TableHead className="ov-label h-12 px-6">{t("admin_bans.table.type", "Type")}</TableHead>
+                <TableHead className="ov-label h-12 px-6">{t("admin_bans.table.target", "Target")}</TableHead>
+                <TableHead className="ov-label h-12 px-6">{t("admin_bans.table.reason", "Reason")}</TableHead>
+                <TableHead className="ov-label h-12 px-6">{t("admin_bans.table.status", "Status")}</TableHead>
+                <TableHead className="ov-label h-12 px-6">{t("admin_bans.table.source", "Source")}</TableHead>
+                <TableHead className="ov-label h-12 px-6 text-right">{t("admin_bans.table.operations", "Operations")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-20 text-sm text-muted-foreground animate-pulse">Scanning Transmission...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-20 text-sm text-muted-foreground animate-pulse">{t("admin_bans.loading", "Scanning transmission...")}</TableCell></TableRow>
               ) : bans?.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-20 text-sm text-muted-foreground">No active bans in this sector</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-20 text-sm text-muted-foreground">{t("admin_bans.empty", "No active bans in this sector")}</TableCell></TableRow>
               ) : (
                 bans?.map((ban) => (
                   <TableRow key={ban.id} className="group">
@@ -73,17 +73,17 @@ export function BansPage() {
                       {ban.isActive ? (
                         <div className="ov-chip ov-chip-danger">
                           <div className="h-1.5 w-1.5 rounded-full bg-destructive" />
-                          Active
+                          {t("admin_bans.status.active", "Active")}
                         </div>
                       ) : (
-                        <div className="ov-chip opacity-60">Revoked</div>
+                        <div className="ov-chip opacity-60">{t("admin_bans.status.revoked", "Revoked")}</div>
                       )}
                     </TableCell>
                     <TableCell className="px-6"><span className="ov-label">{ban.createdByType}</span></TableCell>
                     <TableCell className="px-6 text-right">
                       {ban.isActive && (
                         <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => revokeMutation.mutate(ban.id)}>
-                          Revoke
+                          {t("admin_bans.revoke", "Revoke")}
                         </Button>
                       )}
                     </TableCell>

@@ -205,10 +205,10 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: t("common.success"), description: t("admin.users_table.update_success") });
+      toast({ title: t("common.success", "Success"), description: t("admin_dashboard.user_update_success", "User updated.") });
     },
     onError: (error: Error) => {
-      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+      toast({ title: t("common.error", "An error occurred"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -220,10 +220,10 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      toast({ title: t("common.success"), description: "User permanently deleted." });
+      toast({ title: t("common.success", "Success"), description: t("admin_dashboard.user_deleted", "User permanently deleted.") });
     },
     onError: (error: Error) => {
-      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+      toast({ title: t("common.error", "An error occurred"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -235,7 +235,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/reports"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      toast({ title: t("common.success"), description: t("admin.reports_table.update_success") });
+      toast({ title: t("common.success", "Success"), description: t("admin_dashboard.report_update_success", "Report updated.") });
     },
   });
 
@@ -284,7 +284,7 @@ export default function AdminDashboard() {
     
     // Safety check for owner promotion already in backend, but good to have UI hint
     if (nextRole === "owner" && user?.role !== "owner") {
-      toast({ title: "Access Denied", description: "Only system owners can promote to Owner status.", variant: "destructive" });
+      toast({ title: t("admin_dashboard.access_denied", "Access denied"), description: t("admin_dashboard.owner_only_promote", "Only system owners can promote to Owner status."), variant: "destructive" });
       return;
     }
 
@@ -337,7 +337,7 @@ export default function AdminDashboard() {
        queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
     }
 
-    toast({ title: t("bulk.success", "Bulk action executed successfully.") });
+    toast({ title: t("admin_dashboard.bulk_success", "Bulk action executed successfully.") });
     setBulkAction(null);
   };
 
@@ -361,24 +361,24 @@ export default function AdminDashboard() {
           <PageHeader
             eyebrow={t("admin.overview_eyebrow", "Admin / Overview")}
             title={t("admin.command_center", "Command Center")}
-            description="Monitor platform health and manage operations in zero-gravity."
+            description={t("admin_dashboard.description", "Monitor platform health and manage operations in zero-gravity.")}
           />
 
           {/* Statistics Grid */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {statsLoading ? [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />) : (
               <>
-                <MetricCard title={t("admin.stats.total_users")} value={stats?.totalUsers || 0} icon={Users} description="Cumulative registered users across the platform." />
-                <MetricCard title={t("admin.stats.total_reports")} value={stats?.totalReports || 0} icon={Flag} description="Total reports flags received across all content." />
+                <MetricCard title={t("admin.stats.total_users", "Total Users")} value={stats?.totalUsers || 0} icon={Users} description={t("admin_dashboard.stats.total_users_desc", "Cumulative registered users across the platform.")} />
+                <MetricCard title={t("admin.stats.total_reports", "Total Reports")} value={stats?.totalReports || 0} icon={Flag} description={t("admin_dashboard.stats.total_reports_desc", "Total report flags received across all content.")} />
                 <MetricCard 
-                  title={t("admin.stats.pending_reports")} 
+                  title={t("admin.stats.pending_reports", "Pending Reports")} 
                   value={stats?.pendingReports || 0} 
                   icon={AlertTriangle} 
                   priority={stats?.pendingReports && stats.pendingReports > 0 ? "critical" : "success"}
-                  description="Awaiting manual review by the administration." 
+                  description={t("admin_dashboard.stats.pending_reports_desc", "Awaiting manual review by the administration.")} 
                 />
-                <MetricCard title={t("admin.stats.active_users")} value={stats?.activeUsers || 0} icon={Activity} trend={12} description="Unique users active within the last 24 hours." />
-                <MetricCard title={t("admin.stats.verified_users")} value={stats?.verifiedUsers || 0} icon={UserCheck} description="Trusted members who completed verification." />
+                <MetricCard title={t("admin.stats.active_users", "Active Users")} value={stats?.activeUsers || 0} icon={Activity} trend={12} description={t("admin_dashboard.stats.active_users_desc", "Unique users active within the last 24 hours.")} />
+                <MetricCard title={t("admin.stats.verified_users", "Verified Users")} value={stats?.verifiedUsers || 0} icon={UserCheck} description={t("admin_dashboard.stats.verified_users_desc", "Trusted members who completed verification.")} />
               </>
             )}
           </div>
@@ -396,7 +396,7 @@ export default function AdminDashboard() {
                 {hasPermission("users") && (
                   <TabsTrigger value="users" className="gap-2 px-4">
                     <Users className="h-4 w-4" />
-                    {t("admin.tabs.users")}
+                    {t("admin.tabs.users", "Users")}
                     <span className={cn("ov-data ml-1 text-xs", currentTab === "users" ? "text-primary" : "text-muted-foreground")}>
                       {users?.length || 0}
                     </span>
@@ -405,7 +405,7 @@ export default function AdminDashboard() {
                 {hasPermission("reports") && (
                   <TabsTrigger value="reports" className="gap-2 px-4">
                     <Flag className="h-4 w-4" />
-                    {t("admin.tabs.reports")}
+                    {t("admin.tabs.reports", "Reports")}
                     {stats?.pendingReports && stats.pendingReports > 0 ? (
                       <span className="ov-chip ov-chip-star ov-data ml-1 h-5 px-1.5 text-xs">
                         {stats.pendingReports}
@@ -420,7 +420,7 @@ export default function AdminDashboard() {
                 {hasPermission("groups") && (
                   <TabsTrigger value="groups" className="gap-2 px-4">
                     <Shield className="h-4 w-4" />
-                    Groups
+                    {t("admin_dashboard.tabs.groups", "Groups")}
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -429,7 +429,7 @@ export default function AdminDashboard() {
                 <div className="relative flex-1 lg:w-80 group">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
-                    placeholder="Search the Verse..."
+                    placeholder={t("admin_dashboard.search_placeholder", "Search the Verse…")}
                     className="pl-10"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -442,13 +442,13 @@ export default function AdminDashboard() {
               <Card className="overflow-hidden isolate">
                 <CardHeader className="ov-rule px-6 py-4 flex flex-row flex-wrap items-center justify-between gap-4 space-y-0 sticky top-0 z-20">
                   <div className="space-y-1">
-                    <CardTitle className="text-lg">User Directory</CardTitle>
-                    <CardDescription className="text-xs">Manage authentication states and moderation levels.</CardDescription>
+                    <CardTitle className="text-lg">{t("admin_dashboard.users.title", "User Directory")}</CardTitle>
+                    <CardDescription className="text-xs">{t("admin_dashboard.users.description", "Manage authentication states and moderation levels.")}</CardDescription>
                   </div>
                   <div className="flex gap-0.5 rounded-sm border border-border bg-background/40 p-1">
-                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", userFilter === "all" && "ov-tab-active")} onClick={() => setUserFilter("all")}>All</Button>
-                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", userFilter === "verified" && "ov-tab-active")} onClick={() => setUserFilter("verified")}>Verified</Button>
-                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", userFilter === "banned" && "ov-tab-active")} onClick={() => setUserFilter("banned")}>Banned</Button>
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", userFilter === "all" && "ov-tab-active")} onClick={() => setUserFilter("all")}>{t("admin_dashboard.users.filter_all", "All")}</Button>
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", userFilter === "verified" && "ov-tab-active")} onClick={() => setUserFilter("verified")}>{t("admin_dashboard.users.filter_verified", "Verified")}</Button>
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", userFilter === "banned" && "ov-tab-active")} onClick={() => setUserFilter("banned")}>{t("admin_dashboard.users.filter_banned", "Banned")}</Button>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -467,30 +467,30 @@ export default function AdminDashboard() {
                       },
                       { 
                         key: "username", 
-                        label: "User", 
+                        label: t("admin_dashboard.users.col_user", "User"), 
                         render: (u) => (
                           <div className="flex items-center gap-3 py-1">
                             <UserAvatar user={{ username: u.username }} size="sm" />
                             <div className="flex flex-col min-w-0">
                               <Link href={`/users/${u.username}`} className="hover:text-primary transition-colors text-sm font-semibold truncate leading-tight">{u.username}</Link>
-                              <span className="ov-data text-xs text-muted-foreground">ID: {u.id}</span>
+                              <span className="ov-data text-xs text-muted-foreground">{t("admin_dashboard.users.id", { id: u.id, defaultValue: "ID: {{id}}" })}</span>
                             </div>
                           </div>
                         )
                       },
-                      { key: "email", label: "Contact", render: (u) => <span className="ov-data text-xs">{u.email}</span> },
+                      { key: "email", label: t("admin_dashboard.users.col_contact", "Contact"), render: (u) => <span className="ov-data text-xs">{u.email}</span> },
                       {
                         key: "role",
-                        label: "Role",
+                        label: t("admin_dashboard.users.col_role", "Role"),
                         render: (u) => (
                           <span className={cn("ov-chip capitalize", u.role === "owner" ? "ov-chip-star" : u.role === "admin" ? "ov-chip-primary" : "")}>
-                            {u.role}
+                            {t(`admin.roles.${u.role}`, u.role)}
                           </span>
                         )
                       },
                       {
                         key: "karma",
-                        label: "Rep",
+                        label: t("admin_dashboard.users.col_rep", "Rep"),
                         render: (u) => (
                           <div className={cn("ov-chip ov-data",
                             u.karma >= 0 ? "ov-chip-success" : "ov-chip-danger")}>
@@ -500,7 +500,7 @@ export default function AdminDashboard() {
                       },
                       { 
                         key: "actions", 
-                        label: "Operations", 
+                        label: t("admin_dashboard.users.col_operations", "Operations"), 
                         render: (u) => (
                           <div className="flex items-center gap-1">
                             <Tooltip>
@@ -509,7 +509,7 @@ export default function AdminDashboard() {
                                   <BadgeCheck className={cn("h-4 w-4", u.verified ? "text-star fill-star/20" : "opacity-30")} />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>{u.verified ? "Revoke Verification" : "Verify User"}</TooltipContent>
+                              <TooltipContent>{u.verified ? t("admin_dashboard.users.revoke_verification", "Revoke verification") : t("admin.users_table.verify_user", "Verify User")}</TooltipContent>
                             </Tooltip>
 
                             <DropdownMenu>
@@ -524,22 +524,22 @@ export default function AdminDashboard() {
                                     <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onSelect={(e) => e.preventDefault()}>
                                       <Shield className="h-4 w-4 text-primary" />
                                       <div className="flex flex-col flex-1">
-                                        <span className="text-sm font-medium">Assign Role</span>
-                                        <span className="text-xs text-muted-foreground">Currently: <span className="capitalize">{u.role}</span></span>
+                                        <span className="text-sm font-medium">{t("admin_dashboard.users.assign_role", "Assign role")}</span>
+                                        <span className="text-xs text-muted-foreground">{t("admin_dashboard.users.currently", "Currently:")} <span className="capitalize">{t(`admin.roles.${u.role}`, u.role)}</span></span>
                                       </div>
                                       <ArrowRight className="h-3 w-3 opacity-30" />
                                     </DropdownMenuItem>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent side="right" className="p-2">
                                     <DropdownMenuItem className="gap-2 py-2 text-sm font-medium" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "user" } })}>
-                                      <Users className="h-3 w-3" /> User
+                                      <Users className="h-3 w-3" /> {t("admin.roles.user", "User")}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem className="gap-2 py-2 text-sm font-medium" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "admin" } })}>
-                                      <Shield className="h-3 w-3 text-primary" /> Admin
+                                      <Shield className="h-3 w-3 text-primary" /> {t("admin.roles.admin", "Admin")}
                                     </DropdownMenuItem>
                                     {user?.role === "owner" && (
                                       <DropdownMenuItem className="gap-2 py-2 text-sm font-medium text-primary" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "owner" } })}>
-                                        <Crown className="h-3 w-3" /> Owner
+                                        <Crown className="h-3 w-3" /> {t("admin.roles.owner", "Owner")}
                                       </DropdownMenuItem>
                                     )}
                                   </DropdownMenuContent>
@@ -551,9 +551,9 @@ export default function AdminDashboard() {
                                       <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onSelect={(e) => e.preventDefault()}>
                                         <Shield className="h-4 w-4 text-primary" />
                                         <div className="flex flex-col flex-1">
-                                          <span className="text-sm font-medium">Assign Group</span>
+                                          <span className="text-sm font-medium">{t("admin_dashboard.users.assign_group", "Assign group")}</span>
                                           <span className="text-xs text-muted-foreground">
-                                            {adminGroups?.find(g => g.id === u.adminGroupId)?.name || "No Group"}
+                                            {adminGroups?.find(g => g.id === u.adminGroupId)?.name || t("admin_dashboard.users.no_group", "No group")}
                                           </span>
                                         </div>
                                         <ArrowRight className="h-3 w-3 opacity-30" />
@@ -561,7 +561,7 @@ export default function AdminDashboard() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent side="right" className="w-48 p-2">
                                       <DropdownMenuItem className="gap-2 py-2 text-sm font-medium" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { adminGroupId: null } })}>
-                                        <X className="h-3 w-3" /> None
+                                        <X className="h-3 w-3" /> {t("admin_dashboard.users.group_none", "None")}
                                       </DropdownMenuItem>
                                       {adminGroups?.map(group => (
                                         <DropdownMenuItem
@@ -581,9 +581,9 @@ export default function AdminDashboard() {
                                   <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-star" : "text-muted-foreground")} />
                                   <div className="flex flex-col">
                                     <span className="text-sm font-medium">
-                                      {u.isShadowBanned ? "Revoke Shadowban" : "Shadowban User"}
+                                      {u.isShadowBanned ? t("admin_dashboard.users.revoke_shadowban", "Revoke shadowban") : t("admin_dashboard.users.shadowban_user", "Shadowban user")}
                                     </span>
-                                    <span className="text-xs text-muted-foreground">Silent moderation state</span>
+                                    <span className="text-xs text-muted-foreground">{t("admin_dashboard.users.shadowban_desc", "Silent moderation state")}</span>
                                   </div>
                                 </DropdownMenuItem>
 
@@ -591,9 +591,9 @@ export default function AdminDashboard() {
                                   <Ban className="h-4 w-4" />
                                   <div className="flex flex-col">
                                     <span className="text-sm font-medium">
-                                      {u.karma < 0 ? "Lift Restriction" : "Restrict Account"}
+                                      {u.karma < 0 ? t("admin_dashboard.users.lift_restriction", "Lift restriction") : t("admin_dashboard.users.restrict_account", "Restrict account")}
                                     </span>
-                                    <span className="text-xs opacity-70">{u.karma < 0 ? "Restore access" : "Zero-gravity suspension"}</span>
+                                    <span className="text-xs opacity-70">{u.karma < 0 ? t("admin_dashboard.users.restore_access", "Restore access") : t("admin_dashboard.users.restrict_desc", "Zero-gravity suspension")}</span>
                                   </div>
                                 </DropdownMenuItem>
 
@@ -601,7 +601,7 @@ export default function AdminDashboard() {
 
                                 <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => deleteUserMutation.mutate(u.id)}>
                                   <Trash2 className="h-4 w-4" />
-                                  <span className="text-sm font-semibold">Purge Entity</span>
+                                  <span className="text-sm font-semibold">{t("admin_dashboard.users.purge_entity", "Purge entity")}</span>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -627,14 +627,14 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex gap-2">
-                             <span className={cn("ov-chip capitalize", u.role === "owner" ? "ov-chip-star" : u.role === "admin" ? "ov-chip-primary" : "")}>{u.role}</span>
+                             <span className={cn("ov-chip capitalize", u.role === "owner" ? "ov-chip-star" : u.role === "admin" ? "ov-chip-primary" : "")}>{t(`admin.roles.${u.role}`, u.role)}</span>
                              <div className={cn("ov-chip ov-data", u.karma >= 0 ? "ov-chip-success" : "ov-chip-danger")}>
                                {u.karma >= 0 ? "+" : ""}{u.karma}
                              </div>
                           </div>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => handleVerificationToggle(u.id, !!u.verified)}>
-                              {u.verified ? "Verified" : "Verify"}
+                              {u.verified ? t("admin_dashboard.users.verified", "Verified") : t("admin_dashboard.users.verify", "Verify")}
                             </Button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -647,36 +647,36 @@ export default function AdminDashboard() {
                                   <DropdownMenuTrigger asChild>
                                     <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onSelect={(e) => e.preventDefault()}>
                                       <Shield className="h-4 w-4 text-primary" />
-                                      <span className="text-sm font-medium flex-1">Assign Role</span>
+                                      <span className="text-sm font-medium flex-1">{t("admin_dashboard.users.assign_role", "Assign role")}</span>
                                       <ArrowRight className="h-3 w-3 opacity-30" />
                                     </DropdownMenuItem>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent side="right" className="p-2">
                                     <DropdownMenuItem className="gap-2 py-2 text-sm font-medium" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "user" } })}>
-                                      <Users className="h-3 w-3" /> User
+                                      <Users className="h-3 w-3" /> {t("admin.roles.user", "User")}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem className="gap-2 py-2 text-sm font-medium" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "admin" } })}>
-                                      <Shield className="h-3 w-3 text-primary" /> Admin
+                                      <Shield className="h-3 w-3 text-primary" /> {t("admin.roles.admin", "Admin")}
                                     </DropdownMenuItem>
                                     {user?.role === "owner" && (
                                       <DropdownMenuItem className="gap-2 py-2 text-sm font-medium text-primary" onClick={() => updateUserMutation.mutate({ userId: u.id, data: { role: "owner" } })}>
-                                        <Crown className="h-3 w-3" /> Owner
+                                        <Crown className="h-3 w-3" /> {t("admin.roles.owner", "Owner")}
                                       </DropdownMenuItem>
                                     )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                                 <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
                                   <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-star" : "text-muted-foreground")} />
-                                  <span className="text-sm font-medium">Toggle Shadowban</span>
+                                  <span className="text-sm font-medium">{t("admin_dashboard.users.toggle_shadowban", "Toggle shadowban")}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleBanToggle(u)}>
                                   <Ban className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Toggle Restriction</span>
+                                  <span className="text-sm font-medium">{t("admin_dashboard.users.toggle_restriction", "Toggle restriction")}</span>
                                 </DropdownMenuItem>
                                 <div className="my-2 h-px bg-border" />
                                 <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => deleteUserMutation.mutate(u.id)}>
                                   <Trash2 className="h-4 w-4" />
-                                  <span className="text-sm font-semibold">Purge Account</span>
+                                  <span className="text-sm font-semibold">{t("admin_dashboard.users.purge_account", "Purge account")}</span>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -694,13 +694,13 @@ export default function AdminDashboard() {
                <Card className="overflow-hidden isolate">
                 <CardHeader className="ov-rule px-6 py-4 flex flex-row flex-wrap items-center justify-between gap-4 space-y-0 sticky top-0 z-20">
                   <div className="space-y-1">
-                    <CardTitle className="text-lg">Content Integrity Queue</CardTitle>
-                    <CardDescription className="text-xs">Community flags requiring administrative adjudication.</CardDescription>
+                    <CardTitle className="text-lg">{t("admin_dashboard.reports.title", "Content Integrity Queue")}</CardTitle>
+                    <CardDescription className="text-xs">{t("admin_dashboard.reports.description", "Community flags requiring administrative adjudication.")}</CardDescription>
                   </div>
                   <div className="flex gap-0.5 rounded-sm border border-border bg-background/40 p-1">
-                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", reportFilter === "pending" && "ov-tab-active")} onClick={() => setReportFilter("pending")}>Pending</Button>
-                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", reportFilter === "resolved" && "ov-tab-active")} onClick={() => setReportFilter("resolved")}>Resolved</Button>
-                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", reportFilter === "rejected" && "ov-tab-active")} onClick={() => setReportFilter("rejected")}>Rejected</Button>
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", reportFilter === "pending" && "ov-tab-active")} onClick={() => setReportFilter("pending")}>{t("admin.reports_table.status_pending", "Pending")}</Button>
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", reportFilter === "resolved" && "ov-tab-active")} onClick={() => setReportFilter("resolved")}>{t("admin.reports_table.status_resolved", "Resolved")}</Button>
+                    <Button variant="ghost" size="sm" className={cn("h-7 px-3 text-xs", reportFilter === "rejected" && "ov-tab-active")} onClick={() => setReportFilter("rejected")}>{t("admin.reports_table.status_rejected", "Rejected")}</Button>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -709,42 +709,42 @@ export default function AdminDashboard() {
                     columns={[
                       { 
                         key: "source", 
-                        label: "Source", 
+                        label: t("admin_dashboard.reports.col_source", "Source"), 
                         render: (r) => (
                           <div className="flex flex-col">
                             <span className="text-xs font-semibold">{(r as any).reporter?.username}</span>
-                            <span className="ov-data text-xs text-muted-foreground">{r.ipAddress || "INTERNAL"}</span>
+                            <span className="ov-data text-xs text-muted-foreground">{r.ipAddress || t("admin_dashboard.reports.internal", "INTERNAL")}</span>
                           </div>
                         )
                       },
                       {
                         key: "entity",
-                        label: "Entity",
+                        label: t("admin_dashboard.reports.col_entity", "Entity"),
                         render: (r) => (
                           <span className="ov-chip capitalize">
-                            {(r as any).content?.type}
+                            {(r as any).content?.type && t(`admin.reports_table.type_${(r as any).content.type}`, (r as any).content.type)}
                           </span>
                         )
                       },
                       {
                         key: "observation",
-                        label: "Observation",
+                        label: t("admin_dashboard.reports.col_observation", "Observation"),
                         render: (r) => (
                           <p className="text-xs font-medium truncate max-w-[200px]">{(r as any).content?.title || (r as any).content?.content}</p>
                         )
                       },
                       {
                         key: "status",
-                        label: "Status",
+                        label: t("admin.reports_table.status", "Status"),
                         render: (r) => (
                           <span className={cn("ov-chip capitalize", r.status === "resolved" ? "ov-chip-success" : r.status === "rejected" ? "ov-chip-danger" : "ov-chip-star")}>
-                            {r.status}
+                            {t(`admin.reports_table.status_${r.status}`, r.status)}
                           </span>
                         )
                       },
                       { 
                         key: "actions", 
-                        label: "Decisions", 
+                        label: t("admin_dashboard.reports.col_decisions", "Decisions"), 
                         render: (r) => (
                           <div className="flex items-center gap-2 relative z-50">
                             <Button 
@@ -786,10 +786,10 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col">
                             <span className="text-sm font-semibold">{(r as any).reporter?.username}</span>
-                            <span className="ov-label">{(r as any).content?.type} Flag</span>
+                            <span className="ov-label">{t("admin_dashboard.reports.type_flag", { type: (r as any).content?.type ? t(`admin.reports_table.type_${(r as any).content.type}`, (r as any).content.type) : "", defaultValue: "{{type}} flag" })}</span>
                           </div>
                           <span className={cn("ov-chip capitalize", r.status === "resolved" ? "ov-chip-success" : r.status === "rejected" ? "ov-chip-danger" : "ov-chip-star")}>
-                            {r.status}
+                            {t(`admin.reports_table.status_${r.status}`, r.status)}
                           </span>
                         </div>
                         <p className="text-xs italic text-muted-foreground line-clamp-2">"{r.reason}"</p>
@@ -797,10 +797,10 @@ export default function AdminDashboard() {
                           <span className="ov-data text-xs text-muted-foreground">{format(new Date(r.createdAt), "MMM d, HH:mm")}</span>
                           <div className="flex gap-2">
                              <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-primary" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "resolved" }); }}>
-                               Resolve
+                               {t("admin.reports_table.resolve", "Resolve")}
                              </Button>
                              <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-destructive" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "rejected" }); }}>
-                               Dismiss
+                               {t("admin_dashboard.reports.dismiss", "Dismiss")}
                              </Button>
                           </div>
                         </div>

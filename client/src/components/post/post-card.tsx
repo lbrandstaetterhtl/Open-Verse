@@ -193,7 +193,7 @@ export const PostCard = React.memo(function PostCard({
               {post.mediaType === "image" ? (
                 <img
                   src={`/uploads/${post.mediaUrl}`}
-                  alt={post.title || "Post image"}
+                  alt={post.title || t("post.image_alt", "Post image")}
                   className="w-full h-full object-cover"
                   onError={() => setImageLoadError(true)}
                   loading="lazy"

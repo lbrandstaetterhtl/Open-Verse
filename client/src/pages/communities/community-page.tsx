@@ -210,7 +210,7 @@ export default function CommunityPage() {
             <>
               {community.memberInfo?.role && (
                 <span className="ov-chip ov-chip-primary capitalize">
-                  {community.memberInfo.role}
+                  {t(`communities.roles.${community.memberInfo.role}`, { defaultValue: community.memberInfo.role })}
                 </span>
               )}
               {isMember && (
@@ -270,7 +270,7 @@ export default function CommunityPage() {
                 ];
                 const tabs = [
                   { id: "all", label: t("community.page.tabs.all") },
-                  ...allowed.map((c) => ({ id: c, label: t(`community.page.tabs.${c}` as any) })),
+                  ...allowed.map((c) => ({ id: c, label: t(`community.page.tabs.${c}` as any, { defaultValue: c }) })),
                 ];
 
                 return tabs.map((tab) => (
@@ -348,13 +348,13 @@ export default function CommunityPage() {
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="ov-label">Established</span>
+                    <span className="ov-label">{t("community.page.established", "Established")}</span>
                     <span className="ov-data text-xs text-foreground">{new Date(community.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
-                    <span className="ov-label">Privacy Mode</span>
+                    <span className="ov-label">{t("community.page.privacy_mode", "Privacy Mode")}</span>
                     <span className={cn("ov-chip", community.isPrivate ? "ov-chip-star" : "ov-chip-success")}>
-                      {community.isPrivate ? "Restricted" : "Open Access"}
+                      {community.isPrivate ? t("community.page.restricted", "Restricted") : t("community.page.open_access", "Open Access")}
                     </span>
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function CommunityPage() {
                     <UserPlus className="h-7 w-7 text-primary" />
                   </div>
                   <div className="space-y-2">
-                    <h4 className="font-display text-lg font-semibold">Join the Circle</h4>
+                    <h4 className="font-display text-lg font-semibold">{t("community.page.join_circle", "Join the Circle")}</h4>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {t("community.page.join_prompt")}
                     </p>

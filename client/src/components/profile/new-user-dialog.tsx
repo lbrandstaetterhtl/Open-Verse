@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -18,6 +19,7 @@ import { Loader2 } from "lucide-react";
 export function NewUserDialog() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [bio, setBio] = useState("");
 
@@ -39,14 +41,14 @@ export function NewUserDialog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
-        title: "Profile updated",
-        description: "Your bio has been saved successfully.",
+        title: t("profile.update_success_title"),
+        description: t("onboarding.bio_saved", "Your bio has been saved successfully."),
       });
       setOpen(false);
     },
     onError: (error: Error) => {
       toast({
-        title: "Update failed",
+        title: t("onboarding.update_failed", "Update failed"),
         description: error.message,
         variant: "destructive",
       });
@@ -57,14 +59,14 @@ export function NewUserDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Welcome to Osiris! 👋</DialogTitle>
+          <DialogTitle>{t("onboarding.welcome_title", "Welcome to Osiris!")} 👋</DialogTitle>
           <DialogDescription>
-            Would you like to introduce yourself? Add a short bio to your profile.
+            {t("onboarding.welcome_desc", "Would you like to introduce yourself? Add a short bio to your profile.")}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <Textarea
-            placeholder="I love coffee and coding..."
+            placeholder={t("onboarding.bio_placeholder", "I love coffee and coding...")}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             className="resize-none h-32"
@@ -72,14 +74,14 @@ export function NewUserDialog() {
         </div>
         <DialogFooter className="flex gap-2">
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Skip for now
+            {t("onboarding.skip", "Skip for now")}
           </Button>
           <Button
             onClick={() => updateBioMutation.mutate(bio)}
             disabled={updateBioMutation.isPending}
           >
             {updateBioMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Bio
+            {t("onboarding.save_bio", "Save Bio")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -2,8 +2,10 @@ import { useTicketStats } from "@/hooks/use-tickets";
 import TicketsPage from "@/pages/tickets/TicketsPage";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Activity, Ticket, Clock, AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function AdminTicketsOverview() {
+  const { t } = useTranslation();
   const { data: stats, isLoading } = useTicketStats();
 
   return (
@@ -19,7 +21,7 @@ export default function AdminTicketsOverview() {
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <Ticket className="w-5 h-5 text-primary mb-2" />
                 <span className="ov-data text-3xl font-semibold">{stats.by_status.open || 0}</span>
-                <span className="ov-label mt-1">Open</span>
+                <span className="ov-label mt-1">{t("admin_tickets.open", "Open")}</span>
               </CardContent>
             </Card>
             
@@ -27,7 +29,7 @@ export default function AdminTicketsOverview() {
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <AlertTriangle className="w-5 h-5 text-destructive mb-2" />
                 <span className="ov-data text-3xl font-semibold text-destructive">{stats.open_critical || 0}</span>
-                <span className="ov-label mt-1">Critical Open</span>
+                <span className="ov-label mt-1">{t("admin_tickets.critical_open", "Critical open")}</span>
               </CardContent>
             </Card>
 
@@ -35,7 +37,7 @@ export default function AdminTicketsOverview() {
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <Activity className="w-5 h-5 text-star mb-2" />
                 <span className="ov-data text-3xl font-semibold">{stats.by_status.in_progress || 0}</span>
-                <span className="ov-label mt-1">In Progress</span>
+                <span className="ov-label mt-1">{t("admin_tickets.in_progress", "In progress")}</span>
               </CardContent>
             </Card>
 
@@ -43,7 +45,7 @@ export default function AdminTicketsOverview() {
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <Clock className="w-5 h-5 text-muted-foreground mb-2" />
                 <span className="ov-data text-3xl font-semibold">{stats.avg_resolution_time_hours || 0}</span>
-                <span className="ov-label mt-1">Avg Hrs to Resolve</span>
+                <span className="ov-label mt-1">{t("admin_tickets.avg_hours_to_resolve", "Avg hrs to resolve")}</span>
               </CardContent>
             </Card>
           </div>

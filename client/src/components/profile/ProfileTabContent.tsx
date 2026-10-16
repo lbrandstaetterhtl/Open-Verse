@@ -64,7 +64,7 @@ export function ProfileTabContent({ type, data, isLoading }: ProfileTabContentPr
                   </div>
                   {item.post && (
                     <Link href={`/post/${item.post.id}`} className="ov-chip ov-chip-primary min-w-0 max-w-full transition-colors hover:bg-primary/15">
-                      <span className="shrink-0 text-muted-foreground">{t('profile.on_post')}</span>
+                      <span className="shrink-0 text-muted-foreground">{t("profile.on_post", "On")}</span>
                       <span className="truncate">{item.post.title}</span>
                     </Link>
                   )}

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 export function useWebSocket() {
   const socketRef = useRef<WebSocket | null>(null);
@@ -9,9 +10,11 @@ export function useWebSocket() {
   const reconnectAttemptsRef = useRef(0);
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const logoutRef = useRef(logoutMutation);
   const toastRef = useRef(toast);
+  const tRef = useRef(t);
 
   useEffect(() => {
     logoutRef.current = logoutMutation;
@@ -20,6 +23,10 @@ export function useWebSocket() {
   useEffect(() => {
     toastRef.current = toast;
   }, [toast]);
+
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   useEffect(() => {
     if (!user) return;
@@ -61,7 +68,7 @@ export function useWebSocket() {
               break;
             case "banned":
               toastRef.current({
-                title: "Account Banned",
+                title: tRef.current("hooks.ws.account_banned", "Account banned"),
                 description: message.message,
                 variant: "destructive",
               });

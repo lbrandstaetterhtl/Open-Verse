@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import { useLocation } from "wouter";
 import { useCustomTheme } from "@/hooks/use-custom-theme";
 import { ThemeGroup } from "@/components/theme/theme-group";
@@ -112,6 +112,10 @@ const COLOR_METADATA: Record<keyof ThemeColors, { label: string; description: st
   ring: { label: "Focus Outline", description: "Ring visible when an element is focused" },
   star: { label: "Starlight", description: "Warm highlight for badges, markers and single stars", contrastAgainst: "card" },
 };
+
+/* Translation key of a colour token: "theme_builder.colors.card_foreground" for "cardForeground". The English
+   label and description above are the defaults. */
+const colorKey = (token: string) => `theme_builder.colors.${token.replaceAll(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)}`;
 
 /* Segmented control for small option sets; the selected option carries aria-pressed. */
 function SegmentedControl<T extends string>({
@@ -252,7 +256,7 @@ export default function ThemeBuilderPage() {
   // The standard design is fixed. Editing always starts from a copy ("New" or "Import").
   const [editingCopy, setEditingCopy] = useState(false);
   const locked = isStandard && !editingCopy;
-  const [themeName, setThemeName] = useState("My Custom Theme");
+  const [themeName, setThemeName] = useState(() => t("theme_builder.default_theme_name", "My custom theme"));
   const [activeThemeId, setActiveThemeId] = useState<string | number | null>(null);
   const [unifiedMode, setUnifiedMode] = useState(false);
   const [bgUploading, setBgUploading] = useState(false);
@@ -475,7 +479,10 @@ export default function ThemeBuilderPage() {
       return updated;
     });
     setHasUnsavedChanges(true);
-    toast({ title: "Theme Shuffled", description: "A new harmonious palette has been generated." });
+    toast({
+      title: t("theme_builder.shuffled_title", "Theme shuffled"),
+      description: t("theme_builder.shuffled_desc", "A new harmonious palette has been generated."),
+    });
   };
 
   const handleHarmonize = () => {
@@ -510,7 +517,10 @@ export default function ThemeBuilderPage() {
       return updated;
     });
     setHasUnsavedChanges(true);
-    toast({ title: "Theme Harmonized", description: "Colors have been adjusted to match your Primary color." });
+    toast({
+      title: t("theme_builder.harmonized_title", "Theme harmonized"),
+      description: t("theme_builder.harmonized_desc", "Colors have been adjusted to match your primary color."),
+    });
   };
 
   const handleSave = async () => {
@@ -520,9 +530,12 @@ export default function ThemeBuilderPage() {
       setActiveThemeId(saved.id);
       setActiveThemeInfo(saved.id, saved.name);
       setHasUnsavedChanges(false);
-      toast({ title: t("theme.saved"), description: t("theme.saved_desc", { name: themeName }) });
+      toast({
+        title: t("theme.saved", "Theme saved"),
+        description: t("theme.saved_desc", { name: themeName, defaultValue: "\"{{name}}\" has been saved." }),
+      });
     } catch {
-      toast({ title: t("theme.save_failed"), variant: "destructive" });
+      toast({ title: t("theme.save_failed", "The theme could not be saved"), variant: "destructive" });
     }
   };
 
@@ -599,14 +612,14 @@ export default function ThemeBuilderPage() {
       setHasUnsavedChanges(true);
       pushToHistory(updated);
     } catch {
-      toast({ title: "Upload failed", variant: "destructive" });
+      toast({ title: t("theme_builder.upload_failed", "Upload failed"), variant: "destructive" });
     } finally {
       setBgUploading(false);
     }
   };
 
   const descriptions = Object.fromEntries(
-    Object.entries(COLOR_METADATA).map(([key, meta]) => [key, meta.description])
+    Object.entries(COLOR_METADATA).map(([key, meta]) => [key, t(`${colorKey(key)}.description`, meta.description)])
   ) as Partial<Record<keyof ThemeColors, string>>;
 
   const contrastPairs = Object.fromEntries(
@@ -627,12 +640,20 @@ export default function ThemeBuilderPage() {
   const galaxy = normalizeGalaxy(workingTheme.galaxy);
 
   const colorLabels: Partial<Record<keyof ThemeColors, string>> = {
+    ...(Object.fromEntries(
+      Object.entries(COLOR_METADATA).map(([key, meta]) => [key, t(`${colorKey(key)}.label`, meta.label)])
+    ) as Partial<Record<keyof ThemeColors, string>>),
     star: t("theme_builder.color_star", "Starlight"),
   };
 
+  const backgroundModeLabels: Record<BackgroundMode, string> = {
+    solid: t("theme_builder.bg_mode_solid", "Solid"),
+    gradient: t("theme_builder.bg_mode_gradient", "Gradient"),
+    image: t("theme_builder.bg_mode_image", "Image"),
+  };
   const backgroundModeOptions: { value: BackgroundMode; label: string }[] = (["solid", "gradient", "image"] as const).map((mode) => ({
     value: mode,
-    label: mode.charAt(0).toUpperCase() + mode.slice(1),
+    label: backgroundModeLabels[mode],
   }));
 
   const cornerStyleOptions: { value: ShapeStyle; label: string }[] = [

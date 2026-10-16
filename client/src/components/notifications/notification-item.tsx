@@ -66,7 +66,7 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
   };
 
   const getContent = () => {
-    const actorName = notification.actor?.username || "Someone";
+    const actorName = notification.actor?.username || t("notifications.someone", "Someone");
     
     // Check for specific titles/messages first (System notifications)
     if (notification.title && notification.message) {
@@ -83,7 +83,7 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
     const content = t(translationKey, { 
       actor: actorName, 
       name: notification.title || actorName,
-      defaultValue: notification.message || t(`notifications.${notification.type}`, { name: notification.title })
+      defaultValue: notification.message || t("notifications.types.action", { actor: actorName })
     });
 
     return (
@@ -143,7 +143,7 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
                deleteNotification.mutate(notification.id);
              }}
            >
-             Löschen
+             {t("common.delete")}
            </Button>
         </div>
       </div>

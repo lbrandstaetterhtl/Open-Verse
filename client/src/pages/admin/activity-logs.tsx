@@ -97,17 +97,17 @@ export default function ActivityLogsPage() {
     <div className="w-full space-y-8 animate-in fade-in duration-500 pb-12">
         <PageHeader
           eyebrow={t("monitoring.eyebrow_audit", "Admin / Audit")}
-          title="Activity Logs"
-          description="Immutable audit trail of all administrative operations."
+          title={t("admin_logs.title", "Activity Logs")}
+          description={t("admin_logs.description", "Immutable audit trail of all administrative operations.")}
           actions={
             <>
               <Button variant="outline" size="sm" onClick={() => handleExport("json")}>
                 <Download className="h-4 w-4" />
-                Export JSON
+                {t("admin_logs.export_json", "Export JSON")}
               </Button>
               <Button variant="outline" size="sm" onClick={() => handleExport("csv")}>
                 <Download className="h-4 w-4" />
-                Export CSV
+                {t("admin_logs.export_csv", "Export CSV")}
               </Button>
             </>
           }
@@ -117,7 +117,7 @@ export default function ActivityLogsPage() {
         <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="p-5">
-              <p className="ov-label mb-2">Total Events</p>
+              <p className="ov-label mb-2">{t("admin_logs.total_events", "Total events")}</p>
               <p className="ov-data text-3xl font-semibold">{isLoading ? "..." : logs?.length || 0}</p>
             </CardContent>
           </Card>
@@ -125,7 +125,7 @@ export default function ActivityLogsPage() {
             <CardContent className="p-5">
               <p className="ov-label mb-2 flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-hidden="true" />
-                High Severity
+                {t("admin_logs.high_severity", "High severity")}
               </p>
               <p className="ov-data text-3xl font-semibold text-destructive">{logs?.filter(l => l.severity === "high" || l.severity === "critical").length || 0}</p>
             </CardContent>
@@ -138,7 +138,7 @@ export default function ActivityLogsPage() {
             <div className="relative flex-1 group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="Search description, target or admin..."
+                placeholder={t("admin_logs.search_placeholder", "Search description, target or admin…")}
                 className="h-11 pl-10"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -147,26 +147,26 @@ export default function ActivityLogsPage() {
             <div className="flex gap-3 overflow-x-auto no-scrollbar">
                <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger className="h-11 w-[180px]">
-                  <SelectValue placeholder="Category" />
+                  <SelectValue placeholder={t("admin_logs.category", "Category")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="users">Users</SelectItem>
-                  <SelectItem value="content">Content</SelectItem>
-                  <SelectItem value="settings">Settings</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
+                  <SelectItem value="all">{t("monitoring.all_categories", "All Categories")}</SelectItem>
+                  <SelectItem value="users">{t("admin_logs.categories.users", "Users")}</SelectItem>
+                  <SelectItem value="content">{t("admin_logs.categories.content", "Content")}</SelectItem>
+                  <SelectItem value="settings">{t("admin_logs.categories.settings", "Settings")}</SelectItem>
+                  <SelectItem value="system">{t("admin_logs.categories.system", "System")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={severity} onValueChange={setSeverity}>
                 <SelectTrigger className="h-11 w-[180px]">
-                  <SelectValue placeholder="Severity" />
+                  <SelectValue placeholder={t("admin_logs.severity", "Severity")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Severity</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="all">{t("monitoring.all_severities", "All Severities")}</SelectItem>
+                  <SelectItem value="low">{t("admin_logs.severity_levels.low", "Low")}</SelectItem>
+                  <SelectItem value="medium">{t("admin_logs.severity_levels.medium", "Medium")}</SelectItem>
+                  <SelectItem value="high">{t("admin_logs.severity_levels.high", "High")}</SelectItem>
+                  <SelectItem value="critical">{t("admin_logs.severity_levels.critical", "Critical")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -182,7 +182,7 @@ export default function ActivityLogsPage() {
             columns={[
               {
                 key: "timestamp",
-                label: "Timestamp",
+                label: t("admin_logs.col_timestamp", "Timestamp"),
                 render: (log) => (
                   <div className="flex flex-col py-1">
                     <span className="ov-data text-xs text-muted-foreground">
@@ -196,16 +196,16 @@ export default function ActivityLogsPage() {
               },
               {
                 key: "admin",
-                label: "Administrator",
+                label: t("admin_logs.col_administrator", "Administrator"),
                 render: (log) => (
                   <div className="flex items-center gap-3">
                      <div className="ov-avatar h-10 w-10 shrink-0 bg-primary/10 flex items-center justify-center">
                         <span className="text-sm font-semibold text-primary">{(log.userEmail || "S").charAt(0).toUpperCase()}</span>
                      </div>
                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold leading-tight">{log.userEmail || "System"}</span>
+                        <span className="text-sm font-semibold leading-tight">{log.userEmail || t("admin_logs.system", "System")}</span>
                         <span className="ov-chip ov-chip-primary capitalize mt-1 h-5 w-fit px-1.5">
-                           {log.userRole || "Admin"}
+                           {log.userRole ? t(`admin.roles.${log.userRole}`, log.userRole) : t("admin.roles.admin", "Admin")}
                         </span>
                      </div>
                   </div>
@@ -213,7 +213,7 @@ export default function ActivityLogsPage() {
               },
               {
                 key: "action",
-                label: "Action",
+                label: t("admin_logs.col_action", "Action"),
                 render: (log) => (
                   <code className="font-data text-xs bg-primary/10 px-2 py-0.5 rounded-sm text-primary">
                     {log.action}
@@ -222,16 +222,16 @@ export default function ActivityLogsPage() {
               },
               {
                 key: "severity",
-                label: "Severity",
+                label: t("admin_logs.severity", "Severity"),
                 render: (log) => (
                   <span className={cn("ov-chip capitalize", severityColors[log.severity as keyof typeof severityColors])}>
-                    {log.severity}
+                    {t(`admin_logs.severity_levels.${log.severity}`, log.severity)}
                   </span>
                 )
               },
               {
                 key: "details",
-                label: "Analysis",
+                label: t("admin_logs.col_analysis", "Analysis"),
                 render: (log) => (
                   <div className="flex justify-end">
                     <Sheet>
@@ -248,46 +248,46 @@ export default function ActivityLogsPage() {
                             </div>
                             <div className="flex flex-col items-start text-left space-y-1">
                               <SheetTitle className="font-display text-2xl font-semibold">{log.action}</SheetTitle>
-                              <SheetDescription><span className="ov-label">Audit Entry • Event #{log.id}</span></SheetDescription>
+                              <SheetDescription><span className="ov-label">{t("admin_logs.audit_entry", { id: log.id, defaultValue: "Audit Entry • Event #{{id}}" })}</span></SheetDescription>
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-2">
                              <span className="ov-chip"><Calendar className="h-3.5 w-3.5" /> <span className="ov-data">{format(new Date(log.createdAt), "PPpp")}</span></span>
-                             <span className="ov-chip"><User className="h-3.5 w-3.5" /> {log.userEmail || "System"}</span>
+                             <span className="ov-chip"><User className="h-3.5 w-3.5" /> {log.userEmail || t("admin_logs.system", "System")}</span>
                              <span className={cn("ov-chip capitalize", statusColors[log.status as keyof typeof statusColors])}>
                                {statusIcons[log.status as keyof typeof statusIcons]}
-                               {log.status}
+                               {t(`admin_logs.status.${log.status}`, log.status)}
                              </span>
                           </div>
                         </SheetHeader>
 
                         <div className="space-y-8">
                           <div className="ov-panel p-5">
-                            <h4 className="ov-label mb-3">Description</h4>
+                            <h4 className="ov-label mb-3">{t("admin_logs.detail_description", "Description")}</h4>
                             <p className="text-lg font-medium leading-snug">{log.description}</p>
                           </div>
 
                           <div className="grid grid-cols-2 gap-8 px-2">
                              <div>
-                                <h4 className="ov-label mb-2">Target Type</h4>
-                                <p className="text-sm font-semibold text-primary">{log.targetType || "N/A"}</p>
+                                <h4 className="ov-label mb-2">{t("admin_logs.target_type", "Target type")}</h4>
+                                <p className="text-sm font-semibold text-primary">{log.targetType || t("admin_logs.not_available", "N/A")}</p>
                              </div>
                              <div>
-                                <h4 className="ov-label mb-2">Target Identifier</h4>
+                                <h4 className="ov-label mb-2">{t("admin_logs.target_identifier", "Target identifier")}</h4>
                                 <p className="ov-data text-sm text-muted-foreground">{log.targetId ? `#${log.targetId}` : "—"}</p>
                              </div>
                              <div className="col-span-2">
-                                <h4 className="ov-label mb-2">Origin IP</h4>
+                                <h4 className="ov-label mb-2">{t("admin_logs.origin_ip", "Origin IP")}</h4>
                                 <p className="ov-data text-sm">{log.ipAddress || "::1"}</p>
                              </div>
                           </div>
 
                           <div className="space-y-4">
-                            <h4 className="ov-label px-2">Payload Delta</h4>
+                            <h4 className="ov-label px-2">{t("admin_logs.payload_delta", "Payload delta")}</h4>
                             <div className="grid gap-6">
                               {log.oldValue && (
                                 <div className="ov-panel p-5">
-                                  <p className="ov-label mb-3">Previous State</p>
+                                  <p className="ov-label mb-3">{t("admin_logs.previous_state", "Previous state")}</p>
                                   <pre className="ov-data text-[11px] whitespace-pre-wrap leading-relaxed text-muted-foreground max-h-40 overflow-y-auto thin-scrollbar">
                                     {JSON.stringify(JSON.parse(log.oldValue), null, 2)}
                                   </pre>
@@ -295,7 +295,7 @@ export default function ActivityLogsPage() {
                               )}
                               {log.newValue && (
                                 <div className="ov-panel ov-panel-active p-5">
-                                  <p className="ov-label mb-3 text-primary">New State</p>
+                                  <p className="ov-label mb-3 text-primary">{t("admin_logs.new_state", "New state")}</p>
                                   <pre className="ov-data text-[11px] whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto thin-scrollbar">
                                     {JSON.stringify(JSON.parse(log.newValue), null, 2)}
                                   </pre>
@@ -315,21 +315,21 @@ export default function ActivityLogsPage() {
                   <div className="flex items-center justify-between">
                      <div className="flex items-center gap-2">
                         <span className={cn("ov-chip capitalize h-5", severityColors[log.severity as keyof typeof severityColors])}>
-                           {log.severity}
+                           {t(`admin_logs.severity_levels.${log.severity}`, log.severity)}
                         </span>
                         <span className="ov-data text-xs text-muted-foreground">{format(new Date(log.createdAt), "HH:mm:ss")}</span>
                      </div>
                      <code className="font-data text-xs text-primary">{log.action}</code>
                   </div>
                   <div>
-                     <p className="text-xs font-semibold mb-1">{log.userEmail || "System"}</p>
+                     <p className="text-xs font-semibold mb-1">{log.userEmail || t("admin_logs.system", "System")}</p>
                      <p className="text-sm leading-relaxed text-foreground/80">"{log.description}"</p>
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-border">
                      <span className="ov-label">{log.targetType}</span>
                      <Sheet>
                         <SheetTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-8">Details</Button>
+                          <Button variant="outline" size="sm" className="h-8">{t("admin_logs.details", "Details")}</Button>
                         </SheetTrigger>
                         {/* Mobile Sheet Content (Same as Desktop for consistency) */}
                         <SheetContent side="bottom" className="h-[90vh] rounded-t-xl bg-card overflow-y-auto px-6">
@@ -343,26 +343,26 @@ export default function ActivityLogsPage() {
                                  <h2 className="font-display text-xl font-semibold leading-tight">{log.action}</h2>
                               </div>
                               <div className="space-y-1">
-                                 <p className="ov-label">Admin</p>
-                                 <p className="font-semibold">{log.userEmail || "System"}</p>
+                                 <p className="ov-label">{t("admin_logs.admin", "Admin")}</p>
+                                 <p className="font-semibold">{log.userEmail || t("admin_logs.system", "System")}</p>
                               </div>
                               <div className="space-y-2">
-                                 <p className="ov-label">Log Entry</p>
+                                 <p className="ov-label">{t("admin_logs.log_entry", "Log entry")}</p>
                                  <p className="text-md font-medium">"{log.description}"</p>
                               </div>
                               <div className="grid grid-cols-2 gap-4">
                                  <div className="ov-panel p-4">
-                                    <p className="ov-label mb-1">Target</p>
+                                    <p className="ov-label mb-1">{t("admin_logs.target", "Target")}</p>
                                     <p className="text-xs font-semibold truncate">{log.targetLabel || log.targetType || "—"}</p>
                                  </div>
                                  <div className="ov-panel p-4">
-                                    <p className="ov-label mb-1">IP Address</p>
+                                    <p className="ov-label mb-1">{t("admin_logs.ip_address", "IP address")}</p>
                                     <p className="ov-data text-xs truncate">{log.ipAddress || "::1"}</p>
                                  </div>
                               </div>
                               {log.newValue && (
                                  <div className="space-y-3">
-                                    <p className="ov-label text-primary">New State Delta</p>
+                                    <p className="ov-label text-primary">{t("admin_logs.new_state_delta", "New state delta")}</p>
                                     <pre className="ov-data text-[10px] bg-primary/10 p-4 rounded-sm overflow-x-auto">
                                        {JSON.stringify(JSON.parse(log.newValue), null, 2)}
                                     </pre>

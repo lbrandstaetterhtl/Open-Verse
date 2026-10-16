@@ -39,7 +39,7 @@ export function ProfileCover({
             initial={{ scale: 1.04, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             src={coverUrl}
-            alt={t("profile.image.cover", "Titelbild")}
+            alt={t("profile.image.cover", "Cover image")}
             className="h-full w-full object-cover"
           />
         ) : null}
@@ -50,14 +50,14 @@ export function ProfileCover({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={onEditCover}
-              aria-label={coverUrl ? t("profile.image.change_cover", "Titelbild ändern") : t("profile.image.choose_cover", "Titelbild wählen")}
+              aria-label={coverUrl ? t("profile.image.change_cover", "Change cover image") : t("profile.image.choose_cover", "Choose cover image")}
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
                 "absolute top-4 right-4 md:top-6 md:right-6 z-20 bg-background/85"
               )}
             >
               <Camera className="h-4 w-4" />
-              <span className="hidden sm:inline">{coverUrl ? t("profile.image.change_cover", "Titelbild ändern") : t("profile.image.choose_cover", "Titelbild wählen")}</span>
+              <span className="hidden sm:inline">{coverUrl ? t("profile.image.change_cover", "Change cover image") : t("profile.image.choose_cover", "Choose cover image")}</span>
             </motion.button>
           )}
         </AnimatePresence>
@@ -85,7 +85,7 @@ export function ProfileCover({
                  onClick={onEditAvatar}
                  onFocus={() => setAvatarFocused(true)}
                  onBlur={() => setAvatarFocused(false)}
-                 aria-label={t("profile.image.change_avatar", "Profilbild ändern")}
+                 aria-label={t("profile.image.change_avatar", "Change profile picture")}
                  className="ov-avatar absolute inset-0 z-10 flex items-center justify-center bg-background/60 text-foreground transition-colors"
                >
                  <Pencil className="h-7 w-7" />

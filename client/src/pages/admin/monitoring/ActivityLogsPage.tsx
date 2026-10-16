@@ -44,7 +44,7 @@ export function ActivityLogsPage() {
       <PageHeader
         eyebrow={t("monitoring.eyebrow_monitoring", "Admin / Monitoring")}
         title={t("monitoring.activity_logs", "Activity Logs")}
-        description="Real-time audit trail of all platform operations."
+        description={t("monitoring.activity_logs_desc", "Real-time audit trail of all platform operations.")}
       />
 
       <ModeratorStatsCard />
@@ -60,22 +60,22 @@ export function ActivityLogsPage() {
          </div>
          <div className="flex flex-wrap gap-2">
            <Select value={filters.category} onValueChange={v => setFilters(f => ({ ...f, category: v }))}>
-             <SelectTrigger className="h-11 w-[160px]"><SelectValue placeholder="Category" /></SelectTrigger>
+             <SelectTrigger className="h-11 w-[160px]"><SelectValue placeholder={t("monitoring.category", "Category")} /></SelectTrigger>
              <SelectContent>
                <SelectItem value="all">{t("monitoring.all_categories", "All Categories")}</SelectItem>
-               <SelectItem value="auth">Auth</SelectItem>
-               <SelectItem value="content">Content</SelectItem>
-               <SelectItem value="admin">Admin</SelectItem>
-               <SelectItem value="security">Security</SelectItem>
+               <SelectItem value="auth">{t("monitoring.categories.auth", "Auth")}</SelectItem>
+               <SelectItem value="content">{t("monitoring.categories.content", "Content")}</SelectItem>
+               <SelectItem value="admin">{t("monitoring.categories.admin", "Admin")}</SelectItem>
+               <SelectItem value="security">{t("monitoring.categories.security", "Security")}</SelectItem>
              </SelectContent>
            </Select>
            <Select value={filters.severity} onValueChange={v => setFilters(f => ({ ...f, severity: v }))}>
-             <SelectTrigger className="h-11 w-[160px]"><SelectValue placeholder="Severity" /></SelectTrigger>
+             <SelectTrigger className="h-11 w-[160px]"><SelectValue placeholder={t("monitoring.severity", "Severity")} /></SelectTrigger>
              <SelectContent>
                <SelectItem value="all">{t("monitoring.all_severities", "All Severities")}</SelectItem>
-               <SelectItem value="info">Info</SelectItem>
-               <SelectItem value="warning">Warning</SelectItem>
-               <SelectItem value="error">Error</SelectItem>
+               <SelectItem value="info">{t("monitoring.severity_levels.info", "Info")}</SelectItem>
+               <SelectItem value="warning">{t("monitoring.severity_levels.warning", "Warning")}</SelectItem>
+               <SelectItem value="error">{t("monitoring.severity_levels.error", "Error")}</SelectItem>
                <SelectItem value="critical">{t("monitoring.critical", "Critical")}</SelectItem>
              </SelectContent>
            </Select>
@@ -102,7 +102,7 @@ export function ActivityLogsPage() {
               label: t("monitoring.severity", "Severity"),
               render: ({ log }) => (
                 <span className={cn("ov-chip capitalize", severityChip(log.severity))}>
-                  {log.severity}
+                  {t(`monitoring.severity_levels.${log.severity}`, log.severity)}
                 </span>
               )
             },
@@ -110,7 +110,7 @@ export function ActivityLogsPage() {
               key: "user",
               label: t("monitoring.user", "User"),
               render: ({ log, user }) => (
-                <span className="text-sm font-semibold">{user?.username || log.userEmail || 'System'}</span>
+                <span className="text-sm font-semibold">{user?.username || log.userEmail || t("monitoring.system", "System")}</span>
               )
             },
             {
@@ -139,19 +139,19 @@ export function ActivityLogsPage() {
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-2">
                     <span className={cn("ov-chip capitalize h-5", severityChip(log.severity))}>
-                       {log.severity}
+                       {t(`monitoring.severity_levels.${log.severity}`, log.severity)}
                     </span>
                     <span className="ov-data text-xs text-muted-foreground">{format(new Date(log.createdAt), 'HH:mm:ss')}</span>
                  </div>
                  <code className="font-data text-xs font-semibold text-primary">{log.action}</code>
               </div>
               <div>
-                 <p className="text-xs font-semibold mb-1">{user?.username || log.userEmail || 'System'}</p>
+                 <p className="text-xs font-semibold mb-1">{user?.username || log.userEmail || t("monitoring.system", "System")}</p>
                  <p className="text-sm font-medium text-foreground/90">{log.description}</p>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-border">
                  <span className="ov-data text-xs text-muted-foreground">{log.ipAddress}</span>
-                 {log.isAnomaly === 1 && <span className="ov-chip ov-chip-star h-5">ANOMALY</span>}
+                 {log.isAnomaly === 1 && <span className="ov-chip ov-chip-star h-5">{t("monitoring.anomaly_badge", "ANOMALY")}</span>}
               </div>
             </div>
           )}

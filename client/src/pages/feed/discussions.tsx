@@ -29,7 +29,7 @@ export default function DiscussionsFeedPage() {
         `/api/posts?category=discussion&include=author,comments,reactions,userReaction`,
         { headers: { "x-auto-refresh": "true" } }
       );
-      if (!res.ok) throw new Error(await res.text() || "Failed to fetch discussions");
+      if (!res.ok) throw new Error(await res.text() || t("feed.fetch_discussions_failed", "Failed to fetch discussions"));
       return res.json();
     },
     refetchInterval: 30000,
@@ -70,7 +70,7 @@ export default function DiscussionsFeedPage() {
           ) : error ? (
             <div className="py-20 animate-in fade-in zoom-in duration-500">
               <ErrorState 
-                message={error instanceof Error ? error.message : "Failed to load discussions"} 
+                message={error instanceof Error ? error.message : t("feed.load_discussions_failed", "Failed to load discussions")} 
                 retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "discussion"] })}
               />
             </div>
@@ -87,7 +87,7 @@ export default function DiscussionsFeedPage() {
               <p className="text-muted-foreground text-sm md:text-base max-w-sm px-4">{t("feed.no_discussions_desc", "Every great movement started with a single word. Be the first to speak.")}</p>
               <Link href="/post/discussions" className="mt-8">
                 <Button variant="outline">
-                  Break the Silence
+                  {t("feed.break_silence", "Break the Silence")}
                 </Button>
               </Link>
             </motion.div>
