@@ -252,7 +252,7 @@ function ReportsManager({ communityId }: { communityId: number }) {
             ) : filteredReports.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center p-0">
-                  <EmptyState title={t("mod_panel.reports.table.empty")} description="No reports match your filters." />
+                  <EmptyState title={t("mod_panel.reports.table.empty")} description={t("mod_panel.reports.no_match", "No reports match your filters.")} />
                 </TableCell>
               </TableRow>
             ) : (
@@ -514,7 +514,7 @@ function MembersManager({ communityId }: { communityId: number }) {
                         </div>
                         <div>
                           <p className="text-sm font-medium">{user.username}</p>
-                          <p className="ov-data text-[10px] text-muted-foreground">ID: {user.id}</p>
+                          <p className="ov-data text-[10px] text-muted-foreground">{t("mod_panel.bans.table.id", "ID:")} {user.id}</p>
                         </div>
                       </div>
                       <Button
@@ -608,9 +608,9 @@ function MembersManager({ communityId }: { communityId: number }) {
                           <span className="flex items-center gap-1">
                             {name}
                             {member.role === "owner" && <Crown className="h-3 w-3 text-star fill-star" />}
-                            {isSelf && <span className="text-xs font-normal text-muted-foreground">({t("mod_panel.members.you", "du")})</span>}
+                            {isSelf && <span className="text-xs font-normal text-muted-foreground">({t("mod_panel.members.you", "you")})</span>}
                           </span>
-                          <span className="ov-data text-[10px] text-muted-foreground">ID: {member.user.id}</span>
+                          <span className="ov-data text-[10px] text-muted-foreground">{t("mod_panel.bans.table.id", "ID:")} {member.user.id}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -622,7 +622,7 @@ function MembersManager({ communityId }: { communityId: number }) {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" aria-label={t("mod_panel.members.actions_for", { name, defaultValue: "Aktionen für {{name}}" })}>
+                            <Button variant="ghost" size="sm" aria-label={t("mod_panel.members.actions_for", { name, defaultValue: "Actions for {{name}}" })}>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -631,7 +631,7 @@ function MembersManager({ communityId }: { communityId: number }) {
                             <DropdownMenuItem asChild>
                               <Link href={`/users/${encodeURIComponent(name)}`}>
                                 <UserRound className="mr-2 h-4 w-4" />
-                                {t("mod_panel.members.view_profile", "Profil ansehen")}
+                                {t("mod_panel.members.view_profile", "View profile")}
                               </Link>
                             </DropdownMenuItem>
                             {rolesEditable && member.role !== "owner" && (
@@ -659,7 +659,7 @@ function MembersManager({ communityId }: { communityId: number }) {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onSelect={() => updateRoleMutation.mutate({ userId: member.user.id, role: "moderator" })}>
                                   <ShieldCheck className="mr-2 h-4 w-4" />
-                                  {t("mod_panel.members.make_mod", "Zum Moderator machen")}
+                                  {t("mod_panel.members.make_mod", "Make moderator")}
                                 </DropdownMenuItem>
                               </>
                             )}
@@ -668,20 +668,20 @@ function MembersManager({ communityId }: { communityId: number }) {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onSelect={() => setPending({ kind: "kick", userId: member.user.id, name })}>
                                   <UserMinus className="mr-2 h-4 w-4" />
-                                  {t("mod_panel.members.kick", "Aus Community entfernen")}
+                                  {t("mod_panel.members.kick", "Remove from community")}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
                                   onSelect={() => setPending({ kind: "ban", userId: member.user.id, name })}
                                 >
                                   <Ban className="mr-2 h-4 w-4" />
-                                  {t("mod_panel.members.ban", "Sperren …")}
+                                  {t("mod_panel.members.ban", "Ban …")}
                                 </DropdownMenuItem>
                               </>
                             )}
                             {!isSelf && !moderatable && !rolesEditable && (
                               <p className="px-2 py-1.5 text-xs text-muted-foreground">
-                                {t("mod_panel.members.no_rights", "Für diese Person darfst du nichts weiter ändern.")}
+                                {t("mod_panel.members.no_rights", "You can't change anything else for this person.")}
                               </p>
                             )}
                           </DropdownMenuContent>
@@ -696,7 +696,7 @@ function MembersManager({ communityId }: { communityId: number }) {
                       <div className="flex flex-col">
                         <span>{ban.user.username}</span>
                         <span className="text-xs text-muted-foreground">
-                          {t("mod_panel.members.banned_since", { date: new Date(ban.bannedAt).toLocaleDateString(i18n.resolvedLanguage), defaultValue: "Gesperrt seit {{date}}" })}
+                          {t("mod_panel.members.banned_since", { date: new Date(ban.bannedAt).toLocaleDateString(i18n.resolvedLanguage), defaultValue: "Banned since {{date}}" })}
                           {ban.reason ? ` · ${ban.reason}` : ""}
                         </span>
                       </div>
@@ -704,13 +704,13 @@ function MembersManager({ communityId }: { communityId: number }) {
                     <TableCell>
                       <Badge variant="destructive" className="flex items-center gap-1 w-fit">
                         <Ban className="h-2.5 w-2.5" />
-                        {t("mod_panel.roles.banned", "Gesperrt")}
+                        {t("mod_panel.roles.banned", "Banned")}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" aria-label={t("mod_panel.members.actions_for", { name: ban.user.username, defaultValue: "Aktionen für {{name}}" })}>
+                          <Button variant="ghost" size="sm" aria-label={t("mod_panel.members.actions_for", { name: ban.user.username, defaultValue: "Actions for {{name}}" })}>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -719,13 +719,13 @@ function MembersManager({ communityId }: { communityId: number }) {
                           <DropdownMenuItem asChild>
                             <Link href={`/users/${encodeURIComponent(ban.user.username)}`}>
                               <UserRound className="mr-2 h-4 w-4" />
-                              {t("mod_panel.members.view_profile", "Profil ansehen")}
+                              {t("mod_panel.members.view_profile", "View profile")}
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onSelect={() => setPending({ kind: "unban", userId: ban.userId, name: ban.user.username })}>
                             <Undo2 className="mr-2 h-4 w-4" />
-                            {t("mod_panel.members.unban", "Sperre aufheben")}
+                            {t("mod_panel.members.unban", "Lift ban")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -764,8 +764,8 @@ function MembersManager({ communityId }: { communityId: number }) {
       <Dialog open={pending?.kind === "ban"} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("mod_panel.members.ban_dialog_title", { name: pending?.name, defaultValue: "{{name}} sperren?" })}</DialogTitle>
-            <DialogDescription>{t("mod_panel.members.ban_dialog_desc", "Die Person wird aus der Community entfernt und kann ihr nicht wieder beitreten, bis du die Sperre aufhebst.")}</DialogDescription>
+            <DialogTitle>{t("mod_panel.members.ban_dialog_title", { name: pending?.name, defaultValue: "Ban {{name}}?" })}</DialogTitle>
+            <DialogDescription>{t("mod_panel.members.ban_dialog_desc", "They will be removed from the community and can't join again until you lift the ban.")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label htmlFor="ban-reason">{t("mod_panel.bans.ban_dialog.reason_label")}</Label>
@@ -954,7 +954,7 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
                         </div>
                         <div>
                           <p className="text-sm font-medium">{user.username}</p>
-                          <p className="ov-data text-[10px] text-muted-foreground">ID: {user.id}</p>
+                          <p className="ov-data text-[10px] text-muted-foreground">{t("mod_panel.bans.table.id", "ID:")} {user.id}</p>
                         </div>
                       </div>
                       <Button
@@ -1127,7 +1127,7 @@ function RequestsManager({ communityId }: { communityId: number }) {
                 <TableCell colSpan={3} className="h-24 text-center p-0">
                   <EmptyState 
                     title={t("mod_panel.requests.table.empty")} 
-                    description="When users request to join this private community, they will appear here." 
+                    description={t("mod_panel.requests.empty_desc", "When users request to join this private community, they will appear here.")} 
                   />
                 </TableCell>
               </TableRow>
@@ -1141,7 +1141,7 @@ function RequestsManager({ communityId }: { communityId: number }) {
                           {request.user?.username?.charAt(0).toUpperCase() || "?"}
                         </span>
                       </div>
-                      {request.user?.username || "Unknown User"}
+                      {request.user?.username || t("mod_panel.requests.unknown_user", "Unknown user")}
                     </div>
                   </TableCell>
                   <TableCell className="ov-data">{new Date(request.createdAt).toLocaleDateString()}</TableCell>

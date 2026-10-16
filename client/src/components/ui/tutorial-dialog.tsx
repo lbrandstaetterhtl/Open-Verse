@@ -12,35 +12,46 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const tutorialSteps = [
   {
-    title: "Welcome to Our Platform!",
-    description:
+    titleKey: "tutorial.steps.welcome.title",
+    titleFallback: "Welcome to our platform!",
+    descriptionKey: "tutorial.steps.welcome.description",
+    descriptionFallback:
       "Let's take a quick tour of the features available to you. We'll show you how to make the most of your experience.",
     highlight: "navbar",
   },
   {
-    title: "Your Profile",
-    description:
+    titleKey: "tutorial.steps.profile.title",
+    titleFallback: "Your profile",
+    descriptionKey: "tutorial.steps.profile.description",
+    descriptionFallback:
       "Click on your avatar to access your profile settings, where you can update your information and manage your account.",
     highlight: "profile-section",
   },
   {
-    title: "Creating Posts",
-    description:
+    titleKey: "tutorial.steps.posts.title",
+    titleFallback: "Creating posts",
+    descriptionKey: "tutorial.steps.posts.description",
+    descriptionFallback:
       "Share your thoughts by creating posts. You can post discussions, news, or entertainment content.",
     highlight: "create-post",
   },
   {
-    title: "Interacting with Others",
-    description:
+    titleKey: "tutorial.steps.interaction.title",
+    titleFallback: "Interacting with others",
+    descriptionKey: "tutorial.steps.interaction.description",
+    descriptionFallback:
       "Follow other users, like their posts, and leave comments to engage with the community.",
     highlight: "interaction",
   },
   {
-    title: "Messaging",
-    description: "Use the chat feature to have private conversations with other users.",
+    titleKey: "tutorial.steps.messaging.title",
+    titleFallback: "Messaging",
+    descriptionKey: "tutorial.steps.messaging.description",
+    descriptionFallback: "Use the chat feature to have private conversations with other users.",
     highlight: "messages",
   },
 ];
@@ -48,6 +59,7 @@ const tutorialSteps = [
 export function TutorialDialog() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(!(user as any)?.tutorialCompleted);
   const [currentStep, setCurrentStep] = useState((user as any)?.tutorialStep || 0);
 
@@ -62,7 +74,7 @@ export function TutorialDialog() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: t("tutorial.error_title", "Error"),
         description: error.message,
         variant: "destructive",
       });
@@ -93,7 +105,10 @@ export function TutorialDialog() {
   const handleSkip = () => {
     if (
       window.confirm(
-        "Are you sure you want to skip the tutorial? You can always access it later from your profile settings.",
+        t(
+          "tutorial.skip_confirm",
+          "Are you sure you want to skip the tutorial? You can always access it later from your profile settings.",
+        ),
       )
     ) {
       updateTutorialProgress.mutate({ step: tutorialSteps.length - 1, completed: true });
@@ -107,8 +122,10 @@ export function TutorialDialog() {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{tutorialSteps[currentStep].title}</DialogTitle>
-          <DialogDescription>{tutorialSteps[currentStep].description}</DialogDescription>
+          <DialogTitle>{t(tutorialSteps[currentStep].titleKey, tutorialSteps[currentStep].titleFallback)}</DialogTitle>
+          <DialogDescription>
+            {t(tutorialSteps[currentStep].descriptionKey, tutorialSteps[currentStep].descriptionFallback)}
+          </DialogDescription>
         </DialogHeader>
         <div className="flex items-center justify-between mt-4">
           <Button
@@ -118,20 +135,20 @@ export function TutorialDialog() {
             className="flex items-center"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
+            {t("tutorial.previous", "Previous")}
           </Button>
           <Button variant="ghost" onClick={handleSkip}>
-            Skip Tutorial
+            {t("tutorial.skip", "Skip tutorial")}
           </Button>
           <Button onClick={handleNext} className="flex items-center">
             {currentStep === tutorialSteps.length - 1 ? (
               <>
-                Finish
+                {t("tutorial.finish", "Finish")}
                 <Check className="h-4 w-4 ml-1" />
               </>
             ) : (
               <>
-                Next
+                {t("tutorial.next", "Next")}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </>
             )}

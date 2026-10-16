@@ -13,6 +13,7 @@ import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
 import { fadeIn } from "@/lib/animations";
 
 import { lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 
 // Lazy-loaded Pages (PERF-FIX [OPT-008]: Code Splitting)
 const AuthPage = lazy(() => import("@/pages/auth/auth-page"));
@@ -190,11 +191,13 @@ function WebSocketManager() {
 }
 
 function LoadingScreen() {
+  // No suspense here: the loading screen should show right away, with the English text until translations load.
+  const { t } = useTranslation(undefined, { useSuspense: false });
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-background z-[9999]">
       <div className="flex flex-col items-center gap-4">
         <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        <p className="ov-label animate-pulse">Initializing Osiris...</p>
+        <p className="ov-label animate-pulse">{t("app.initializing", "Initializing Osiris...")}</p>
       </div>
     </div>
   );

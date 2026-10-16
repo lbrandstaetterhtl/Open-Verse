@@ -26,12 +26,12 @@ import { useTranslation } from "react-i18next";
 
 // value is what the API stores; key is the label shown in the UI.
 const REPORT_REASONS = [
-  { value: "Spam", key: "report.reasons.spam", label: "Spam" },
-  { value: "Harassment", key: "report.reasons.harassment", label: "Harassment" },
-  { value: "Hate Speech", key: "report.reasons.hate_speech", label: "Hate Speech" },
-  { value: "Inappropriate Content", key: "report.reasons.inappropriate", label: "Inappropriate Content" },
-  { value: "Misinformation", key: "report.reasons.misinformation", label: "Misinformation" },
-  { value: "Other", key: "report.reasons.other", label: "Other" },
+  { value: "Spam", key: "report.reasons.spam", fallback: "Spam" },
+  { value: "Harassment", key: "report.reasons.harassment", fallback: "Harassment" },
+  { value: "Hate Speech", key: "report.reasons.hate_speech", fallback: "Hate speech" },
+  { value: "Inappropriate Content", key: "report.reasons.inappropriate", fallback: "Inappropriate content" },
+  { value: "Misinformation", key: "report.reasons.misinformation", fallback: "Misinformation" },
+  { value: "Other", key: "report.reasons.other", fallback: "Other" },
 ];
 
 interface ReportDialogProps {
@@ -117,7 +117,7 @@ export function ReportDialog({ type, id, trigger }: ReportDialogProps) {
             <SelectContent>
               {REPORT_REASONS.map((r) => (
                 <SelectItem key={r.value} value={r.value}>
-                  {t(r.key, r.label)}
+                  {t(r.key, r.fallback)}
                 </SelectItem>
               ))}
             </SelectContent>

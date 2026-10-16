@@ -53,6 +53,7 @@ function isItemActive(item: NavItem, location: string) {
 
 function NavItemRow({ item, collapsed, onNavigate }: { item: NavItem; collapsed: boolean; onNavigate?: () => void }) {
   const [location] = useLocation();
+  const { t } = useTranslation();
   const isActive = isItemActive(item, location);
   const badge = item.badge && item.badge > 0 ? (item.badge > 99 ? "99+" : String(item.badge)) : null;
 
@@ -79,7 +80,7 @@ function NavItemRow({ item, collapsed, onNavigate }: { item: NavItem; collapsed:
             "font-data flex h-4 min-w-[16px] items-center justify-center rounded-xs bg-primary px-1 text-[10px] font-semibold tabular-nums text-primary-foreground",
             collapsed && "absolute right-1 top-1",
           )}
-          aria-label={`${badge} ungelesen`}
+          aria-label={t("layout.sidebar.unread_badge", { badge, defaultValue: "{{badge}} unread" })}
         >
           {badge}
         </span>
