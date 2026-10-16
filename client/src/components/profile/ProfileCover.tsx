@@ -3,7 +3,6 @@ import { Camera, Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { Constellation } from "@/components/layout/page-header";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ProfileCoverProps {
@@ -28,7 +27,7 @@ export function ProfileCover({
 
   return (
     <div className="relative w-full">
-      {/* Cover: the photo with two cut corners, or an empty star-chart panel when none is set */}
+      {/* Cover: the photo with two cut corners, or a plain panel when none is set */}
       <div className={cn(
         "relative h-48 md:h-72 lg:h-96 w-full overflow-hidden",
         coverUrl ? "ov-cut-2 rounded-xl bg-muted" : "ov-panel"
@@ -41,9 +40,7 @@ export function ProfileCover({
             alt="Profile cover"
             className="h-full w-full object-cover"
           />
-        ) : (
-          <Constellation className="absolute right-[8%] top-1/2 h-24 w-auto max-w-[70%] -translate-y-1/2 md:h-32" />
-        )}
+        ) : null}
 
         <AnimatePresence>
           {isOwnProfile && (

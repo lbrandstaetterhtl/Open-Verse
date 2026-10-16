@@ -32,7 +32,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeIn, scaleIn } from "@/lib/animations";
 import { cn } from "@/lib/utils";
-import { Constellation } from "@/components/layout/page-header";
 
 interface EditProfileModalProps {
   user: User;
@@ -92,8 +91,6 @@ export function EditProfileModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[700px] overflow-hidden p-0">
         <div className="px-6 pt-6 md:px-8 md:pt-8 relative overflow-hidden">
-          <Constellation className="absolute right-12 top-2 hidden h-16 w-auto max-w-[45%] opacity-70 sm:block" />
-
           <DialogHeader className="relative">
             <DialogTitle className="font-display text-2xl font-semibold leading-tight tracking-normal flex items-center gap-3">
               <div className="ov-cut h-10 w-10 shrink-0 bg-primary/10 flex items-center justify-center">
