@@ -37,9 +37,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { type ActivityLog } from "@shared/schema";
 
+import { useDateLocale } from "@/lib/date-locale";
 /* FEATURE [AL-007]: Activity Logs – Frontend implementation. */
 export default function ActivityLogsPage() {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [severity, setSeverity] = useState("all");
@@ -252,7 +254,7 @@ export default function ActivityLogsPage() {
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                             <span className="ov-chip"><Calendar className="h-3.5 w-3.5" /> <span className="ov-data">{format(new Date(log.createdAt), "PPpp")}</span></span>
+                             <span className="ov-chip"><Calendar className="h-3.5 w-3.5" /> <span className="ov-data">{format(new Date(log.createdAt), "PPpp", { locale: dateLocale })}</span></span>
                              <span className="ov-chip"><User className="h-3.5 w-3.5" /> {log.userEmail || t("admin_logs.system", "System")}</span>
                              <span className={cn("ov-chip capitalize", statusColors[log.status as keyof typeof statusColors])}>
                                {statusIcons[log.status as keyof typeof statusIcons]}

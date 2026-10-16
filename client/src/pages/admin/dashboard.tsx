@@ -148,6 +148,7 @@ import {
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { GroupsManagement } from "@/components/admin/GroupsManagement";
 
+import { useDateLocale } from "@/lib/date-locale";
 type AdminReport = Report & {
   reporter?: { username: string };
   content?: {
@@ -160,6 +161,7 @@ type AdminReport = Report & {
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const { user, hasPermission } = useAuth();
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
@@ -794,7 +796,7 @@ export default function AdminDashboard() {
                         </div>
                         <p className="text-xs italic text-muted-foreground line-clamp-2">"{r.reason}"</p>
                         <div className="flex items-center justify-between pt-2 border-t border-border">
-                          <span className="ov-data text-xs text-muted-foreground">{format(new Date(r.createdAt), "MMM d, HH:mm")}</span>
+                          <span className="ov-data text-xs text-muted-foreground">{format(new Date(r.createdAt), "PP, HH:mm", { locale: dateLocale })}</span>
                           <div className="flex gap-2">
                              <Button variant="outline" size="sm" className="h-8 px-3 text-xs text-primary" disabled={r.status !== "pending"} onClick={(e) => { e.stopPropagation(); updateReportMutation.mutate({ reportId: r.id, status: "resolved" }); }}>
                                {t("admin.reports_table.resolve", "Resolve")}

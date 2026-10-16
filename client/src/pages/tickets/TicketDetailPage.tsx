@@ -21,11 +21,13 @@ import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { cn } from "@/lib/utils";
 
+import { useDateLocale } from "@/lib/date-locale";
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const ticketId = parseInt(id);
   const { t } = useTranslation("tickets");
+  const dateLocale = useDateLocale();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -67,7 +69,7 @@ export default function TicketDetailPage() {
     return (
       <ErrorState
         className="pt-24"
-        title={t("errors.loadFailed", "Tickets could not be loaded")}
+        title={t("errors.loadTicketFailed", "The ticket could not be loaded")}
         message={t("errors.tryAgainHint", "Please try again in a moment.")}
         retry={() => refetch()}
       />
@@ -167,7 +169,7 @@ export default function TicketDetailPage() {
                   <UserCircle className="w-4 h-4 text-primary" />
                   <span className="font-semibold text-foreground">{ticket.creatorUsername}</span>
                   <span className="text-muted-foreground">{t("detail.initiatedSignal", "initiated signal")}</span>
-                  <span className="ov-data text-xs text-muted-foreground ml-auto" title={format(new Date(ticket.createdAt), "PPpp")}>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}</span>
+                  <span className="ov-data text-xs text-muted-foreground ml-auto" title={format(new Date(ticket.createdAt), "PPpp", { locale: dateLocale })}>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true, locale: dateLocale })}</span>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
@@ -193,7 +195,7 @@ export default function TicketDetailPage() {
                       <div key={comment.id} className="relative flex items-center gap-3 ml-8 pl-4 pr-2 py-2 border-l border-border text-xs text-muted-foreground group">
                         <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
                         <span className="truncate">{comment.content}</span>
-                        <span className="ov-data ml-auto shrink-0" title={format(new Date(comment.createdAt), "PPpp")}>{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</span>
+                        <span className="ov-data ml-auto shrink-0" title={format(new Date(comment.createdAt), "PPpp", { locale: dateLocale })}>{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: dateLocale })}</span>
                       </div>
                     );
                   }
@@ -213,8 +215,8 @@ export default function TicketDetailPage() {
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                           <span className="text-sm font-semibold">{comment.authorUsername}</span>
                           {comment.authorRole === 'owner' && <span className="ov-chip ov-chip-danger">{t("detail.commanderBadge", "COMMANDER")}</span>}
-                          <span className="ov-data text-xs text-muted-foreground" title={format(new Date(comment.createdAt), "PPpp")}>
-                            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                          <span className="ov-data text-xs text-muted-foreground" title={format(new Date(comment.createdAt), "PPpp", { locale: dateLocale })}>
+                            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: dateLocale })}
                           </span>
                           {comment.isInternal && <span className="ov-chip ov-chip-star ml-auto">{t("detail.internalBadge", "INTERNAL SIGNAL")}</span>}
                         </div>

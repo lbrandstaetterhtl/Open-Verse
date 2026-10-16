@@ -17,6 +17,7 @@
     "check": "tsc",
     "test:unit": "tsx --test tests/unit/*.test.ts",
     "test:e2e": "tsx --test tests/e2e/*.test.ts",
+    "test:i18n": "tsx --test tests/i18n/*.test.ts",
     "seed": "tsx --env-file=.env scripts/seed-testdata.ts",
     "seed:test": "tsx --env-file=.env scripts/seed-testdata.ts",
     "db:push": "drizzle-kit push",

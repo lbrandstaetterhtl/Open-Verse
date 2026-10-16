@@ -22,3 +22,12 @@ i18n
       loadPath: "/locales/{{lng}}/{{ns}}.json",
     },
   });
+
+// Keep <html lang> in sync with the UI language (screen readers, hyphenation, spell checking)
+const setDocumentLanguage = (lng: string) => {
+  if (typeof document !== "undefined" && lng) document.documentElement.lang = lng.split("-")[0];
+};
+i18n.on("languageChanged", setDocumentLanguage);
+if (i18n.language) setDocumentLanguage(i18n.language);
+
+export default i18n;

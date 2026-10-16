@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { AuthorLink, authorName, isDeletedAuthor } from "@/components/post/author-link";
 
+import { useDateLocale } from "@/lib/date-locale";
 type PostWithAuthor = Post & {
   author: {
     username: string;
@@ -55,6 +56,7 @@ type PostWithAuthor = Post & {
 
 export default function PostViewPage() {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const { toast } = useToast();
   const { saveMutation } = useFeedMutations();
   const { user } = useAuth();
@@ -224,7 +226,7 @@ export default function PostViewPage() {
                         {post.author?.verified && <BadgeCheck className="h-4 w-4 shrink-0 text-star" />}
                         <span className="font-data text-xs text-muted-foreground">
                           {" • "}
-                          {format(new Date(post.createdAt), "PPP")}
+                          {format(new Date(post.createdAt), "PPP", { locale: dateLocale })}
                         </span>
                       </div>
                     </div>
@@ -344,7 +346,7 @@ export default function PostViewPage() {
                                 )}
                               </div>
                               <span className="font-data text-xs text-muted-foreground block">
-                                {format(new Date(comment.createdAt), "PPp")}
+                                {format(new Date(comment.createdAt), "PPp", { locale: dateLocale })}
                               </span>
                             </div>
                           </div>

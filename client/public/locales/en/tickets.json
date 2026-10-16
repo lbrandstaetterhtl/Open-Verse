@@ -145,7 +145,8 @@
     "invalidTransition": "Status transition not allowed",
     "notFoundHint": "This ticket doesn't exist or you don't have access to it.",
     "tryAgainHint": "Please try again in a moment.",
-    "assignFailed": "Failed to assign ticket"
+    "assignFailed": "Failed to assign ticket",
+    "loadTicketFailed": "The ticket could not be loaded"
   },
   "success": {
     "created": "Ticket {{number}} has been created",

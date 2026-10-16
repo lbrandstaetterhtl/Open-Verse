@@ -8,6 +8,7 @@ import { MutualFollowers } from "./MutualFollowers";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+import { useDateLocale } from "@/lib/date-locale";
 interface ProfileHeaderProps {
   user: User & { 
     stats?: { followers: number; following: number; posts: number };
@@ -33,7 +34,8 @@ export function ProfileHeader({
   isFollowingLoading
 }: ProfileHeaderProps) {
   const { t } = useTranslation();
-  const joinedDate = user.createdAt ? format(new Date(user.createdAt), "MMMM yyyy") : "";
+  const dateLocale = useDateLocale();
+  const joinedDate = user.createdAt ? format(new Date(user.createdAt), "LLLL yyyy", { locale: dateLocale }) : "";
 
   return (
     <div className="w-full px-6 md:px-10 pb-8 relative">

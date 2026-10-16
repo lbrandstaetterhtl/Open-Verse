@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { de, enUS, es, fr, it, zhCN } from "date-fns/locale";
+import { dateLocaleFor } from "@/lib/date-locale";
 import { Heart, MessageCircle, UserPlus, AtSign, ShieldCheck, ShieldAlert, Info, Circle, MoreHorizontal, Trash2, CheckCircle2, Users } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import { useLocation } from "wouter";
 import { useNotificationMutations } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 
-const locales: Record<string, any> = { de, en: enUS, es, fr, it, zh: zhCN };
 
 interface NotificationItemProps {
   notification: NotificationWithActor;
@@ -128,7 +127,7 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
            <span className="ov-data text-[11px] text-muted-foreground whitespace-nowrap">
               {formatDistanceToNow(new Date(notification.createdAt), {
                 addSuffix: false,
-                locale: locales[i18n.language] || locales.en
+                locale: dateLocaleFor(i18n.language)
               })}
            </span>
         </div>
