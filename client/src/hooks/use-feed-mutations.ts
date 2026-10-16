@@ -19,14 +19,15 @@ export function useFeedMutations() {
         const snapshot = queryClient.getQueriesData({ predicate: (q) => isPostQuery(q.queryKey) });
         queryClient.setQueriesData({ predicate: (q) => isPostQuery(q.queryKey) }, (old: any) => {
             if (!old) return old;
-            if (Array.isArray(old)) return old.map((p) => (p?.id === postId ? updater(p) : p));
+            const updateList = (list: any[]) => list.map((p) => (p?.id === postId ? updater(p) : p));
+            if (Array.isArray(old)) return updateList(old);
             if (old.pages) {
+                // Infinite queries: a page is either a plain array of posts (media feed) or { data: [...] }.
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
-                        ...page,
-                        data: page.data?.map((p: any) => (p.id === postId ? updater(p) : p)),
-                    })),
+                    pages: old.pages.map((page: any) =>
+                        Array.isArray(page) ? updateList(page) : Array.isArray(page?.data) ? { ...page, data: updateList(page.data) } : page,
+                    ),
                 };
             }
             if (old.id === postId) return updater(old);
