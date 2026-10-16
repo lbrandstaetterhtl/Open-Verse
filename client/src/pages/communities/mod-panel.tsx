@@ -279,7 +279,7 @@ function ReportsManager({ communityId }: { communityId: number }) {
                       }
                       className="capitalize"
                     >
-                      {report.status}
+                      {t(`mod_panel.reports.${report.status}`, report.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="ov-data">{new Date(report.createdAt).toLocaleDateString()}</TableCell>
@@ -1033,7 +1033,7 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
                 <TableRow key={mod.id}>
                   <TableCell className="font-medium">{mod.user.username}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="capitalize">{mod.role}</Badge>
+                    <Badge variant="secondary">{t(`mod_panel.roles.${mod.role}`, String(mod.role))}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     {mod.role !== "owner" && (

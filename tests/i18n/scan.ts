@@ -184,6 +184,38 @@ export function findHardcodedText(files = sourceFiles()): Finding[] {
 }
 
 /* ------------------------------------------------------------------ */
+/* Enum values shown as they are                                       */
+/* ------------------------------------------------------------------ */
+
+/** Fields that hold code values (roles, states …) which need a translated label when shown. */
+const ENUM_FIELDS = new Set(["role", "status", "severity", "priority", "type", "category", "kind", "level", "intensity"]);
+
+/** `{user.role}` rendered directly in JSX shows "owner" in every language; it needs t(`…roles.${role}`). */
+export function findRawEnumValues(files = sourceFiles()): Finding[] {
+  const allow = loadAllowlist();
+  const findings: Finding[] = [];
+  for (const file of files.filter((f) => f.endsWith(".tsx"))) {
+    const rel = path.relative(CLIENT_SRC, file);
+    const sf = parse(file);
+    const visit = (node: ts.Node) => {
+      if (ts.isJsxExpression(node) && node.expression && node.parent && !ts.isJsxAttribute(node.parent)) {
+        let e: ts.Expression = node.expression;
+        while (ts.isNonNullExpression(e) || ts.isParenthesizedExpression(e) || ts.isAsExpression(e)) e = e.expression;
+        if ((ts.isPropertyAccessExpression(e) || ts.isPropertyAccessChain(e)) && ENUM_FIELDS.has(e.name.text)) {
+          const text = node.expression.getText();
+          if (!allow.entries.includes(`${rel}::${text}`)) {
+            findings.push({ file: rel, line: sf.getLineAndCharacterOfPosition(node.getStart()).line + 1, text, kind: "raw-enum" });
+          }
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+  }
+  return findings;
+}
+
+/* ------------------------------------------------------------------ */
 /* Dates                                                               */
 /* ------------------------------------------------------------------ */
 

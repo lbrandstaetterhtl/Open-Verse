@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import {
-  CLIENT_SRC, LOCALES_DIR, DEFAULT_NS, findHardcodedText, findServerMessages, findUnlocalizedDates, findUsedKeys, loadLocales, loadAllowlist,
+  CLIENT_SRC, LOCALES_DIR, DEFAULT_NS, findHardcodedText, findRawEnumValues, findServerMessages, findUnlocalizedDates, findUsedKeys, loadLocales, loadAllowlist,
   supportedLanguages, namespaces, placeholders,
 } from "./scan";
 
@@ -47,6 +47,12 @@ describe("source code", () => {
       [],
       `${findings.length} hard-coded strings — wrap them in t() or, if intended, add them to tests/i18n/allowlist.json`,
     );
+  });
+
+  test("code values (role, status, …) are not shown untranslated", () => {
+    const findings = findRawEnumValues();
+    assert.deepEqual(findings.map((f) => `${f.file}:${f.line} {${f.text}}`), [],
+      "show a label: t(`area.roles.${value}`, value)");
   });
 
   test("dates with month/day names use the UI language (date-fns locale)", () => {

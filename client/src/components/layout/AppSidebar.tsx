@@ -261,7 +261,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
                 <>
                   <div className="min-w-0 flex-1 space-y-0.5 text-left sidebar-label">
                     <p className="truncate text-[13px] font-semibold leading-tight">{user?.username}</p>
-                    <p className="ov-label truncate">{user?.role}</p>
+                    <p className="ov-label truncate">{user?.role ? t(`admin.roles.${user.role}`, user.role) : null}</p>
                   </div>
                   <MoreHorizontal className="h-4 w-4 flex-shrink-0 text-muted-foreground sidebar-label" />
                 </>

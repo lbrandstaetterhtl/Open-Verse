@@ -233,7 +233,7 @@ export default function PostViewPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="ov-chip ov-chip-primary">
-                      {post.category}
+                      {t(`community.page.tabs.${post.category}`, post.category)}
                     </span>
                     {!authorDeleted && post.author.id !== user?.id && (
                       <Button
