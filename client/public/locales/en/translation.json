@@ -694,5 +694,10 @@
     "hint": "The link is outdated or mistyped, or the content was deleted.",
     "home": "Go to feed",
     "back": "Back"
+  },
+  "page_error": {
+    "title": "This page could not be shown",
+    "hint": "Something went wrong while displaying it. Reloading usually helps.",
+    "reload": "Reload"
   }
 }

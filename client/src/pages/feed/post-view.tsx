@@ -29,6 +29,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { AuthorLink, authorName, isDeletedAuthor } from "@/components/post/author-link";
 
 type PostWithAuthor = Post & {
   author: {
@@ -181,6 +182,7 @@ export default function PostViewPage() {
   });
 
   // The post endpoint sends isFollowing next to the author, not inside it.
+  const authorDeleted = isDeletedAuthor(post?.author as any);
   const isFollowingAuthor = !!((post as any)?.isFollowing ?? post?.author?.isFollowing);
 
   return (
@@ -207,19 +209,19 @@ export default function PostViewPage() {
               <CardHeader className="p-4 lg:p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <Link href={`/users/${post.author.username}`} className="hover:opacity-80">
-                      <UserAvatar user={post.author} size="sm" />
-                    </Link>
+                    <AuthorLink author={post.author} className="hover:opacity-80">
+                      <UserAvatar user={authorDeleted ? { username: "?" } : post.author} size="sm" />
+                    </AuthorLink>
                     <div className="min-w-0">
                       <CardTitle className="text-base lg:text-lg truncate">{post.title}</CardTitle>
                       <div className="flex items-center gap-1">
-                        <Link
-                          href={`/users/${post.author.username}`}
+                        <AuthorLink
+                          author={post.author}
                           className="hover:underline text-xs lg:text-sm text-muted-foreground"
                         >
-                          {post.author.username}
-                        </Link>
-                        {post.author.verified && <BadgeCheck className="h-4 w-4 shrink-0 text-star" />}
+                          {authorName(post.author)}
+                        </AuthorLink>
+                        {post.author?.verified && <BadgeCheck className="h-4 w-4 shrink-0 text-star" />}
                         <span className="font-data text-xs text-muted-foreground">
                           {" • "}
                           {format(new Date(post.createdAt), "PPP")}
@@ -231,7 +233,7 @@ export default function PostViewPage() {
                     <span className="ov-chip ov-chip-primary">
                       {post.category}
                     </span>
-                    {post.author.id !== user?.id && (
+                    {!authorDeleted && post.author.id !== user?.id && (
                       <Button
                         variant={isFollowingAuthor ? "default" : "outline"}
                         size="sm"
@@ -326,21 +328,18 @@ export default function PostViewPage() {
                       <div key={comment.id} className="ov-panel p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 min-w-0">
-                            <Link
-                              href={`/users/${comment.author.username}`}
-                              className="hover:opacity-80"
-                            >
-                              <UserAvatar user={comment.author} size="sm" />
-                            </Link>
+                            <AuthorLink author={comment.author} className="hover:opacity-80">
+                              <UserAvatar user={isDeletedAuthor(comment.author) ? { username: "?" } : comment.author} size="sm" />
+                            </AuthorLink>
                             <div>
                               <div className="flex items-center gap-1">
-                                <Link
-                                  href={`/users/${comment.author.username}`}
+                                <AuthorLink
+                                  author={comment.author}
                                   className="text-xs lg:text-sm font-semibold hover:underline"
                                 >
-                                  {comment.author.username}
-                                </Link>
-                                {comment.author.verified && (
+                                  {authorName(comment.author)}
+                                </AuthorLink>
+                                {comment.author?.verified && (
                                   <BadgeCheck className="h-4 w-4 shrink-0 text-star" />
                                 )}
                               </div>
@@ -364,9 +363,9 @@ export default function PostViewPage() {
                               />
                               <span className="ov-data text-xs">{comment.likes}</span>
                             </Button>
-                            {(comment.author.username === user?.username ||
+                            {((!isDeletedAuthor(comment.author) && comment.author.username === user?.username) ||
                               user?.role === "owner" ||
-                              (user?.role === "admin" && comment.author.role !== "owner")) && (
+                              (user?.role === "admin" && comment.author?.role !== "owner")) && (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button
@@ -450,8 +449,8 @@ export default function PostViewPage() {
 
                 <div className="flex items-center space-x-2">
                   {(user?.role === "owner" ||
-                    (user?.role === "admin" && post.author.role !== "owner") ||
-                    post.author.id === user?.id) && (
+                    (user?.role === "admin" && post.author?.role !== "owner") ||
+                    (!authorDeleted && post.author.id === user?.id)) && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button

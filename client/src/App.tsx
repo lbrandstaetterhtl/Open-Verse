@@ -182,6 +182,7 @@ function HeadManager() {
 
 import { MaintenanceGuard } from "@/components/layout/maintenance-guard";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageErrorBoundary } from "@/components/layout/page-error-boundary";
 
 function WebSocketManager() {
   useWebSocket();
@@ -237,7 +238,9 @@ function AppContent() {
                 exit="exit"
                 className="w-full h-full"
               >
-                <Router />
+                <PageErrorBoundary>
+                  <Router />
+                </PageErrorBoundary>
               </motion.div>
             </AnimatePresence>
           </Suspense>

@@ -13,7 +13,7 @@ import { sanitizeUser } from "../storage";
 import { SettingsService } from "../services/settings";
 import { activityLogger } from "../services/activity-logger";
 import { parsePagination } from "../utils/pagination";
-import { getPostExtras } from "../utils/post-extras";
+import { getPostExtras, DELETED_AUTHOR } from "../utils/post-extras";
 
 const router = Router();
 
@@ -192,11 +192,9 @@ router.get("/:id", async (req, res) => {
             const isLiked = req.user ? await storage.getUserCommentLike((req.user as any).id, comment.id) : false;
             return {
                 ...comment,
-                author: {
-                    username: commentAuthor?.username || 'Unknown',
-                    role: commentAuthor?.role || 'user',
-                    verified: commentAuthor?.verified || false
-                },
+                author: commentAuthor
+                    ? { username: commentAuthor.username, role: commentAuthor.role || 'user', verified: commentAuthor.verified || false }
+                    : DELETED_AUTHOR,
                 likes: likesCount,
                 isLiked
             };
@@ -206,7 +204,7 @@ router.get("/:id", async (req, res) => {
 
         res.json({
             ...post,
-            author: author ? sanitizeUser(author) : undefined,
+            author: author ? sanitizeUser(author) : DELETED_AUTHOR,
             comments: filteredComments,
             likes: reactions.likes - reactions.dislikes,
             userVote: userReaction,
@@ -250,13 +248,9 @@ router.get("/", async (req, res) => {
 
             return {
                 ...post,
-                author: {
-                    id: author?.id,
-                    username: author?.username || 'Unknown',
-                    verified: author?.verified || false,
-                    isShadowBanned: author?.isShadowBanned || 0,
-                    isFollowing
-                },
+                author: author
+                    ? { id: author.id, username: author.username, verified: author.verified || false, isShadowBanned: author.isShadowBanned || 0, isFollowing }
+                    : DELETED_AUTHOR,
                 reactions,
                 userReaction,
                 ...extras(post.id)
@@ -358,11 +352,8 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
         if (!post) return res.status(404).send("Post not found");
 
         const currentReaction = await storage.getUserPostReaction(userId, postId);
+        // Posts of deleted users keep author_id 0; they can still be liked, nobody gets karma or a notification.
         const postAuthor = await storage.getUser(post.authorId);
-
-        if (!postAuthor) {
-            return res.status(404).send("Post author not found");
-        }
 
         // Calculate reputation change
         let reputationChange = 0;
@@ -381,7 +372,7 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
             activityLogger.logFromRequest(req, {
                 action: isLike ? 'like.add' : 'like.remove',
                 category: 'social',
-                description: `${isLike ? 'Like gegeben' : 'Like entfernt'} für Post "${post.title}" von ${postAuthor.username}`,
+                description: `${isLike ? 'Like gegeben' : 'Like entfernt'} für Post "${post.title}" von ${postAuthor?.username ?? "gelöschtem Nutzer"}`,
                 targetType: 'Post',
                 targetId: String(post.id),
                 targetLabel: post.title,
@@ -390,7 +381,7 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
             }).catch(err => console.error('[Monitor] post.react failed:', err));
             
             // Phase 2: Notify author if it's a LIKE and not the author themselves
-            if (isLike && post.authorId !== userId) {
+            if (isLike && postAuthor && post.authorId !== userId) {
                 await notificationService.notify({
                     userId: post.authorId,
                     actorId: userId,
@@ -403,7 +394,7 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
         }
 
         // Update author's reputation if there's a change
-        if (reputationChange !== 0) {
+        if (reputationChange !== 0 && postAuthor) {
             await storage.updateUserKarma(postAuthor.id, reputationChange);
         }
 
@@ -436,7 +427,7 @@ router.get("/:postId/comments", async (req, res) => {
             const author = authorsMap.get(comment.authorId);
             return {
                 ...comment,
-                author: { username: author?.username || 'Unknown' }
+                author: author ? { username: author.username } : DELETED_AUTHOR
             };
         });
         res.json(commentsWithAuthors);

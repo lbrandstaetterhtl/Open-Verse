@@ -5,7 +5,7 @@ import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
 import { profileUpload, checkFileSignature, sanitizeImage } from "../utils/file-upload";
 import fs from "node:fs";
-import { getPostExtras } from "../utils/post-extras";
+import { getPostExtras, DELETED_AUTHOR } from "../utils/post-extras";
 
 const router = Router();
 
@@ -189,13 +189,9 @@ async function enrichPosts(posts: Awaited<ReturnType<typeof storage.getLikedPost
         const userReaction = currentUserId ? await storage.getUserPostReaction(currentUserId, post.id) : null;
         return {
             ...post,
-            author: {
-                id: author?.id,
-                username: author?.username || 'Unknown',
-                verified: author?.verified || false,
-                isFollowing,
-                role: author?.role || 'member'
-            },
+            author: author
+                ? { id: author.id, username: author.username, verified: author.verified || false, isFollowing, role: author.role || 'member' }
+                : DELETED_AUTHOR,
             reactions,
             userReaction,
             comments: [],

@@ -1,0 +1,29 @@
+import type { ReactNode } from "react";
+import { Link } from "wouter";
+import { cn } from "@/lib/utils";
+
+type MaybeAuthor = { id?: number | null; username?: string | null; deleted?: boolean } | null | undefined;
+
+export const DELETED_NAME = "[deleted]";
+
+/** Posts and comments of deleted accounts stay visible; their author comes as { deleted: true }. */
+export function isDeletedAuthor(author: MaybeAuthor): boolean {
+  return !author || !!author.deleted || !author.username;
+}
+
+/** Links to the author's profile, or renders plain (muted) content for a deleted account. */
+export function AuthorLink({ author, className, children }: { author: MaybeAuthor; className?: string; children: ReactNode }) {
+  if (isDeletedAuthor(author)) {
+    return <span className={cn(className, "text-muted-foreground")}>{children}</span>;
+  }
+  return (
+    <Link href={`/users/${author!.username}`} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+/** Display name: the username, or "[deleted]". */
+export function authorName(author: MaybeAuthor): string {
+  return isDeletedAuthor(author) ? DELETED_NAME : author!.username!;
+}
