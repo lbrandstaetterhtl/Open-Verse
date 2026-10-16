@@ -699,5 +699,49 @@
     "title": "This page could not be shown",
     "hint": "Something went wrong while displaying it. Reloading usually helps.",
     "reload": "Reload"
+  },
+  "nav": {
+    "section_discover": "Discover",
+    "section_you": "For you",
+    "section_tools": "Tools",
+    "theme_builder": "Theme builder",
+    "help_tickets": "Help & tickets",
+    "moderation": "Moderation",
+    "admin_area": "Admin area",
+    "admin_overview": "Overview",
+    "admin_people": "Users & content",
+    "admin_moderation": "Moderation",
+    "admin_system": "System",
+    "tickets": "Tickets",
+    "groups": "Groups",
+    "bans": "Bans",
+    "auto_actions": "Automatic actions",
+    "mod_performance": "Moderator performance",
+    "logs": "Logs",
+    "analytics": "Analytics",
+    "stress_test": "Stress test",
+    "back_to_app": "Back to app",
+    "to_app": "App",
+    "create_post": "Create post",
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar",
+    "close_menu": "Close menu",
+    "open_menu": "Open menu",
+    "account_menu": "Account menu",
+    "bottom_feed": "Feed",
+    "bottom_discussions": "Discussions",
+    "monitoring": "Monitoring"
+  },
+  "theme": {
+    "mode_dark": "Dark",
+    "mode_light": "Light",
+    "mode_system": "System",
+    "switch": "Switch appearance",
+    "mode": "Mode",
+    "manage": "Manage themes"
+  },
+  "language": {
+    "switch": "Switch language",
+    "select": "Select language"
   }
 }

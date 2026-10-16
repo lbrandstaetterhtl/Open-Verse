@@ -20,9 +20,11 @@ import { Link } from "wouter";
 
 interface QuickThemeSwitcherProps {
   collapsed?: boolean;
+  /** Short button without arrow, for sharing one row with the language toggle. */
+  compact?: boolean;
 }
 
-export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProps) {
+export function QuickThemeSwitcher({ collapsed = false, compact = false }: QuickThemeSwitcherProps) {
   const { theme, setTheme } = useTheme();
   const { savedThemes, loadTheme, isDark, isStandard, resetTheme } = useCustomTheme();
   const { t } = useTranslation();
@@ -30,24 +32,28 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
 
   // Icon reflecting current state
   const CurrentIcon = isDark ? Moon : Sun;
-  const label = theme === "dark" ? "Dark" : theme === "light" ? "Light" : "System";
+  const modeLabel = (value: string) =>
+    value === "dark" ? t("theme.mode_dark", "Dark") : value === "light" ? t("theme.mode_light", "Light") : t("theme.mode_system", "System");
+  const label = modeLabel(theme);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "w-full flex items-center rounded-sm h-10 transition-colors hover:bg-foreground/5 gap-3 px-3 sidebar-row",
+            "w-full flex items-center rounded-sm h-10 transition-colors hover:bg-foreground/5 sidebar-row",
+            compact ? "gap-2 px-2" : "gap-3 px-3",
             "text-muted-foreground hover:text-foreground",
             collapsed && "justify-center px-2"
           )}
-          title="Switch theme"
+          title={t("theme.switch", "Switch appearance")}
+          aria-label={`${t("theme.switch", "Switch appearance")}: ${label}`}
         >
           <CurrentIcon className="h-[18px] w-[18px] flex-shrink-0 stroke-2" />
           {!collapsed && (
             <>
-              <span className="text-[13px] font-medium flex-1 text-left truncate sidebar-label">{label} mode</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-50 sidebar-label" />
+              <span className="text-[13px] font-medium flex-1 text-left truncate sidebar-label">{label}</span>
+              {!compact && <ChevronRight className="h-3.5 w-3.5 opacity-50 sidebar-label" />}
             </>
           )}
         </button>
@@ -61,16 +67,16 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
       >
         {/* ── Light / Dark / System ── */}
         <div className="ov-label px-2 pt-1 pb-1.5">
-          Mode
+          {t("theme.mode", "Mode")}
         </div>
 
         {(
           [
-            { value: "light", label: "Light", icon: Sun },
-            { value: "dark", label: "Dark", icon: Moon },
-            { value: "system", label: "System", icon: Monitor },
+            { value: "light", icon: Sun },
+            { value: "dark", icon: Moon },
+            { value: "system", icon: Monitor },
           ] as const
-        ).map(({ value, label, icon: Icon }) => (
+        ).map(({ value, icon: Icon }) => (
           <button
             key={value}
             onClick={() => { setTheme(value); setOpen(false); }}
@@ -82,7 +88,7 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
             )}
           >
             <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-            <span className="flex-1 text-left">{label}</span>
+            <span className="flex-1 text-left">{modeLabel(value)}</span>
             {theme === value && <Check className="h-3 w-3" />}
           </button>
         ))}
@@ -132,7 +138,7 @@ export function QuickThemeSwitcher({ collapsed = false }: QuickThemeSwitcherProp
         <Link href="/theme-builder" onClick={() => setOpen(false)}>
           <button className="w-full flex items-center gap-2.5 h-8 px-2 rounded-sm transition-colors text-[13px] font-medium hover:bg-foreground/5 text-muted-foreground hover:text-foreground">
             <Palette className="h-3.5 w-3.5 flex-shrink-0" />
-            <span>Manage Themes</span>
+            <span>{t("theme.manage", "Manage themes")}</span>
           </button>
         </Link>
       </PopoverContent>
