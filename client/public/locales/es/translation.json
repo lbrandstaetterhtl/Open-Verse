@@ -1,24 +1,209 @@
 {
   "navbar": {
     "brand": "Osiris",
-    "media_feed": "Feed Multimedia",
-    "discussions_feed": "Feed de Discusiones",
+    "media_feed": "Feed multimedia",
+    "discussions_feed": "Feed de discusiones",
     "messages": "Mensajes",
     "profile": "Perfil",
-    "theme_builder": "Constructor de Temas",
+    "theme_builder": "Editor de temas",
     "communities": "Comunidades",
     "ai_generator": "Generador IA",
-    "mod_panel": "Panel de Moderador",
+    "mod_panel": "Panel de moderación",
     "admin": "Administración",
-    "logout": "Cerrar Sesión",
-    "content_feeds": "Feeds de Contenido",
-    "personal_tools": "Herramientas"
+    "logout": "Cerrar sesión",
+    "content_feeds": "Feeds",
+    "personal_tools": "Herramientas",
+    "navigation": "Navegación",
+    "support": "Tickets de soporte",
+    "settings": "Ajustes",
+    "mobile_footer_hint": "Descubre herramientas premium como el Generador IA y el Soporte desde el menú de usuario en escritorio.",
+    "section_admin": "Administración"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "search": "Buscar",
+    "create": "Crear",
+    "notifications": "Notificaciones",
+    "profile": "Perfil",
+    "discussions": "Charlas"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "welcome_back": {
+      "title": "¡Hola de nuevo, {{name}}!",
+      "description": "Qué bueno verte otra vez."
+    },
+    "login_failed": "Error al iniciar sesión",
+    "register_failed": "Error en el registro",
+    "logout_failed": "Error al cerrar sesión",
+    "version_label": "Versión {{version}}",
+    "email_verified": "¡Tu correo electrónico ha sido verificado! Ya puedes iniciar sesión.",
+    "register": "Registrarse",
+    "maintenance_active": "Modo de mantenimiento activo: solo el equipo puede iniciar sesión",
+    "registration_disabled_maintenance": "El sitio está en mantenimiento. El registro está desactivado.",
+    "registration_disabled_admin": "El administrador ha desactivado el registro temporalmente.",
+    "why_join": "¿Por qué unirte a {{name}}?",
+    "features_short": {
+      "news": "Noticias de calidad",
+      "discussions": "Discusiones",
+      "trends": "Tendencias",
+      "community": "Comunidad"
+    },
+    "default_description": "Únete a nuestra comunidad vibrante, donde personas informadas conectan, comparten y debaten sobre actualidad, política y entretenimiento.",
+    "features": {
+      "news": {
+        "title": "Noticias de calidad",
+        "description": "Accede a noticias verificadas y análisis en profundidad de fuentes fiables sobre política y actualidad."
+      },
+      "discussions": {
+        "title": "Discusiones con sentido",
+        "description": "Participa en debates respetuosos sobre los temas políticos y sociales que importan."
+      },
+      "trends": {
+        "title": "Entretenimiento y tendencias",
+        "description": "Mantente al día con lo último en entretenimiento, cultura y temas del momento."
+      },
+      "community": {
+        "title": "Impacto en la comunidad",
+        "description": "Conecta con personas que comparten tus intereses en política, noticias y entretenimiento."
+      }
+    },
+    "latest_updates": {
+      "title": "Últimas novedades",
+      "new_in": "Novedades de la versión {{version}}:",
+      "items": {
+        "theme_builder": "Editor de temas avanzado",
+        "cursor_particles": "Partículas dinámicas e interactivas en el cursor",
+        "light_dark": "Modo claro y oscuro renovados",
+        "roles": "Sistema global de roles y permisos",
+        "languages": "Soporte global de idiomas (6 idiomas)"
+      }
+    },
+    "username": "Nombre de usuario",
+    "password": "Contraseña",
+    "email": "Correo electrónico",
+    "hide_password": "Ocultar contraseña",
+    "show_password": "Mostrar contraseña",
+    "validation": {
+      "username_required": "El nombre de usuario es obligatorio",
+      "password_required": "La contraseña es obligatoria",
+      "username_min": "El nombre de usuario debe tener al menos {{count}} caracteres",
+      "username_max": "El nombre de usuario puede tener como máximo {{count}} caracteres",
+      "username_chars": "Solo se permiten letras, números, '.', '_' y '-'",
+      "email_invalid": "Introduce un correo electrónico válido",
+      "password_min": "La contraseña debe tener al menos {{count}} caracteres",
+      "password_max": "La contraseña puede tener como máximo {{count}} caracteres"
+    }
+  },
+  "bans": {
+    "title": "Bloqueos y restricciones"
+  },
+  "autoPunishment": {
+    "title": "Sanciones automáticas"
+  },
+  "analytics": {
+    "title": "Analíticas",
+    "eyebrow": "Admin / Analíticas"
+  },
+  "modPerf": {
+    "nav": "Rendimiento de moderación",
+    "eyebrow": "Admin / Analíticas"
+  },
+  "security": {
+    "stress_test": "Pruebas de seguridad",
+    "eyebrow": "Admin / Seguridad"
+  },
+  "profile": {
+    "pro": "Pro",
+    "joined": "Se unió",
+    "edit": "Editar perfil",
+    "edit_title": "Editar perfil",
+    "edit_description": "Personaliza tu identidad en línea y tus datos profesionales.",
+    "following": "Siguiendo",
+    "follow": "Seguir",
+    "followBack": "Seguir también",
+    "posts": "Publicaciones",
+    "followers": "Seguidores",
+    "followedBy": "Seguido por",
+    "and": "y",
+    "others": "más",
+    "tabs": {
+      "posts": "Publicaciones",
+      "comments": "Comentarios",
+      "liked": "Me gusta",
+      "saved": "Guardados"
+    },
+    "empty": {
+      "posts": {
+        "title": "No hay publicaciones",
+        "description": "Este usuario aún no ha compartido nada."
+      },
+      "comments": {
+        "title": "No hay comentarios",
+        "description": "No se encontraron comentarios."
+      },
+      "liked": {
+        "title": "No hay me gusta",
+        "description": "El contenido que te guste aparecerá aquí."
+      },
+      "saved": {
+        "title": "No hay guardados",
+        "description": "Solo tú puedes ver las publicaciones guardadas."
+      }
+    },
+    "form": {
+      "name": "Nombre visible",
+      "bio": "Biografía",
+      "bio_placeholder": "Cuéntanos sobre ti...",
+      "bio_description": "Se muestra en tu perfil. Máximo 160 caracteres.",
+      "location": "Ubicación",
+      "website": "Sitio web",
+      "privacy": "Cuenta privada",
+      "privacy_description": "Solo los miembros pueden ver tu contenido.",
+      "name_placeholder": "Juan Pérez",
+      "location_placeholder": "Madrid, España"
+    },
+    "update_success_title": "Perfil actualizado",
+    "update_success_desc": "Tus cambios se han guardado correctamente.",
+    "follow_success": "Ahora lo sigues",
+    "is_now_following": "Ahora sigues a {{username}}",
+    "unfollow_success": "Has dejado de seguir",
+    "unfollow": "Dejar de seguir",
+    "edit_tabs": {
+      "general": "General",
+      "images": "Imágenes",
+      "privacy": "Privacidad"
+    },
+    "image": {
+      "avatar": "Foto de perfil",
+      "cover": "Imagen de portada",
+      "change_avatar": "Cambiar foto de perfil",
+      "choose_avatar": "Elegir foto de perfil",
+      "change_cover": "Cambiar imagen de portada",
+      "choose_cover": "Elegir imagen de portada",
+      "remove": "Quitar",
+      "uploading": "Subiendo …",
+      "hint": "JPG, PNG o WebP, máx. {{mb}} MB.",
+      "cover_hint": "Horizontal, p. ej. 1500 × 500 px. JPG, PNG o WebP, máx. {{mb}} MB.",
+      "upload_failed": "No se pudo subir la imagen",
+      "wrong_type": "Solo se permiten JPG, PNG o WebP.",
+      "too_large": "El archivo es demasiado grande (máx. {{mb}} MB).",
+      "too_large_proxy": "El archivo es demasiado grande.",
+      "try_again": "Inténtalo de nuevo.",
+      "avatar_preview": "Vista previa de la foto de perfil",
+      "cover_preview": "Vista previa de la portada"
+    },
+    "follows_you": "Te sigue",
+    "on_post": "En",
+    "user_not_found": "Usuario no encontrado"
   },
   "common": {
     "loading": "Cargando...",
     "error": "Ocurrió un error",
     "submit": "Enviar",
     "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "back": "Volver",
     "delete": "Eliminar",
     "edit": "Editar",
     "save": "Guardar",
@@ -26,52 +211,81 @@
       "light": "Claro",
       "dark": "Oscuro",
       "system": "Sistema"
-    }
+    },
+    "success": "Listo"
   },
   "feed": {
-    "media_title": "Feed Multimedia",
-    "discussions_title": "Feed de Discusiones",
-    "create_discussion": "Iniciar Discusión",
-    "post_news": "Publicar Noticias",
-    "post_entertainment": "Publicar Entretenimiento",
+    "media_title": "Feed multimedia",
+    "discussions_title": "Feed de discusiones",
+    "create_discussion": "Iniciar discusión",
+    "post_news": "Publicar noticia",
+    "post_entertainment": "Publicar entretenimiento",
     "following": "Siguiendo",
     "follow": "Seguir",
     "all": "Todos",
     "news": "Noticias",
     "entertainment": "Entretenimiento",
     "no_discussions": "Aún no hay discusiones. ¡Sé el primero en iniciar una!",
-    "no_posts": "Aún no hay publicaciones. ¡Sé el primero en compartir algo!"
+    "no_posts": "Aún no hay publicaciones. ¡Sé el primero en compartir algo!",
+    "curated": "Feed seleccionado",
+    "media_description": "Las historias más visuales y atractivas, seleccionadas para que las explores.",
+    "create_story": "Crear historia",
+    "eyebrow_media": "Feed / Multimedia",
+    "eyebrow_discussions": "Feed / Discusiones",
+    "no_media": "Silencio en el Verse",
+    "no_media_desc": "Sé la chispa que encienda este feed. Comparte ya tu primera publicación multimedia.",
+    "discussion_description": "Conecta, debate y comparte ideas con una comunidad que valora las conversaciones profundas.",
+    "start_discussion": "Iniciar conversación",
+    "no_discussions_desc": "Todo gran movimiento empezó con una sola palabra. Sé el primero en hablar.",
+    "fetch_discussions_failed": "No se pudieron obtener las discusiones",
+    "load_discussions_failed": "No se pudieron cargar las discusiones",
+    "break_silence": "Rompe el silencio",
+    "fetch_posts_failed": "No se pudieron obtener las publicaciones",
+    "load_media_failed": "No se pudo cargar el contenido multimedia",
+    "ignite_discovery": "Enciende el descubrimiento",
+    "loading_more": "Expandiendo el Verse...",
+    "end_reached": "Has llegado al límite del Verse"
   },
   "comments": {
     "title": "Comentarios",
     "placeholder": "Escribe un comentario...",
-    "post_button": "Publicar"
+    "post_button": "Publicar",
+    "success": "Comentario publicado",
+    "added": "Tu comentario se ha añadido.",
+    "deleted_success": "Comentario eliminado correctamente",
+    "delete_title": "Eliminar comentario"
   },
   "actions": {
     "report": "Reportar",
     "delete": "Eliminar",
     "cancel": "Cancelar",
-    "delete_post_confirm": "¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.",
-    "delete_comment_confirm": "¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer."
+    "like": "Me gusta",
+    "dislike": "No me gusta",
+    "delete_post_confirm": "¿Seguro que quieres eliminar esta publicación? Esta acción no se puede deshacer.",
+    "delete_comment_confirm": "¿Seguro que quieres eliminar este comentario? Esta acción no se puede deshacer."
   },
   "admin": {
-    "title": "Panel de Administración",
-    "reset_roles": "Restablecer Todos los Roles",
+    "title": "Panel de administración",
+    "back_to_site": "Volver al sitio",
+    "reset_roles": "Restablecer todos los roles",
     "stats": {
-      "total_users": "Total de Usuarios",
-      "active_users": "Usuarios Activos",
-      "verified_users": "Usuarios Verificados",
-      "banned_users": "Usuarios Baneados",
-      "deleted_users": "Usuarios Eliminados",
-      "total_posts": "Total de Publicaciones",
-      "total_reports": "Total de Reportes",
-      "pending_reports": "Reportes Pendientes",
-      "resolved_reports": "Reportes Resueltos",
-      "rejected_reports": "Reportes Rechazados"
+      "total_users": "Total de usuarios",
+      "active_users": "Usuarios activos",
+      "verified_users": "Usuarios verificados",
+      "banned_users": "Usuarios bloqueados",
+      "deleted_users": "Usuarios eliminados",
+      "total_posts": "Total de publicaciones",
+      "total_reports": "Total de reportes",
+      "pending_reports": "Reportes pendientes",
+      "resolved_reports": "Reportes resueltos",
+      "rejected_reports": "Reportes rechazados"
     },
     "tabs": {
       "users": "Usuarios",
-      "reports": "Reportes"
+      "reports": "Reportes",
+      "monitoring": "Sistema de monitoreo",
+      "logs": "Registros de actividad",
+      "settings": "Ajustes"
     },
     "roles": {
       "owner": "Propietario",
@@ -87,42 +301,42 @@
       "karma": "Karma",
       "joined": "Se unió",
       "actions": "Acciones",
-      "make_admin": "Hacer Admin",
-      "make_owner": "Hacer Propietario",
-      "remove_admin": "Quitar Admin",
-      "remove_owner": "Quitar Propietario",
-      "ban_user": "Banear Usuario",
-      "restore_user": "Restaurar Cuenta",
-      "verify_user": "Verificar Usuario",
-      "unverify_user": "Desverificar Usuario",
-      "verify_email": "Verificar Correo",
-      "unverify_email": "Desverificar Correo",
-      "verify_user_confirm": "¿Estás seguro de que quieres verificar a {{username}}? Esto mostrará una insignia de verificado junto a su nombre.",
-      "unverify_user_confirm": "¿Estás seguro de que quieres quitar la verificación a {{username}}? Esto eliminará su insignia de verificado.",
-      "restore_user_confirm": "¿Estás seguro de que quieres restaurar la cuenta de {{username}}?",
-      "ban_user_confirm": "¿Estás seguro de que quieres banear a {{username}}? Esto les impedirá acceder a la mayoría de las funciones.",
-      "delete_user_confirm": "¿Estás seguro de que quieres eliminar permanentemente a {{username}}? Esta acción no se puede deshacer y eliminará todas las publicaciones, comentarios y otros datos del usuario.",
-      "make_admin_confirm": "¿Estás seguro de que quieres hacer administrador a {{username}}? Esto les dará privilegios administrativos.",
-      "make_owner_confirm": "¿Estás seguro de que quieres promover a {{username}} a Propietario? Esto les otorga acceso total al sistema.",
-      "remove_owner_confirm": "¿Estás seguro de que quieres quitar el estado de Propietario a {{username}}? Serán degradados a Administrador.",
-      "remove_admin_confirm": "¿Estás seguro de que quieres quitar los privilegios de administrador a {{username}}? Serán degradados a un usuario regular."
+      "make_admin": "Hacer admin",
+      "make_owner": "Hacer propietario",
+      "remove_admin": "Quitar admin",
+      "remove_owner": "Quitar propietario",
+      "ban_user": "Bloquear usuario",
+      "restore_user": "Restaurar cuenta",
+      "verify_user": "Verificar usuario",
+      "unverify_user": "Quitar verificación",
+      "verify_email": "Correo verificado",
+      "unverify_email": "Correo no verificado",
+      "verify_user_confirm": "¿Seguro que quieres verificar a {{username}}? Se mostrará una insignia de verificado junto a su nombre.",
+      "unverify_user_confirm": "¿Seguro que quieres quitar la verificación a {{username}}? Se eliminará su insignia de verificado.",
+      "restore_user_confirm": "¿Seguro que quieres restaurar la cuenta de {{username}}?",
+      "ban_user_confirm": "¿Seguro que quieres bloquear a {{username}}? No podrá acceder a la mayoría de las funciones.",
+      "delete_user_confirm": "¿Seguro que quieres eliminar permanentemente a {{username}}? Esta acción no se puede deshacer y eliminará todas las publicaciones, comentarios y demás datos del usuario.",
+      "make_admin_confirm": "¿Seguro que quieres hacer administrador a {{username}}? Obtendrá privilegios administrativos.",
+      "make_owner_confirm": "¿Seguro que quieres ascender a {{username}} a propietario? Obtendrá acceso total al sistema.",
+      "remove_owner_confirm": "¿Seguro que quieres quitarle el estado de propietario a {{username}}? Pasará a ser administrador.",
+      "remove_admin_confirm": "¿Seguro que quieres quitarle los privilegios de administrador a {{username}}? Pasará a ser un usuario normal."
     },
     "reports_table": {
-      "reporter": "Reportador",
+      "reporter": "Reportado por",
       "ip_address": "Dirección IP",
-      "poster": "Lata",
+      "poster": "Autor",
       "type": "Tipo",
       "content": "Contenido",
-      "reason": "Razón",
+      "reason": "Motivo",
       "status": "Estado",
       "reported_on": "Reportado el",
       "actions": "Acciones",
       "resolve": "Resolver",
       "reject": "Rechazar",
-      "resolve_title": "Resolver Reporte",
-      "resolve_desc": "¿Estás seguro de que quieres resolver este reporte? Esto eliminará el contenido reportado.",
-      "reject_title": "Rechazar Reporte",
-      "reject_desc": "¿Estás seguro de que quieres rechazar este reporte? El contenido reportado permanecerá.",
+      "resolve_title": "Resolver reporte",
+      "resolve_desc": "¿Seguro que quieres resolver este reporte? Se eliminará el contenido reportado.",
+      "reject_title": "Rechazar reporte",
+      "reject_desc": "¿Seguro que quieres rechazar este reporte? El contenido reportado se mantendrá.",
       "status_all": "Todos",
       "status_pending": "Pendiente",
       "status_resolved": "Resuelto",
@@ -130,22 +344,25 @@
       "type_post": "Publicación",
       "type_discussion": "Discusión",
       "type_comment": "Comentario"
-    }
+    },
+    "overview_eyebrow": "Admin / Resumen",
+    "command_center": "Centro de mando",
+    "settings_eyebrow": "Admin / Ajustes"
   },
   "notifications": {
     "title": "Notificaciones",
-    "manage_desc": "Mantente informado sobre tus interacciones y actividad de la cuenta.",
-    "empty": "No hay notificaciones",
+    "manage_desc": "Mantente al día de tus últimas interacciones y de la actividad de tu cuenta.",
+    "empty": "Aún no hay notificaciones",
     "empty_desc": "Cuando recibas notificaciones, aparecerán aquí.",
     "mark_all_read": "Marcar todo como leído",
     "settings": "Ajustes",
     "view_all": "Ver todas las notificaciones",
     "clear_all": "Borrar todo",
-    "confirm_clear_all": "¿Estás seguro de que deseas borrar todas las notificaciones?",
+    "confirm_clear_all": "¿Seguro que quieres borrar todas las notificaciones?",
     "error_load": "No se pudieron cargar las notificaciones.",
     "tabs": {
       "all": "Todo",
-      "unread": "No leído",
+      "unread": "No leídas",
       "settings": "Preferencias"
     },
     "types": {
@@ -159,283 +376,339 @@
       "mention_comment": "{{actor}} te mencionó en un comentario",
       "community_join_approved": "Tu solicitud para unirte a {{name}} fue aprobada",
       "community_join_request": "{{actor}} solicitó unirse a {{name}}",
-      "community_kick": "Fuiste expulsado de {{name}}",
+      "community_kick": "Te han expulsado de {{name}}",
       "report_resolved": "Tu reporte fue resuelto",
       "report_rejected": "Tu reporte fue rechazado",
-      "system_announcement": "Anuncio del sistema: {{name}}"
+      "system_announcement": "Anuncio del sistema: {{name}}",
+      "action": "{{actor}} realizó una acción",
+      "welcome": "¡Bienvenido a Osiris! Nos alegra que estés aquí."
     },
     "pref": {
-      "social_header": "Interacciones Sociales",
-      "social_desc": "Elige sobre qué eventos sociales deseas ser notificado.",
-      "system_header": "Sistema y Comunidad",
-      "system_desc": "Gestiona alertas de comunidad y notificaciones administrativas.",
-      "likes": "Me gusta",
+      "social_header": "Interacciones sociales",
+      "social_desc": "Elige sobre qué eventos sociales quieres recibir notificaciones.",
+      "system_header": "Sistema y comunidad",
+      "system_desc": "Gestiona las alertas de comunidades y las notificaciones administrativas.",
+      "likes": "Me gusta en tu contenido",
       "comments": "Comentarios y respuestas",
       "mentions": "Menciones",
       "followers": "Nuevos seguidores",
       "community_invites": "Eventos de comunidad",
       "system": "Anuncios del sistema"
-    }
+    },
+    "eyebrow": "Cuenta / Notificaciones",
+    "someone": "Alguien",
+    "privacy_note": "\"Tu privacidad es nuestra prioridad. Solo te enviamos notificaciones de las acciones que elijas seguir.\""
   },
   "ai_generator": {
-    "title": "Generador de Posts con IA",
+    "title": "Generador de publicaciones con IA",
     "description": "Selecciona un feed, sube una imagen (opcional) y deja que la IA escriba por ti.",
-    "select_feed": "Seleccionar Feed",
-    "select_language": "Seleccionar Idioma",
-    "upload_image": "1. Elige una Imagen (Opcional)",
-    "enter_topic": "2. Introduce un Tema",
-    "topic_placeholder": "Ej., Café Matutino, Tendencias Tech, Vibras de Fin de Semana...",
-    "remove_image": "Eliminar",
-    "generate_button": "Generar Post",
-    "generating": "Creando Magia...",
-    "generated_label": "Tu Post Generado",
+    "select_feed": "Seleccionar feed",
+    "select_language": "Seleccionar idioma",
+    "upload_image": "1. Elige una imagen (opcional)",
+    "enter_topic": "2. Escribe un tema",
+    "topic_placeholder": "P. ej., café matutino, tendencias tech, planes de fin de semana...",
+    "remove_image": "Quitar",
+    "generate_button": "Generar publicación",
+    "generating": "Creando magia...",
+    "generated_label": "Tu publicación generada",
     "edit_placeholder": "Puedes editar el texto aquí antes de publicar...",
     "copy": "Copiar",
-    "post_button": "Publicar en Feed",
+    "post_button": "Publicar en el feed",
     "posting": "Publicando...",
-    "toast_generated": "¡Contenido Generado!",
-    "toast_generated_desc": "Tu post perfecto está listo. Ahora puedes editarlo o publicarlo.",
+    "toast_generated": "¡Contenido generado!",
+    "toast_generated_desc": "Tu publicación perfecta está lista. Ahora puedes editarla o publicarla.",
     "toast_posted": "¡Publicado!",
-    "toast_posted_desc": "Tu post está ahora en vivo en el feed.",
+    "toast_posted_desc": "Tu publicación ya está en el feed.",
     "feeds": {
-      "news": "Feed de Noticias",
-      "entertainment": "Feed de Entretenimiento",
-      "discussion": "Feed de Discusión"
+      "news": "Feed de noticias",
+      "entertainment": "Feed de entretenimiento",
+      "discussion": "Feed de discusiones"
     },
     "languages": {
       "english": "Inglés",
       "german": "Alemán",
       "spanish": "Español",
       "french": "Francés"
-    }
+    },
+    "eyebrow": "Crear / Generador IA",
+    "mascot_alt": "Mecha Osiris, la mascota de IA",
+    "preview_alt": "Vista previa de tu imagen"
   },
   "create_post": {
     "news": {
-      "title": "Compartir Noticia",
+      "title": "Compartir noticia",
       "headline": "Titular",
-      "content": "Contenido del Artículo",
-      "placeholder": "Escribe tu artículo de noticias aquí. Asegúrate de que sea factual y tenga fuentes adecuadas.",
-      "submit": "Enviar Noticia",
+      "content": "Contenido del artículo",
+      "placeholder": "Escribe aquí tu artículo de noticias. Asegúrate de que sea veraz y cite fuentes adecuadas.",
+      "submit": "Enviar noticia",
       "success_title": "Noticia publicada",
-      "success_desc": "Tu artículo de noticias ha sido publicado exitosamente."
+      "success_desc": "Tu artículo de noticias se ha publicado correctamente.",
+      "selector_desc": "Comparte noticias de última hora y actualizaciones informativas."
     },
     "entertainment": {
-      "title": "Compartir Algo Divertido",
+      "title": "Compartir algo divertido",
       "title_label": "Título",
       "content_label": "Contenido",
       "placeholder": "¡Comparte un chiste, una historia divertida o algo interesante!",
       "submit": "Compartir",
-      "success_title": "Post creado",
-      "success_desc": "Tu post de entretenimiento ha sido compartido exitosamente."
+      "success_title": "Publicación creada",
+      "success_desc": "Tu publicación de entretenimiento se ha compartido correctamente.",
+      "selector_desc": "Contenido visual divertido, creativo y atractivo."
     },
     "discussion": {
-      "title": "Iniciar una Discusión",
+      "title": "Iniciar una discusión",
       "title_label": "Título",
       "content_label": "Contenido",
-      "placeholder": "Comparte tus pensamientos...",
-      "submit": "Publicar Discusión",
+      "placeholder": "Comparte lo que piensas...",
+      "submit": "Publicar discusión",
       "success_title": "Discusión creada",
-      "success_desc": "Tu discusión ha sido publicada exitosamente.",
+      "success_desc": "Tu discusión se ha publicado correctamente.",
       "selector_desc": "Inicia una conversación profunda o pregunta a la comunidad."
     },
     "selector": {
       "title": "¿Qué dice el Universo?",
-      "subtitle": "Nueva Creación",
+      "subtitle": "Nueva creación",
       "description": "Elige una dimensión para que tu historia resuene."
     },
-    "news": {
-      "title": "Compartir Noticia",
-      "headline": "Titular",
-      "content": "Contenido del Artículo",
-      "placeholder": "Escribe tu artículo de noticias aquí.",
-      "submit": "Enviar Noticia",
-      "success_title": "Noticia publicada",
-      "success_desc": "Tu artículo de noticias ha sido publicado exitosamente.",
-      "selector_desc": "Comparte noticias de última hora y actualizaciones informativas."
-    },
-    "entertainment": {
-      "title": "Compartir Algo Divertido",
-      "title_label": "Título",
-      "content_label": "Contenido",
-      "placeholder": "¡Comparte un chiste, una historia divertida o algo interesante!",
-      "submit": "Compartir",
-      "success_title": "Post creado",
-      "success_desc": "Tu post de entretenimiento ha sido compartido exitosamente.",
-      "selector_desc": "Contenido visual divertido, creativo y atractivo."
-    },
-    "media_label": "Media (Imagen o Video)"
+    "media_label": "Multimedia (imagen o video)"
   },
   "community": {
     "create": {
-      "title": "Crear una Comunidad",
-      "subtitle": "Construye un espacio para que la gente comparta y discuta intereses comunes.",
-      "name_label": "Nombre de la Comunidad",
-      "name_placeholder": "ej. Amantes del Café, Noticias Tech",
+      "title": "Crear una comunidad",
+      "subtitle": "Crea un espacio para que la gente comparta y debata sobre intereses comunes.",
+      "name_label": "Nombre de la comunidad",
+      "name_placeholder": "p. ej. Amantes del café, Noticias tech",
       "desc_label": "Descripción",
       "desc_placeholder": "¿De qué trata esta comunidad?",
-      "image_label": "URL de Imagen (Opcional)",
-      "allowed_feeds_label": "Feeds Permitidos",
-      "feed_hint": "Selecciona al menos un tipo de feed para tu comunidad.",
-      "submit": "Crear Comunidad",
-      "success_title": "Comunidad Creada",
+      "image_label": "URL de la imagen (opcional)",
+      "allowed_feeds_label": "Feeds permitidos",
+      "feed_hint": "Selecciona en qué feeds principales deben aparecer las publicaciones de esta comunidad.",
+      "privacy_label": "Comunidad privada",
+      "privacy_desc": "Solo los miembros pueden ver las publicaciones de esta comunidad en los feeds globales.",
+      "submit": "Crear comunidad",
+      "success_title": "Comunidad creada",
       "restriction_title": "Restricción",
       "restriction_desc": "Necesitas al menos 200 de reputación para crear una comunidad.",
-      "current_rep": "Tu reputación actual:"
+      "current_rep": "Tu reputación actual:",
+      "eyebrow": "Comunidades / Nueva",
+      "success_desc": "¡Bienvenido a {{name}}!"
     },
     "page": {
-      "not_found_title": "Comunidad No Encontrada",
+      "not_found_title": "Comunidad no encontrada",
       "not_found_desc": "La comunidad que buscas no existe.",
-      "back_to_communities": "Volver a Comunidades",
+      "back_to_communities": "Volver a comunidades",
       "about": "Acerca de",
       "created": "Creada:",
       "join_prompt": "¡Únete a esta comunidad para empezar a publicar e interactuar!",
-      "join_button": "Unirse a Comunidad",
+      "join_button": "Unirse a la comunidad",
+      "request_join": "Solicitar unirse",
+      "pending_request": "Solicitud pendiente...",
+      "declined_request": "Rechazada",
       "leave_button": "Salir",
       "owner_badge": "Propietario",
-      "create_post": "Crear Post",
+      "create_post": "Crear publicación",
+      "manage_button": "Gestionar comunidad",
       "joined_success": "¡Te has unido!",
       "left_success": "Has salido",
       "member_of": "Ahora eres miembro de {{name}}",
-      "left_community": "Has dejado {{name}}",
+      "left_community": "Has salido de {{name}}",
       "tabs": {
         "all": "Todo",
+        "general": "General",
+        "lifestyle": "Estilo de vida",
         "news": "Noticias",
         "entertainment": "Entretenimiento",
         "discussion": "Discusión"
       },
       "sort": {
-        "hot": "Tendencias",
-        "new": "Nuevo",
+        "hot": "Populares",
+        "new": "Nuevos",
         "top": "Top"
       },
-      "empty_posts": "No hay posts todavía",
-      "empty_posts_desc": "¡Sé el primero en compartir algo!"
+      "empty_posts": "Aún no hay publicaciones",
+      "empty_posts_desc": "¡Sé el primero en compartir algo!",
+      "eyebrow": "Comunidades",
+      "established": "Fundada",
+      "privacy_mode": "Modo de privacidad",
+      "restricted": "Restringido",
+      "open_access": "Acceso abierto",
+      "join_circle": "Únete al círculo"
     }
   },
   "mod_panel": {
-    "title": "Panel de Moderador",
+    "title": "Panel de moderación",
     "no_communities": "No estás moderando ninguna comunidad.",
-    "my_communities": "Mis Comunidades",
+    "my_communities": "Mis comunidades",
     "tabs": {
       "overview": "Resumen",
       "reports": "Reportes",
+      "requests": "Solicitudes",
       "members": "Miembros",
-      "bans": "Baneos",
-      "staff": "Staff"
+      "bans": "Bloqueos",
+      "staff": "Equipo"
     },
     "overview": {
-      "title": "Resumen de la Comunidad",
+      "title": "Resumen de la comunidad",
       "desc": "Métricas y acciones rápidas (Próximamente)",
       "select_prompt": "Selecciona una pestaña para gestionar tu comunidad."
     },
     "reports": {
-      "updated_title": "Reporte Actualizado",
-      "updated_desc": "El estado del reporte ha sido actualizado.",
+      "updated_title": "Reporte actualizado",
+      "updated_desc": "Se ha actualizado el estado del reporte.",
       "filter_placeholder": "Filtrar por estado",
-      "all": "Todos los Reportes",
+      "all": "Todos los reportes",
       "pending": "Pendiente",
       "resolved": "Resuelto",
       "rejected": "Rechazado",
       "table": {
         "type": "Tipo",
-        "reason": "Razón",
+        "reason": "Motivo",
         "status": "Estado",
         "date": "Fecha",
         "actions": "Acciones",
-        "empty": "No hay reportes encontrados."
+        "empty": "No se encontraron reportes."
       },
       "types": {
-        "post": "Post",
+        "post": "Publicación",
         "comment": "Comentario",
         "other": "Otro"
-      }
+      },
+      "no_match": "Ningún reporte coincide con tus filtros."
+    },
+    "requests": {
+      "approved_title": "Solicitud aprobada",
+      "approved_desc": "El usuario se ha añadido a la comunidad.",
+      "declined_title": "Solicitud rechazada",
+      "declined_desc": "Se ha rechazado la solicitud de unión.",
+      "table": {
+        "user": "Usuario",
+        "date": "Fecha",
+        "actions": "Acciones",
+        "empty": "No hay solicitudes de unión pendientes."
+      },
+      "empty_desc": "Cuando alguien solicite unirse a esta comunidad privada, aparecerá aquí.",
+      "unknown_user": "Usuario desconocido"
     },
     "members": {
-      "kicked_title": "Usuario Expulsado",
-      "kicked_desc": "Miembro eliminado de la comunidad.",
+      "title": "Miembros de la comunidad",
       "search_placeholder": "Buscar miembros...",
+      "kicked_title": "Miembro expulsado",
+      "kicked_desc": "El usuario ha sido expulsado de la comunidad.",
+      "role_updated_title": "Rol actualizado",
+      "role_updated_desc": "El rol del usuario se ha cambiado correctamente.",
+      "promote_mod": "Ascender a moderador",
+      "promote_owner": "Ascender a propietario",
+      "demote_member": "Degradar a miembro",
+      "change_role": "Cambiar rol",
+      "confirm_owner_title": "¿Ascender a propietario?",
+      "confirm_owner_desc": "Este usuario tendrá control total sobre la comunidad. ¿Seguro que quieres continuar?",
+      "invite_button": "Invitar usuario",
+      "invite_dialog": {
+        "title": "Invitar usuario",
+        "desc": "Busca a un usuario para añadirlo directamente a la comunidad."
+      },
       "table": {
         "user": "Usuario",
         "role": "Rol",
         "actions": "Acciones",
-        "empty": "No hay miembros encontrados."
+        "empty": "No se encontraron miembros."
       },
       "kick_dialog": {
-        "title": "¿Expulsar Miembro?",
-        "desc": "¿Estás seguro de que quieres eliminar a {{name}} de la comunidad? Pueden unirse de nuevo más tarde.",
-        "confirm": "Expulsar Usuario",
-        "cancel": "Cancelar"
-      }
+        "title": "¿Expulsar miembro?",
+        "desc": "¿Seguro que quieres expulsar a {{name}} de esta comunidad?",
+        "cancel": "Cancelar",
+        "confirm": "Expulsar"
+      },
+      "you": "tú",
+      "actions_for": "Acciones para {{name}}",
+      "view_profile": "Ver perfil",
+      "make_mod": "Hacer moderador",
+      "kick": "Expulsar de la comunidad",
+      "ban": "Bloquear …",
+      "unban": "Desbloquear",
+      "no_rights": "No puedes cambiar nada más para esta persona.",
+      "banned_since": "Bloqueado desde el {{date}}",
+      "ban_dialog_title": "¿Bloquear a {{name}}?",
+      "ban_dialog_desc": "Se le expulsará de la comunidad y no podrá volver a unirse hasta que lo desbloquees."
     },
     "bans": {
-      "banned_title": "Usuario Baneado",
-      "banned_desc": "El usuario ha sido baneado de la comunidad.",
-      "unbanned_title": "Usuario Desbaneado",
+      "banned_title": "Usuario bloqueado",
+      "banned_desc": "El usuario ha sido bloqueado en la comunidad.",
+      "unbanned_title": "Usuario desbloqueado",
       "unbanned_desc": "Acceso restaurado.",
-      "search_placeholder": "Buscar baneos...",
-      "ban_button": "Banear Usuario",
+      "search_placeholder": "Buscar bloqueos...",
+      "ban_button": "Bloquear usuario",
       "table": {
         "user": "Usuario",
-        "reason": "Razón",
+        "reason": "Motivo",
         "date": "Fecha",
         "actions": "Acciones",
-        "empty": "No hay baneos encontrados.",
+        "empty": "No se encontraron bloqueos.",
         "id": "ID:",
-        "no_reason": "Sin razón"
+        "no_reason": "Sin motivo"
       },
       "ban_dialog": {
-        "title": "Banear Usuario de la Comunidad",
-        "desc": "Prevenir que un usuario publique o comente en esta comunidad.",
-        "user_id_label": "ID de Usuario",
-        "user_id_placeholder": "ID de Usuario Objetivo",
-        "reason_label": "Razón",
-        "reason_placeholder": "Razón del baneo",
-        "confirm": "Banear Usuario",
+        "title": "Bloquear usuario en la comunidad",
+        "desc": "Impide que un usuario publique o comente en esta comunidad.",
+        "user_id_label": "ID de usuario",
+        "user_id_placeholder": "ID del usuario",
+        "reason_label": "Motivo",
+        "reason_placeholder": "Motivo del bloqueo",
+        "confirm": "Bloquear usuario",
         "cancel": "Cancelar"
       },
       "unban_dialog": {
-        "title": "¿Desbanear Usuario?",
-        "desc": "Esto restaurará el acceso de {{name}} a la comunidad.",
-        "confirm": "Desbanear",
+        "title": "¿Desbloquear usuario?",
+        "desc": "{{name}} recuperará el acceso a la comunidad.",
+        "confirm": "Desbloquear",
         "cancel": "Cancelar"
       }
     },
     "staff": {
-      "added_title": "Moderador Añadido",
-      "added_desc": "Usuario promovido a moderador.",
-      "title": "Staff de la Comunidad",
-      "add_button": "Añadir Moderador",
+      "added_title": "Moderador añadido",
+      "added_desc": "Usuario ascendido a moderador.",
+      "title": "Equipo de la comunidad",
+      "add_button": "Añadir moderador",
       "add_dialog": {
-        "title": "Añadir Moderador",
-        "desc": "Otorgar privilegios de moderación. Solo el Propietario puede hacer esto.",
-        "user_id_label": "ID de Usuario",
-        "user_id_placeholder": "ID de Usuario Objetivo",
-        "confirm": "Añadir Moderador",
-        "cancel": "Cancelar"
+        "title": "Añadir moderador",
+        "desc": "Otorga privilegios de moderación. Solo el propietario puede hacerlo.",
+        "user_id_label": "ID de usuario",
+        "user_id_placeholder": "ID del usuario",
+        "confirm": "Añadir moderador",
+        "cancel": "Cancelar",
+        "or_by_id": "O por ID",
+        "manual_id": "ID de usuario manual"
       }
+    },
+    "roles": {
+      "owner": "Propietario",
+      "moderator": "Moderador",
+      "member": "Miembro",
+      "banned": "Bloqueado"
     }
   },
   "communities_feed": {
-    "header_title": "Feed de Comunidades",
+    "header_title": "Feed de comunidades",
     "header_desc": "Publicaciones de comunidades a las que te has unido",
-    "create_button": "Crear Comunidad",
-    "search_title": "Buscar Comunidades",
+    "create_button": "Crear comunidad",
+    "search_title": "Buscar comunidades",
     "search_placeholder": "Buscar...",
-    "my_communities": "Mis Comunidades",
+    "my_communities": "Mis comunidades",
     "no_joined": "Aún no te has unido a ninguna comunidad.",
     "no_results": "No se encontraron comunidades.",
-    "no_posts": "No hay posts todavía",
-    "no_posts_desc": "¡Únete a comunidades para ver sus posts aquí, o crea tu propia comunidad!",
-    "join_suggestion": "Crear Comunidad"
+    "no_posts": "Aún no hay publicaciones",
+    "no_posts_desc": "¡Únete a comunidades para ver sus publicaciones aquí o crea tu propia comunidad!",
+    "join_suggestion": "Crear comunidad",
+    "eyebrow": "Feed / Comunidades"
   },
   "media_feed": {
-    "load_error": "Media falló al cargar"
+    "load_error": "No se pudo cargar el contenido multimedia"
   },
   "ai_gen_errors": {
-    "generation_failed": "Generación Fallida",
-    "posting_failed": "Publicación Fallida",
-    "topic_required": "Tema Requerido",
-    "topic_missing": "Por favor introduce un tema para el post.",
+    "generation_failed": "Error al generar",
+    "posting_failed": "Error al publicar",
+    "topic_required": "Tema obligatorio",
+    "topic_missing": "Escribe un tema para la publicación.",
     "generic": "Algo salió mal.",
     "copied": "¡Copiado!",
     "copied_desc": "Contenido copiado al portapapeles.",
@@ -450,14 +723,833 @@
   "entertainment_page": {
     "fun_badge": "Diversión",
     "shared_on": "Compartido el",
-    "no_posts_desc": "No hay posts de entretenimiento todavía. ¡Comparte algo divertido para empezar!"
+    "no_posts_desc": "Aún no hay publicaciones de entretenimiento. ¡Comparte algo divertido para empezar!"
   },
   "theme_builder": {
-    "theme_name_label": "Nombre del Tema",
+    "theme_name_label": "Nombre del tema",
     "unsaved_changes": "Cambios sin guardar",
     "all_saved": "Todo guardado",
-    "reset_confirm": "¿Estás seguro de que quieres restablecer todos los colores a sus valores predeterminados? Esta acción no se puede deshacer.",
-    "import_success": "Tema importado con éxito",
-    "export_success": "Configuración del tema copiada al portapapeles"
+    "reset_confirm": "¿Seguro que quieres restablecer todos los colores a sus valores predeterminados? Esta acción no se puede deshacer.",
+    "import_success": "Tema importado correctamente",
+    "export_success": "Configuración del tema copiada al portapapeles",
+    "section_shape": "Forma",
+    "corner_style": "Estilo de esquinas",
+    "corner_fase": "Biselado",
+    "corner_kante": "Recto",
+    "corner_rund": "Redondeado",
+    "corner_size": "Tamaño de esquinas",
+    "avatar_shape": "Forma del avatar",
+    "avatar_achteck": "Octágono",
+    "avatar_quadrat": "Cuadrado",
+    "avatar_kreis": "Círculo",
+    "section_surface": "Superficie",
+    "surface_panel": "Panel",
+    "surface_glas": "Cristal",
+    "surface_kontur": "Contorno",
+    "surface_opacity": "Opacidad",
+    "surface_blur": "Desenfoque",
+    "font_display": "Títulos",
+    "font_body": "Texto",
+    "font_data": "Números y horas",
+    "font_same_as_text": "Igual que el texto",
+    "section_galaxy": "Capas de galaxia",
+    "galaxy_stars": "Campo de estrellas",
+    "galaxy_grid": "Cuadrícula de coordenadas",
+    "galaxy_constellation": "Constelación en los encabezados",
+    "galaxy_grain": "Grano",
+    "color_star": "Luz estelar",
+    "constellation_choice": "Constelación",
+    "constellation_auto": "Variable",
+    "constellation_auto_hint": "distinta en cada página",
+    "standard_name": "Estándar",
+    "use_standard": "Estándar",
+    "new_theme_name": "Mi tema",
+    "design_label": "Diseño",
+    "standard_locked_title": "Diseño estándar",
+    "standard_locked_desc": "El diseño estándar está optimizado para la accesibilidad: todo el texto cumple el contraste WCAG AAA (al menos 7:1), los bordes y campos de entrada al menos 3:1, y las animaciones se detienen cuando tu sistema pide movimiento reducido. Por eso no se puede modificar.",
+    "standard_locked_hint": "Para cambiar colores, formas o fuentes, crea tu propio tema. Empieza como una copia del diseño estándar.",
+    "create_own": "Crear tu propio tema",
+    "choose_theme": "Elegir tema",
+    "default_theme_name": "Mi tema personalizado",
+    "shuffled_title": "Tema aleatorio generado",
+    "shuffled_desc": "Se ha generado una nueva paleta armoniosa.",
+    "harmonized_title": "Tema armonizado",
+    "harmonized_desc": "Los colores se han ajustado a tu color principal.",
+    "upload_failed": "Error al subir",
+    "bg_mode_solid": "Sólido",
+    "bg_mode_gradient": "Degradado",
+    "bg_mode_image": "Imagen",
+    "pro_tip_text": "Usa los iconos del <strong>comprobador de contraste</strong> junto a los colores de texto para asegurarte de que tu tema siga siendo accesible para todos.",
+    "undo": "Deshacer (Ctrl+Z)",
+    "redo": "Rehacer (Ctrl+Y)",
+    "select_theme": "Seleccionar tema...",
+    "new": "Nuevo",
+    "import": "Importar",
+    "export": "Exportar",
+    "shuffle": "Aleatorio",
+    "harmonize": "Armonizar",
+    "typography": "Tipografía",
+    "select_font": "Selecciona una fuente",
+    "background_style": "Estilo de fondo",
+    "custom_background_image": "Imagen de fondo personalizada",
+    "uploading": "Subiendo...",
+    "click_to_upload": "Haz clic para subir una imagen",
+    "brightness": "Brillo",
+    "contrast": "Contraste",
+    "particles": "Partículas",
+    "particles_desc": "Partículas de estrellas que siguen al cursor. Personaliza los colores del núcleo y del halo.",
+    "enable_particles": "Activar partículas",
+    "core_dot_color": "Color del núcleo",
+    "core_dot_color_desc": "Centro brillante de cada partícula",
+    "glow_halo_color": "Color del halo",
+    "glow_halo_color_desc": "Luz suave alrededor de cada partícula",
+    "twinkle_effect": "Efecto de destello",
+    "particle_speed": "Velocidad",
+    "cursor_pull": "Atracción del cursor",
+    "particle_size": "Tamaño",
+    "glow_strength": "Intensidad del brillo",
+    "reset_to_default": "Restablecer valores predeterminados",
+    "link_modes": "Vincular modos claro y oscuro",
+    "mode_light": "Claro",
+    "mode_dark": "Oscuro",
+    "group_layout_colors": "Colores del diseño",
+    "group_brand_interactive": "Marca e interacción",
+    "live_preview": "Vista previa en vivo",
+    "real_time": "Tiempo real",
+    "desktop_preview": "Vista previa de escritorio",
+    "mobile_preview": "Vista previa móvil",
+    "preview_app_name": "App Osiris",
+    "preview_followers": "Seguidores",
+    "preview_karma": "Karma",
+    "preview_posts": "Publicaciones",
+    "preview_author": "Directora creativa",
+    "preview_time": "hace 2 horas",
+    "preview_post_title": "¡Implementando el nuevo sistema de diseño del editor de temas!",
+    "preview_post_body": "El diseño a dos columnas ofrece un flujo de trabajo mucho mejor. Ahora puedes ver cada ajuste de color en tiempo real sin tener que desplazarte.",
+    "preview_read_more": "Leer más",
+    "preview_interactive": "Elementos interactivos",
+    "preview_interactive_desc": "Prueba aquí tus colores interactivos y de ventanas modales.",
+    "preview_join": "Únete a la conversación",
+    "preview_input_placeholder": "Escribe algo...",
+    "preview_send": "Enviar",
+    "preview_btn_primary": "Primario",
+    "preview_btn_secondary": "Secundario",
+    "preview_btn_outline": "Contorno",
+    "preview_btn_ghost": "Fantasma",
+    "preview_btn_destructive": "Destructivo",
+    "pro_tip": "Consejo",
+    "mobile_settings": "Ajustes",
+    "mobile_preview_tab": "Vista previa"
+  },
+  "footer": {
+    "default_tagline": "Libera tu creatividad. Construye el universo.",
+    "copyright": "© {{year}} Osiris Platform. Todos los derechos reservados."
+  },
+  "monitoring": {
+    "title": "Resumen de monitoreo",
+    "events_today": "Eventos de hoy",
+    "open_anomalies": "Anomalías abiertas",
+    "critical": "Críticas",
+    "error_rate": "Tasa de errores (1 h)",
+    "active_users": "Usuarios activos",
+    "in_last_5m": "en los últimos 5 min",
+    "activity_logs": "Registros de actividad",
+    "anomalies": "Detección de anomalías",
+    "search_action": "Buscar acción o descripción...",
+    "all_categories": "Todas las categorías",
+    "all_severities": "Todas las gravedades",
+    "time": "Hora",
+    "severity": "Gravedad",
+    "user": "Usuario",
+    "action": "Acción",
+    "description": "Descripción",
+    "ip": "IP",
+    "no_logs": "No se encontraron registros",
+    "status": "Estado",
+    "type": "Tipo",
+    "auto_action": "Acción automática",
+    "no_anomalies": "No se encontraron anomalías",
+    "open": "Abierta",
+    "investigating": "En investigación",
+    "resolved": "Resuelta",
+    "false_positive": "Falso positivo",
+    "metrics": {
+      "events_minute_chart": "Actividad de eventos (24 h)",
+      "errors_by_category": "Errores y advertencias por categoría"
+    },
+    "eyebrow_audit": "Admin / Auditoría",
+    "eyebrow_monitoring": "Admin / Monitoreo",
+    "eyebrow_moderation": "Admin / Moderación",
+    "activity_logs_desc": "Registro de auditoría en tiempo real de todas las operaciones de la plataforma.",
+    "category": "Categoría",
+    "categories": {
+      "auth": "Autenticación",
+      "content": "Contenido",
+      "admin": "Admin",
+      "security": "Seguridad"
+    },
+    "severity_levels": {
+      "info": "Info",
+      "warning": "Advertencia",
+      "error": "Error",
+      "debug": "Depuración",
+      "critical": "Crítico"
+    },
+    "system": "Sistema",
+    "anomaly_badge": "ANOMALÍA",
+    "access_restricted": "Acceso restringido",
+    "access_restricted_desc": "No tienes los permisos necesarios para acceder a los registros de monitoreo del sistema.",
+    "not_available": "N/D",
+    "error_critical": "Error/Crítico",
+    "no_recent_incidents": "No hay incidentes recientes"
+  },
+  "post_actions": {
+    "comment": "Comentar",
+    "like": "Me gusta",
+    "save": "Guardar",
+    "share": "Compartir",
+    "link_copied": "Enlace copiado",
+    "copy_failed": "Copia este enlace",
+    "delete_post": "Eliminar publicación",
+    "delete_comment": "Eliminar comentario",
+    "like_comment": "Me gusta el comentario",
+    "load_failed": "No se pudo cargar la publicación.",
+    "load_failed_title": "Algo salió mal",
+    "not_found": "Publicación no encontrada",
+    "not_found_hint": "Esta publicación ya no existe o el enlace es incorrecto."
+  },
+  "not_found": {
+    "title": "Página no encontrada",
+    "hint": "El enlace está desactualizado o mal escrito, o el contenido se eliminó.",
+    "home": "Ir al feed",
+    "back": "Volver"
+  },
+  "page_error": {
+    "title": "No se pudo mostrar esta página",
+    "hint": "Algo salió mal al mostrarla. Recargar suele solucionarlo.",
+    "reload": "Recargar"
+  },
+  "nav": {
+    "section_discover": "Descubrir",
+    "section_you": "Para ti",
+    "section_tools": "Herramientas",
+    "theme_builder": "Editor de temas",
+    "help_tickets": "Ayuda y tickets",
+    "moderation": "Moderación",
+    "admin_area": "Área de administración",
+    "admin_overview": "Resumen",
+    "admin_people": "Usuarios y contenido",
+    "admin_moderation": "Moderación",
+    "admin_system": "Sistema",
+    "tickets": "Tickets",
+    "groups": "Grupos",
+    "bans": "Bloqueos",
+    "auto_actions": "Acciones automáticas",
+    "mod_performance": "Rendimiento de moderadores",
+    "logs": "Registros",
+    "analytics": "Analíticas",
+    "stress_test": "Prueba de carga",
+    "back_to_app": "Volver a la app",
+    "to_app": "App",
+    "create_post": "Crear publicación",
+    "expand": "Expandir barra lateral",
+    "collapse": "Contraer barra lateral",
+    "close_menu": "Cerrar menú",
+    "open_menu": "Abrir menú",
+    "account_menu": "Menú de cuenta",
+    "bottom_feed": "Feed",
+    "bottom_discussions": "Discusiones",
+    "monitoring": "Monitoreo"
+  },
+  "theme": {
+    "mode_dark": "Oscuro",
+    "mode_light": "Claro",
+    "mode_system": "Sistema",
+    "switch": "Cambiar apariencia",
+    "mode": "Modo",
+    "manage": "Gestionar temas",
+    "saved": "Tema guardado",
+    "saved_desc": "\"{{name}}\" se ha guardado.",
+    "save_failed": "No se pudo guardar el tema"
+  },
+  "language": {
+    "switch": "Cambiar idioma",
+    "select": "Seleccionar idioma"
+  },
+  "admin_bulk": {
+    "default": {
+      "title": "Confirmar acción",
+      "description_users": "Aplicar esta acción a {{count}} usuarios seleccionados.",
+      "description_reports": "Aplicar esta acción a {{count}} reportes seleccionados."
+    },
+    "count_users": "{{count}} usuarios",
+    "count_reports": "{{count}} reportes",
+    "toolbar": {
+      "selected": "seleccionados",
+      "clear": "Borrar selección",
+      "ban": "Bloquear seleccionados",
+      "unban": "Desbloquear seleccionados",
+      "delete": "Eliminar seleccionados",
+      "resolve": "Resolver todos",
+      "reject": "Rechazar todos"
+    }
+  },
+  "admin_groups": {
+    "toast": {
+      "success": "Listo",
+      "created": "Grupo de administración creado.",
+      "updated": "Grupo de administración actualizado.",
+      "deleted": "Grupo de administración eliminado."
+    },
+    "loading": "Cargando grupos...",
+    "title": "Grupos de administración",
+    "description": "Gestiona los roles administrativos y sus permisos de acceso detallados.",
+    "create": "Crear grupo",
+    "form": {
+      "create_title": "Crear grupo de administración",
+      "edit_title": "Editar grupo de administración",
+      "name": "Nombre del grupo",
+      "name_placeholder": "p. ej. Moderador de contenido",
+      "color": "Color de acento",
+      "description": "Descripción",
+      "description_placeholder": "¿De qué se encarga este grupo?",
+      "permissions": "Permisos detallados",
+      "saving": "Guardando...",
+      "save": "Guardar grupo"
+    },
+    "group_id": "ID del grupo: {{id}}",
+    "edit": "Editar grupo",
+    "delete": "Eliminar grupo",
+    "delete_confirm": "¿Seguro que quieres eliminar este grupo?",
+    "active_permissions": "Permisos activos",
+    "no_members": "Aún no hay miembros",
+    "view_members": "Ver {{count}} miembros",
+    "members_dialog": {
+      "title": "Miembros de {{name}}",
+      "description": "Lista de administradores asignados a este grupo de permisos.",
+      "member_id": "ID: {{id}}",
+      "close": "Cerrar"
+    },
+    "permissions": {
+      "dashboard": {
+        "label": "Acceso al panel",
+        "description": "Ver el resumen y las estadísticas de administración"
+      },
+      "users": {
+        "label": "Gestión de usuarios",
+        "description": "Gestionar roles, verificación y datos de perfil"
+      },
+      "reports": {
+        "label": "Moderación de contenido",
+        "description": "Atender reportes y resolver disputas de contenido"
+      },
+      "groups": {
+        "label": "Gestión de grupos",
+        "description": "Editar grupos de administración y permisos"
+      },
+      "security": {
+        "label": "Seguridad y bloqueos",
+        "description": "Acceder al sistema de bloqueos y a las herramientas de seguridad"
+      },
+      "auto_punishment": {
+        "label": "Sanciones automáticas",
+        "description": "Gestionar los sistemas automáticos de aplicación de reglas"
+      },
+      "logs": {
+        "label": "Monitoreo de actividad",
+        "description": "Ver registros del sistema y reportes de anomalías"
+      },
+      "analytics": {
+        "label": "Analíticas de la plataforma",
+        "description": "Ver gráficos de crecimiento y métricas de uso"
+      },
+      "performance": {
+        "label": "Rendimiento de moderadores",
+        "description": "Seguir la eficiencia y las estadísticas de moderación"
+      },
+      "tickets": {
+        "label": "Tickets de soporte",
+        "description": "Gestionar y resolver los tickets de soporte de los usuarios"
+      },
+      "stress_test": {
+        "label": "Pruebas de carga",
+        "description": "Ejecutar pruebas de carga y auditorías de rendimiento del sistema"
+      },
+      "settings": {
+        "label": "Ajustes del sistema",
+        "description": "Configurar los parámetros globales de la plataforma"
+      }
+    }
+  },
+  "report": {
+    "description_post": "Selecciona un motivo para reportar esta publicación. La revisaremos según nuestras normas de la comunidad.",
+    "description_discussion": "Selecciona un motivo para reportar esta discusión. La revisaremos según nuestras normas de la comunidad.",
+    "description_comment": "Selecciona un motivo para reportar este comentario. Lo revisaremos según nuestras normas de la comunidad.",
+    "submitted": "Reporte enviado",
+    "submitted_desc": "Gracias por ayudar a mantener segura nuestra comunidad.",
+    "failed": "Error al reportar",
+    "failed_desc": "No se pudo enviar el reporte. Inténtalo de nuevo.",
+    "reason_required": "Motivo obligatorio",
+    "reason_required_desc": "Selecciona un motivo para el reporte.",
+    "title": "Reportar contenido",
+    "reason": "Motivo",
+    "select_reason": "Selecciona un motivo",
+    "submitting": "Enviando..."
+  },
+  "post": {
+    "image_alt": "Imagen de la publicación",
+    "back_to_admin": "Volver a Admin",
+    "back_to_profile": "Volver al perfil",
+    "back_to_feed": "Volver al feed",
+    "user_followed": "Ahora sigues a este usuario",
+    "user_unfollowed": "Has dejado de seguir a este usuario"
+  },
+  "onboarding": {
+    "bio_saved": "Tu biografía se ha guardado correctamente.",
+    "update_failed": "Error al actualizar",
+    "welcome_title": "¡Bienvenido a Osiris!",
+    "welcome_desc": "¿Quieres presentarte? Añade una breve biografía a tu perfil.",
+    "bio_placeholder": "Me encanta el café y programar...",
+    "skip": "Omitir por ahora",
+    "save_bio": "Guardar biografía"
+  },
+  "hooks": {
+    "feed": {
+      "like_failed": "No se pudo dar me gusta",
+      "save_failed": "No se pudo guardar",
+      "saved": "Guardado",
+      "unsaved": "Quitado de guardados"
+    }
+  },
+  "posts": {
+    "deleted_success": "Publicación eliminada correctamente",
+    "delete_title": "Eliminar publicación"
+  },
+  "admin_tickets": {
+    "open": "Abiertos",
+    "critical_open": "Críticos abiertos",
+    "in_progress": "En curso",
+    "avg_hours_to_resolve": "Horas prom. de resolución"
+  },
+  "admin_autopunish": {
+    "access_restricted": {
+      "title": "Acceso restringido",
+      "description": "No tienes los permisos necesarios para gestionar las reglas de sanción automática."
+    },
+    "toast": {
+      "updated": "Regla actualizada correctamente",
+      "created": "Regla creada correctamente",
+      "deleted": "Regla eliminada",
+      "validation_error": "Error de validación",
+      "validation_required": "El nombre y el motivo de la acción son obligatorios"
+    },
+    "severity": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "critical": "Crítica"
+    },
+    "title": "Motor de sanciones automáticas",
+    "description": "Reglas automáticas de respuesta y mitigación de amenazas.",
+    "rules": {
+      "title": "Reglas activas",
+      "new": "Nueva regla",
+      "col_name": "Nombre de la regla",
+      "col_trigger": "Disparador (anomalía)",
+      "col_threshold": "Umbral",
+      "col_action": "Acción automática",
+      "col_manage": "Gestionar",
+      "status_active": "Activa",
+      "status_disabled": "Desactivada",
+      "edit": "Editar regla",
+      "disable": "Desactivar regla",
+      "enable": "Activar regla",
+      "delete": "Eliminar regla",
+      "delete_confirm": "¿Eliminar esta regla?"
+    },
+    "dialog": {
+      "edit_title": "Editar regla de sanción automática",
+      "create_title": "Crear regla de sanción automática"
+    },
+    "form": {
+      "name": "Nombre de la regla",
+      "name_placeholder": "p. ej. Bloqueo estricto por abuso de la API",
+      "description": "Descripción",
+      "optional": "(opcional)",
+      "description_placeholder": "¿Qué evita exactamente esta regla?",
+      "anomaly_trigger": "Anomalía disparadora",
+      "severity_threshold": "Umbral de gravedad",
+      "action": "Acción",
+      "duration_hours": "Duración (horas)",
+      "advanced": "Configuración avanzada",
+      "escalate_after_count": "Se activa tras (cantidad)",
+      "escalate_after_count_help": "Número de incidentes antes de que se active la regla.",
+      "escalation_window_hours": "Ventana de tiempo (horas)",
+      "escalation_window_hours_help": "Periodo en el que se cuentan los incidentes.",
+      "cooldown_hours": "Tiempo de espera (horas)",
+      "cooldown_hours_help": "Tiempo de espera antes de que la regla pueda volver a activarse.",
+      "action_reason": "Motivo de la acción",
+      "action_reason_placeholder": "Motivo interno de este bloqueo concreto...",
+      "saving": "Guardando..."
+    },
+    "anomaly": {
+      "brute_force_login": "Inicio de sesión por fuerza bruta",
+      "api_abuse": "Abuso de la API",
+      "spam_content": "Contenido spam",
+      "rapid_creation": "Creación masiva rápida",
+      "suspicious_ip": "IP sospechosa",
+      "hardware_ban_evasion": "Evasión de bloqueo de hardware"
+    },
+    "action": {
+      "warn": "Advertir al usuario",
+      "freeze": "Congelar cuenta",
+      "shadow_ban": "Shadowban",
+      "temp_ban": "Bloqueo temporal de IP",
+      "ip_ban": "Bloqueo permanente de IP",
+      "hardware_ban": "Bloqueo de hardware"
+    },
+    "col_status": "Estado",
+    "executions": {
+      "title": "Ejecuciones recientes",
+      "col_time": "Hora",
+      "col_rule": "Regla",
+      "col_target": "Usuario afectado",
+      "col_action": "Acción aplicada",
+      "empty": "No hay ejecuciones recientes",
+      "user": "Usuario",
+      "success": "Correcta",
+      "failed": "Fallida"
+    }
+  },
+  "admin_bans": {
+    "toast": {
+      "revoked": "Bloqueo revocado"
+    },
+    "eyebrow": "Núcleo de moderación",
+    "title": "Gestión de bloqueos",
+    "description": "Gestiona bloqueos de IP, de hardware y de cuenta en gravedad cero.",
+    "table": {
+      "type": "Tipo",
+      "target": "Objetivo",
+      "reason": "Motivo",
+      "status": "Estado",
+      "source": "Origen",
+      "operations": "Operaciones"
+    },
+    "loading": "Escaneando transmisión...",
+    "empty": "No hay bloqueos activos en este sector",
+    "status": {
+      "active": "Activo",
+      "revoked": "Revocado"
+    },
+    "revoke": "Revocar",
+    "target_user": "USUARIO::{{id}}"
+  },
+  "admin_logs": {
+    "title": "Registros de actividad",
+    "description": "Registro de auditoría inmutable de todas las operaciones administrativas.",
+    "export_json": "Exportar JSON",
+    "export_csv": "Exportar CSV",
+    "total_events": "Eventos totales",
+    "high_severity": "Gravedad alta",
+    "search_placeholder": "Buscar descripción, objetivo o administrador…",
+    "category": "Categoría",
+    "categories": {
+      "users": "Usuarios",
+      "content": "Contenido",
+      "settings": "Ajustes",
+      "system": "Sistema"
+    },
+    "severity": "Gravedad",
+    "severity_levels": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "critical": "Crítica",
+      "debug": "Depuración",
+      "info": "Info",
+      "warning": "Advertencia",
+      "error": "Error"
+    },
+    "col_timestamp": "Fecha y hora",
+    "col_administrator": "Administrador",
+    "system": "Sistema",
+    "col_action": "Acción",
+    "col_analysis": "Análisis",
+    "audit_entry": "Entrada de auditoría • Evento #{{id}}",
+    "detail_description": "Descripción",
+    "target_type": "Tipo de objetivo",
+    "not_available": "N/D",
+    "target_identifier": "Identificador del objetivo",
+    "origin_ip": "IP de origen",
+    "payload_delta": "Cambios en los datos",
+    "previous_state": "Estado anterior",
+    "new_state": "Estado nuevo",
+    "details": "Detalles",
+    "admin": "Admin",
+    "log_entry": "Entrada del registro",
+    "target": "Objetivo",
+    "ip_address": "Dirección IP",
+    "new_state_delta": "Cambios del estado nuevo",
+    "status": {
+      "success": "Correcto",
+      "failure": "Fallido",
+      "warning": "Advertencia",
+      "blocked": "Bloqueado"
+    },
+    "actions": {
+      "admin": {},
+      "auth": {},
+      "comment": {},
+      "community": {},
+      "follow": {},
+      "post": {},
+      "report": {},
+      "security": {},
+      "system": {},
+      "ticket": {},
+      "user": {}
+    }
+  },
+  "admin_dashboard": {
+    "user_update_success": "Usuario actualizado.",
+    "user_deleted": "Usuario eliminado permanentemente.",
+    "report_update_success": "Reporte actualizado.",
+    "access_denied": "Acceso denegado",
+    "owner_only_promote": "Solo los propietarios del sistema pueden ascender a alguien a propietario.",
+    "bulk_success": "Acción masiva ejecutada correctamente.",
+    "description": "Supervisa la salud de la plataforma y gestiona las operaciones en gravedad cero.",
+    "stats": {
+      "total_users_desc": "Total acumulado de usuarios registrados en la plataforma.",
+      "total_reports_desc": "Total de reportes recibidos sobre todo el contenido.",
+      "pending_reports_desc": "Pendientes de revisión manual por la administración.",
+      "active_users_desc": "Usuarios únicos activos en las últimas 24 horas.",
+      "verified_users_desc": "Miembros de confianza que completaron la verificación."
+    },
+    "tabs": {
+      "groups": "Grupos"
+    },
+    "search_placeholder": "Buscar en el Verse…",
+    "users": {
+      "title": "Directorio de usuarios",
+      "description": "Gestiona los estados de autenticación y los niveles de moderación.",
+      "filter_all": "Todos",
+      "filter_verified": "Verificados",
+      "filter_banned": "Bloqueados",
+      "col_user": "Usuario",
+      "id": "ID: {{id}}",
+      "col_contact": "Contacto",
+      "col_role": "Rol",
+      "col_rep": "Rep.",
+      "col_operations": "Operaciones",
+      "revoke_verification": "Revocar verificación",
+      "assign_role": "Asignar rol",
+      "currently": "Actual:",
+      "assign_group": "Asignar grupo",
+      "no_group": "Sin grupo",
+      "group_none": "Ninguno",
+      "revoke_shadowban": "Revocar shadowban",
+      "shadowban_user": "Aplicar shadowban",
+      "shadowban_desc": "Moderación silenciosa",
+      "lift_restriction": "Levantar restricción",
+      "restrict_account": "Restringir cuenta",
+      "restore_access": "Restaurar acceso",
+      "restrict_desc": "Suspensión en gravedad cero",
+      "purge_entity": "Purgar entidad",
+      "verified": "Verificado",
+      "verify": "Verificar",
+      "toggle_shadowban": "Alternar shadowban",
+      "toggle_restriction": "Alternar restricción",
+      "purge_account": "Purgar cuenta"
+    },
+    "reports": {
+      "title": "Cola de integridad del contenido",
+      "description": "Reportes de la comunidad que requieren una decisión administrativa.",
+      "col_source": "Origen",
+      "internal": "INTERNO",
+      "col_entity": "Entidad",
+      "col_observation": "Observación",
+      "col_decisions": "Decisiones",
+      "type_flag": "Reporte de {{type}}",
+      "dismiss": "Descartar"
+    }
+  },
+  "stress_test": {
+    "access_restricted": "Acceso restringido",
+    "access_restricted_desc": "No tienes los permisos necesarios para ejecutar pruebas de carga del sistema.",
+    "toast_started": "Prueba de carga iniciada",
+    "toast_started_desc": "Iniciando {{module}} con intensidad {{intensity}}.",
+    "toast_complete": "Prueba completada",
+    "toast_complete_desc": "La prueba de carga terminó correctamente.",
+    "log_error": "ERROR: {{error}}",
+    "toast_failed": "Prueba fallida",
+    "log_system_error": "Error del sistema: {{error}}",
+    "description": "Verifica la resistencia de la plataforma en condiciones de carga extrema.",
+    "test_modules": "Módulos de prueba",
+    "test_modules_desc": "Selecciona un área concreta de la plataforma para someterla a presión.",
+    "kill_test": "Detener prueba activa",
+    "live_stream_active": "Transmisión en vivo activa",
+    "empty": "Selecciona un módulo para iniciar la forja",
+    "session_complete": "Sesión de registro de la prueba completada",
+    "clear": "Borrar",
+    "stability_score": "Puntuación de estabilidad",
+    "degraded": "DEGRADADO",
+    "nominal": "NOMINAL",
+    "metrics_captured": "Métricas capturadas",
+    "system_status": "Estado del sistema",
+    "live": "EN VIVO",
+    "modules": {
+      "api_endpoints": "Carga de la API",
+      "api_endpoints_desc": "Satura los endpoints REST con tráfico HTTP concurrente.",
+      "database_connections": "Estrés de base de datos",
+      "database_connections_desc": "Presión de consultas concurrentes en Drizzle/SQLite.",
+      "websocket_flood": "Saturación de WebSocket",
+      "websocket_flood_desc": "Establecimiento rápido de conexiones y ráfagas de mensajes.",
+      "file_upload": "E/S de archivos",
+      "file_upload_desc": "Procesamiento de subidas de archivos multipart y presión sobre el disco.",
+      "authentication": "Autenticación (Bcrypt)",
+      "authentication_desc": "Ciclos de cálculo intensivos de Bcrypt (inicio de sesión/registro).",
+      "memory_leak": "Presión de memoria",
+      "memory_leak_desc": "Monitoreo de la asignación del heap y seguimiento de RSS.",
+      "cpu_intensive": "Carga de CPU",
+      "cpu_intensive_desc": "Bucles de cálculo bloqueantes para medir el retraso del event loop.",
+      "concurrent_users": "Sesiones de usuario",
+      "concurrent_users_desc": "Flujos de usuario simulados de varios pasos (registro -> publicación).",
+      "all": "Suite completa",
+      "all_desc": "Ejecución secuencial de todas las pruebas de carga disponibles."
+    },
+    "title": "Osiris Stress Forge",
+    "intensity": {
+      "low": "baja",
+      "medium": "media",
+      "high": "alta",
+      "extreme": "extrema"
+    }
+  },
+  "admin_settings": {
+    "update_success": "Ajuste actualizado correctamente.",
+    "title": "Ajustes de administración",
+    "description": "Configura el comportamiento global del sistema y los valores predeterminados de la interfaz.",
+    "search_placeholder": "Buscar ajustes…",
+    "empty": "No hay ajustes en esta categoría.",
+    "sensitive": "Sensible",
+    "readonly": "Solo lectura",
+    "no_description": "No hay descripción para este valor de configuración.",
+    "last_saved": "Último guardado:",
+    "reset": "restablecer",
+    "danger_zone_title": "Zona de peligro de seguridad del sistema",
+    "danger_zone_desc": "Los cambios aquí afectan a la autenticación y a los controles de acceso globales. Revisa los ajustes antes de aplicarlos.",
+    "enabled": "Activado",
+    "disabled": "Desactivado",
+    "save_changes": "Guardar cambios",
+    "categories": {
+      "general": "General",
+      "general_desc": "Identificación y estado principal del sitio.",
+      "users": "Usuarios",
+      "users_desc": "Autenticación y gestión de miembros.",
+      "content": "Contenido",
+      "content_desc": "Reglas de publicación y moderación.",
+      "email": "Correo electrónico",
+      "email_desc": "SMTP y envío de notificaciones.",
+      "security": "Seguridad",
+      "security_desc": "Control de acceso y protección.",
+      "appearance": "Apariencia",
+      "appearance_desc": "Temas e identidad visual."
+    }
+  },
+  "chat": {
+    "message_sent": "Mensaje enviado correctamente",
+    "mutual_connections": "Conexiones mutuas",
+    "mutual_only": "El chat es exclusivo para seguidores mutuos. ¡Sigue a más usuarios para empezar conversaciones!",
+    "active_now": "Activo ahora",
+    "conversation_start": "Inicio de la conversación",
+    "input_placeholder": "Comparte lo que piensas...",
+    "send": "Enviar",
+    "none_selected": "Ningún chat seleccionado",
+    "none_selected_desc": "Elige a un amigo de la lista y empieza a conversar.",
+    "view_connections": "Ver conexiones"
+  },
+  "communities": {
+    "roles": {
+      "member": "miembro",
+      "owner": "Propietario",
+      "moderator": "Moderador"
+    },
+    "discover_title": "Descubrir comunidades",
+    "discover_desc": "Encuentra personas con intereses similares en más de 1.000 temas. Únete a la conversación y comparte tu pasión.",
+    "explore_all": "Explorar todo"
+  },
+  "app": {
+    "initializing": "Iniciando Osiris..."
+  },
+  "layout": {
+    "sidebar": {
+      "unread_badge": "{{badge}} sin leer"
+    }
+  },
+  "maintenance": {
+    "title": "En mantenimiento",
+    "description": "Estamos realizando un mantenimiento programado para mejorar nuestros servicios. Volveremos a estar en línea en breve. ¡Gracias por tu paciencia!",
+    "staff_title": "¿Eres del equipo?",
+    "staff_description": "Las cuentas administrativas tienen acceso completo a la plataforma durante el mantenimiento. Inicia sesión para continuar.",
+    "staff_login": "Acceso del equipo"
+  },
+  "color_picker": {
+    "contrast_ratio": "Relación de contraste: {{ratio}}:1 ({{status}})",
+    "fail": "No cumple",
+    "reset_to_default": "Restablecer valor predeterminado"
+  },
+  "ui": {
+    "more": "Más",
+    "carousel": {
+      "previous": "Diapositiva anterior",
+      "next": "Diapositiva siguiente"
+    },
+    "close": "Cerrar",
+    "error_state": {
+      "title": "Algo salió mal",
+      "message": "Se produjo un error al cargar este contenido.",
+      "retry": "Reintentar"
+    },
+    "pagination": {
+      "previous_aria": "Ir a la página anterior",
+      "previous": "Anterior",
+      "next_aria": "Ir a la página siguiente",
+      "next": "Siguiente",
+      "more_pages": "Más páginas"
+    },
+    "sidebar": {
+      "toggle": "Mostrar/ocultar barra lateral"
+    }
+  },
+  "tutorial": {
+    "steps": {
+      "welcome": {
+        "title": "¡Bienvenido a nuestra plataforma!",
+        "description": "Hagamos un recorrido rápido por las funciones que tienes disponibles. Te mostraremos cómo sacar el máximo partido a tu experiencia."
+      },
+      "profile": {
+        "title": "Tu perfil",
+        "description": "Haz clic en tu avatar para acceder a los ajustes de tu perfil, donde puedes actualizar tu información y gestionar tu cuenta."
+      },
+      "posts": {
+        "title": "Crear publicaciones",
+        "description": "Comparte lo que piensas creando publicaciones. Puedes publicar discusiones, noticias o contenido de entretenimiento."
+      },
+      "interaction": {
+        "title": "Interactuar con otros",
+        "description": "Sigue a otros usuarios, dale me gusta a sus publicaciones y deja comentarios para participar en la comunidad."
+      },
+      "messaging": {
+        "title": "Mensajes",
+        "description": "Usa el chat para tener conversaciones privadas con otros usuarios."
+      }
+    },
+    "error_title": "Error",
+    "skip_confirm": "¿Seguro que quieres omitir el tutorial? Siempre puedes acceder a él más tarde desde los ajustes de tu perfil.",
+    "previous": "Anterior",
+    "skip": "Omitir tutorial",
+    "finish": "Finalizar",
+    "next": "Siguiente"
   }
 }
