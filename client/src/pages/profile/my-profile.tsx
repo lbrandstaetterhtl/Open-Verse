@@ -8,7 +8,7 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { ProfileTabContent } from "@/components/profile/ProfileTabContent";
 import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
-import { EditProfileModal } from "@/components/profile/EditProfileModal";
+import { EditProfileModal, type EditProfileTab } from "@/components/profile/EditProfileModal";
 import type { UpdateProfile} from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -19,6 +19,11 @@ export default function MyProfilePage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("posts");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editTab, setEditTab] = useState<EditProfileTab>("general");
+  const openEditor = (tab: EditProfileTab) => {
+    setEditTab(tab);
+    setIsEditModalOpen(true);
+  };
 
   // Fetch enriched profile data (stats, etc.)
   const { data: profileData, isLoading: isProfileLoading } = useQuery<any>({
@@ -72,14 +77,14 @@ export default function MyProfilePage() {
           avatarUrl={enrichedUser.avatarUrl}
           coverUrl={enrichedUser.coverUrl}
           isOwnProfile={true}
-          onEditCover={() => setIsEditModalOpen(true)}
-          onEditAvatar={() => setIsEditModalOpen(true)}
+          onEditCover={() => openEditor("appearance")}
+          onEditAvatar={() => openEditor("appearance")}
         />
         
         <ProfileHeader 
           user={enrichedUser}
           isOwnProfile={true}
-          onEditProfile={() => setIsEditModalOpen(true)}
+          onEditProfile={() => openEditor("general")}
         />
 
         <div className="px-6 md:px-10">
@@ -123,6 +128,7 @@ export default function MyProfilePage() {
           setIsEditModalOpen(false);
         }}
         isSubmitting={updateProfileMutation.isPending}
+        initialTab={editTab}
       />
     </div>
   );

@@ -101,7 +101,29 @@
     "follow_success": "Followed successfully",
     "is_now_following": "You are now following {{username}}",
     "unfollow_success": "Unfollowed",
-    "unfollow": "Unfollow"
+    "unfollow": "Unfollow",
+    "edit_tabs": {
+      "general": "General",
+      "images": "Images",
+      "privacy": "Privacy"
+    },
+    "image": {
+      "avatar": "Profile picture",
+      "cover": "Cover image",
+      "change_avatar": "Change profile picture",
+      "choose_avatar": "Choose profile picture",
+      "change_cover": "Change cover image",
+      "choose_cover": "Choose cover image",
+      "remove": "Remove",
+      "uploading": "Uploading …",
+      "hint": "JPG, PNG or WebP, max. {{mb}} MB.",
+      "cover_hint": "Landscape, e.g. 1500 × 500 px. JPG, PNG or WebP, max. {{mb}} MB.",
+      "upload_failed": "Could not upload the image",
+      "wrong_type": "Only JPG, PNG or WebP are allowed.",
+      "too_large": "The file is too large (max. {{mb}} MB).",
+      "too_large_proxy": "The file is too large.",
+      "try_again": "Please try again."
+    }
   },
   "common": {
     "loading": "Loading...",

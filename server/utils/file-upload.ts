@@ -59,34 +59,22 @@ export async function sanitizeImage(filepath: string): Promise<void> {
     }
 
     try {
-        const webpPath = filepath.replace(ext, '.webp');
-        
+        // Write to a temporary file first: sharp refuses to use the same file as input and
+        // output, which made every .webp upload skip sanitization. The original name is kept
+        // so existing references stay valid.
+        const tmpPath = `${filepath}.sanitized`;
         await sharp(filepath)
             .rotate() // Auto-rotate based on EXIF before stripping
-            .webp({ 
+            .webp({
                 quality: 80,
                 effort: 4, // Better compression
                 lossless: false,
                 smartSubsample: true
             })
-            .toFile(webpPath);
-        
-        // If we converted to a new file, delete the old one
-        if (webpPath !== filepath) {
-            try {
-                if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
-            } catch (e) { console.error("Error deleting original after WebP conversion:", e); }
-        }
-
-        // Return the new filepath or handle renaming if needed.
-        // Actually, routes expect the filename to stay the same OR we update it.
-        // For simplicity in this logic, we rename webp back to original filename 
-        // OR we ensure the route uses the new extension.
-        // Renaming back to original filename is safest for existing DB refs.
-        if (fs.existsSync(webpPath)) {
-            await fs.promises.rename(webpPath, filepath);
-        }
+            .toFile(tmpPath);
+        await fs.promises.rename(tmpPath, filepath);
     } catch (error) {
+        await fs.promises.unlink(`${filepath}.sanitized`).catch(() => {});
         console.error(`[sanitizeImage] Failed to optimize ${filepath}:`, error);
     }
 }
@@ -164,6 +152,8 @@ export const themeBackgroundUpload = multer({
     },
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB max for theme backgrounds
 });
+export const PROFILE_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+
 // Dedicated multer config for user profile images (avatars, cover images)
 export const profileUpload = multer({
     storage: multer.diskStorage({
@@ -193,5 +183,37 @@ export const profileUpload = multer({
             cb(null, false);
         }
     },
-    limits: { fileSize: 2 * 1024 * 1024 } // 2MB max for profile images
+    // Phone photos are often several MB; they are shrunk by processProfileImage afterwards.
+    limits: { fileSize: PROFILE_IMAGE_MAX_BYTES, files: 1 }
 });
+
+// Final size of stored profile images. Avatars are square, covers keep their aspect ratio.
+const PROFILE_IMAGE_SIZE = {
+    avatar: { width: 512, height: 512, fit: "cover" as const },
+    cover: { width: 1800, height: 1800, fit: "inside" as const },
+};
+
+/**
+ * Turns an uploaded profile image into a stripped, resized WebP file next to the original and
+ * deletes the original. Returns the new file name (inside the uploads folder).
+ * Throws if the file is not a readable image.
+ */
+export async function processProfileImage(filepath: string, type: "avatar" | "cover"): Promise<string> {
+    const { width, height, fit } = PROFILE_IMAGE_SIZE[type];
+    const target = filepath.replace(/\.[^./\\]+$/, "") + ".webp";
+    try {
+        await sharp(filepath, { limitInputPixels: 100_000_000 })
+            .rotate() // apply EXIF orientation, metadata is dropped on output
+            .resize({ width, height, fit, position: "attention", withoutEnlargement: true })
+            .webp({ quality: 82, effort: 4, smartSubsample: true })
+            .toFile(target === filepath ? `${target}.tmp` : target);
+        if (target === filepath) await fs.promises.rename(`${target}.tmp`, target);
+        else await fs.promises.unlink(filepath).catch(() => {});
+        return path.basename(target);
+    } catch (error) {
+        await fs.promises.unlink(filepath).catch(() => {});
+        await fs.promises.unlink(`${target}.tmp`).catch(() => {});
+        if (target !== filepath) await fs.promises.unlink(target).catch(() => {});
+        throw error;
+    }
+}

@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface ProfileCoverProps {
   coverUrl?: string | null;
@@ -22,6 +23,7 @@ export function ProfileCover({
   onEditCover,
   onEditAvatar,
 }: ProfileCoverProps) {
+  const { t } = useTranslation();
   const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
   const [avatarFocused, setAvatarFocused] = useState(false);
 
@@ -37,7 +39,7 @@ export function ProfileCover({
             initial={{ scale: 1.04, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             src={coverUrl}
-            alt="Profile cover"
+            alt={t("profile.image.cover", "Titelbild")}
             className="h-full w-full object-cover"
           />
         ) : null}
@@ -48,13 +50,14 @@ export function ProfileCover({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={onEditCover}
+              aria-label={coverUrl ? t("profile.image.change_cover", "Titelbild ändern") : t("profile.image.choose_cover", "Titelbild wählen")}
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
                 "absolute top-4 right-4 md:top-6 md:right-6 z-20 bg-background/85"
               )}
             >
               <Camera className="h-4 w-4" />
-              <span className="hidden sm:inline">Change Essence</span>
+              <span className="hidden sm:inline">{coverUrl ? t("profile.image.change_cover", "Titelbild ändern") : t("profile.image.choose_cover", "Titelbild wählen")}</span>
             </motion.button>
           )}
         </AnimatePresence>
@@ -82,11 +85,17 @@ export function ProfileCover({
                  onClick={onEditAvatar}
                  onFocus={() => setAvatarFocused(true)}
                  onBlur={() => setAvatarFocused(false)}
-                 aria-label="Change avatar"
+                 aria-label={t("profile.image.change_avatar", "Profilbild ändern")}
                  className="ov-avatar absolute inset-0 z-10 flex items-center justify-center bg-background/60 text-foreground transition-colors"
                >
                  <Pencil className="h-7 w-7" />
                </motion.button>
+             )}
+             {/* Touch screens have no hover, so show a small camera badge there */}
+             {isOwnProfile && (
+               <span aria-hidden className="ov-cut pointer-events-none absolute bottom-1 right-1 z-20 flex h-8 w-8 items-center justify-center border border-border bg-background text-foreground md:hidden">
+                 <Camera className="h-4 w-4" />
+               </span>
              )}
            </div>
         </div>
