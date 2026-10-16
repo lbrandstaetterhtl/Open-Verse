@@ -553,7 +553,15 @@ router.post("/:id/ban", isAuthenticated, async (req, res) => {
     try {
         const communityId = parseInt(req.params.id);
         const currentUserId = (req.user as any).id;
-        const { userId, reason } = req.body;
+        const userId = Number(req.body.userId);
+        const reason = typeof req.body.reason === "string" ? req.body.reason.trim().slice(0, 500) : undefined;
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            return res.status(400).send("Invalid user ID");
+        }
+        if (userId === currentUserId) {
+            return res.status(400).send("You cannot ban yourself");
+        }
 
         const member = await storage.getCommunityMember(communityId, currentUserId);
         if (!member || (member.role !== "owner" && member.role !== "moderator")) {
@@ -564,8 +572,18 @@ router.post("/:id/ban", isAuthenticated, async (req, res) => {
         if (targetMember && targetMember.role === "owner") {
             return res.status(403).send("Cannot ban a community owner");
         }
+        // Same rule as for kicking: moderators cannot remove other moderators
+        if (targetMember && targetMember.role === "moderator" && member.role === "moderator") {
+            return res.status(403).send("Moderators cannot ban other moderators");
+        }
+        if (!(await storage.getUser(userId))) {
+            return res.status(404).send("User not found");
+        }
+        if (await storage.isUserBannedFromCommunity(communityId, userId)) {
+            return res.status(409).send("User is already banned");
+        }
 
-        await storage.banUserFromCommunity(communityId, userId, reason);
+        await storage.banUserFromCommunity(communityId, userId, reason || undefined);
         
         activityLogger.logFromRequest(req, {
             action: 'community.ban_member',
