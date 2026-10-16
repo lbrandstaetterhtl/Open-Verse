@@ -2,12 +2,12 @@ import React, { ReactNode, useState, Suspense } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { Menu, Bell, Plus, ArrowLeft, Search } from "lucide-react";
+import { Menu, Bell, ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useNotificationCounts } from "@/hooks/use-notifications";
 import { AppSidebar } from "./AppSidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { SkeletonFeed } from "./skeleton-loaders";
-import { useSiteSettings } from "@/hooks/use-site-settings";
-import { Button } from "@/components/ui/button";
 
 /**
  * APP-LAYOUT [UI-L-002]: Claude.ai-style Responsive Layout
@@ -21,90 +21,40 @@ import { Button } from "@/components/ui/button";
  * Sidebar state persisted in localStorage.
  */
 
-function getPageTitle(location: string): string {
-  const titles: Record<string, string> = {
-    "/": "Feed",
-    "/feed/media": "Feed",
-    "/feed/discussions": "Discussions",
-    "/feed/communities": "Communities",
-    "/notifications": "Notifications",
-    "/chat": "Messages",
-    "/profile": "My Profile",
-    "/ai-generator": "AI Generator",
-    "/theme-builder": "Theme Builder",
-    "/create-community": "Create Community",
-    "/mod-panel": "Mod Panel",
-    "/tickets": "Tickets",
-    "/admin": "Dashboard",
-    "/admin/users": "User Management",
-    "/admin/reports": "Content Reports",
-    "/admin/bans": "Bans & Security",
-    "/admin/auto-punishments": "Auto-Punishment",
-    "/admin/monitoring": "Monitoring",
-    "/admin/monitoring/activity": "Activity Logs",
-    "/admin/monitoring/anomalies": "Anomalies",
-    "/admin/analytics": "Analytics",
-    "/admin/performance": "Mod Performance",
-    "/admin/tickets": "All Tickets",
-    "/admin/settings": "Admin Settings",
-    "/admin/security/stress-test": "Stress Test",
-  };
-
-  for (const [path, title] of Object.entries(titles)) {
-    if (location === path || location.startsWith(path + "/")) return title;
-  }
-  return "Osiris";
-}
-
-function MobileHeader({
-  onOpenDrawer,
-  location,
-}: {
-  onOpenDrawer: () => void;
-  location: string;
-}) {
-  const { settings } = useSiteSettings();
+/** Phone header: menu, brand and one context action. The page title lives in each page's own header. */
+function MobileHeader({ onOpenDrawer, location }: { onOpenDrawer: () => void; location: string }) {
+  const { t } = useTranslation();
+  const { data: counts } = useNotificationCounts();
   const isAdminArea = location.startsWith("/admin");
+  const unread = counts?.unread ?? 0;
+  const iconButton = "relative flex h-10 w-10 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   return (
-    <header className="lg:hidden flex items-center h-14 px-4 gap-3 border-b border-border bg-background/95 flex-shrink-0 sticky top-0 z-30">
-      <button
-        onClick={onOpenDrawer}
-        className="p-2 rounded-sm hover:bg-foreground/5 transition-colors -ml-2 text-muted-foreground hover:text-foreground"
-        aria-label="Open menu"
-      >
+    <header className="sticky top-0 z-30 flex h-14 flex-shrink-0 items-center gap-2 border-b border-border bg-background/95 px-2 lg:hidden">
+      <button onClick={onOpenDrawer} className={iconButton} aria-label={t("nav.open_menu", "Open menu")}>
         <Menu className="h-5 w-5" />
       </button>
 
-      <span className="font-display font-semibold text-base flex-1 truncate">
-        {getPageTitle(location)}
-      </span>
+      <Link href={isAdminArea ? "/admin" : "/"} className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="truncate font-display text-base font-semibold">Osiris</span>
+        {isAdminArea && <span className="ov-label">{t("navbar.section_admin", "Administration")}</span>}
+      </Link>
 
-      {/* Context-aware header actions */}
-      <div className="flex items-center gap-1">
-        {isAdminArea ? (
-          <Link href="/feed/media">
-            <button className="p-2 rounded-sm hover:bg-foreground/5 hover:text-foreground transition-colors text-muted-foreground">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-          </Link>
-        ) : (
-          <>
-            <Link href="/notifications">
-              <button className="p-2 rounded-sm hover:bg-foreground/5 hover:text-foreground transition-colors text-muted-foreground">
-                <Bell className="h-5 w-5" />
-              </button>
-            </Link>
-            {(location === "/feed/media" || location === "/") && (
-              <Link href="/post/discussions">
-                <button className="p-2 rounded-sm hover:bg-foreground/5 hover:text-foreground transition-colors text-muted-foreground">
-                  <Plus className="h-5 w-5" />
-                </button>
-              </Link>
-            )}
-          </>
-        )}
-      </div>
+      {isAdminArea ? (
+        <Link href="/feed/media" className={cn(iconButton, "w-auto gap-1.5 px-3 text-[13px] font-medium")}>
+          <ArrowLeft className="h-4 w-4" />
+          {t("nav.to_app", "App")}
+        </Link>
+      ) : (
+        <Link href="/notifications" className={iconButton} aria-label={t("navigation.notifications", "Notifications")}>
+          <Bell className="h-5 w-5" />
+          {unread > 0 && (
+            <span className="font-data absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-xs border border-background bg-primary px-1 text-[10px] font-semibold tabular-nums text-primary-foreground">
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
+        </Link>
+      )}
     </header>
   );
 }
@@ -234,19 +184,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </Suspense>
         </main>
 
-        {/* Persistent Bottom Tab Bar – visible only on mobile */}
-        {!isAdminArea ? (
-          <MobileBottomNav />
-        ) : (
-          <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Link href="/">
-              <Button className="gap-2 px-5 h-11">
-                <ArrowLeft className="h-4 w-4" />
-                <span className="text-sm">Social Feed</span>
-              </Button>
-            </Link>
-          </div>
-        )}
+        {/* Bottom tab bar on phones; the admin area returns to the app via its header link instead. */}
+        {!isAdminArea && <MobileBottomNav />}
       </div>
     </div>
   );

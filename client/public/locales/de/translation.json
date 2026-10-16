@@ -690,5 +690,49 @@
     "title": "Diese Seite konnte nicht angezeigt werden",
     "hint": "Beim Anzeigen ist ein Fehler aufgetreten. Neu laden hilft meistens.",
     "reload": "Neu laden"
+  },
+  "nav": {
+    "section_discover": "Entdecken",
+    "section_you": "Für dich",
+    "section_tools": "Werkzeuge",
+    "theme_builder": "Theme Builder",
+    "help_tickets": "Hilfe & Tickets",
+    "moderation": "Moderation",
+    "admin_area": "Admin-Bereich",
+    "admin_overview": "Übersicht",
+    "admin_people": "Nutzer & Inhalte",
+    "admin_moderation": "Moderation",
+    "admin_system": "System",
+    "tickets": "Tickets",
+    "groups": "Gruppen",
+    "bans": "Sperren",
+    "auto_actions": "Automatische Maßnahmen",
+    "mod_performance": "Mod-Leistung",
+    "logs": "Protokolle",
+    "analytics": "Analysen",
+    "stress_test": "Stresstest",
+    "back_to_app": "Zurück zur App",
+    "to_app": "App",
+    "create_post": "Beitrag erstellen",
+    "expand": "Seitenleiste ausklappen",
+    "collapse": "Seitenleiste einklappen",
+    "close_menu": "Menü schließen",
+    "open_menu": "Menü öffnen",
+    "account_menu": "Kontomenü",
+    "bottom_feed": "Feed",
+    "bottom_discussions": "Diskussionen",
+    "monitoring": "Monitoring"
+  },
+  "theme": {
+    "mode_dark": "Dunkel",
+    "mode_light": "Hell",
+    "mode_system": "System",
+    "switch": "Darstellung wechseln",
+    "mode": "Modus",
+    "manage": "Themes verwalten"
+  },
+  "language": {
+    "switch": "Sprache wechseln",
+    "select": "Sprache wählen"
   }
 }
