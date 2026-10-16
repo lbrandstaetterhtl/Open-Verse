@@ -1298,17 +1298,64 @@
       "blocked": "Bloqué"
     },
     "actions": {
-      "admin": {},
-      "auth": {},
-      "comment": {},
-      "community": {},
-      "follow": {},
-      "post": {},
-      "report": {},
-      "security": {},
-      "system": {},
-      "ticket": {},
-      "user": {}
+      "admin": {
+        "bulk_action": "Action groupée",
+        "settings_change": "Paramètres modifiés",
+        "group_create": "Groupe créé",
+        "group_delete": "Groupe supprimé",
+        "group_update": "Groupe modifié",
+        "user_group_assign": "Utilisateur ajouté à un groupe"
+      },
+      "auth": {
+        "login": "Connexion",
+        "login_failed": "Échec de connexion",
+        "logout": "Déconnexion",
+        "register": "Inscription"
+      },
+      "comment": {
+        "create": "Commentaire publié",
+        "delete": "Commentaire supprimé"
+      },
+      "community": {
+        "ban_member": "Membre banni d'une communauté",
+        "unban_member": "Bannissement de la communauté levé",
+        "create": "Communauté créée",
+        "join": "A rejoint une communauté",
+        "leave": "A quitté une communauté"
+      },
+      "follow": {
+        "add": "S'est abonné à un utilisateur",
+        "remove": "S'est désabonné d'un utilisateur"
+      },
+      "post": {
+        "create": "Publication créée",
+        "delete": "Publication supprimée"
+      },
+      "report": {
+        "resolve": "Signalement traité",
+        "submit": "Signalement envoyé"
+      },
+      "security": {
+        "auth_bypass_attempt": "Tentative de contournement de l'authentification",
+        "suspicious_request": "Requête suspecte"
+      },
+      "system": {
+        "error": "Erreur système"
+      },
+      "ticket": {
+        "comment": "Commentaire sur un ticket",
+        "create": "Ticket créé",
+        "status_change": "Statut du ticket modifié"
+      },
+      "user": {
+        "upload_rejected": "Envoi refusé",
+        "upload_avatar": "Photo de profil envoyée",
+        "upload_cover": "Image de couverture envoyée",
+        "delete_account": "Compte supprimé",
+        "settings_change": "Paramètres utilisateur modifiés",
+        "update_avatar": "Photo de profil modifiée",
+        "update_cover": "Image de couverture modifiée"
+      }
     }
   },
   "admin_dashboard": {

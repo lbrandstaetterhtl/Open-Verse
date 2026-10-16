@@ -31,5 +31,7 @@
   "growth": "增长",
   "new_posts_count": "本时段帖子数",
   "access_restricted": "访问受限",
-  "access_restricted_desc": "你没有访问产品数据分析所需的权限。"
+  "access_restricted_desc": "你没有访问产品数据分析所需的权限。",
+  "range_short_7": "7天",
+  "range_short_30": "30天"
 }

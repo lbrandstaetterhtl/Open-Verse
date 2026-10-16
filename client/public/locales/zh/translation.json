@@ -1298,17 +1298,64 @@
       "blocked": "已拦截"
     },
     "actions": {
-      "admin": {},
-      "auth": {},
-      "comment": {},
-      "community": {},
-      "follow": {},
-      "post": {},
-      "report": {},
-      "security": {},
-      "system": {},
-      "ticket": {},
-      "user": {}
+      "admin": {
+        "bulk_action": "批量操作",
+        "settings_change": "设置已更改",
+        "group_create": "已创建分组",
+        "group_delete": "已删除分组",
+        "group_update": "已更新分组",
+        "user_group_assign": "已将用户分配到分组"
+      },
+      "auth": {
+        "login": "登录",
+        "login_failed": "登录失败",
+        "logout": "退出登录",
+        "register": "注册"
+      },
+      "comment": {
+        "create": "发表了评论",
+        "delete": "删除了评论"
+      },
+      "community": {
+        "ban_member": "封禁了社区成员",
+        "unban_member": "解封了社区成员",
+        "create": "创建了社区",
+        "join": "加入了社区",
+        "leave": "退出了社区"
+      },
+      "follow": {
+        "add": "关注了用户",
+        "remove": "取消关注了用户"
+      },
+      "post": {
+        "create": "发布了帖子",
+        "delete": "删除了帖子"
+      },
+      "report": {
+        "resolve": "已处理举报",
+        "submit": "提交了举报"
+      },
+      "security": {
+        "auth_bypass_attempt": "试图绕过身份验证",
+        "suspicious_request": "可疑请求"
+      },
+      "system": {
+        "error": "系统错误"
+      },
+      "ticket": {
+        "comment": "工单评论",
+        "create": "创建了工单",
+        "status_change": "工单状态已更改"
+      },
+      "user": {
+        "upload_rejected": "上传被拒绝",
+        "upload_avatar": "上传了头像",
+        "upload_cover": "上传了封面图",
+        "delete_account": "删除了账号",
+        "settings_change": "用户设置已更改",
+        "update_avatar": "更换了头像",
+        "update_cover": "更换了封面图"
+      }
     }
   },
   "admin_dashboard": {

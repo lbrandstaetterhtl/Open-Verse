@@ -27,7 +27,20 @@
     "components/layout/star-chart.tsx::Cassiopeia": "Official IAU constellation name, decorative",
     "components/layout/star-chart.tsx::Cygnus": "Official IAU constellation name, decorative",
     "components/layout/star-chart.tsx::Leo": "Official IAU constellation name, decorative",
-    "components/layout/star-chart.tsx::Lyra": "Official IAU constellation name, decorative"
+    "components/layout/star-chart.tsx::Lyra": "Official IAU constellation name, decorative",
+    "sameAsEnglish": "Reviewed: these texts are spelled the same in that language (log prefix, 'pts' abbreviation, 'Version', the loanword 'Stress test')."
   },
-  "sameAsEnglish": {}
+  "sameAsEnglish": {
+    "es": [
+      "translation:stress_test.log_error",
+      "modPerf:points_plus"
+    ],
+    "fr": [
+      "translation:auth.version_label",
+      "modPerf:points_plus"
+    ],
+    "it": [
+      "translation:nav.stress_test"
+    ]
+  }
 }

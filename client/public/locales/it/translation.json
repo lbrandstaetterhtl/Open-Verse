@@ -1298,17 +1298,64 @@
       "blocked": "Bloccato"
     },
     "actions": {
-      "admin": {},
-      "auth": {},
-      "comment": {},
-      "community": {},
-      "follow": {},
-      "post": {},
-      "report": {},
-      "security": {},
-      "system": {},
-      "ticket": {},
-      "user": {}
+      "admin": {
+        "bulk_action": "Azione di massa",
+        "settings_change": "Impostazioni modificate",
+        "group_create": "Gruppo creato",
+        "group_delete": "Gruppo eliminato",
+        "group_update": "Gruppo aggiornato",
+        "user_group_assign": "Utente assegnato a un gruppo"
+      },
+      "auth": {
+        "login": "Accesso",
+        "login_failed": "Accesso non riuscito",
+        "logout": "Disconnessione",
+        "register": "Registrazione"
+      },
+      "comment": {
+        "create": "Commento pubblicato",
+        "delete": "Commento eliminato"
+      },
+      "community": {
+        "ban_member": "Membro bannato da una comunità",
+        "unban_member": "Ban dalla comunità revocato",
+        "create": "Comunità creata",
+        "join": "Si è unito a una comunità",
+        "leave": "Ha lasciato una comunità"
+      },
+      "follow": {
+        "add": "Ha seguito un utente",
+        "remove": "Ha smesso di seguire un utente"
+      },
+      "post": {
+        "create": "Post creato",
+        "delete": "Post eliminato"
+      },
+      "report": {
+        "resolve": "Segnalazione gestita",
+        "submit": "Segnalazione inviata"
+      },
+      "security": {
+        "auth_bypass_attempt": "Tentativo di aggirare l'autenticazione",
+        "suspicious_request": "Richiesta sospetta"
+      },
+      "system": {
+        "error": "Errore di sistema"
+      },
+      "ticket": {
+        "comment": "Commento a un ticket",
+        "create": "Ticket creato",
+        "status_change": "Stato del ticket modificato"
+      },
+      "user": {
+        "upload_rejected": "Caricamento rifiutato",
+        "upload_avatar": "Immagine del profilo caricata",
+        "upload_cover": "Immagine di copertina caricata",
+        "delete_account": "Account eliminato",
+        "settings_change": "Impostazioni utente modificate",
+        "update_avatar": "Immagine del profilo modificata",
+        "update_cover": "Immagine di copertina modificata"
+      }
     }
   },
   "admin_dashboard": {

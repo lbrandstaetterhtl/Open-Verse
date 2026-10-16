@@ -1298,17 +1298,64 @@
       "blocked": "Bloqueado"
     },
     "actions": {
-      "admin": {},
-      "auth": {},
-      "comment": {},
-      "community": {},
-      "follow": {},
-      "post": {},
-      "report": {},
-      "security": {},
-      "system": {},
-      "ticket": {},
-      "user": {}
+      "admin": {
+        "bulk_action": "Acción masiva",
+        "settings_change": "Ajustes cambiados",
+        "group_create": "Grupo creado",
+        "group_delete": "Grupo eliminado",
+        "group_update": "Grupo actualizado",
+        "user_group_assign": "Usuario asignado a un grupo"
+      },
+      "auth": {
+        "login": "Inicio de sesión",
+        "login_failed": "Inicio de sesión fallido",
+        "logout": "Cierre de sesión",
+        "register": "Registro"
+      },
+      "comment": {
+        "create": "Comentario publicado",
+        "delete": "Comentario eliminado"
+      },
+      "community": {
+        "ban_member": "Miembro bloqueado en una comunidad",
+        "unban_member": "Bloqueo en la comunidad levantado",
+        "create": "Comunidad creada",
+        "join": "Se unió a una comunidad",
+        "leave": "Abandonó una comunidad"
+      },
+      "follow": {
+        "add": "Siguió a un usuario",
+        "remove": "Dejó de seguir a un usuario"
+      },
+      "post": {
+        "create": "Publicación creada",
+        "delete": "Publicación eliminada"
+      },
+      "report": {
+        "resolve": "Reporte gestionado",
+        "submit": "Reporte enviado"
+      },
+      "security": {
+        "auth_bypass_attempt": "Intento de eludir la autenticación",
+        "suspicious_request": "Solicitud sospechosa"
+      },
+      "system": {
+        "error": "Error del sistema"
+      },
+      "ticket": {
+        "comment": "Comentario en ticket",
+        "create": "Ticket creado",
+        "status_change": "Estado del ticket cambiado"
+      },
+      "user": {
+        "upload_rejected": "Subida rechazada",
+        "upload_avatar": "Foto de perfil subida",
+        "upload_cover": "Portada subida",
+        "delete_account": "Cuenta eliminada",
+        "settings_change": "Ajustes de usuario cambiados",
+        "update_avatar": "Foto de perfil cambiada",
+        "update_cover": "Portada cambiada"
+      }
     }
   },
   "admin_dashboard": {

@@ -31,5 +31,7 @@
   "growth": "Crecimiento",
   "new_posts_count": "publicaciones en este periodo",
   "access_restricted": "Acceso restringido",
-  "access_restricted_desc": "No tienes los permisos necesarios para acceder a las analíticas de producto."
+  "access_restricted_desc": "No tienes los permisos necesarios para acceder a las analíticas de producto.",
+  "range_short_7": "7 d",
+  "range_short_30": "30 d"
 }
