@@ -28,7 +28,14 @@
     "discussions": "Talk"
   },
   "auth": {
-    "login": "Anmelden"
+    "login": "Anmelden",
+    "welcome_back": {
+      "title": "Willkommen zurück, {{name}}!",
+      "description": "Schön, dich wiederzusehen."
+    },
+    "login_failed": "Anmeldung fehlgeschlagen",
+    "register_failed": "Registrierung fehlgeschlagen",
+    "logout_failed": "Abmelden fehlgeschlagen"
   },
   "bans": {
     "title": "Bans & Sperren"

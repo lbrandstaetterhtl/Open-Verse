@@ -28,7 +28,14 @@
     "discussions": "Talk"
   },
   "auth": {
-    "login": "Login"
+    "login": "Login",
+    "welcome_back": {
+      "title": "Welcome back, {{name}}!",
+      "description": "Good to see you again."
+    },
+    "login_failed": "Login failed",
+    "register_failed": "Registration failed",
+    "logout_failed": "Logout failed"
   },
   "bans": {
     "title": "Bans & Restrictions"
