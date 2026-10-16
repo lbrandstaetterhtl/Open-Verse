@@ -31,7 +31,7 @@ export default function ModeratorPerformancePage() {
             });
         } catch {
             toast({
-                title: t("modPerf:snapshot_error", "Error"),
+                title: t("modPerf:snapshot_error", "Error creating snapshot"),
                 variant: "destructive",
             });
         }

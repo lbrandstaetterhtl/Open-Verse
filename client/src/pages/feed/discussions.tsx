@@ -83,7 +83,7 @@ export default function DiscussionsFeedPage() {
               <div className="ov-cut mb-6 flex h-14 w-14 items-center justify-center rounded-sm bg-primary/10 md:h-16 md:w-16">
                 <MessagesSquare className="h-7 w-7 text-primary md:h-8 md:w-8" />
               </div>
-              <h3 className="font-display text-xl md:text-2xl font-semibold mb-2">{t("feed.no_discussions", "Silence in the Verse")}</h3>
+              <h3 className="font-display text-xl md:text-2xl font-semibold mb-2">{t("feed.no_discussions", "No discussions yet. Be the first to start one!")}</h3>
               <p className="text-muted-foreground text-sm md:text-base max-w-sm px-4">{t("feed.no_discussions_desc", "Every great movement started with a single word. Be the first to speak.")}</p>
               <Link href="/post/discussions" className="mt-8">
                 <Button variant="outline">

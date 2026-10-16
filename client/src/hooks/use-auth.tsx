@@ -46,14 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.clear();
       queryClient.setQueryData(["/api/user"], data);
       toast({
-        title: t("auth.welcome_back.title", { defaultValue: "Willkommen zurück, {{name}}!", name: data.displayName || data.username }),
-        description: t("auth.welcome_back.description", "Schön, dich wiederzusehen."),
+        title: t("auth.welcome_back.title", { defaultValue: "Welcome back, {{name}}!", name: data.displayName || data.username }),
+        description: t("auth.welcome_back.description", "Good to see you again."),
         duration: 4000,
       });
     },
     onError: (err: Error) => {
       toast({
-        title: t("auth.login_failed", "Anmeldung fehlgeschlagen"),
+        title: t("auth.login_failed", "Login failed"),
         description: err.message,
         variant: "destructive",
       });
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (err: Error) => {
       toast({
-        title: t("auth.register_failed", "Registrierung fehlgeschlagen"),
+        title: t("auth.register_failed", "Registration failed"),
         description: err.message,
         variant: "destructive",
       });
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (err: Error) => {
       toast({
-        title: t("auth.logout_failed", "Abmelden fehlgeschlagen"),
+        title: t("auth.logout_failed", "Logout failed"),
         description: err.message,
         variant: "destructive",
       });

@@ -1,16 +1,16 @@
 {
   "navbar": {
     "brand": "Osiris",
-    "media_feed": "Media Feed",
-    "discussions_feed": "Discussions Feed",
+    "media_feed": "Media feed",
+    "discussions_feed": "Discussions feed",
     "messages": "Messages",
     "profile": "Profile",
     "theme_builder": "Theme Builder",
     "communities": "Communities",
-    "ai_generator": "AI Generator",
+    "ai_generator": "AI generator",
     "mod_panel": "Mod Panel",
     "admin": "Admin",
-    "logout": "Logout",
+    "logout": "Log out",
     "content_feeds": "Feeds",
     "personal_tools": "Tools",
     "navigation": "Navigation",
@@ -430,7 +430,9 @@
       "spanish": "Spanish",
       "french": "French"
     },
-    "eyebrow": "Create / AI generator"
+    "eyebrow": "Create / AI generator",
+    "mascot_alt": "Mecha Osiris, the AI mascot",
+    "preview_alt": "Preview of your image"
   },
   "create_post": {
     "news": {
@@ -570,7 +572,8 @@
         "post": "Post",
         "comment": "Comment",
         "other": "Other"
-      }
+      },
+      "no_match": "No reports match your filters."
     },
     "requests": {
       "approved_title": "Request Approved",
@@ -582,7 +585,9 @@
         "date": "Date",
         "actions": "Actions",
         "empty": "No pending join requests."
-      }
+      },
+      "empty_desc": "When users request to join this private community, they will appear here.",
+      "unknown_user": "Unknown user"
     },
     "members": {
       "title": "Community Members",
@@ -722,8 +727,8 @@
   },
   "theme_builder": {
     "theme_name_label": "Theme Name",
-    "unsaved_changes": "Unsaved Changes",
-    "all_saved": "All Saved",
+    "unsaved_changes": "Unsaved changes",
+    "all_saved": "All saved",
     "reset_confirm": "Are you sure you want to reset all colors to their defaults? This cannot be undone.",
     "import_success": "Theme imported successfully",
     "export_success": "Theme configuration copied to clipboard",
@@ -773,7 +778,68 @@
     "upload_failed": "Upload failed",
     "bg_mode_solid": "Solid",
     "bg_mode_gradient": "Gradient",
-    "bg_mode_image": "Image"
+    "bg_mode_image": "Image",
+    "pro_tip_text": "Use the <strong>contrast checker</strong> icons next to text colors to make sure your theme stays accessible for everyone.",
+    "undo": "Undo (Ctrl+Z)",
+    "redo": "Redo (Ctrl+Y)",
+    "select_theme": "Select theme...",
+    "new": "New",
+    "import": "Import",
+    "export": "Export",
+    "shuffle": "Shuffle",
+    "harmonize": "Harmonize",
+    "typography": "Typography",
+    "select_font": "Select a font",
+    "background_style": "Background style",
+    "custom_background_image": "Custom background image",
+    "uploading": "Uploading...",
+    "click_to_upload": "Click to upload image",
+    "brightness": "Brightness",
+    "contrast": "Contrast",
+    "particles": "Particles",
+    "particles_desc": "Cursor-following star particles. Customize the core dot and glow halo colors.",
+    "enable_particles": "Enable particles",
+    "core_dot_color": "Core dot color",
+    "core_dot_color_desc": "Bright center of each particle",
+    "glow_halo_color": "Glow halo color",
+    "glow_halo_color_desc": "Soft light surrounding each particle",
+    "twinkle_effect": "Twinkle effect",
+    "particle_speed": "Speed",
+    "cursor_pull": "Cursor pull",
+    "particle_size": "Size",
+    "glow_strength": "Glow strength",
+    "reset_to_default": "Reset to default",
+    "link_modes": "Link light and dark modes",
+    "mode_light": "Light",
+    "mode_dark": "Dark",
+    "group_layout_colors": "Layout colors",
+    "group_brand_interactive": "Brand & interactive",
+    "live_preview": "Live app preview",
+    "real_time": "Real-time",
+    "desktop_preview": "Desktop preview",
+    "mobile_preview": "Mobile preview",
+    "preview_app_name": "Osiris App",
+    "preview_followers": "Followers",
+    "preview_karma": "Karma",
+    "preview_posts": "Posts",
+    "preview_author": "Creative lead",
+    "preview_time": "2 hours ago",
+    "preview_post_title": "Implementing the new theme builder design system!",
+    "preview_post_body": "The two-column layout provides a much better workflow. It's now possible to see every color tweak in real time without scrolling.",
+    "preview_read_more": "Read more",
+    "preview_interactive": "Interactive elements",
+    "preview_interactive_desc": "Test your interactive and modal colors here.",
+    "preview_join": "Join the conversation",
+    "preview_input_placeholder": "Type something...",
+    "preview_send": "Send",
+    "preview_btn_primary": "Primary",
+    "preview_btn_secondary": "Secondary",
+    "preview_btn_outline": "Outline",
+    "preview_btn_ghost": "Ghost",
+    "preview_btn_destructive": "Destructive",
+    "pro_tip": "Pro tip",
+    "mobile_settings": "Settings",
+    "mobile_preview_tab": "Preview"
   },
   "footer": {
     "default_tagline": "Unleash your creativity. Build the universe.",
@@ -920,7 +986,12 @@
     "count_reports": "{{count}} reports",
     "toolbar": {
       "selected": "selected",
-      "clear": "Clear selection"
+      "clear": "Clear selection",
+      "ban": "Ban selected",
+      "unban": "Unban selected",
+      "delete": "Delete selected",
+      "resolve": "Resolve all",
+      "reject": "Reject all"
     }
   },
   "admin_groups": {
@@ -958,6 +1029,56 @@
       "description": "List of administrators assigned to this permission group.",
       "member_id": "ID: {{id}}",
       "close": "Close"
+    },
+    "permissions": {
+      "dashboard": {
+        "label": "Dashboard Access",
+        "description": "View admin overview and statistics"
+      },
+      "users": {
+        "label": "User Management",
+        "description": "Manage roles, verification, and profile data"
+      },
+      "reports": {
+        "label": "Content Moderation",
+        "description": "Handle reports and resolve content disputes"
+      },
+      "groups": {
+        "label": "Group Management",
+        "description": "Edit admin groups and permissions"
+      },
+      "security": {
+        "label": "Security & Bans",
+        "description": "Access ban system and security tools"
+      },
+      "auto_punishment": {
+        "label": "Auto-Punishment",
+        "description": "Manage automated rule enforcement systems"
+      },
+      "logs": {
+        "label": "Activity Monitoring",
+        "description": "View system logs and anomaly reports"
+      },
+      "analytics": {
+        "label": "Platform Analytics",
+        "description": "View growth charts and usage metrics"
+      },
+      "performance": {
+        "label": "Moderator Performance",
+        "description": "Track moderation efficiency and stats"
+      },
+      "tickets": {
+        "label": "Support Tickets",
+        "description": "Manage and resolve user support tickets"
+      },
+      "stress_test": {
+        "label": "Stress Testing",
+        "description": "Run system stress tests and performance audits"
+      },
+      "settings": {
+        "label": "System Settings",
+        "description": "Configure global platform parameters"
+      }
     }
   },
   "report": {
@@ -1121,7 +1242,8 @@
       "active": "Active",
       "revoked": "Revoked"
     },
-    "revoke": "Revoke"
+    "revoke": "Revoke",
+    "target_user": "USER::{{id}}"
   },
   "admin_logs": {
     "title": "Activity Logs",
@@ -1262,7 +1384,34 @@
     "nominal": "NOMINAL",
     "metrics_captured": "Metrics captured",
     "system_status": "System status",
-    "live": "LIVE"
+    "live": "LIVE",
+    "modules": {
+      "api_endpoints": "API Load",
+      "api_endpoints_desc": "Floods REST endpoints with concurrent HTTP traffic.",
+      "database_connections": "Database Stress",
+      "database_connections_desc": "Concurrent Drizzle/SQLite query pressure.",
+      "websocket_flood": "WebSocket Flood",
+      "websocket_flood_desc": "Rapid connection establishment and message bursts.",
+      "file_upload": "File I/O",
+      "file_upload_desc": "Multipart file upload processing and disk pressure.",
+      "authentication": "Auth (Bcrypt)",
+      "authentication_desc": "Heavy Bcrypt computational cycles (Login/Register).",
+      "memory_leak": "Memory Pressure",
+      "memory_leak_desc": "Heap allocation monitoring and RSS tracking.",
+      "cpu_intensive": "CPU Burn",
+      "cpu_intensive_desc": "Math-heavy blocking loops to monitor event loop lag.",
+      "concurrent_users": "User Sessions",
+      "concurrent_users_desc": "Scripted multi-step user flows (Register -> Post).",
+      "all": "Full Suite",
+      "all_desc": "Sequential execution of all available stress tests."
+    },
+    "title": "Osiris Stress Forge",
+    "intensity": {
+      "low": "low",
+      "medium": "medium",
+      "high": "high",
+      "extreme": "extreme"
+    }
   },
   "admin_settings": {
     "update_success": "Setting updated successfully.",
@@ -1279,7 +1428,21 @@
     "danger_zone_desc": "Changes here affect authentication and global access controls. Verify settings before applying.",
     "enabled": "Enabled",
     "disabled": "Disabled",
-    "save_changes": "Save changes"
+    "save_changes": "Save changes",
+    "categories": {
+      "general": "General",
+      "general_desc": "Core site identification and status.",
+      "users": "Users",
+      "users_desc": "Authentication and member management.",
+      "content": "Content",
+      "content_desc": "Posting and moderation rules.",
+      "email": "Email",
+      "email_desc": "SMTP and notification delivery.",
+      "security": "Security",
+      "security_desc": "Access control and protection.",
+      "appearance": "Appearance",
+      "appearance_desc": "Themes and visual branding."
+    }
   },
   "chat": {
     "message_sent": "Message sent successfully",
@@ -1302,5 +1465,78 @@
     "discover_title": "Discover Communities",
     "discover_desc": "Find people with similar interests in over 1,000 topic areas. Join the conversation and share your passion.",
     "explore_all": "Explore All"
+  },
+  "app": {
+    "initializing": "Initializing Osiris..."
+  },
+  "layout": {
+    "sidebar": {
+      "unread_badge": "{{badge}} unread"
+    }
+  },
+  "maintenance": {
+    "title": "Under maintenance",
+    "description": "We are currently performing scheduled maintenance to improve our services. We'll be back online shortly. Thank you for your patience!",
+    "staff_title": "Staff member?",
+    "staff_description": "Administrative accounts have full access to the platform during maintenance. Please log in to continue.",
+    "staff_login": "Staff login"
+  },
+  "color_picker": {
+    "contrast_ratio": "Contrast ratio: {{ratio}}:1 ({{status}})",
+    "fail": "Fail",
+    "reset_to_default": "Reset to default"
+  },
+  "ui": {
+    "more": "More",
+    "carousel": {
+      "previous": "Previous slide",
+      "next": "Next slide"
+    },
+    "close": "Close",
+    "error_state": {
+      "title": "Something went wrong",
+      "message": "An error occurred while loading this content.",
+      "retry": "Try again"
+    },
+    "pagination": {
+      "previous_aria": "Go to previous page",
+      "previous": "Previous",
+      "next_aria": "Go to next page",
+      "next": "Next",
+      "more_pages": "More pages"
+    },
+    "sidebar": {
+      "toggle": "Toggle sidebar"
+    }
+  },
+  "tutorial": {
+    "steps": {
+      "welcome": {
+        "title": "Welcome to our platform!",
+        "description": "Let's take a quick tour of the features available to you. We'll show you how to make the most of your experience."
+      },
+      "profile": {
+        "title": "Your profile",
+        "description": "Click on your avatar to access your profile settings, where you can update your information and manage your account."
+      },
+      "posts": {
+        "title": "Creating posts",
+        "description": "Share your thoughts by creating posts. You can post discussions, news, or entertainment content."
+      },
+      "interaction": {
+        "title": "Interacting with others",
+        "description": "Follow other users, like their posts, and leave comments to engage with the community."
+      },
+      "messaging": {
+        "title": "Messaging",
+        "description": "Use the chat feature to have private conversations with other users."
+      }
+    },
+    "error_title": "Error",
+    "skip_confirm": "Are you sure you want to skip the tutorial? You can always access it later from your profile settings.",
+    "previous": "Previous",
+    "skip": "Skip tutorial",
+    "finish": "Finish",
+    "next": "Next"
   }
 }

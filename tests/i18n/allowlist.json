@@ -1,6 +1,33 @@
 {
-  "text": ["Osiris", "Open-Verse", "OpenVerse", "Osiris Verse", "English", "Deutsch", "Español", "Français", "Italiano", "中文"],
-  "entries": [],
-  "reasons": {},
+  "text": [
+    "Osiris",
+    "Open-Verse",
+    "OpenVerse",
+    "Osiris Verse",
+    "English",
+    "Deutsch",
+    "Español",
+    "Français",
+    "Italiano",
+    "中文"
+  ],
+  "entries": [
+    "pages/tickets/TicketsPage.tsx::Verse",
+    "components/layout/star-chart.tsx::Orion",
+    "components/layout/star-chart.tsx::Ursa Major",
+    "components/layout/star-chart.tsx::Cassiopeia",
+    "components/layout/star-chart.tsx::Cygnus",
+    "components/layout/star-chart.tsx::Leo",
+    "components/layout/star-chart.tsx::Lyra"
+  ],
+  "reasons": {
+    "pages/tickets/TicketsPage.tsx::Verse": "Brand accent after the page title (Open-Verse)",
+    "components/layout/star-chart.tsx::Orion": "Official IAU constellation name, decorative",
+    "components/layout/star-chart.tsx::Ursa Major": "Official IAU constellation name, decorative",
+    "components/layout/star-chart.tsx::Cassiopeia": "Official IAU constellation name, decorative",
+    "components/layout/star-chart.tsx::Cygnus": "Official IAU constellation name, decorative",
+    "components/layout/star-chart.tsx::Leo": "Official IAU constellation name, decorative",
+    "components/layout/star-chart.tsx::Lyra": "Official IAU constellation name, decorative"
+  },
   "sameAsEnglish": {}
 }

@@ -114,7 +114,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
       title: t("nav.section_discover", "Discover"),
       items: [
         { href: "/feed/media", icon: Home, label: t("navbar.media_feed", "Media feed"), alsoActive: ["/"] },
-        { href: "/feed/discussions", icon: MessagesSquare, label: t("navbar.discussions_feed", "Discussions") },
+        { href: "/feed/discussions", icon: MessagesSquare, label: t("navbar.discussions_feed", "Discussions feed") },
         { href: "/feed/communities", icon: Users, label: t("navbar.communities", "Communities"), alsoActive: ["/c", "/create-community"] },
       ],
     },

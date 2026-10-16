@@ -55,12 +55,12 @@ export default function GrowthDashboardPage() {
         try {
             await computeMutation.mutateAsync();
             toast({
-                title: t("analytics:compute_success", "Success"),
-                description: t("analytics:compute_success_desc", "Latest metrics have been recalculated."),
+                title: t("analytics:compute_success", "Metrics Updated"),
+                description: t("analytics:compute_success_desc", "Latest metrics have been recalculated successfully."),
             });
         } catch (error) {
             toast({
-                title: t("analytics:compute_error", "Error"),
+                title: t("analytics:compute_error", "Failed to update metrics."),
                 variant: "destructive",
             });
         }
@@ -145,7 +145,7 @@ export default function GrowthDashboardPage() {
                                 <TrendChart 
                                     data={history} 
                                     dataKey="activeUsersDay" 
-                                    label={t("analytics:dau", "DAU")} 
+                                    label={t("analytics:dau", "Daily Active Users")} 
                                     color="hsl(var(--chart-2))"
                                     loading={loadingOverview}
                                 />

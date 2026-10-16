@@ -222,7 +222,7 @@ export default function AIGeneratorPage() {
                       >
                         <img
                           src={imagePreview}
-                          alt="Preview"
+                          alt={t("ai_generator.preview_alt", "Preview of your image")}
                           className="object-cover w-full h-full"
                         />
                         <Button

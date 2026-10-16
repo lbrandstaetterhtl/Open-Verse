@@ -68,6 +68,18 @@ describe("source code", () => {
     assert.deepEqual([...missing], [], `keys missing in en:\n  ${list([...missing])}`);
   });
 
+  test("English default texts in code match the English locale file", () => {
+    // The default is shown until the locale file has loaded; it must not differ (or be German).
+    const diff = new Set<string>();
+    for (const u of findUsedKeys()) {
+      const value = en[u.ns]?.[u.key];
+      if (u.defaultValue !== undefined && value !== undefined && value !== u.defaultValue) {
+        diff.add(`${u.ns}:${u.key} — code "${u.defaultValue}" vs en "${value}" (${u.file}:${u.line})`);
+      }
+    }
+    assert.deepEqual([...diff], [], `default text differs from en:\n  ${list([...diff])}`);
+  });
+
   test("a key is not used with two different English default texts", () => {
     const seen = new Map<string, Set<string>>();
     for (const u of findUsedKeys()) {

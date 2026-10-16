@@ -46,7 +46,7 @@ export default function NotificationsPage() {
                 disabled={!notifications?.some(n => !n.read)}
               >
                 <CheckCircle2 className="h-4 w-4" />
-                {t("notifications.mark_all_read", "All Read")}
+                {t("notifications.mark_all_read", "Mark all as read")}
               </Button>
               <Button 
                 variant="outline" 
@@ -55,7 +55,7 @@ export default function NotificationsPage() {
                 className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4" />
-                {t("notifications.clear_all", "Clear")}
+                {t("notifications.clear_all", "Clear all")}
               </Button>
             </>
           }
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
                     className="flex-1 h-10"
                   >
                     <Settings className="h-4 w-4 mr-2" />
-                    {t("notifications.tabs.settings", "Settings")}
+                    {t("notifications.tabs.settings", "Preferences")}
                   </TabsTrigger>
                </TabsList>
             </div>
@@ -101,7 +101,7 @@ export default function NotificationsPage() {
                   <div className="space-y-4">
                     <h3 className="font-display text-lg font-semibold flex items-center gap-2">
                        <Bell className="h-4 w-4 text-primary" />
-                       {t("notifications.pref.social_header", "Social Alerts")}
+                       {t("notifications.pref.social_header", "Social Interactions")}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <PreferenceToggle 

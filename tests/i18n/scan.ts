@@ -106,9 +106,13 @@ const ignoredContext = (node: ts.Node): boolean => {
   return false;
 };
 
+/** A single capitalised word like "Save", "Settings:" or "Next…" is a UI label, not an identifier. */
+const UI_WORD = /^[A-ZÄÖÜ][a-zäöüß]+(?:-[A-Za-z]+)?[.!?:…]*$/;
+
 const isProse = (raw: string) => {
   const s = raw.replace(/\s+/g, " ").trim();
   if (!HAS_WORD.test(s)) return false;
+  if (UI_WORD.test(s)) return true;
   return !NOT_PROSE.some((re) => re.test(s));
 };
 

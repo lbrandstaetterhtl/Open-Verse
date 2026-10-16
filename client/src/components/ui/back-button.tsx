@@ -33,10 +33,10 @@ export function BackButton({
       variant={variant}
       onClick={handleBack}
       className={`gap-1 text-muted-foreground hover:text-foreground ${className}`}
-      aria-label={label ?? t("common.back", "Zurück")}
+      aria-label={label ?? t("common.back", "Back")}
     >
       <ArrowLeft className="h-4 w-4" />
-      {label ?? t("common.back", "Zurück")}
+      {label ?? t("common.back", "Back")}
     </Button>
   );
 }

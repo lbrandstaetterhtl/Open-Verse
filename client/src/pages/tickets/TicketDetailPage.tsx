@@ -234,7 +234,7 @@ export default function TicketDetailPage() {
                 <div className="ov-panel mt-8 overflow-hidden focus-within:[--ov-line:hsl(var(--primary)/0.6)]">
                   <Textarea
                     className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent p-5 min-h-[160px] text-base resize-none"
-                    placeholder={t("comments.placeholder", "Inject your response into the transmission...")}
+                    placeholder={t("comments.placeholder", "Add a comment...")}
                     value={commentText}
                     onChange={e => setCommentText(e.target.value)}
                   />

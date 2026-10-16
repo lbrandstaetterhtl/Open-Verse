@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { Slot } from "@radix-ui/react-slot";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
 
@@ -85,7 +86,7 @@ const BreadcrumbEllipsis = ({ className, ...props }: React.ComponentProps<"span"
     {...props}
   >
     <MoreHorizontal className="h-4 w-4" />
-    <span className="sr-only">More</span>
+    <SrMore />
   </span>
 );
 BreadcrumbEllipsis.displayName = "BreadcrumbElipssis";
@@ -99,3 +100,10 @@ export {
   BreadcrumbSeparator,
   BreadcrumbEllipsis,
 };
+
+/** Screen-reader label, translated. */
+function SrMore() {
+  const { t } = useTranslation();
+  return <span className="sr-only">{t("ui.more", "More")}</span>;
+}
+
