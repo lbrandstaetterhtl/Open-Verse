@@ -94,7 +94,7 @@ export class UserStorage {
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const result = sqlite
         .prepare(
-          "INSERT INTO users (username, password, email, created_at, karma, is_admin, verified, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO users (username, password, email, created_at, karma, role, is_admin, verified, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .run(
           insertUser.username,
@@ -102,9 +102,11 @@ export class UserStorage {
           insertUser.email,
           now,
           0,
-          0,
-          0,
-          0,
+          // Same fields the PostgreSQL path stores; public registration never passes them.
+          (insertUser as any).role ?? "user",
+          (insertUser as any).isAdmin ? 1 : 0,
+          (insertUser as any).verified ? 1 : 0,
+          (insertUser as any).emailVerified ? 1 : 0,
         );
 
       const user = sqlite

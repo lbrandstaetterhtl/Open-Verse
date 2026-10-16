@@ -159,6 +159,14 @@ if (useSqlite) {
       created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_posts_user_post ON saved_posts(user_id, post_id);
+    CREATE TABLE IF NOT EXISTS admin_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      permissions TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '#3b82f6',
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
     CREATE TABLE IF NOT EXISTS comment_likes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -608,6 +616,13 @@ if (useSqlite) {
   try { sqlite.exec(`ALTER TABLE users ADD COLUMN location TEXT`); } catch {}
   try { sqlite.exec(`ALTER TABLE users ADD COLUMN website TEXT`); } catch {}
   try { sqlite.exec(`ALTER TABLE users ADD COLUMN is_private INTEGER DEFAULT 0`); } catch {}
+  try { sqlite.exec(`ALTER TABLE users ADD COLUMN admin_group_id INTEGER`); } catch {}
+  // Columns the shared schema has but older SQLite tables lack
+  try { sqlite.exec(`ALTER TABLE tickets ADD COLUMN deleted_at INTEGER`); } catch {}
+  try { sqlite.exec(`ALTER TABLE ticket_comments ADD COLUMN deleted_at INTEGER`); } catch {}
+  for (const col of ["like_post", "like_comment", "comment_post", "reply_comment", "mention_post", "mention_comment", "new_follower", "community_invite"]) {
+    try { sqlite.exec(`ALTER TABLE notification_preferences ADD COLUMN ${col} INTEGER NOT NULL DEFAULT 1`); } catch {}
+  }
 
   // Migrating profile_picture_url to avatar_url if exists and new is empty
   try {

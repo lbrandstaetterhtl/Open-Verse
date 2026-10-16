@@ -100,7 +100,7 @@ function Router() {
         <ProtectedRoute path="/tickets" component={TicketsPage} />
         <ProtectedRoute path="/tickets/new" component={CreateTicketPage} />
         <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} />
-        <ProtectedRoute path="/admin/tickets" component={AdminTicketsOverview} />
+        <ProtectedRoute path="/admin/tickets" component={AdminTicketsOverview} requiredRole="admin" />
 
         {/* Admin Routes — require admin or owner role */}
         <ProtectedRoute path="/admin" component={AdminDashboard} requiredRole="admin" />

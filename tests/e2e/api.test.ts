@@ -457,6 +457,32 @@ describe("social", () => {
     assert.equal((await bob.client.get(`/api/tickets/${ticketId}/history`)).status, 404, "other users must not see the ticket");
   });
 
+  test("ticket creators can close their ticket but change nothing else", async () => {
+    const res = await alice.client.post("/api/tickets", {
+      title: `E2E close ${RUN_ID}`,
+      description: "Ticket that its creator closes again in the end-to-end tests.",
+      type: "other",
+      priority: "low",
+    });
+    await expectStatus(res, 201);
+    const ticketId = (await res.json()).ticket.id;
+    assert.equal((await alice.client.patch(`/api/tickets/${ticketId}`, { priority: "critical" })).status, 403, "creators must not change the priority");
+    assert.equal((await bob.client.patch(`/api/tickets/${ticketId}`, { status: "closed" })).status, 404, "other users must not close it");
+    const closed = await alice.client.patch(`/api/tickets/${ticketId}`, { status: "closed" });
+    await expectStatus(closed, 200);
+    assert.equal((await closed.json()).ticket.status, "closed");
+  });
+
+  test("invalid ticket ids answer 404 without leaking SQL", async () => {
+    for (const id of ["undefined", "abc", "NaN"]) {
+      const res = await alice.client.get(`/api/tickets/${id}`);
+      assert.equal(res.status, 404, `/api/tickets/${id}`);
+      assert.ok(!/select|failed query/i.test(await res.text()), "response must not contain SQL");
+    }
+    assert.equal((await alice.client.get("/api/tickets/99999999")).status, 404);
+    assert.equal((await alice.client.get("/api/tickets/stats")).status, 403, "ticket statistics are staff-only");
+  });
+
   test("follower lists do not leak password hashes", async () => {
     const res = await bob.client.get("/api/users/followers");
     await expectStatus(res, 200);

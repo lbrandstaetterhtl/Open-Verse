@@ -145,6 +145,10 @@ if (!process.env.SENDGRID_API_KEY) {
     const { ensurePostgresColumns } = await import("./migrations/ensure_postgres_columns");
     await ensurePostgresColumns();
 
+    // Owner bootstrap from INITIAL_OWNER_* (needs the final users table)
+    const { bootstrapAccounts } = await import("./db-migrations");
+    await bootstrapAccounts();
+
     // FEATURE [AS-009]: Initialize system settings
     await SettingsService.seed();
     

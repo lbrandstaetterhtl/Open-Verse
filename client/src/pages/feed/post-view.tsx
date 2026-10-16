@@ -86,12 +86,13 @@ export default function PostViewPage() {
     data: post,
     isLoading,
     error,
-  } = useQuery<PostWithAuthor>({
+  } = useQuery<PostWithAuthor | null>({
     queryKey: ["/api/posts", postId],
     queryFn: async () => {
       if (!postId) throw new Error("No post ID");
       const res = await fetch(`/api/posts/${postId}`);
-      if (!res.ok) throw new Error("Failed to fetch post");
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(t("post_actions.load_failed", "The post could not be loaded."));
       return res.json();
     },
     enabled: !!postId,
@@ -195,9 +196,12 @@ export default function PostViewPage() {
           {isLoading ? (
             <Spinner size="lg" className="p-8" />
           ) : error ? (
-            <ErrorState message={error.message} />
+            <ErrorState title={t("post_actions.load_failed_title", "Something went wrong")} message={error.message} />
           ) : !post ? (
-            <EmptyState title="Post not found" />
+            <EmptyState
+              title={t("post_actions.not_found", "Post not found")}
+              description={t("post_actions.not_found_hint", "This post doesn't exist anymore or the link is wrong.")}
+            />
           ) : (
             <Card className="overflow-hidden">
               <CardHeader className="p-4 lg:p-6">

@@ -134,7 +134,7 @@ function ModContext({ communityId }: { communityId: number }) {
 
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+      <TabsList className="grid h-auto w-full grid-cols-3 md:grid-cols-6">
         <TabsTrigger value="overview">{t("mod_panel.tabs.overview")}</TabsTrigger>
         <TabsTrigger value="files">{t("mod_panel.tabs.reports")}</TabsTrigger>
         <TabsTrigger value="requests" className="relative">

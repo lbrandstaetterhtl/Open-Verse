@@ -61,7 +61,9 @@ export class DbHealthService {
                 ? (await queryRows(sql`SELECT name FROM sqlite_master WHERE type='table'`)).map((r) => r.name)
                 : (await queryRows(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`)).map((r) => r.table_name);
 
-            status.missingTables = expectedTables.filter(t => !actualTables.includes(t));
+            // In SQLite mode sessions live in the session store's own "sessions" table, not in "session".
+            const notExpected = isSqlite ? ["session"] : [];
+            status.missingTables = expectedTables.filter(t => !actualTables.includes(t) && !notExpected.includes(t));
             
             if (status.missingTables.length > 0) {
                 status.isHealthy = false;

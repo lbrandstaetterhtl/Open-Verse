@@ -1,4 +1,6 @@
 import { db } from './db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 import { logger } from './logger';
 import { sql } from 'drizzle-orm';
 import fs from 'node:fs';
@@ -83,9 +85,6 @@ export async function runMigrations() {
 
     console.log("[MIGRATIONS] ✓ All migrations completed successfully!");
     logger.info('db', "All migrations completed successfully");
-
-    await disableLegacyTestAdmin();
-    await seedInitialOwner();
   } catch (err) {
     console.error("[MIGRATIONS] ✗ CRITICAL ERROR:", err);
     logger.critical('db', "Failed to run migrations", err);
@@ -93,12 +92,21 @@ export async function runMigrations() {
   }
 }
 
+/**
+ * Account fixes that need the final schema, so they run after all migrations and column fixes
+ * (in PostgreSQL and SQLite mode).
+ */
+export async function bootstrapAccounts() {
+  await disableLegacyTestAdmin();
+  await seedInitialOwner();
+}
+
 // Earlier versions created "testadmin" with a password that is public in this repository.
 // If that account still uses it, replace the password with a random one so it can't be used to log in.
 async function disableLegacyTestAdmin() {
   try {
     const legacy = await storage.getUserByUsername("testadmin");
-    if (!legacy || !(await bcrypt.compare("TestPassword123!", legacy.password))) return;
+    if (!legacy?.password || !(await bcrypt.compare("TestPassword123!", legacy.password))) return;
     await storage.updateUserPassword(legacy.id, await bcrypt.hash(randomBytes(32).toString("hex"), 12));
     logger.critical('db', 'Disabled legacy "testadmin" account that used the publicly known default password. Use INITIAL_OWNER_USERNAME / INITIAL_OWNER_PASSWORD to create your own owner.');
   } catch (err) {
@@ -106,30 +114,75 @@ async function disableLegacyTestAdmin() {
   }
 }
 
-async function seedInitialOwner() {
-  const username = process.env.INITIAL_OWNER_USERNAME;
-  const password = process.env.INITIAL_OWNER_PASSWORD;
-  if (!username || !password) return;
+/**
+ * Creates the first owner from INITIAL_OWNER_USERNAME / INITIAL_OWNER_PASSWORD (optional INITIAL_OWNER_EMAIL).
+ * - Account missing: it is created as owner.
+ * - Account exists and INITIAL_OWNER_PASSWORD is its password: it is made owner if it isn't one yet.
+ * - Account exists with another password: nothing changes, unless INITIAL_OWNER_RESET_PASSWORD=true, which
+ *   sets INITIAL_OWNER_PASSWORD as its password and makes it owner (to recover access).
+ * Every outcome is logged, so `docker compose logs app | grep -i owner` shows what happened.
+ */
+// Every outcome must show up in `docker compose logs app`. The logger prints warnings and errors there
+// itself; in production it keeps info only in its files, so successes are printed here.
+function ownerLog(level: 'info' | 'warn' | 'error' | 'critical', message: string, err?: unknown) {
+  if (level === 'info' && process.env.NODE_ENV === 'production') console.log(`[INITIAL OWNER] ${message}`);
+  if (level === 'error') logger.error('db', `Initial owner: ${message}`, err);
+  else logger[level]('db', `Initial owner: ${message}`);
+}
 
+export async function seedInitialOwner() {
+  const username = process.env.INITIAL_OWNER_USERNAME?.trim();
+  const password = process.env.INITIAL_OWNER_PASSWORD;
+  const email = process.env.INITIAL_OWNER_EMAIL?.trim() || `${username}@localhost`;
+  const resetPassword = process.env.INITIAL_OWNER_RESET_PASSWORD?.trim() === 'true';
+
+  if (!username && !password) return;
+  if (!username || !password) {
+    ownerLog('warn', 'INITIAL_OWNER_USERNAME and INITIAL_OWNER_PASSWORD must both be set; nothing was created');
+    return;
+  }
   if (password.length < 12) {
-    logger.warn('db', 'INITIAL_OWNER_PASSWORD must be at least 12 characters; initial owner was not created');
+    ownerLog('warn', 'INITIAL_OWNER_PASSWORD must be at least 12 characters; nothing was created');
     return;
   }
 
   try {
-    if (await storage.getUserByUsername(username)) return;
+    const existing = await storage.getUserByUsername(username);
+    if (!existing) {
+      const emailUser = await storage.getUserByEmail(email);
+      if (emailUser) {
+        ownerLog('warn', `the email ${email} already belongs to "${emailUser.username}"; set another INITIAL_OWNER_EMAIL. Nothing was created`);
+        return;
+      }
+      await storage.createUser({
+        username,
+        email,
+        password: await bcrypt.hash(password, 12),
+        role: 'owner',
+        isAdmin: 1,
+        verified: 1,
+        emailVerified: 1,
+      });
+      ownerLog('info', `account "${username}" created`);
+      return;
+    }
 
-    await storage.createUser({
-      username,
-      email: process.env.INITIAL_OWNER_EMAIL || `${username}@localhost`,
-      password: await bcrypt.hash(password, 12),
-      role: 'owner',
-      isAdmin: 1,
-      verified: 1,
-      emailVerified: 1,
-    });
-    logger.info('db', `Initial owner account created: ${username}`);
+    const passwordMatches = !!existing.password && (await bcrypt.compare(password, existing.password));
+    if (!passwordMatches && !resetPassword) {
+      ownerLog('warn', `account "${username}" already exists with a different password; nothing was changed. Start once with INITIAL_OWNER_RESET_PASSWORD=true to set INITIAL_OWNER_PASSWORD as its password.`);
+      return;
+    }
+    if (!passwordMatches) {
+      await storage.updateUserPassword(existing.id, await bcrypt.hash(password, 12));
+      ownerLog('critical', `password of "${username}" was reset from INITIAL_OWNER_PASSWORD. Remove INITIAL_OWNER_RESET_PASSWORD from .env again.`);
+    }
+    if (existing.role !== 'owner' || !existing.isAdmin) {
+      await db.update(users).set({ role: 'owner', isAdmin: 1 }).where(eq(users.id, existing.id));
+      ownerLog('info', `existing account "${username}" is now owner`);
+    } else if (passwordMatches) {
+      ownerLog('info', `"${username}" already exists and is owner; nothing to do`);
+    }
   } catch (err) {
-    logger.error('db', 'Failed to create initial owner account', err);
+    ownerLog('error', 'failed to create or update the account', err);
   }
 }

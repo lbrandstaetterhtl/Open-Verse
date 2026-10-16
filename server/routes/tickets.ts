@@ -2,6 +2,7 @@ import { Router } from "express";
 import { isAuthenticated } from "../middleware/auth";
 import { TicketService } from "../services/ticket-service";
 import { activityLogger } from "../services/activity-logger";
+import { logger } from "../logger";
 
 const router = Router();
 
@@ -14,6 +15,22 @@ const checkAdminOrOwner = (req: any, res: any, next: any) => {
   next();
 };
 
+// Ticket ids are numbers; anything else ("undefined", "abc") can't be a ticket.
+router.param("id", (req, res, next, id) => {
+  if (!/^\d+$/.test(id)) return res.status(404).send("Ticket not found or forbidden");
+  next();
+});
+
+// Service errors carry a message meant for the user. Database errors would leak the SQL query, so
+// they are logged and answered with a generic message.
+function sendError(res: any, err: any) {
+  if (typeof err?.message === "string" && (err.message.startsWith("Failed query") || err.code)) {
+    logger.error("db", "Ticket request failed", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+  res.status(500).json({ error: err?.message || "Internal server error" });
+}
+
 const checkOwner = (req: any, res: any, next: any) => {
   const user = req.user as any;
   if (!user || user.role !== 'owner') {
@@ -23,12 +40,12 @@ const checkOwner = (req: any, res: any, next: any) => {
 };
 
 // GET /api/tickets/stats
-router.get("/stats", isAuthenticated, checkOwner, async (req, res) => {
+router.get("/stats", isAuthenticated, checkAdminOrOwner, async (req, res) => {
   try {
     const stats = await TicketService.getStats();
     res.json(stats);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -51,7 +68,7 @@ router.get("/", isAuthenticated, async (req, res) => {
     const data = await TicketService.getTickets(user.role, user.id, filters);
     res.json(data);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -64,7 +81,7 @@ router.get("/:id", isAuthenticated, async (req, res) => {
     if (!data) return res.status(404).send("Ticket not found or forbidden");
     res.json(data);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -110,12 +127,13 @@ router.post("/", isAuthenticated, async (req, res) => {
     
     res.status(201).json(ticket);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
 // PATCH /api/tickets/:id
-router.patch("/:id", isAuthenticated, checkAdminOrOwner, async (req, res) => {
+// Everyone may close a ticket they can see (their own); only the owner changes anything else.
+router.patch("/:id", isAuthenticated, async (req, res) => {
   try {
     const user = req.user as any;
     const ticketId = parseInt(req.params.id);
@@ -146,7 +164,7 @@ router.patch("/:id", isAuthenticated, checkAdminOrOwner, async (req, res) => {
         updateData.status = 'closed';
         updateData.reason = req.body.reason;
       } else {
-        return res.status(403).send("Admins can only close their tickets");
+        return res.status(403).send("You can only close this ticket");
       }
     }
 
@@ -166,7 +184,7 @@ router.patch("/:id", isAuthenticated, checkAdminOrOwner, async (req, res) => {
     
     res.json(updated);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -180,7 +198,7 @@ router.delete("/:id", isAuthenticated, checkOwner, async (req, res) => {
       res.status(404).send("Not found");
     }
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -221,7 +239,7 @@ router.post("/:id/comments", isAuthenticated, async (req, res) => {
     
     res.status(201).json(updated);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -246,7 +264,7 @@ router.patch("/:id/comments/:cId", isAuthenticated, async (req, res) => {
       res.status(403).send("Forbidden or not found");
     }
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -267,7 +285,7 @@ router.delete("/:id/comments/:cId", isAuthenticated, async (req, res) => {
       res.status(403).send("Forbidden or not found");
     }
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -282,7 +300,7 @@ router.post("/:id/restore", isAuthenticated, checkOwner, async (req, res) => {
       res.status(404).send("Not found");
     }
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -297,7 +315,7 @@ router.get("/:id/history", isAuthenticated, async (req, res) => {
 
     res.json(existing.history);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 

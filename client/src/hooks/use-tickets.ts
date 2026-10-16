@@ -50,13 +50,16 @@ export function useTickets(filters?: TicketFilters) {
 }
 
 export function useTicket(id: number) {
-  return useQuery<{ ticket: TicketWithMeta, comments: CommentWithMeta[], history: HistoryWithMeta[] }>({
+  // null = the ticket doesn't exist or isn't visible to this user (the API answers 404 for both).
+  return useQuery<{ ticket: TicketWithMeta, comments: CommentWithMeta[], history: HistoryWithMeta[] } | null>({
     queryKey: ["/api/tickets", id],
     queryFn: async () => {
       const res = await fetch(`/api/tickets/${id}`);
+      if (res.status === 404) return null;
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
+    enabled: Number.isInteger(id) && id > 0,
     staleTime: 15_000,
   });
 }

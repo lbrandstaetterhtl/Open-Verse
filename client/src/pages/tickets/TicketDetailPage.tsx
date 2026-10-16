@@ -16,6 +16,8 @@ import { Loader2, History, User, Clock, UserCircle } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { BackButton } from "@/components/ui/back-button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { cn } from "@/lib/utils";
 
@@ -44,16 +46,31 @@ export default function TicketDetailPage() {
 
   const staffUsers = usersData?.filter(u => u.role === "admin" || u.role === "owner") || [];
 
-  if (isLoading) {
+  const validId = Number.isInteger(ticketId) && ticketId > 0;
+
+  if (validId && isLoading) {
     return <div className="flex items-center justify-center h-full pt-32"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+  }
+
+  if (!validId || data === null) {
+    return (
+      <EmptyState
+        className="pt-24"
+        title={t("errors.notFound", "Ticket not found")}
+        description={t("errors.notFoundHint", "This ticket doesn't exist or you don't have access to it.")}
+        action={{ label: t("actions.backToTickets", "Back to my tickets"), onClick: () => setLocation("/tickets") }}
+      />
+    );
   }
 
   if (isError || !data) {
     return (
-      <div className="pt-20 flex flex-col items-center justify-center text-center">
-        <p className="text-destructive mb-2">{(error as any)?.message || "Failed to load"}</p>
-        <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
-      </div>
+      <ErrorState
+        className="pt-24"
+        title={t("errors.loadFailed", "Tickets could not be loaded")}
+        message={t("errors.tryAgainHint", "Please try again in a moment.")}
+        retry={() => refetch()}
+      />
     );
   }
 

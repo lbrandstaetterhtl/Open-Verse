@@ -62,7 +62,8 @@
     "editComment": "Edit",
     "deleteComment": "Delete",
     "markInternal": "Mark as internal",
-    "viewHistory": "View History"
+    "viewHistory": "View History",
+    "backToTickets": "Back to my tickets"
   },
   "comments": {
     "title": "Activity",
@@ -128,7 +129,9 @@
     "commentFailed": "Failed to add comment",
     "forbidden": "Action not allowed",
     "notFound": "Ticket not found",
-    "invalidTransition": "Status transition not allowed"
+    "invalidTransition": "Status transition not allowed",
+    "notFoundHint": "This ticket doesn't exist or you don't have access to it.",
+    "tryAgainHint": "Please try again in a moment."
   },
   "success": {
     "created": "Ticket {{number}} has been created",
