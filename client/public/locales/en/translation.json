@@ -585,7 +585,18 @@
         "desc": "Are you sure you want to remove {{name}} from this community?",
         "cancel": "Cancel",
         "confirm": "Kick"
-      }
+      },
+      "you": "you",
+      "actions_for": "Actions for {{name}}",
+      "view_profile": "View profile",
+      "make_mod": "Make moderator",
+      "kick": "Remove from community",
+      "ban": "Ban …",
+      "unban": "Lift ban",
+      "no_rights": "You can't change anything else for this person.",
+      "banned_since": "Banned since {{date}}",
+      "ban_dialog_title": "Ban {{name}}?",
+      "ban_dialog_desc": "They will be removed from the community and can't join again until you lift the ban."
     },
     "bans": {
       "banned_title": "User Banned",
@@ -635,6 +646,12 @@
         "or_by_id": "Or by ID",
         "manual_id": "Manual User ID"
       }
+    },
+    "roles": {
+      "owner": "Owner",
+      "moderator": "Moderator",
+      "member": "Member",
+      "banned": "Banned"
     }
   },
   "communities_feed": {

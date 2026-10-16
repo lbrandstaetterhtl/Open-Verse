@@ -37,11 +37,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Ban, CheckCircle2, XCircle, Search, UserPlus, Trash2, UserMinus, Crown } from "lucide-react";
+import { MoreHorizontal, Ban, CheckCircle2, XCircle, Search, UserPlus, UserMinus, Crown, UserRound, ShieldCheck, ShieldOff, Undo2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -57,11 +59,10 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { useTranslation } from "react-i18next";
+import { Link } from "wouter";
 
 export default function ModPanel() {
   const { t } = useTranslation();
-  const { _user } = useAuth();
-  const { _toast } = useToast();
   const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
 
   const { data: communities, isLoading: isLoadingCommunities } = useQuery<Community[]>({
@@ -134,7 +135,7 @@ function ModContext({ communityId }: { communityId: number }) {
 
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid h-auto w-full grid-cols-3 md:grid-cols-6">
+      <TabsList className="grid h-auto w-full grid-cols-3 md:grid-cols-5">
         <TabsTrigger value="overview">{t("mod_panel.tabs.overview")}</TabsTrigger>
         <TabsTrigger value="files">{t("mod_panel.tabs.reports")}</TabsTrigger>
         <TabsTrigger value="requests" className="relative">
@@ -146,7 +147,6 @@ function ModContext({ communityId }: { communityId: number }) {
           )}
         </TabsTrigger>
         <TabsTrigger value="members">{t("mod_panel.tabs.members")}</TabsTrigger>
-        <TabsTrigger value="bans">{t("mod_panel.tabs.bans")}</TabsTrigger>
         <TabsTrigger value="moderators">{t("mod_panel.tabs.staff")}</TabsTrigger>
       </TabsList>
 
@@ -172,10 +172,6 @@ function ModContext({ communityId }: { communityId: number }) {
 
       <TabsContent value="members">
         <MembersManager communityId={communityId} />
-      </TabsContent>
-
-      <TabsContent value="bans">
-        <BansManager communityId={communityId} />
       </TabsContent>
 
       <TabsContent value="moderators">
@@ -326,7 +322,7 @@ function ReportsManager({ communityId }: { communityId: number }) {
 }
 
 function MembersManager({ communityId }: { communityId: number }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
@@ -339,20 +335,42 @@ function MembersManager({ communityId }: { communityId: number }) {
     },
   });
 
+  // Banned users are no longer members; they are listed here too so they can be unbanned.
+  const { data: bans } = useQuery<(CommunityBan & { user: User })[]>({
+    queryKey: ["/api/communities", communityId, "bans"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/communities/${communityId}/bans`);
+      return res.json();
+    },
+  });
+
+  // One dialog at a time for the action picked in a member's menu
+  const [pending, setPending] = useState<
+    { kind: "kick" | "ban" | "unban" | "owner"; userId: number; name: string } | null
+  >(null);
+  const [banReason, setBanReason] = useState("");
+  const closeDialog = () => {
+    setPending(null);
+    setBanReason("");
+  };
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "bans"] });
+  };
+  const onError = (err: Error) => {
+    toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+  };
+
   const kickMutation = useMutation({
     mutationFn: async (userId: number) => {
       await apiRequest("DELETE", `/api/communities/${communityId}/members/${userId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
-      toast({
-        title: t("mod_panel.members.kicked_title"),
-        description: t("mod_panel.members.kicked_desc"),
-      });
+      refresh();
+      closeDialog();
+      toast({ title: t("mod_panel.members.kicked_title"), description: t("mod_panel.members.kicked_desc") });
     },
-    onError: (err: Error) => {
-      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
-    },
+    onError,
   });
 
   const updateRoleMutation = useMutation({
@@ -360,19 +378,45 @@ function MembersManager({ communityId }: { communityId: number }) {
       await apiRequest("PATCH", `/api/communities/${communityId}/members/${userId}/role`, { role });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
-      toast({
-        title: t("mod_panel.members.role_updated_title"),
-        description: t("mod_panel.members.role_updated_desc"),
-      });
+      refresh();
+      closeDialog();
+      toast({ title: t("mod_panel.members.role_updated_title"), description: t("mod_panel.members.role_updated_desc") });
     },
-    onError: (err: Error) => {
-      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    onError,
+  });
+
+  const banMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: number; reason: string }) => {
+      await apiRequest("POST", `/api/communities/${communityId}/ban`, { userId, reason });
     },
+    onSuccess: () => {
+      refresh();
+      closeDialog();
+      toast({ title: t("mod_panel.bans.banned_title"), description: t("mod_panel.bans.banned_desc") });
+    },
+    onError,
+  });
+
+  const unbanMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      await apiRequest("DELETE", `/api/communities/${communityId}/ban/${userId}`);
+    },
+    onSuccess: () => {
+      refresh();
+      closeDialog();
+      toast({ title: t("mod_panel.bans.unbanned_title"), description: t("mod_panel.bans.unbanned_desc") });
+    },
+    onError,
   });
 
   const currentUserMember = members?.find((m) => m.user.id === currentUser?.id);
-  const isOwner = currentUserMember?.role === "owner" || currentUser?.role === "admin" || currentUser?.role === "owner";
+  const isGlobalAdmin = currentUser?.role === "admin" || currentUser?.role === "owner";
+  // Only owners (and site admins) change roles; owners and moderators may kick and ban,
+  // but moderators only plain members — the server enforces the same rules.
+  const canChangeRoles = currentUserMember?.role === "owner" || isGlobalAdmin;
+  const canModerate = (targetRole: string) =>
+    targetRole !== "owner" && (canChangeRoles || (currentUserMember?.role === "moderator" && targetRole === "member"));
+  const roleLabel = (role: string) => t(`mod_panel.roles.${role}`, role);
 
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteSearchQuery, setInviteSearchQuery] = useState("");
@@ -409,8 +453,10 @@ function MembersManager({ communityId }: { communityId: number }) {
     },
   });
 
-  const filteredMembers =
-    members?.filter((m) => m.user.username.toLowerCase().includes(searchTerm.toLowerCase())) || [];
+  const query = searchTerm.toLowerCase();
+  const filteredMembers = members?.filter((m) => m.user.username.toLowerCase().includes(query)) || [];
+  const filteredBans = bans?.filter((b) => b.user.username.toLowerCase().includes(query)) || [];
+  const busy = kickMutation.isPending || banMutation.isPending || unbanMutation.isPending || updateRoleMutation.isPending;
 
   return (
     <div className="space-y-4">
@@ -542,304 +588,252 @@ function MembersManager({ communityId }: { communityId: number }) {
                   <Spinner className="mx-auto" />
                 </TableCell>
               </TableRow>
-            ) : filteredMembers.length === 0 ? (
+            ) : filteredMembers.length === 0 && filteredBans.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="h-24 text-center p-0">
-                  <EmptyState title={t("mod_panel.members.table.empty")} description="No members found matching your search." />
+                  <EmptyState title={t("mod_panel.members.table.empty")} />
                 </TableCell>
               </TableRow>
             ) : (
-              filteredMembers.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <div className="flex flex-col">
-                        <span className="flex items-center gap-1">
-                          {member.user.username}
-                          {member.role === "owner" && <Crown className="h-3 w-3 text-star fill-star" />}
-                        </span>
-                        <span className="ov-data text-[10px] text-muted-foreground">ID: {member.user.id}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={member.role === "member" ? "secondary" : "default"} className="flex items-center gap-1 w-fit capitalize">
-                      {member.role === "owner" && <Crown className="h-2.5 w-2.5" />}
-                      {member.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {currentUser?.id !== member.user.id && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-destructive">
-                              <UserMinus className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                {t("mod_panel.members.kick_dialog.title")}
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {t("mod_panel.members.kick_dialog.desc", {
-                                  name: member.user.username,
-                                })}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>
-                                {t("mod_panel.members.kick_dialog.cancel")}
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={() => kickMutation.mutate(member.user.id)}
-                              >
-                                {t("mod_panel.members.kick_dialog.confirm")}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                      {isOwner && currentUser?.id !== member.user.id && (
+              <>
+                {filteredMembers.map((member) => {
+                  const isSelf = currentUser?.id === member.user.id;
+                  const name = member.user.username;
+                  const moderatable = !isSelf && canModerate(member.role);
+                  const rolesEditable = !isSelf && canChangeRoles;
+                  return (
+                    <TableRow key={`m-${member.id}`}>
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col">
+                          <span className="flex items-center gap-1">
+                            {name}
+                            {member.role === "owner" && <Crown className="h-3 w-3 text-star fill-star" />}
+                            {isSelf && <span className="text-xs font-normal text-muted-foreground">({t("mod_panel.members.you", "du")})</span>}
+                          </span>
+                          <span className="ov-data text-[10px] text-muted-foreground">ID: {member.user.id}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={member.role === "member" ? "secondary" : "default"} className="flex items-center gap-1 w-fit">
+                          {member.role === "owner" && <Crown className="h-2.5 w-2.5" />}
+                          {roleLabel(member.role)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" aria-label={t("mod_panel.members.actions_for", { name, defaultValue: "Aktionen für {{name}}" })}>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => updateRoleMutation.mutate({ userId: member.user.id, role: "member" })}
-                              disabled={member.role === "member"}
-                            >
-                              {t("mod_panel.members.demote_member")}
+                          <DropdownMenuContent align="end" className="w-60">
+                            <DropdownMenuLabel className="truncate">{name}</DropdownMenuLabel>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/users/${encodeURIComponent(name)}`}>
+                                <UserRound className="mr-2 h-4 w-4" />
+                                {t("mod_panel.members.view_profile", "Profil ansehen")}
+                              </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => updateRoleMutation.mutate({ userId: member.user.id, role: "moderator" })}
-                              disabled={member.role === "moderator"}
-                            >
-                              {t("mod_panel.members.promote_mod")}
-                            </DropdownMenuItem>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            {rolesEditable && member.role !== "owner" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                {member.role === "member" ? (
+                                  <DropdownMenuItem onSelect={() => updateRoleMutation.mutate({ userId: member.user.id, role: "moderator" })}>
+                                    <ShieldCheck className="mr-2 h-4 w-4" />
+                                    {t("mod_panel.members.promote_mod")}
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onSelect={() => updateRoleMutation.mutate({ userId: member.user.id, role: "member" })}>
+                                    <ShieldOff className="mr-2 h-4 w-4" />
+                                    {t("mod_panel.members.demote_member")}
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onSelect={() => setPending({ kind: "owner", userId: member.user.id, name })}>
+                                  <Crown className="mr-2 h-4 w-4" />
                                   {t("mod_panel.members.promote_owner")}
                                 </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>{t("mod_panel.members.confirm_owner_title")}</AlertDialogTitle>
-                                  <AlertDialogDescription>{t("mod_panel.members.confirm_owner_desc")}</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => updateRoleMutation.mutate({ userId: member.user.id, role: "owner" })}>
-                                    {t("common.confirm")}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                              </>
+                            )}
+                            {rolesEditable && member.role === "owner" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onSelect={() => updateRoleMutation.mutate({ userId: member.user.id, role: "moderator" })}>
+                                  <ShieldCheck className="mr-2 h-4 w-4" />
+                                  {t("mod_panel.members.make_mod", "Zum Moderator machen")}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {moderatable && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onSelect={() => setPending({ kind: "kick", userId: member.user.id, name })}>
+                                  <UserMinus className="mr-2 h-4 w-4" />
+                                  {t("mod_panel.members.kick", "Aus Community entfernen")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onSelect={() => setPending({ kind: "ban", userId: member.user.id, name })}
+                                >
+                                  <Ban className="mr-2 h-4 w-4" />
+                                  {t("mod_panel.members.ban", "Sperren …")}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {!isSelf && !moderatable && !rolesEditable && (
+                              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                                {t("mod_panel.members.no_rights", "Für diese Person darfst du nichts weiter ändern.")}
+                              </p>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {filteredBans.map((ban) => (
+                  <TableRow key={`b-${ban.id}`} className="opacity-80">
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span>{ban.user.username}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("mod_panel.members.banned_since", { date: new Date(ban.bannedAt).toLocaleDateString(i18n.resolvedLanguage), defaultValue: "Gesperrt seit {{date}}" })}
+                          {ban.reason ? ` · ${ban.reason}` : ""}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="destructive" className="flex items-center gap-1 w-fit">
+                        <Ban className="h-2.5 w-2.5" />
+                        {t("mod_panel.roles.banned", "Gesperrt")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" aria-label={t("mod_panel.members.actions_for", { name: ban.user.username, defaultValue: "Aktionen für {{name}}" })}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-60">
+                          <DropdownMenuLabel className="truncate">{ban.user.username}</DropdownMenuLabel>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/users/${encodeURIComponent(ban.user.username)}`}>
+                              <UserRound className="mr-2 h-4 w-4" />
+                              {t("mod_panel.members.view_profile", "Profil ansehen")}
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => setPending({ kind: "unban", userId: ban.userId, name: ban.user.username })}>
+                            <Undo2 className="mr-2 h-4 w-4" />
+                            {t("mod_panel.members.unban", "Sperre aufheben")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
             )}
           </TableBody>
         </Table>
       </div>
-    </div>
-  );
-}
 
-function BansManager({ communityId }: { communityId: number }) {
-  const { t } = useTranslation();
-  const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [banDialogOpen, setBanDialogOpen] = useState(false);
-  const [banUserId, setBanUserId] = useState("");
-  const [banReason, setBanReason] = useState("");
+      {/* Confirmation dialogs for the action picked in a member's menu */}
+      <AlertDialog open={pending?.kind === "kick"} onOpenChange={(open) => !open && closeDialog()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("mod_panel.members.kick_dialog.title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("mod_panel.members.kick_dialog.desc", { name: pending?.name })}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("mod_panel.members.kick_dialog.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={busy}
+              onClick={(e) => {
+                e.preventDefault();
+                if (pending) kickMutation.mutate(pending.userId);
+              }}
+            >
+              {t("mod_panel.members.kick_dialog.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-  const { data: bans, isLoading } = useQuery<(CommunityBan & { user: User })[]>({
-    queryKey: ["/api/communities", communityId, "bans"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", `/api/communities/${communityId}/bans`);
-      return res.json();
-    },
-  });
-
-  const banMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", `/api/communities/${communityId}/ban`, {
-        userId: parseInt(banUserId),
-        reason: banReason,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "bans"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] });
-      setBanUserId("");
-      setBanReason("");
-      setBanDialogOpen(false);
-      toast({
-        title: t("mod_panel.bans.banned_title"),
-        description: t("mod_panel.bans.banned_desc"),
-      });
-    },
-    onError: (err: Error) => {
-      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
-    },
-  });
-
-  const unbanMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      await apiRequest("DELETE", `/api/communities/${communityId}/ban/${userId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "bans"] });
-      toast({
-        title: t("mod_panel.bans.unbanned_title"),
-        description: t("mod_panel.bans.unbanned_desc"),
-      });
-    },
-  });
-
-  const filteredBans =
-    bans?.filter(
-      (b) =>
-        b.user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.userId.toString().includes(searchTerm),
-    ) || [];
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="relative w-72">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("mod_panel.bans.search_placeholder")}
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="destructive">
-              <Ban className="mr-2 h-4 w-4" /> {t("mod_panel.bans.ban_button")}
+      <Dialog open={pending?.kind === "ban"} onOpenChange={(open) => !open && closeDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("mod_panel.members.ban_dialog_title", { name: pending?.name, defaultValue: "{{name}} sperren?" })}</DialogTitle>
+            <DialogDescription>{t("mod_panel.members.ban_dialog_desc", "Die Person wird aus der Community entfernt und kann ihr nicht wieder beitreten, bis du die Sperre aufhebst.")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="ban-reason">{t("mod_panel.bans.ban_dialog.reason_label")}</Label>
+            <Input
+              id="ban-reason"
+              placeholder={t("mod_panel.bans.ban_dialog.reason_placeholder")}
+              value={banReason}
+              maxLength={500}
+              onChange={(e) => setBanReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>
+              {t("mod_panel.bans.ban_dialog.cancel")}
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t("mod_panel.bans.ban_dialog.title")}</DialogTitle>
-              <DialogDescription>{t("mod_panel.bans.ban_dialog.desc")}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>{t("mod_panel.bans.ban_dialog.user_id_label")}</Label>
-                <Input
-                  placeholder={t("mod_panel.bans.ban_dialog.user_id_placeholder")}
-                  value={banUserId}
-                  onChange={(e) => setBanUserId(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("mod_panel.bans.ban_dialog.reason_label")}</Label>
-                <Input
-                  placeholder={t("mod_panel.bans.ban_dialog.reason_placeholder")}
-                  value={banReason}
-                  onChange={(e) => setBanReason(e.target.value)}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setBanDialogOpen(false)}>
-                {t("mod_panel.bans.ban_dialog.cancel")}
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => banMutation.mutate()}
-                disabled={!banUserId || banMutation.isPending}
-              >
-                {banMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t("mod_panel.bans.ban_dialog.confirm")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <Button
+              variant="destructive"
+              disabled={busy}
+              onClick={() => pending && banMutation.mutate({ userId: pending.userId, reason: banReason })}
+            >
+              {banMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("mod_panel.bans.ban_dialog.confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <div className="ov-panel">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="ov-label">{t("mod_panel.bans.table.user")}</TableHead>
-              <TableHead className="ov-label">{t("mod_panel.bans.table.reason")}</TableHead>
-              <TableHead className="ov-label">{t("mod_panel.bans.table.date")}</TableHead>
-              <TableHead className="ov-label text-right">{t("mod_panel.bans.table.actions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  <Spinner className="mx-auto" />
-                </TableCell>
-              </TableRow>
-            ) : filteredBans.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center p-0">
-                  <EmptyState title={t("mod_panel.bans.table.empty")} description="No bans found in this community." />
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredBans.map((ban) => (
-                <TableRow key={ban.id}>
-                  <TableCell>
-                    <div className="font-medium">{ban.user.username}</div>
-                    <div className="ov-data text-xs text-muted-foreground">
-                      {t("mod_panel.bans.table.id")} {ban.userId}
-                    </div>
-                  </TableCell>
-                  <TableCell>{ban.reason || t("mod_panel.bans.table.no_reason")}</TableCell>
-                  <TableCell className="ov-data">{new Date(ban.bannedAt).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label="Remove ban">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            {t("mod_panel.bans.unban_dialog.title")}
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t("mod_panel.bans.unban_dialog.desc", { name: ban.user.username })}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>
-                            {t("mod_panel.bans.unban_dialog.cancel")}
-                          </AlertDialogCancel>
-                          <AlertDialogAction onClick={() => unbanMutation.mutate(ban.userId)}>
-                            {t("mod_panel.bans.unban_dialog.confirm")}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <AlertDialog open={pending?.kind === "unban"} onOpenChange={(open) => !open && closeDialog()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("mod_panel.bans.unban_dialog.title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("mod_panel.bans.unban_dialog.desc", { name: pending?.name })}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("mod_panel.bans.unban_dialog.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busy}
+              onClick={(e) => {
+                e.preventDefault();
+                if (pending) unbanMutation.mutate(pending.userId);
+              }}
+            >
+              {t("mod_panel.bans.unban_dialog.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={pending?.kind === "owner"} onOpenChange={(open) => !open && closeDialog()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("mod_panel.members.confirm_owner_title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("mod_panel.members.confirm_owner_desc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busy}
+              onClick={(e) => {
+                e.preventDefault();
+                if (pending) updateRoleMutation.mutate({ userId: pending.userId, role: "owner" });
+              }}
+            >
+              {t("common.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
