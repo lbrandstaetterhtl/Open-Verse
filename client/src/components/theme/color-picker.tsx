@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { RotateCcw, AlertTriangle } from "lucide-react";
 import { getContrastRatio, hslToHex, hexToHsl } from "@/lib/theme-utils";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ColorPickerProps {
   label: string;
@@ -17,6 +18,7 @@ interface ColorPickerProps {
 }
 
 export function ColorPicker({ label, description, value, defaultValue, contrastAgainst, onChange }: ColorPickerProps) {
+  const { t } = useTranslation();
   const hexValue = hslToHex(value);
 
   const handleChange = (hex: string) => {
@@ -56,10 +58,10 @@ export function ColorPicker({ label, description, value, defaultValue, contrastA
                 contrastInfo.status === "AA" ? "ov-chip-primary" :
                 "ov-chip-danger"
               }`}
-              title={`Contrast ratio: ${contrastInfo.ratio.toFixed(1)}:1 (${contrastInfo.status})`}
+              title={t("color_picker.contrast_ratio", { ratio: contrastInfo.ratio.toFixed(1), status: contrastInfo.status === "Fail" ? t("color_picker.fail", "Fail") : contrastInfo.status, defaultValue: "Contrast ratio: {{ratio}}:1 ({{status}})" })}
             >
               {contrastInfo.status === "Fail" && <AlertTriangle className="h-2.5 w-2.5" />}
-              {contrastInfo.status}
+              {contrastInfo.status === "Fail" ? t("color_picker.fail", "Fail") : contrastInfo.status}
             </div>
           )}
           
@@ -69,7 +71,7 @@ export function ColorPicker({ label, description, value, defaultValue, contrastA
               size="icon" 
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
               onClick={() => onChange(defaultValue)}
-              title="Reset to default"
+              title={t("color_picker.reset_to_default", "Reset to default")}
             >
               <RotateCcw className="h-3.5 w-3.5" />
             </Button>

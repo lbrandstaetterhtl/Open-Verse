@@ -51,7 +51,7 @@ export function LanguageToggle({ collapsed = false, compact = false }: { collaps
         <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("it")}>Italiano</DropdownMenuItem>
         <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("es")}>Español</DropdownMenuItem>
         <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("fr")}>Français</DropdownMenuItem>
-        <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("zh")}>中文 (Mandarin)</DropdownMenuItem>
+        <DropdownMenuItem className="h-8 px-2 text-[13px] font-medium" onClick={() => loadLanguage("zh")}>中文</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
