@@ -20,7 +20,7 @@ const ctx = {} as {
   ticketComment: number; theme: number; notification: number; ban: number; rule: number; group: number;
   prefs: TestUser; banVictim: TestUser; groupVictim: TestUser; userVictim: TestUser; banTarget: TestUser;
   inviteTarget: TestUser; modTarget: TestUser; joiner: TestUser; requester: TestUser; followTarget: TestUser;
-  profile: TestUser; password: TestUser & { current: string }; ownerId: number;
+  profile: TestUser; password: TestUser & { current: string }; ownerId: number; reactPost: number;
 };
 const createdBans: number[] = [];
 const createdRules: number[] = [];
@@ -99,6 +99,10 @@ before(async () => {
   const users = ["fzprefs", "fzbanv", "fzgrpv", "fzusrv", "fzbant", "fzinvt", "fzmodt", "fzjoin", "fzreq", "fzfollow", "fzprof"];
   const made = await Promise.all(users.map((u) => newUser(u)));
   [ctx.prefs, ctx.banVictim, ctx.groupVictim, ctx.userVictim, ctx.banTarget, ctx.inviteTarget, ctx.modTarget, ctx.joiner, ctx.requester, ctx.followTarget, ctx.profile] = made;
+  const reactAuthor = await newUser("fzreact");
+  const rpost = await reactAuthor.client.post("/api/posts", { title: `React target ${RUN_ID}`, content: "Gets fuzzed reactions", category: "discussion" });
+  await expectStatus(rpost, 201);
+  ctx.reactPost = (await rpost.json()).id;
   const pw = await newUser("fzpw");
   ctx.password = { ...pw, current: pw.password };
   await expectStatus(await ctx.prefs.client.get("/api/notifications/preferences"), 200);
@@ -140,6 +144,7 @@ type BodySpec = {
   extras?: Record<string, unknown>; // mass-assignment fields, sent one at a time on top of the base body
   huge?: string[]; // text fields that must reject 200 000 characters
   concurrency?: number;
+  baseline?: number[]; // status of the valid base body (default 200/201)
   onAnswer?: (r: Sent, p: Payload) => void;
 };
 
@@ -166,7 +171,7 @@ const BODY_SPECS: BodySpec[] = [
   },
   {
     key: "POST /api/login", url: () => "/api/login", actor: anon,
-    base: () => ({ username: `nobody_${RUN_ID}`, password: "wrong-password" }),
+    base: () => ({ username: `nobody_${RUN_ID}`, password: "wrong-password" }), baseline: [401],
     fields: () => ({ username: FIELD_VALUES, password: FIELD_VALUES }), huge: ["username", "password"],
   },
   { key: "POST /api/logout", url: () => "/api/logout", actor: anon },
@@ -259,7 +264,8 @@ const BODY_SPECS: BodySpec[] = [
     huge: ["title", "content", "category"],
   },
   {
-    key: "POST /api/posts/:id/react", url: () => `/api/posts/${ctx.alicePost}/react`, actor: asBob,
+    // dislikes lower the author's karma (and karma < 0 locks the account), so the target is a throwaway author
+    key: "POST /api/posts/:id/react", url: () => `/api/posts/${ctx.reactPost}/react`, actor: asBob,
     base: () => ({ isLike: true }), fields: () => ({ isLike: FIELD_VALUES }),
   },
   { key: "POST /api/posts/:id/save", url: () => `/api/posts/${ctx.alicePost}/save`, actor: asBob },
@@ -293,7 +299,7 @@ const BODY_SPECS: BodySpec[] = [
   },
   {
     key: "PATCH /api/tickets/:id", name: "as creator", url: () => `/api/tickets/${ctx.ticket}`, actor: asAlice,
-    base: () => ({ reason: "fuzz" }), fields: () => ({ status: FIELD_VALUES, reason: FIELD_VALUES }),
+    base: () => ({ reason: "fuzz" }), baseline: [403], fields: () => ({ status: FIELD_VALUES, reason: FIELD_VALUES }),
   },
   {
     key: "POST /api/tickets/:id/comments", url: () => `/api/tickets/${ctx.ticket}/comments`, actor: asAlice,
@@ -322,7 +328,7 @@ const BODY_SPECS: BodySpec[] = [
     fields: () => ({
       ban_type: FIELD_VALUES, user_id: idValues(ctx.banVictim.id), reason: FIELD_VALUES, duration_hours: [...WRONG_TYPES, "abc"], severity: WRONG_TYPES,
     }),
-    onAnswer: (r) => ok(r) && json(r)?.id && createdBans.push(json(r).id),
+    onAnswer: (r) => ok(r) && typeof json(r)?.id === "number" && createdBans.push(json(r).id),
   },
   {
     key: "PATCH /api/admin/bans/:id/revoke", url: () => `/api/admin/bans/${ctx.ban}/revoke`, actor: asOwner,
@@ -335,8 +341,9 @@ const BODY_SPECS: BodySpec[] = [
       name: WRONG_TYPES, anomalyType: nonStrings(WRONG_TYPES), action: WRONG_TYPES, actionReason: WRONG_TYPES,
       isActive: [null, "1", true, 1.5, "abc", {}, []], actionDurationHours: WRONG_TYPES, escalateAfterCount: WRONG_TYPES,
     }),
-    extras: { id: 0, createdAt: "not-a-date" }, // id 0 would otherwise be taken over by the payload
-    onAnswer: (r) => ok(r) && json(r)?.id && createdRules.push(json(r).id),
+    // id 1 is a seeded default rule: a client-chosen id must not reach the INSERT (duplicate key)
+    extras: { id: 1, createdAt: "not-a-date" },
+    onAnswer: (r) => ok(r) && typeof json(r)?.id === "number" && createdRules.push(json(r).id),
   },
   {
     key: "PATCH /api/admin/auto-punishments/rules/:id", url: () => `/api/admin/auto-punishments/rules/${ctx.rule}`, actor: asOwner,
@@ -382,7 +389,7 @@ const BODY_SPECS: BodySpec[] = [
   },
   {
     key: "PATCH /api/admin/settings/:id", url: () => "/api/admin/settings/999999999", actor: asOwner,
-    base: () => ({ value: "x" }), fields: () => ({ value: FIELD_VALUES }),
+    base: () => ({ value: "x" }), baseline: [404], fields: () => ({ value: FIELD_VALUES }),
   },
   { key: "POST /api/admin/analytics/compute", url: () => "/api/admin/analytics/compute", actor: asOwner, base: () => ({}), fields: () => ({ date: BAD_DATES }) },
   { key: "POST /api/admin/performance/snapshot", url: () => "/api/admin/performance/snapshot", actor: asOwner, base: () => ({}), fields: () => ({ date: BAD_DATES }) },
@@ -415,6 +422,16 @@ for (const spec of BODY_SPECS) {
   describe(title, () => {
     const run = (payloads: Array<Payload | (() => Payload)>) =>
       spec.concurrency ? runConcurrent(spec, method, payloads) : runPayloads(spec.key, method, spec.url, payloads, spec.actor, spec.onAnswer);
+
+    if (spec.base) {
+      test("the valid base body reaches the handler", async () => {
+        const p: Payload = { label: "base", json: spec.base!() };
+        const r = await send(await spec.actor(), method, spec.url(), p);
+        spec.onAnswer?.(r, p);
+        const expected = spec.baseline ?? [200, 201];
+        assert.ok(expected.includes(r.status), `base body → HTTP ${r.status} ${r.text.slice(0, 120)} (expected ${expected.join("/")})`);
+      });
+    }
 
     test("malformed bodies are rejected or ignored", async () => {
       const payloads: Array<Payload | (() => Payload)> = [...SHAPES];
@@ -535,6 +552,27 @@ describe("input rules of individual routes", () => {
     assert.equal(r.status, 404, `HTTP ${r.status} ${r.text.slice(0, 80)}`);
   });
 
+  test("GET /api/notifications does not expose the actor's password hash or email", async () => {
+    const target = await newUser("fzntgt");
+    const actor = await newUser("fznact");
+    await expectStatus(await actor.client.post(`/api/follow/${target.id}`), 200);
+    const text = await (await target.client.get("/api/notifications")).text();
+    assert.ok(text.includes(actor.username), "the follow notification is listed");
+    assert.ok(!/\$2[aby]\$/.test(text), "notification actor contains a bcrypt hash");
+    assert.ok(!text.includes(`${actor.username}@e2e.test`), "notification actor contains the email address");
+  });
+
+  // Found while fuzzing isLike: the reaction battery locked the post author out of their account.
+  test("a single dislike does not lock a new author out of their account", async () => {
+    const author = await newUser("fzkarma");
+    const post = await author.client.post("/api/posts", { title: `Karma ${RUN_ID}`, content: "one dislike", category: "discussion" });
+    await expectStatus(post, 201);
+    const voter = await newUser("fzvoter");
+    await expectStatus(await voter.client.post(`/api/posts/${(await post.json()).id}/react`, { isLike: false }), 200);
+    assert.equal((await author.client.get("/api/user")).status, 200, "the author's session was invalidated");
+    assert.equal((await new Client().login(author.username, author.password)).status, 200, "the author can no longer log in");
+  });
+
   test("community names without letters or digits are rejected (they produce an empty slug)", async () => {
     for (const name of ["!!!", "   "]) {
       const r = await send(withIp(owner), "POST", "/api/communities", { label: "", json: { name } });
@@ -550,7 +588,7 @@ type QuerySpec = { key: string; name?: string; path: () => string; base?: string
 
 const QUERY_VALUES = [
   "-1", "0", "-999999999", "2147483648", "99999999999999999999", "1e309", "1.5", "abc", "NaN", "Infinity", "",
-  SQLI, SQLI_STACKED, '{"$gt":""}', "%", "_", "\\", NUL, UNICODE, TRAVERSAL, CRLF, XSS, "__proto__", "constructor", "x".repeat(5000),
+  SQLI, SQLI_STACKED, '{"$gt":""}', "%", "_", "\\", NUL, UNICODE, TRAVERSAL, CRLF, XSS, "__proto__", "constructor", "a".repeat(5000),
 ];
 
 const QUERY_SPECS: QuerySpec[] = [
@@ -595,6 +633,8 @@ describe("query parameters", () => {
   for (const spec of QUERY_SPECS) {
     const title = spec.name ? `${spec.key} (${spec.name})` : spec.key;
     test(`${title}: malformed query values are rejected or ignored`, async () => {
+      const baseline = await send(await spec.actor(), "GET", spec.base ? `${spec.path()}?${spec.base}` : spec.path());
+      assert.equal(baseline.status, 200, `the plain request must work first: HTTP ${baseline.status} ${baseline.text.slice(0, 100)}`);
       const failures: string[] = [];
       for (const q of queryVariants(spec)) {
         // base first so that a fuzzed limit/offset overrides the small default (Express keeps the last value of a repeated key)

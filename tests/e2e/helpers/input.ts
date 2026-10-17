@@ -4,7 +4,7 @@ import { BASE_URL, Client, freshIp, newUser } from "../client";
 export type Sent = { status: number; text: string; contentType: string; timedOut: boolean; ms: number };
 export type Payload = { label: string; json?: unknown; raw?: string };
 
-const TIMEOUT_MS = 15_000;
+const TIMEOUT_MS = 10_000;
 
 /** Sends a request with the client's session, CSRF token and IP; `raw` sends the text unchanged as JSON. */
 export async function send(client: Client, method: string, path: string, body?: Payload, ip = client.ip): Promise<Sent> {
@@ -19,6 +19,11 @@ export async function send(client: Client, method: string, path: string, body?: 
   const started = Date.now();
   try {
     const res = await fetch(BASE_URL + path, { method, headers, body: data, redirect: "manual", signal: AbortSignal.timeout(TIMEOUT_MS) });
+    for (const cookie of res.headers.getSetCookie()) {
+      const [pair] = cookie.split(";");
+      const eq = pair.indexOf("=");
+      client.cookies.set(pair.slice(0, eq), pair.slice(eq + 1));
+    }
     return { status: res.status, text: await res.text(), contentType: res.headers.get("content-type") ?? "", timedOut: false, ms: Date.now() - started };
   } catch (err: any) {
     if (err?.name === "TimeoutError" || err?.name === "AbortError") {
@@ -39,8 +44,9 @@ export function withIp(client: Client): Client {
 // Things that must never show up in an answer: database/driver errors, stack traces, server paths, password hashes.
 const LEAKS: Array<[RegExp, string]> = [
   [/Failed query|syntax error at or near|invalid input syntax|violates (?:not-null|unique|foreign key|check)|duplicate key value|out of range for type|PostgresError|DrizzleError|No values to set/i, "database error text"],
-  [/\n\s+at [^\n]+:\d+:\d+|\bat (?:async )?[\w.<>]+ \([^)]*:\d+:\d+\)/, "stack trace"],
-  [/\/home\/|node_modules|[\w-]+\.ts:\d+/, "server file path"],
+  // linear patterns only: answers can echo 200 000-character inputs
+  [/\n\s+at \S+ \(|\bat (?:async )?\S+ \(\S*:\d+:\d+\)/, "stack trace"],
+  [/\/home\/|node_modules|\w\.ts:\d/, "server file path"],
   [/TypeError|ReferenceError|RangeError|Cannot read propert/i, "JavaScript error text"],
   [/\$2[aby]\$\d\d\$/, "password hash"],
 ];
@@ -48,10 +54,12 @@ const LEAKS: Array<[RegExp, string]> = [
 /** Returns a problem description, or null when the answer is a clean 2xx/3xx/4xx. */
 export function problem(r: Sent): string | null {
   if (r.timedOut) return `no answer within ${TIMEOUT_MS / 1000}s`;
-  if (r.status >= 500) return `HTTP ${r.status} ${r.text.slice(0, 120)}`;
+  if (r.status >= 500) return `HTTP ${r.status} ${r.text.slice(0, 160)}`;
+  // the hostile inputs are echoed in 2xx answers; leaks are searched outside of long runs of the same character
+  const text = r.text.replace(/(.)\1{200,}/g, "$1…");
   for (const [re, what] of LEAKS) {
-    const m = r.text.match(re);
-    if (m) return `HTTP ${r.status} leaks ${what}: …${r.text.slice(Math.max(0, (m.index ?? 0) - 40), (m.index ?? 0) + 80)}…`;
+    const m = text.match(re);
+    if (m) return `HTTP ${r.status} leaks ${what}: …${text.slice(Math.max(0, (m.index ?? 0) - 40), (m.index ?? 0) + 80)}…`;
   }
   return null;
 }
@@ -108,7 +116,8 @@ export function idValues(valid: number): unknown[] {
   ];
 }
 
-export const HUGE = "x".repeat(200_000);
+// "a", not "x": "xxx" is on the profanity list and would be rejected for the wrong reason
+export const HUGE = "a".repeat(200_000);
 
 export function describeValue(v: unknown): string {
   if (typeof v === "string") return JSON.stringify(v.length > 40 ? v.slice(0, 37) + "…" : v);

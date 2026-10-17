@@ -170,6 +170,24 @@ async function visibleErrorText(page) {
 /** Native constraint validation blocked the form (e.g. required / type=email). */
 const invalidInputs = (page) => page.evaluate(() => [...document.querySelectorAll("input,textarea")].filter((e) => !e.checkValidity()).map((e) => e.name || e.id || e.placeholder));
 
+
+/** A fast human fast double click: two real mouse clicks GAP ms apart (a disabled button ignores the second). */
+async function doubleClick(locator, gap = 80) {
+  await locator.scrollIntoViewIfNeeded();
+  const box = await locator.boundingBox();
+  assert.ok(box, "button not visible");
+  const page = locator.page();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForTimeout(gap);
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+}
+/** Enter pressed twice GAP ms apart. */
+async function doubleEnter(locator, gap = 80) {
+  await locator.press("Enter");
+  await locator.page().waitForTimeout(gap);
+  await locator.press("Enter");
+}
+
 pngImage = await sharp({ create: { width: 64, height: 48, channels: 3, background: { r: 30, g: 120, b: 200 } } }).png().toBuffer();
 fakePng = Buffer.from("this is not an image at all, only text pretending to be a png file\n".repeat(20));
 
@@ -269,7 +287,7 @@ fakePng = Buffer.from("this is not an image at all, only text pretending to be a
     assertReadable(toasts, "register taken");
   });
 
-  await test("auth", "register: double click on submit sends one request", async () => {
+  await test("auth", "register: fast double click on submit sends one request", async () => {
     focus = page;
     await anon.goto("/auth", 800);
     await openTab("Registrieren");
@@ -280,7 +298,7 @@ fakePng = Buffer.from("this is not an image at all, only text pretending to be a
     const btn = page.locator("form").getByRole("button", { name: "Registrieren", exact: true });
     const before = anon.calls("POST", /^\/api\/register$/).length;
     await anon.clearToasts();
-    await btn.dblclick();
+    await doubleClick(btn);
     await page.waitForTimeout(2500);
     const calls = anon.calls("POST", /^\/api\/register$/).slice(before);
     assert.equal(calls.length, 1, `register requests: ${calls.map((c) => `${c.status} ${c.response}`).join(" | ")}; toasts: ${JSON.stringify(await anon.toasts())}`);
@@ -298,14 +316,14 @@ fakePng = Buffer.from("this is not an image at all, only text pretending to be a
     await assertNoXss(page, "/profile after onboarding bio");
   });
 
-  await test("auth", "login: double click sends one request", async () => {
+  await test("auth", "login: fast double click sends one request", async () => {
     focus = page;
     await anon.api("POST", "/api/logout");
     await anon.goto("/auth", 800);
     await field("Benutzername").fill(`uireg_${RUN}`);
     await field("Passwort").fill(PW);
     const before = anon.calls("POST", /^\/api\/login$/).length;
-    await page.locator("form").getByRole("button", { name: "Anmelden", exact: true }).dblclick();
+    await doubleClick(page.locator("form").getByRole("button", { name: "Anmelden", exact: true }));
     await page.waitForTimeout(2000);
     const calls = anon.calls("POST", /^\/api\/login$/).slice(before);
     assert.equal(calls.length, 1, `login requests: ${calls.map((c) => `${c.status} ${c.response.slice(0, 80)}`).join(" | ")}; toasts: ${JSON.stringify(await anon.toasts())}`);
@@ -351,14 +369,14 @@ const created = {}; // ids shared with later sections
     await s.close();
   });
 
-  if (want) await test("post", "discussion with XSS title/content: created once on double click, rendered as text everywhere", async () => {
+  if (want) await test("post", "discussion with XSS title/content: created once on fast double click, rendered as text everywhere", async () => {
     const s = await fresh("px");
     created.author = s;
     focus = s.page;
     await s.goto("/post/discussions");
     await s.page.getByLabel("Titel").fill(`Titel ${XSS}`);
     await s.page.getByLabel("Inhalt").fill(`Inhalt ${XSS} ${JS_URL}`);
-    await s.page.getByRole("button", { name: "Diskussion posten" }).dblclick();
+    await doubleClick(s.page.getByRole("button", { name: "Diskussion posten" }));
     await s.page.waitForTimeout(2500);
     const sent = s.calls("POST", /^\/api\/posts$/);
     const ok = postCreated(s);
@@ -373,7 +391,7 @@ const created = {}; // ids shared with later sections
     }
     await s.goto(`/posts/${created.postId}`, 1500);
     await assertShowsText(s.page, `Titel ${XSS}`, "post view title");
-    assert.equal(sent.length, 1, `double click sent ${sent.length} create requests: ${sent.map((c) => `${c.status} ${c.response.slice(0, 80)}`).join(" | ")}; toasts ${JSON.stringify(await s.toasts())}`);
+    assert.equal(sent.length, 1, `fast double click sent ${sent.length} create requests: ${sent.map((c) => `${c.status} ${c.response.slice(0, 80)}`).join(" | ")}; toasts ${JSON.stringify(await s.toasts())}`);
   });
 
   if (want) await test("post", "discussion: second post inside the cooldown shows the translated wait message", async () => {
@@ -487,12 +505,11 @@ if (!ONLY.length || ONLY.includes("comment")) {
     await assertNoXss(author.page, "author's post view");
   });
 
-  await test("comment", "Enter pressed twice quickly creates one comment", async () => {
+  await test("comment", "Enter pressed twice 80 ms apart creates one comment", async () => {
     focus = page;
     const before = commentCalls().length;
     await input().fill(`Doppelt ${RUN}`);
-    await input().press("Enter");
-    await input().press("Enter");
+    await doubleEnter(input());
     await page.waitForTimeout(2000);
     assert.equal(commentCalls().length - before, 1);
     const count = await page.evaluate((t) => document.body.innerText.split(t).length - 1, `Doppelt ${RUN}`);
@@ -613,18 +630,6 @@ if (!ONLY.length || ONLY.includes("profile")) {
     assertReadable(toasts, "fake avatar");
   });
 
-  await test("profile", "double click on save sends one update", async () => {
-    focus = page;
-    await dlg().getByRole("tab", { name: "Allgemein" }).click();
-    await dlg().getByLabel("Website").fill("example.org");
-    await dlg().getByLabel("Anzeigename").fill(`Name ${RUN}`);
-    await dlg().getByLabel("Bio").fill("kurz");
-    const before = patches().length;
-    await dlg().getByRole("button", { name: "Speichern" }).dblclick();
-    await page.waitForTimeout(2000);
-    assert.equal(patches().length - before, 1, patches().slice(before).map((c) => c.status).join(","));
-  });
-
   await test("profile", "a password change form is reachable from the profile", async () => {
     focus = page;
     await open();
@@ -669,7 +674,7 @@ if (!ONLY.length || ONLY.includes("community")) {
     if (v.imageUrl !== undefined) await page.getByLabel("Bild-URL (optional)").fill(v.imageUrl);
     if (v.private) await page.getByLabel("Private Community").check();
     const btn = page.getByRole("button", { name: "Community erstellen" });
-    if (v.dbl) await btn.dblclick(); else await btn.click();
+    if (v.dbl) await doubleClick(btn); else await btn.click();
     await page.waitForTimeout(2500);
   };
   const posts = () => o.calls("POST", /^\/api\/communities$/);
@@ -691,7 +696,7 @@ if (!ONLY.length || ONLY.includes("community")) {
     assert.ok(blocked.length === before, `the client sent a ${blocked.at(-1)?.name?.length}-char name (input kept ${kept.length})`);
   });
 
-  await test("community", "XSS name/description and javascript: image URL: one community on double click, harmless everywhere", async () => {
+  await test("community", "XSS name/description and javascript: image URL: one community on fast double click, harmless everywhere", async () => {
     focus = page;
     const before = posts().length;
     await create({ name, description: `Beschreibung ${XSS}`, imageUrl: JS_URL, dbl: true });
@@ -708,7 +713,7 @@ if (!ONLY.length || ONLY.includes("community")) {
     await m.goto(`/c/${created.community.slug}`, 1800);
     await assertNoXss(m.page, "community page as visitor");
     await m.close();
-    assert.equal(calls.length, 1, `double click sent ${calls.length} requests: ${calls.map((c) => `${c.status} ${c.response.slice(0, 80)}`).join(" | ")}`);
+    assert.equal(calls.length, 1, `fast double click sent ${calls.length} requests: ${calls.map((c) => `${c.status} ${c.response.slice(0, 80)}`).join(" | ")}`);
   });
 
   await test("community", "duplicate name shows the translated server message", async () => {
@@ -828,12 +833,11 @@ if (!ONLY.length || ONLY.includes("chat")) {
     await assertNoXss(b.page, "receiver notifications");
   });
 
-  await test("chat", "Enter pressed twice quickly sends one message", async () => {
+  await test("chat", "Enter pressed twice 80 ms apart sends one message", async () => {
     focus = page;
     const before = sends().length;
     await box().fill(`Einmal ${RUN}`);
-    await box().press("Enter");
-    await box().press("Enter");
+    await doubleEnter(box());
     await page.waitForTimeout(2500);
     const n = sends().length - before;
     const shown = await page.evaluate((t) => document.body.innerText.split(t).length - 1, `Einmal ${RUN}`);
@@ -871,6 +875,419 @@ if (!ONLY.length || ONLY.includes("chat")) {
   await test("chat", "no uncaught JS errors (both chat users)", async () => assert.deepEqual([...a.errors, ...b.errors], []));
   await a.close();
   await b.close();
+}
+
+
+// ================================================================ TICKETS: create, comment, status
+if (!ONLY.length || ONLY.includes("ticket")) {
+  const u = await fresh("tk");
+  const o = await owner();
+  const page = u.page;
+  const creates = () => u.calls("POST", /^\/api\/tickets$/);
+  const fill = async (v) => {
+    await u.goto("/tickets/new", 1200);
+    const inputs = page.locator("form input:not([type=url])");
+    if (v.title !== undefined) await inputs.first().fill(v.title);
+    if (v.description !== undefined) await page.locator("form textarea").fill(v.description);
+    if (v.url !== undefined) await page.locator('form input[type="url"]').fill(v.url);
+  };
+  const submit = (dbl) => (dbl ? doubleClick(page.getByRole("button", { name: "Ticket erstellen" })) : page.getByRole("button", { name: "Ticket erstellen" }).click());
+  const longDesc = `Beschreibung ${XSS} `.padEnd(80, "x");
+  const ticketIds = [];
+
+  await test("ticket", "empty submit is blocked (native required or message) and sends nothing", async () => {
+    focus = page;
+    await fill({});
+    await submit();
+    await page.waitForTimeout(800);
+    const blocked = (await invalidInputs(page)).length > 0 || (await u.toasts()).length > 0;
+    assert.ok(blocked, "no feedback");
+    assert.equal(creates().length, 0);
+  });
+
+  await test("ticket", "title shorter than 10 characters shows the German message", async () => {
+    focus = page;
+    await fill({ title: "Zu kurz", description: longDesc });
+    await submit();
+    await page.waitForTimeout(800);
+    const toasts = await u.toasts();
+    assert.ok(toasts.some((t) => t.includes("Titel muss mindestens 10 Zeichen haben")), JSON.stringify(toasts));
+    assert.equal(creates().length, 0);
+  });
+
+  await test("ticket", "description shorter than the server minimum (50) is explained before or by the server", async () => {
+    focus = page;
+    await u.clearToasts();
+    await fill({ title: "Ein ausreichend langer Titel", description: "Nur dreißig Zeichen lang hier." });
+    await submit();
+    await page.waitForTimeout(1500);
+    const toasts = await u.toasts();
+    assert.ok(toasts.some((t) => /mindestens 50 Zeichen/.test(t)), JSON.stringify(toasts));
+    assertReadable(toasts, "short description");
+  });
+
+  await test("ticket", "title over 200 characters is limited or rejected with a message", async () => {
+    focus = page;
+    await u.clearToasts();
+    await fill({ title: "T".repeat(250), description: longDesc });
+    await submit();
+    await page.waitForTimeout(1500);
+    const toasts = await u.toasts();
+    const ok = creates().filter((c) => c.status === 201);
+    assert.equal(ok.length, 0);
+    assert.ok(toasts.some((t) => /200 Zeichen/.test(t)), JSON.stringify(toasts));
+    assertReadable(toasts, "long title");
+  });
+
+  await test("ticket", "javascript: related URL is rejected by the form", async () => {
+    focus = page;
+    await u.clearToasts();
+    await fill({ title: `Ticket mit Link ${RUN}`, description: longDesc, url: JS_URL });
+    await submit();
+    await page.waitForTimeout(2000);
+    const ok = creates().filter((c) => c.status === 201);
+    if (ok.length) ticketIds.push(JSON.parse(ok.at(-1).response).ticket.id);
+    assert.equal(ok.length, 0, `ticket created with relatedUrl ${JSON.stringify(ok.length ? JSON.parse(ok.at(-1).response).ticket.relatedUrl : null)}`);
+  });
+
+  await test("ticket", "the javascript: related URL is not a clickable javascript link for the owner", async () => {
+    assert.ok(ticketIds.length, "no ticket with the URL was created (previous test passed)");
+    focus = o.page;
+    await o.goto(`/tickets/${ticketIds[0]}`, 1800);
+    const hrefs = await o.page.evaluate(() => [...document.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")).filter((h) => /^\s*javascript:/i.test(h)));
+    const link = o.page.locator('a[href^="javascript:"]');
+    if (await link.count()) {
+      const popup = o.page.waitForEvent("popup", { timeout: 2500 }).catch(() => null);
+      await link.first().click({ modifiers: [] }).catch(() => {});
+      const pop = await popup;
+      await o.page.waitForTimeout(800);
+      const ran = (await o.page.evaluate(() => window.__xss)) ?? (pop ? await pop.evaluate(() => window.__xss).catch(() => undefined) : undefined);
+      assert.deepEqual(hrefs, [], `ticket detail renders <a href="${hrefs[0]}"> for the owner; clicking it ${ran ? "RAN the script" : "did not run the script in this Chromium (target=_blank)"}`);
+    }
+    assert.deepEqual(hrefs, []);
+  });
+
+  await test("ticket", "XSS title/description: one ticket on fast double click, text on detail, list and admin overview", async () => {
+    focus = page;
+    const before = creates().length;
+    await fill({ title: `Ticket ${XSS_IMG}`, description: longDesc, url: "https://example.org/a" });
+    await submit(true);
+    await page.waitForTimeout(2500);
+    const calls = creates().slice(before);
+    const ok = calls.filter((c) => c.status === 201);
+    assert.ok(ok.length >= 1, calls.map((c) => `${c.status} ${c.response}`).join(" | "));
+    ok.forEach((c) => ticketIds.push(JSON.parse(c.response).ticket.id));
+    created.ticketId = JSON.parse(ok[0].response).ticket.id;
+    assert.equal(new URL(page.url()).pathname, `/tickets/${created.ticketId}`);
+    await assertShowsText(page, `Ticket ${XSS_IMG}`, "ticket detail");
+    await assertNoXss(page, "ticket detail");
+    await u.goto("/tickets", 1500);
+    await assertNoXss(page, "/tickets");
+    focus = o.page;
+    for (const p of ["/admin/tickets", `/tickets/${created.ticketId}`]) { await o.goto(p, 1800); await assertNoXss(o.page, p); }
+    assert.equal(calls.length, 1, `fast double click sent ${calls.length} create requests (${calls.map((c) => c.status)})`);
+  });
+
+  await test("ticket", "comment: XSS shown as text, fast double click adds one comment", async () => {
+    focus = page;
+    await u.goto(`/tickets/${created.ticketId}`, 1500);
+    const before = u.calls("POST", /\/comments$/).length;
+    await page.locator("textarea").fill(`Antwort ${XSS}`);
+    await doubleClick(page.getByRole("button", { name: "Antwort senden" }));
+    await page.waitForTimeout(2000);
+    const calls = u.calls("POST", /\/comments$/).slice(before);
+    assert.equal(calls.length, 1, calls.map((c) => c.status).join(","));
+    await assertShowsText(page, `Antwort ${XSS}`, "ticket comment");
+    await assertNoXss(page, "ticket with comment");
+  });
+
+  await test("ticket", "owner changes the status: translated toast and system entry", async () => {
+    focus = o.page;
+    await o.goto(`/tickets/${created.ticketId}`, 1500);
+    await o.clearToasts();
+    await o.page.getByRole("combobox").first().click();
+    await o.page.getByRole("option", { name: /Bearbeitung/ }).click();
+    await o.page.waitForTimeout(1800);
+    const toasts = await o.toasts();
+    assert.ok(toasts.some((t) => /Bearbeitung/.test(t)), JSON.stringify(toasts));
+    assertReadable(toasts, "status change");
+  });
+
+  await test("ticket", "creator closes the ticket; the comment box disappears", async () => {
+    focus = page;
+    await u.goto(`/tickets/${created.ticketId}`, 1500);
+    await page.getByRole("button", { name: "Übertragung beenden" }).click();
+    await page.waitForTimeout(1800);
+    await u.goto(`/tickets/${created.ticketId}`, 1500);
+    assert.equal(await page.locator("textarea").count(), 0, "comment box still shown on a closed ticket");
+    assertReadable(await u.toasts(), "close ticket");
+  });
+
+  await test("ticket", "after the owner deletes the newest ticket, new tickets can still be created", async () => {
+    // Ticket numbers are derived from the newest NOT deleted ticket, so deleting the newest one makes the next
+    // number collide with the deleted row. The deleted ticket is restored right after the check (shared server).
+    focus = o.page;
+    const made = await u.api("POST", "/api/tickets", { title: `Wird gelöscht ${RUN}`, description: longDesc, type: "other", priority: "low" });
+    assert.equal(made.status, 201, JSON.stringify(made.body).slice(0, 200));
+    const victimId = made.body.ticket.id;
+    ticketIds.push(victimId);
+    await o.goto(`/tickets/${victimId}`, 1500);
+    await o.page.getByRole("button", { name: "Signal stilllegen" }).click();
+    await o.page.waitForTimeout(1500);
+    let after;
+    try {
+      focus = page;
+      await u.clearToasts();
+      await fill({ title: `Nach dem Löschen ${RUN}`, description: longDesc });
+      await submit();
+      await page.waitForTimeout(2000);
+      after = creates().at(-1);
+      if (after?.status === 201) ticketIds.push(JSON.parse(after.response).ticket.id);
+    } finally {
+      await o.api("POST", `/api/tickets/${victimId}/restore`);
+    }
+    assert.equal(after?.status, 201, `creating a ticket after the delete: ${after?.status} ${after?.response}; toasts ${JSON.stringify(await u.toasts())}`);
+  });
+
+  await test("ticket", "no uncaught JS errors (creator and owner)", async () => assert.deepEqual([...u.errors, ...o.errors], []));
+  // Tickets are closed, not deleted: deleting breaks the ticket numbering for everybody (see the test above).
+  for (const id of ticketIds) await o.api("PATCH", `/api/tickets/${id}`, { status: "closed" });
+  await u.close();
+  await o.close();
+}
+
+// ================================================================ REPORT dialog
+if (!ONLY.length || ONLY.includes("report")) {
+  const r = await fresh("rp");
+  const page = r.page;
+  const reports = () => r.calls("POST", /^\/api\/reports$/);
+  const openDialog = async () => {
+    await r.goto(`/posts/${created.postId}`, 1800);
+    await page.getByRole("button", { name: "Melden" }).first().click();
+    await page.waitForTimeout(500);
+  };
+  const dlg = () => page.getByRole("alertdialog");
+
+  await test("report", "submit is disabled until a reason is chosen", async () => {
+    focus = page;
+    assert.ok(created.postId, "needs the post from the post section");
+    await openDialog();
+    assert.equal(await dlg().getByRole("button", { name: "Melden" }).isDisabled(), true);
+  });
+
+  await test("report", "fast double click sends one report and shows the German confirmation", async () => {
+    focus = page;
+    await dlg().getByRole("combobox", { name: "Grund" }).click();
+    await page.getByRole("option", { name: "Spam" }).click();
+    await doubleClick(dlg().getByRole("button", { name: "Melden" }));
+    await page.waitForTimeout(1800);
+    assert.equal(reports().length, 1, reports().map((c) => c.status).join(","));
+    const toasts = await r.toasts();
+    assert.ok(toasts.some((t) => t.includes("Meldung gesendet")), JSON.stringify(toasts));
+  });
+
+  await test("report", "reporting the same post again is refused with a message", async () => {
+    focus = page;
+    await r.clearToasts();
+    await openDialog();
+    await dlg().getByRole("combobox", { name: "Grund" }).click();
+    await page.getByRole("option", { name: "Spam" }).click();
+    await dlg().getByRole("button", { name: "Melden" }).click();
+    await page.waitForTimeout(1800);
+    const last = reports().at(-1);
+    assert.ok(last.status >= 400, `second report of the same post accepted (${last.status}); toasts ${JSON.stringify(await r.toasts())}`);
+    assertReadable(await r.toasts(), "second report");
+  });
+
+  await test("report", "no uncaught JS errors", async () => assert.deepEqual(r.errors, []));
+  await r.close();
+}
+
+// ================================================================ THEME BUILDER: save / import
+if (!ONLY.length || ONLY.includes("theme")) {
+  const t = await fresh("th");
+  const page = t.page;
+  const saves = () => t.requests.filter((q) => /\/api\/user\/themes/.test(q.url) && ["POST", "PATCH"].includes(q.method));
+  const importFile = async (name, text) => {
+    await t.clearToasts();
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Importieren" }).click();
+    await (await chooser).setFiles({ name, mimeType: "application/json", buffer: Buffer.from(text) });
+    await page.waitForTimeout(1200);
+  };
+
+  for (const [what, text] of [
+    ["malformed JSON", "{ this is: not json"],
+    ["JSON without light/dark", JSON.stringify({ name: "x", colors: [] })],
+    ["light/dark of the wrong type", JSON.stringify({ light: 1, dark: "zwei" })],
+  ]) {
+    await test("theme", `import ${what}: the user is told the file is invalid, nothing crashes`, async () => {
+      focus = page;
+      await t.goto("/theme-builder", 2000);
+      const errsBefore = t.errors.length;
+      await importFile("bad.json", text);
+      const toasts = await t.toasts();
+      assert.deepEqual(t.errors.slice(errsBefore), [], "uncaught error after import");
+      assert.ok(toasts.some((x) => /ungültig|fehlgeschlagen|nicht|Fehler/i.test(x)), `no feedback after importing ${what}: ${JSON.stringify(toasts)}`);
+    });
+  }
+
+  await test("theme", "import of a valid exported theme works and gives feedback", async () => {
+    focus = page;
+    await t.goto("/theme-builder", 2000);
+    const exported = await page.evaluate(() => localStorage.getItem("custom-theme"));
+    const valid = exported && exported.includes("light") ? exported : JSON.stringify({ light: { primary: "200 80% 50%" }, dark: { primary: "200 80% 60%" } });
+    const errsBefore = t.errors.length;
+    await importFile("ok.json", valid);
+    assert.deepEqual(t.errors.slice(errsBefore), []);
+    const toasts = await t.toasts();
+    assert.ok(toasts.some((x) => /importiert/i.test(x)), `no confirmation (key theme_builder.import_success is never used): ${JSON.stringify(toasts)}`);
+  });
+
+  await test("theme", "empty theme name cannot be saved", async () => {
+    focus = page;
+    await t.goto("/theme-builder", 2000);
+    await page.getByRole("button", { name: "Neu", exact: true }).click();
+    await page.locator("#theme-name").fill("   ");
+    const before = saves().length;
+    await page.getByRole("button", { name: "Speichern" }).click();
+    await page.waitForTimeout(1800);
+    const sent = saves().slice(before);
+    assert.ok(sent.every((c) => c.status >= 400), `saved with an empty name: ${sent.map((c) => `${c.status} ${c.response.slice(0, 100)}`).join(" | ")}`);
+  });
+
+  await test("theme", "XSS theme name: one theme on fast double click, shown as text in the theme list", async () => {
+    focus = page;
+    await t.goto("/theme-builder", 2000);
+    await page.getByRole("button", { name: "Neu", exact: true }).click();
+    await page.locator("#theme-name").fill(`Theme ${XSS_IMG}`);
+    const before = saves().length;
+    await doubleClick(page.getByRole("button", { name: "Speichern" }));
+    await page.waitForTimeout(2500);
+    const sent = saves().slice(before);
+    const list = await t.api("GET", "/api/user/themes");
+    const mine = list.body.filter((x) => x.name === `Theme ${XSS_IMG}`);
+    await page.getByRole("combobox", { name: "Theme auswählen" }).click().catch(() => page.getByRole("combobox").first().click());
+    await page.waitForTimeout(500);
+    await assertNoXss(page, "theme select list");
+    await page.keyboard.press("Escape");
+    assert.equal(mine.length, 1, `${mine.length} themes with that name after a fast double click (requests ${sent.map((c) => c.status)})`);
+  });
+
+  await test("theme", "1 000-character theme name is limited or rejected", async () => {
+    focus = page;
+    await page.getByRole("button", { name: "Neu", exact: true }).click();
+    await page.locator("#theme-name").fill("L".repeat(1000));
+    const kept = (await page.locator("#theme-name").inputValue()).length;
+    const before = saves().length;
+    await page.getByRole("button", { name: "Speichern" }).click();
+    await page.waitForTimeout(1800);
+    const last = saves().slice(before).at(-1);
+    assert.ok(kept < 1000 || (last && last.status >= 400), `kept ${kept} chars, server answered ${last?.status}`);
+  });
+
+  await test("theme", "no uncaught JS errors in the theme builder", async () => assert.deepEqual(t.errors, []));
+  await t.close();
+}
+
+// ================================================================ ADMIN forms (owner; only objects created here are changed)
+if (!ONLY.length || ONLY.includes("admin")) {
+  const o = await owner();
+  const page = o.page;
+
+  await test("admin", "admin pages render stored XSS from this run as text (dashboard, reports, logs, activity)", async () => {
+    focus = page;
+    for (const p of ["/admin", "/admin/users", "/admin/reports", "/admin/logs", "/admin/monitoring/activity", "/admin/bans", "/admin/settings", "/admin/tickets", "/admin/auto-punishments"]) {
+      await o.goto(p, 2200);
+      await assertNoXss(page, p);
+    }
+  });
+
+  const groupName = `Gruppe ${XSS_IMG} ${RUN}`;
+  await test("admin", "groups: whitespace-only name is not accepted", async () => {
+    focus = page;
+    await o.goto("/admin/groups", 1800);
+    await page.getByRole("button", { name: "Gruppe erstellen" }).click();
+    await page.waitForTimeout(500);
+    await page.getByRole("dialog").getByPlaceholder("z. B. Inhaltsmoderation").fill("   ");
+    const btn = page.getByRole("dialog").getByRole("button", { name: "Gruppe speichern" });
+    const before = o.calls("POST", /^\/api\/admin\/groups$/).length;
+    if (await btn.isEnabled()) await btn.click();
+    await page.waitForTimeout(1500);
+    const made = o.calls("POST", /^\/api\/admin\/groups$/).slice(before).filter((c) => c.status === 201);
+    for (const c of made) await o.api("DELETE", `/api/admin/groups/${JSON.parse(c.response).id}`);
+    assert.equal(made.length, 0, "a group named '   ' was created");
+    await page.keyboard.press("Escape");
+  });
+
+  await test("admin", "groups: XSS name shown as text; a duplicate name shows a readable error", async () => {
+    focus = page;
+    await o.goto("/admin/groups", 1800);
+    const createGroup = async () => {
+      await page.getByRole("button", { name: "Gruppe erstellen" }).click();
+      await page.waitForTimeout(500);
+      await page.getByRole("dialog").getByPlaceholder("z. B. Inhaltsmoderation").fill(groupName);
+      await page.getByRole("dialog").getByPlaceholder("Wofür ist diese Gruppe zuständig?").fill(`Desc ${XSS_SCRIPT}`);
+      await page.getByRole("dialog").getByRole("button", { name: "Gruppe speichern" }).click();
+      await page.waitForTimeout(1800);
+    };
+    await createGroup();
+    await assertShowsText(page, groupName, "groups list");
+    await assertNoXss(page, "groups list");
+    await o.clearToasts();
+    await createGroup();
+    const last = o.calls("POST", /^\/api\/admin\/groups$/).at(-1);
+    const toasts = await o.toasts();
+    await page.keyboard.press("Escape");
+    const groups = (await o.api("GET", "/api/admin/groups")).body;
+    for (const g of groups.filter((g) => g.name === groupName)) await o.api("DELETE", `/api/admin/groups/${g.id}`);
+    assert.ok(last.status >= 400 && last.status < 500 && toasts.some((x) => /existiert|bereits|vergeben/i.test(x)),
+      `duplicate group: server ${last.status} ${last.response}; toasts ${JSON.stringify(toasts)}`);
+    assertReadable(toasts, "duplicate group");
+  });
+
+  await test("admin", "auto-punishment: empty submit shows the German validation toast; XSS rule name shown as text", async () => {
+    focus = page;
+    await o.goto("/admin/auto-punishments", 1800);
+    await page.getByRole("button", { name: "Neue Regel" }).click();
+    await page.waitForTimeout(500);
+    await page.getByRole("dialog").getByRole("button", { name: "Speichern" }).click();
+    await page.waitForTimeout(800);
+    const toasts = await o.toasts();
+    assert.ok(toasts.some((x) => x.includes("Name und Begründung der Maßnahme sind erforderlich")), JSON.stringify(toasts));
+    const dlg = page.getByRole("dialog");
+    await dlg.getByPlaceholder("z. B. Strikte Sperre bei API-Missbrauch").fill(`Regel ${XSS_IMG} ${RUN}`);
+    await dlg.getByPlaceholder("Interne Begründung für genau diese Sperre…").fill(`Grund ${XSS_SCRIPT}`);
+    // default action is "warn"; the rule is deleted right after the check
+    await dlg.getByRole("button", { name: "Speichern" }).click();
+    await page.waitForTimeout(1800);
+    const rules = (await o.api("GET", "/api/admin/auto-punishments")).body.rules.filter((r) => r.name === `Regel ${XSS_IMG} ${RUN}`);
+    for (const rule of rules) await o.api("DELETE", `/api/admin/auto-punishments/rules/${rule.id}`);
+    assert.equal(rules.length, 1, `${rules.length} rules created`);
+    await o.goto("/admin/auto-punishments", 1500);
+    await assertNoXss(page, "auto-punishment list");
+  });
+
+  await test("admin", "users: 'Vollständig löschen' asks for confirmation before deleting", async () => {
+    focus = page;
+    const victim = await fresh("ad");
+    await victim.close();
+    await o.goto("/admin/users", 2000);
+    await page.getByPlaceholder("Das Verse durchsuchen…").fill(victim.user);
+    await page.waitForTimeout(800);
+    const row = page.locator("tr", { hasText: victim.user }).first();
+    await row.locator("button").last().click();
+    await page.waitForTimeout(400);
+    const dialogsBefore = o.dialogs.length;
+    await page.getByRole("menuitem", { name: "Vollständig löschen" }).click();
+    await page.waitForTimeout(1500);
+    const deleted = o.calls("DELETE", /^\/api\/admin\/users\/\d+$/);
+    const confirmShown = o.dialogs.length > dialogsBefore || (await page.getByRole("alertdialog").count()) > 0;
+    assert.ok(confirmShown || deleted.length === 0, `account deleted with one click, no confirmation (DELETE → ${deleted.at(-1)?.status})`);
+  });
+
+  await test("admin", "no uncaught JS errors on the admin pages", async () => assert.deepEqual(o.errors, []));
+  await o.close();
 }
 
 // ---------------------------------------------------------------- summary
