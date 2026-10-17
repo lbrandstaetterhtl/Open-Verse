@@ -16,18 +16,20 @@ import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { type AdminSetting } from "@shared/schema";
 
+import { useDateLocale } from "@/lib/date-locale";
 /* FEATURE [AS-007]: Admin Settings – Frontend implementation. */
 const CATEGORIES = [
-  { id: "general", label: "General", icon: Globe, description: "Core site identification and status." },
-  { id: "users", label: "Users", icon: Users, description: "Authentication and member management." },
-  { id: "content", label: "Content", icon: FileText, description: "Posting and moderation rules." },
-  { id: "email", label: "Email", icon: Mail, description: "SMTP and notification delivery." },
-  { id: "security", label: "Security", icon: Shield, description: "Access control and protection." },
-  { id: "appearance", label: "Appearance", icon: Palette, description: "Themes and visual branding." },
+  { id: "general", labelKey: "admin_settings.categories.general", fallback: "General", icon: Globe, descriptionKey: "admin_settings.categories.general_desc", descriptionFallback: "Core site identification and status." },
+  { id: "users", labelKey: "admin_settings.categories.users", fallback: "Users", icon: Users, descriptionKey: "admin_settings.categories.users_desc", descriptionFallback: "Authentication and member management." },
+  { id: "content", labelKey: "admin_settings.categories.content", fallback: "Content", icon: FileText, descriptionKey: "admin_settings.categories.content_desc", descriptionFallback: "Posting and moderation rules." },
+  { id: "email", labelKey: "admin_settings.categories.email", fallback: "Email", icon: Mail, descriptionKey: "admin_settings.categories.email_desc", descriptionFallback: "SMTP and notification delivery." },
+  { id: "security", labelKey: "admin_settings.categories.security", fallback: "Security", icon: Shield, descriptionKey: "admin_settings.categories.security_desc", descriptionFallback: "Access control and protection." },
+  { id: "appearance", labelKey: "admin_settings.categories.appearance", fallback: "Appearance", icon: Palette, descriptionKey: "admin_settings.categories.appearance_desc", descriptionFallback: "Themes and visual branding." },
 ];
 
 export default function AdminSettingsPage() {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeCategory, setActiveCategory] = useState("general");
@@ -45,10 +47,10 @@ export default function AdminSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
-      toast({ title: t("common.success"), description: "Setting updated successfully." });
+      toast({ title: t("common.success", "Success"), description: t("admin_settings.update_success", "Setting updated successfully.") });
     },
     onError: (error: any) => {
-      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+      toast({ title: t("common.error", "An error occurred"), description: error.message, variant: "destructive" });
     }
   });
 
@@ -69,8 +71,8 @@ export default function AdminSettingsPage() {
       <div className="space-y-8 animate-in fade-in duration-500 pb-12">
         <PageHeader
           eyebrow={t("admin.settings_eyebrow", "Admin / Settings")}
-          title="Admin Settings"
-          description="Configure global system behavior and interface defaults."
+          title={t("admin_settings.title", "Admin Settings")}
+          description={t("admin_settings.description", "Configure global system behavior and interface defaults.")}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
@@ -79,7 +81,7 @@ export default function AdminSettingsPage() {
             <div className="relative mb-6">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Search settings..." 
+                placeholder={t("admin_settings.search_placeholder", "Search settings…")}
                 className="h-10 pl-10"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -98,7 +100,7 @@ export default function AdminSettingsPage() {
                   )}
                 >
                   <cat.icon className="h-4 w-4" />
-                  {cat.label}
+                  {t(cat.labelKey, cat.fallback)}
                   {activeCategory === cat.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
                 </button>
               ))}
@@ -108,8 +110,8 @@ export default function AdminSettingsPage() {
           {/* Settings Content */}
           <div className="lg:col-span-9 space-y-6">
              <div className="mb-6">
-                <h3 className="font-display text-xl font-semibold mb-1">{CATEGORIES.find(c => c.id === activeCategory)?.label}</h3>
-                <p className="text-sm text-muted-foreground font-medium">{CATEGORIES.find(c => c.id === activeCategory)?.description}</p>
+                <h3 className="font-display text-xl font-semibold mb-1">{(() => { const cat = CATEGORIES.find(c => c.id === activeCategory); return cat ? t(cat.labelKey, cat.fallback) : null; })()}</h3>
+                <p className="text-sm text-muted-foreground font-medium">{(() => { const cat = CATEGORIES.find(c => c.id === activeCategory); return cat ? t(cat.descriptionKey, cat.descriptionFallback) : null; })()}</p>
              </div>
 
              <div className="space-y-4">
@@ -122,7 +124,7 @@ export default function AdminSettingsPage() {
                     <div className="ov-cut-2 p-4 bg-muted/50 text-muted-foreground">
                        <Search className="h-10 w-10" />
                     </div>
-                    <p className="text-muted-foreground font-semibold leading-tight text-center">No settings found in this category.</p>
+                    <p className="text-muted-foreground font-semibold leading-tight text-center">{t("admin_settings.empty", "No settings found in this category.")}</p>
                  </div>
                ) : (
                  filteredSettings.map((setting) => (
@@ -134,17 +136,17 @@ export default function AdminSettingsPage() {
                                 <label className="text-sm font-semibold text-foreground leading-none">
                                   {setting.label}
                                 </label>
-                                {Boolean(setting.isSensitive) && <div className="ov-chip ov-chip-star h-5 px-2 text-[11px]">Sensitive</div>}
-                                {Boolean(setting.isReadonly) && <div className="ov-chip h-5 px-2 text-[11px]">Readonly</div>}
+                                {Boolean(setting.isSensitive) && <div className="ov-chip ov-chip-star h-5 px-2 text-[11px]">{t("admin_settings.sensitive", "Sensitive")}</div>}
+                                {Boolean(setting.isReadonly) && <div className="ov-chip h-5 px-2 text-[11px]">{t("admin_settings.readonly", "Read-only")}</div>}
                              </div>
-                             <p className="text-xs text-muted-foreground font-medium max-w-md">{setting.description || "No description provided for this configuration value."}</p>
+                             <p className="text-xs text-muted-foreground font-medium max-w-md">{setting.description || t("admin_settings.no_description", "No description provided for this configuration value.")}</p>
                              <div className="flex items-center gap-4 pt-2">
                                <div className="ov-chip h-6 px-2 text-[11px]">
                                   <Clock className="h-3 w-3" />
-                                  Last saved: <span className="font-data">{format(new Date(setting.updatedAt), "PP")}</span>
+                                  {t("admin_settings.last_saved", "Last saved:")} <span className="font-data">{setting.updatedAt ? format(new Date(setting.updatedAt), "PP", { locale: dateLocale }) : "—"}</span>
                                </div>
                                <button className="text-xs font-semibold capitalize text-primary hover:underline flex items-center gap-1">
-                                  <RotateCcw className="h-2.5 w-2.5" /> reset
+                                  <RotateCcw className="h-2.5 w-2.5" /> {t("admin_settings.reset", "reset")}
                                 </button>
                              </div>
                           </div>
@@ -175,9 +177,9 @@ export default function AdminSettingsPage() {
                 <div className="ov-panel mt-12 p-6 space-y-4 bg-destructive/5 [--ov-line:hsl(var(--destructive)/0.4)]">
                   <div className="flex items-center gap-3 text-destructive">
                     <AlertTriangle className="h-6 w-6" />
-                    <h4 className="font-display text-lg font-semibold">System Security Danger Zone</h4>
+                    <h4 className="font-display text-lg font-semibold">{t("admin_settings.danger_zone_title", "System Security Danger Zone")}</h4>
                   </div>
-                  <p className="text-sm text-destructive/80">Changes here affect authentication and global access controls. Verify settings before applying.</p>
+                  <p className="text-sm text-destructive/80">{t("admin_settings.danger_zone_desc", "Changes here affect authentication and global access controls. Verify settings before applying.")}</p>
                 </div>
              )}
           </div>
@@ -195,6 +197,7 @@ interface SettingControlProps {
 }
 
 function SettingControl({ setting, updateMutation, showSensitive, toggleSensitive }: SettingControlProps) {
+  const { t } = useTranslation();
   const [localValue, setLocalValue] = useState<string>(setting.value || "");
   const isDirty = localValue !== setting.value;
 
@@ -205,7 +208,7 @@ function SettingControl({ setting, updateMutation, showSensitive, toggleSensitiv
           checked={setting.value === "true"} 
           onCheckedChange={(checked) => updateMutation.mutate({ id: setting.id, value: checked.toString() })}
         />
-        <span className="ov-label">{setting.value === "true" ? "Enabled" : "Disabled"}</span>
+        <span className="ov-label">{setting.value === "true" ? t("admin_settings.enabled", "Enabled") : t("admin_settings.disabled", "Disabled")}</span>
       </div>
     );
   }
@@ -220,7 +223,7 @@ function SettingControl({ setting, updateMutation, showSensitive, toggleSensitiv
         />
         {isDirty && (
           <Button size="sm" className="w-fit gap-2 h-8" onClick={() => updateMutation.mutate({ id: setting.id, value: localValue })}>
-            <Save className="h-3 w-3" /> Save Changes
+            <Save className="h-3 w-3" /> {t("admin_settings.save_changes", "Save changes")}
           </Button>
         )}
       </div>
@@ -251,7 +254,7 @@ function SettingControl({ setting, updateMutation, showSensitive, toggleSensitiv
       </div>
       {isDirty && (
           <Button size="sm" className="w-fit gap-2 h-8" onClick={() => updateMutation.mutate({ id: setting.id, value: localValue })}>
-            <Save className="h-3 w-3" /> Save Changes
+            <Save className="h-3 w-3" /> {t("admin_settings.save_changes", "Save changes")}
           </Button>
       )}
     </div>

@@ -14,7 +14,7 @@ export function HotCommunitiesSection({ data, loading }: Props) {
     return (
         <Card className="col-span-1">
             <CardHeader>
-                <CardTitle className="text-lg">{t("analytics.hot_communities", "Hot Communities")}</CardTitle>
+                <CardTitle className="text-lg">{t("analytics:hot_communities", "Hot Communities")}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
@@ -44,7 +44,7 @@ export function HotCommunitiesSection({ data, loading }: Props) {
                                 </div>
                                 <div className="text-right">
                                     <div className="ov-data text-sm font-semibold">{community.activeMembers}</div>
-                                    <div className="ov-label">{t("analytics.active", "Active")}</div>
+                                    <div className="ov-label">{t("analytics:active", "Active")}</div>
                                 </div>
                             </div>
                         ))

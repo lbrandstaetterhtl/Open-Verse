@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import type { PostWithAuthor } from "@shared/types";
 
 /**
@@ -9,6 +10,7 @@ import type { PostWithAuthor } from "@shared/types";
  */
 export function useFeedMutations() {
     const { toast } = useToast();
+    const { t } = useTranslation();
 
     // Post lists live under /api/posts... (feeds, detail) and /api/users/<name>/<tab> (profile tabs).
     const isPostQuery = (key: readonly unknown[]) =>
@@ -66,7 +68,7 @@ export function useFeedMutations() {
         },
         onError: (_err, _vars, context) => {
             restore(context?.snapshot);
-            toast({ title: "Like failed", variant: "destructive" });
+            toast({ title: t("hooks.feed.like_failed", "Like failed"), variant: "destructive" });
         },
         onSettled: () => refreshPostQueries(),
     });
@@ -84,10 +86,10 @@ export function useFeedMutations() {
         },
         onError: (_err, _vars, context) => {
             restore(context?.snapshot);
-            toast({ title: "Saving failed", variant: "destructive" });
+            toast({ title: t("hooks.feed.save_failed", "Saving failed"), variant: "destructive" });
         },
         onSuccess: (_data, { saved }) => {
-            toast({ title: saved ? "Saved" : "Removed from saved" });
+            toast({ title: saved ? t("hooks.feed.saved", "Saved") : t("hooks.feed.unsaved", "Removed from saved") });
         },
         onSettled: () => refreshPostQueries(),
     });
@@ -112,7 +114,7 @@ export function useFeedMutations() {
         },
         onError: (err, _, context) => {
             queryClient.setQueryData(["/api/posts"], context?.previous);
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+            toast({ title: t("common.error"), description: err.message, variant: "destructive" });
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
@@ -140,7 +142,7 @@ export function useFeedMutations() {
         },
         onError: (err, _, context) => {
             queryClient.setQueryData(["/api/posts"], context?.previous);
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+            toast({ title: t("common.error"), description: err.message, variant: "destructive" });
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
@@ -156,12 +158,9 @@ export function useFeedMutations() {
         onSuccess: (data, { postId }) => {
             queryClient.invalidateQueries({ queryKey: ["/api/posts", postId] });
             queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-            toast({ title: t("comments.success"), description: t("comments.added") });
+            toast({ title: t("comments.success", "Comment posted"), description: t("comments.added", "Your comment has been added.") });
         },
     });
-
-    // Re-adding t-function if it was missing or assuming it's injected
-    const t = (key: string) => key; // placeholder for now, would use i18n usually
 
     const deletePostMutation = useMutation({
         mutationFn: async (postId: number) => {
@@ -170,7 +169,7 @@ export function useFeedMutations() {
         },
         onSuccess: () => {
             refreshPostQueries();
-            toast({ title: "Success", description: "Post deleted successfully" });
+            toast({ title: t("common.success", "Success"), description: t("posts.deleted_success", "Post deleted successfully") });
         },
     });
 
@@ -181,7 +180,7 @@ export function useFeedMutations() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-            toast({ title: "Success", description: "Comment deleted successfully" });
+            toast({ title: t("common.success", "Success"), description: t("comments.deleted_success", "Comment deleted successfully") });
         },
     });
 

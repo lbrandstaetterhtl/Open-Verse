@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Hammer, ShieldCheck } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 /* COMPONENT [AS-015]: Maintenance Guard – A full-screen overlay that blocks site access
    when maintenance mode is enabled, while providing a clear bypass for administrative staff. */
@@ -13,6 +14,7 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
   const { settings } = useSiteSettings();
   const { user } = useAuth();
   const [location, navigate] = useLocation();
+  const { t } = useTranslation();
 
   const isAdmin = user && (user.isAdmin || user.role === "admin" || user.role === "owner");
   const isAuthPage = location === "/auth";
@@ -28,26 +30,30 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
 
           <div className="space-y-2">
             <h1 className="font-display text-3xl font-semibold tracking-[-0.01em]">{settings.site_name}</h1>
-            <p className="text-xl font-medium text-foreground/80">Under Maintenance</p>
+            <p className="text-xl font-medium text-foreground/80">{t("maintenance.title", "Under maintenance")}</p>
           </div>
 
           <p className="text-muted-foreground leading-relaxed">
-            We are currently performing scheduled maintenance to improve our services. 
-            We'll be back online shortly. Thank you for your patience!
+            {t(
+              "maintenance.description",
+              "We are currently performing scheduled maintenance to improve our services. We'll be back online shortly. Thank you for your patience!",
+            )}
           </p>
 
           <Alert className="bg-primary/5 border-primary/20 text-left">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            <AlertTitle className="text-sm font-semibold">Staff Member?</AlertTitle>
+            <AlertTitle className="text-sm font-semibold">{t("maintenance.staff_title", "Staff member?")}</AlertTitle>
             <AlertDescription className="text-xs opacity-80">
-              Administrative accounts have full access to the platform during maintenance. 
-              Please log in to continue.
+              {t(
+                "maintenance.staff_description",
+                "Administrative accounts have full access to the platform during maintenance. Please log in to continue.",
+              )}
             </AlertDescription>
           </Alert>
 
           <div className="pt-4">
             <Button variant="outline" onClick={() => navigate("/auth")}>
-              Staff Login
+              {t("maintenance.staff_login", "Staff login")}
             </Button>
           </div>
         </div>

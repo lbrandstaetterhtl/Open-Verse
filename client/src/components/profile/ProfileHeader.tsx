@@ -8,6 +8,7 @@ import { MutualFollowers } from "./MutualFollowers";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+import { useDateLocale } from "@/lib/date-locale";
 interface ProfileHeaderProps {
   user: User & { 
     stats?: { followers: number; following: number; posts: number };
@@ -33,7 +34,8 @@ export function ProfileHeader({
   isFollowingLoading
 }: ProfileHeaderProps) {
   const { t } = useTranslation();
-  const joinedDate = user.createdAt ? format(new Date(user.createdAt), "MMMM yyyy") : "";
+  const dateLocale = useDateLocale();
+  const joinedDate = user.createdAt ? format(new Date(user.createdAt), "LLLL yyyy", { locale: dateLocale }) : "";
 
   return (
     <div className="w-full px-6 md:px-10 pb-8 relative">
@@ -108,7 +110,7 @@ export function ProfileHeader({
               </p>
               {user.isFollowingBack && (
                 <span className="ov-chip">
-                  Follows You
+                  {t("profile.follows_you", "Follows You")}
                 </span>
               )}
             </div>
@@ -149,11 +151,11 @@ export function ProfileHeader({
             <div className="ov-panel flex divide-x divide-border">
                <div className="flex flex-col items-center gap-1.5 px-5 py-3 min-w-[100px]">
                   <span className="ov-data text-2xl font-semibold leading-none text-foreground">{user.stats?.following || 0}</span>
-                  <span className="ov-label">Following</span>
+                  <span className="ov-label">{t("profile.following")}</span>
                </div>
                <div className="flex flex-col items-center gap-1.5 px-5 py-3 min-w-[100px]">
                   <span className="ov-data text-2xl font-semibold leading-none text-primary">{user.stats?.followers || 0}</span>
-                  <span className="ov-label">Followers</span>
+                  <span className="ov-label">{t("profile.followers")}</span>
                </div>
             </div>
           </div>

@@ -37,7 +37,7 @@ export default function MediaFeedPage() {
         `/api/posts?category=${categoryFilter}&include=author,comments,reactions,userReaction&limit=12&offset=${pageParam}`,
         { headers: { "x-auto-refresh": "true" } }
       );
-      if (!res.ok) throw new Error(await res.text() || "Failed to fetch posts");
+      if (!res.ok) throw new Error(await res.text() || t("feed.fetch_posts_failed", "Failed to fetch posts"));
       return res.json() as Promise<PostWithAuthor[]>;
     },
     initialPageParam: 0,
@@ -113,7 +113,7 @@ export default function MediaFeedPage() {
           ) : error ? (
             <div className="py-20 animate-in fade-in zoom-in duration-500">
               <ErrorState 
-                message={error instanceof Error ? error.message : "Failed to load media"} 
+                message={error instanceof Error ? error.message : t("feed.load_media_failed", "Failed to load media")} 
                 retry={() => queryClient.invalidateQueries({ queryKey: ["/api/posts", "media"] })}
               />
             </div>
@@ -130,7 +130,7 @@ export default function MediaFeedPage() {
               <p className="text-muted-foreground text-sm md:text-base max-w-sm px-4">{t("feed.no_media_desc", "Be the spark that ignites this feed. Share your first media post now.")}</p>
               <Link href="/post/news" className="mt-8">
                 <Button variant="outline">
-                  Ignite Discovery
+                  {t("feed.ignite_discovery", "Ignite Discovery")}
                 </Button>
               </Link>
             </motion.div>
@@ -161,11 +161,11 @@ export default function MediaFeedPage() {
                 {isFetchingNextPage && (
                   <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ov-label">Expanding Verse...</p>
+                    <p className="ov-label">{t("feed.loading_more", "Expanding Verse...")}</p>
                   </div>
                 )}
                 {!hasNextPage && posts.length > 0 && (
-                  <p className="ov-label">You've reached the Edge of the Verse</p>
+                  <p className="ov-label">{t("feed.end_reached", "You've reached the Edge of the Verse")}</p>
                 )}
               </div>
             </>

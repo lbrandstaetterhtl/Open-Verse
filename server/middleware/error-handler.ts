@@ -45,7 +45,7 @@ export function globalErrorHandler(
   const isDev = process.env.NODE_ENV !== 'production';
 
   res.status(err.status || err.statusCode || 500).json({
-    error:     isDev ? err.message : 'Interner Serverfehler',
+    error:     isDev ? err.message : 'Internal server error',
     requestId: req.requestId,
     ...(isDev && { stack: err.stack }),
   });

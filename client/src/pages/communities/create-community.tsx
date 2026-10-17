@@ -47,7 +47,7 @@ export default function CreateCommunityPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/communities"] });
       toast({
         title: t("community.create.success_title"),
-        description: `Welcome to ${community.name}!`,
+        description: t("community.create.success_desc", { name: community.name, defaultValue: "Welcome to {{name}}!" }),
       });
       setLocation(`/c/${community.slug}`);
     },

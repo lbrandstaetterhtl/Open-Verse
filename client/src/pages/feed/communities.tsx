@@ -116,7 +116,7 @@ export default function CommunityFeedPage() {
                             </div>
                             <div className="min-w-0">
                                <p className="text-sm font-semibold truncate">{c.name}</p>
-                               <p className="ov-label">{c.role || "member"}</p>
+                               <p className="ov-label">{t(`communities.roles.${c.role || "member"}`, { defaultValue: c.role || t("communities.roles.member", "member") })}</p>
                             </div>
                           </div>
                         </Link>
@@ -167,12 +167,12 @@ export default function CommunityFeedPage() {
           <aside className="hidden xl:block w-80 flex-shrink-0 border-l border-border/40 p-8">
              <div className="sticky top-6">
                 <div className="ov-panel p-5">
-                   <h3 className="font-display text-lg font-semibold mb-2">Discover Communities</h3>
+                   <h3 className="font-display text-lg font-semibold mb-2">{t("communities.discover_title", "Discover Communities")}</h3>
                    <p className="text-sm text-muted-foreground leading-relaxed mb-5">
-                     Find people with similar interests in over 1,000 topic areas. Join the conversation and share your passion.
+                     {t("communities.discover_desc", "Find people with similar interests in over 1,000 topic areas. Join the conversation and share your passion.")}
                    </p>
                    <Button variant="secondary" className="w-full">
-                      Explore All
+                      {t("communities.explore_all", "Explore All")}
                    </Button>
                 </div>
              </div>

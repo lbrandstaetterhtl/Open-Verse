@@ -41,8 +41,10 @@ router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
                 
                 if (diffSeconds < cooldownSeconds) {
                     const remaining = Math.ceil(cooldownSeconds - diffSeconds);
-                    return res.status(429).json({ 
-                        message: `Please wait ${remaining} seconds before posting again.`,
+                    return res.status(429).json({
+                        error: "Please wait before posting again",
+                        code: "POST_COOLDOWN",
+                        params: { seconds: remaining },
                         remainingSeconds: remaining
                     });
                 }
@@ -65,7 +67,11 @@ router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
             if (community) {
                 const allowed = community.allowedCategories.split(',').map((c: string) => c.trim());
                 if (!allowed.includes(postData.category)) {
-                    return res.status(400).send(`Category '${postData.category}' is not allowed in this community. Allowed: ${allowed.join(', ')}`);
+                    return res.status(400).json({
+                        error: "This category is not allowed in this community",
+                        code: "CATEGORY_NOT_ALLOWED",
+                        params: { category: postData.category, allowed: allowed.join(", ") },
+                    });
                 }
             } else {
                 return res.status(404).send("Community not found");
@@ -75,7 +81,8 @@ router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
         // Moderation Check
         const moderationResult = await checkContent(postData.content + " " + (title || ""));
         if (!moderationResult.allowed) {
-            return res.status(400).send(moderationResult.reason);
+            // checkContent only ever reports this one reason; keep the text fixed so the client can translate it
+            return res.status(400).json({ error: "Content violates community guidelines.", code: "CONTENT_BLOCKED" });
         }
 
         if (title) {

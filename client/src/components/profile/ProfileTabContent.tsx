@@ -7,6 +7,7 @@ import { MessageCircle, LayoutGrid, Heart, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 import { PostCard } from "@/components/post/post-card";
 
+import { useDateLocale } from "@/lib/date-locale";
 interface ProfileTabContentProps {
   type: "posts" | "comments" | "liked" | "saved";
   data: any[];
@@ -15,6 +16,7 @@ interface ProfileTabContentProps {
 
 export function ProfileTabContent({ type, data, isLoading }: ProfileTabContentProps) {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
 
   if (isLoading) {
     return (
@@ -60,11 +62,11 @@ export function ProfileTabContent({ type, data, isLoading }: ProfileTabContentPr
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <div className="ov-chip ov-data">
                     <Calendar className="h-3 w-3" />
-                    {item.createdAt ? format(new Date(item.createdAt), "PPp") : ""}
+                    {item.createdAt ? format(new Date(item.createdAt), "PPp", { locale: dateLocale }) : ""}
                   </div>
                   {item.post && (
                     <Link href={`/post/${item.post.id}`} className="ov-chip ov-chip-primary min-w-0 max-w-full transition-colors hover:bg-primary/15">
-                      <span className="shrink-0 text-muted-foreground">{t('profile.on_post')}</span>
+                      <span className="shrink-0 text-muted-foreground">{t("profile.on_post", "On")}</span>
                       <span className="truncate">{item.post.title}</span>
                     </Link>
                   )}

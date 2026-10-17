@@ -7,8 +7,10 @@ import type { TicketWithMeta } from "@/hooks/use-tickets";
 import { Clock, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { useDateLocale } from "@/lib/date-locale";
 export function TicketCard({ ticket, showOwnerFeatures }: { ticket: TicketWithMeta, showOwnerFeatures: boolean }) {
   const { t } = useTranslation("tickets");
+  const dateLocale = useDateLocale();
 
   const isCritical = ticket.priority === 'critical' && ticket.status !== 'closed';
 
@@ -38,7 +40,7 @@ export function TicketCard({ ticket, showOwnerFeatures }: { ticket: TicketWithMe
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <Clock className="w-3.5 h-3.5" />
-              <span className="ov-data">{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}</span>
+              <span className="ov-data">{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true, locale: dateLocale })}</span>
             </div>
             {showOwnerFeatures && (
               <>
@@ -49,12 +51,12 @@ export function TicketCard({ ticket, showOwnerFeatures }: { ticket: TicketWithMe
                 {ticket.assignedTo ? (
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span className="text-primary">Active</span>
+                    <span className="text-primary">{t("assignment.active", "Active")}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-star" />
-                    <span className="text-star">Awaiting Pilot</span>
+                    <span className="text-star">{t("assignment.unassigned", "Awaiting Pilot")}</span>
                   </div>
                 )}
               </>

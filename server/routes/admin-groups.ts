@@ -5,6 +5,7 @@ import { isAdmin } from "../middleware/auth";
 import { insertAdminGroupSchema } from "@shared/schema";
 import { activityLogger } from "../services/activity-logger";
 
+import { sendValidationError } from "../utils/http-errors";
 const router = Router();
 
 // Get all admin groups
@@ -22,7 +23,7 @@ router.post("/", isAdmin, async (req, res) => {
     try {
         const result = insertAdminGroupSchema.safeParse(req.body);
         if (!result.success) {
-            return res.status(400).json(result.error);
+            return sendValidationError(res, result.error);
         }
 
         const group = await storage.createAdminGroup(result.data);

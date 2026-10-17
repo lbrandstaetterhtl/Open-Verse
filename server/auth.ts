@@ -15,6 +15,7 @@ import { insertUserSchema } from "@shared/schema";
 import { activityLogger } from "./services/activity-logger";
 import { logger } from "./logger";
 
+import { sendValidationError, sendInternalError } from "./utils/http-errors";
 declare global {
   namespace Express {
     interface User extends SelectUser { 
@@ -247,7 +248,7 @@ export function setupAuth(app: Express, sessionParser: any) {
   app.post("/api/register", strictAuthLimiter, async (req, res) => {
     try {
       const parsed = insertUserSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json(parsed.error);
+      if (!parsed.success) return sendValidationError(res, parsed.error);
       const data = parsed.data;
 
       const existingUser = await storage.getUserByUsername(data.username);
@@ -342,19 +343,19 @@ export function setupAuth(app: Express, sessionParser: any) {
 
       // Log the user in
       req.login(user, (err) => {
-        if (err) return res.status(500).send(err.message);
+        if (err) return sendInternalError(res, err, "auth session failed");
         // SEC-FIX [SEC-005]: Session Fixation Protection
         const passportData = (req.session as any).passport;
         // SECURITY FIX [AUTH-002]: Preserve or regenerate CSRF token after session change
         const oldCsrfToken = (req.session as any).csrfToken;
         
         req.session.regenerate((err) => {
-          if (err) return res.status(500).send(err.message);
+          if (err) return sendInternalError(res, err, "auth session failed");
           (req.session as any).passport = passportData;
           (req.session as any).csrfToken = oldCsrfToken || randomBytes(32).toString("hex");
           
           req.session.save((err) => {
-            if (err) return res.status(500).send(err.message);
+            if (err) return sendInternalError(res, err, "auth session failed");
             logger.authEvent({
               event: 'register',
               userId: user.id,
@@ -468,7 +469,7 @@ export function setupAuth(app: Express, sessionParser: any) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const result = updateProfileSchema.safeParse(req.body);
-    if (!result.success) return res.status(400).json(result.error);
+    if (!result.success) return sendValidationError(res, result.error);
 
     if (result.data.username) {
       const existingUser = await storage.getUserByUsername(result.data.username);
@@ -491,7 +492,7 @@ export function setupAuth(app: Express, sessionParser: any) {
       const value = update[field];
       if (value === undefined || value === null || value === "" || value === (req.user as any)[field]) continue;
       if (typeof value !== "string" || !/^\/uploads\/[\w.-]+$/.test(value) || value.includes("..")) {
-        return res.status(400).json({ error: "Ungültige Bild-URL", field });
+        return res.status(400).json({ error: "Invalid image URL", field });
       }
     }
     if (update.avatarUrl !== undefined) update.profilePictureUrl = update.avatarUrl;
@@ -504,7 +505,7 @@ export function setupAuth(app: Express, sessionParser: any) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const result = updatePasswordSchema.safeParse(req.body);
-    if (!result.success) return res.status(400).json(result.error);
+    if (!result.success) return sendValidationError(res, result.error);
 
     const user = await storage.getUser(req.user!.id);
     if (!user) {

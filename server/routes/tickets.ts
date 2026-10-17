@@ -4,6 +4,7 @@ import { TicketService } from "../services/ticket-service";
 import { activityLogger } from "../services/activity-logger";
 import { logger } from "../logger";
 
+import { sendInternalError } from "../utils/http-errors";
 const router = Router();
 
 // Middleware: ensure user is Admin or Owner
@@ -24,11 +25,8 @@ router.param("id", (req, res, next, id) => {
 // Service errors carry a message meant for the user. Database errors would leak the SQL query, so
 // they are logged and answered with a generic message.
 function sendError(res: any, err: any) {
-  if (typeof err?.message === "string" && (err.message.startsWith("Failed query") || err.code)) {
-    logger.error("db", "Ticket request failed", err);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-  res.status(500).json({ error: err?.message || "Internal server error" });
+  // Never send internal error texts (database errors etc.) to the browser
+  return sendInternalError(res, err, "Ticket request failed");
 }
 
 const checkOwner = (req: any, res: any, next: any) => {

@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { de } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import React, { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -39,6 +38,7 @@ import { AuthorLink, authorName, isDeletedAuthor } from "@/components/post/autho
 import type { PostWithAuthor } from "@shared/types";
 import { Button } from "@/components/ui/button";
 
+import { useDateLocale } from "@/lib/date-locale";
 interface PostCardProps {
   post: PostWithAuthor;
   reportType?: "post" | "discussion";
@@ -57,6 +57,7 @@ export const PostCard = React.memo(function PostCard({
   variant = "default",
 }: PostCardProps) {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const { user } = useAuth();
   const [imageLoadError, setImageLoadError] = useState(false);
 
@@ -148,7 +149,7 @@ export const PostCard = React.memo(function PostCard({
                   <span className="truncate">
                     {(() => {
                       try {
-                        return post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: de }) : "";
+                        return post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: dateLocale }) : "";
                       } catch (e) { return ""; }
                     })()}
                   </span>
@@ -193,7 +194,7 @@ export const PostCard = React.memo(function PostCard({
               {post.mediaType === "image" ? (
                 <img
                   src={`/uploads/${post.mediaUrl}`}
-                  alt={post.title || "Post image"}
+                  alt={post.title || t("post.image_alt", "Post image")}
                   className="w-full h-full object-cover"
                   onError={() => setImageLoadError(true)}
                   loading="lazy"

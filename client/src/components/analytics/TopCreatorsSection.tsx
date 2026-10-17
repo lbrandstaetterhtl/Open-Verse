@@ -14,7 +14,7 @@ export function TopCreatorsSection({ data, loading }: Props) {
     return (
         <Card className="col-span-1">
             <CardHeader>
-                <CardTitle className="text-lg">{t("analytics.top_creators", "Top Creators")}</CardTitle>
+                <CardTitle className="text-lg">{t("analytics:top_creators", "Top Creators")}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
@@ -39,12 +39,12 @@ export function TopCreatorsSection({ data, loading }: Props) {
                                     </Avatar>
                                     <div>
                                         <div className="text-sm font-semibold leading-none">{creator.username}</div>
-                                        <div className="mt-1 text-xs text-muted-foreground"><span className="ov-data">{creator.newPosts}</span> {t("analytics.new_posts_count", "posts this period")}</div>
+                                        <div className="mt-1 text-xs text-muted-foreground"><span className="ov-data">{creator.newPosts}</span> {t("analytics:new_posts_count", "posts this period")}</div>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <div className="ov-data text-sm font-semibold">+{creator.newFollowers}</div>
-                                    <div className="ov-label">{t("analytics.growth", "Growth")}</div>
+                                    <div className="ov-label">{t("analytics:growth", "Growth")}</div>
                                 </div>
                             </div>
                         ))
