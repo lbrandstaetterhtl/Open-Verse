@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import {
-  CLIENT_SRC, LOCALES_DIR, DEFAULT_NS, findHardcodedText, findRawEnumValues, findServerMessages, findUnlocalizedDates, findUsedKeys, loadLocales, loadAllowlist,
+  CLIENT_SRC, LOCALES_DIR, DEFAULT_NS, findHardcodedText, findRawEnumValues, findServerMessages, findUntranslatableErrors, findUnlocalizedDates, findUsedKeys, loadLocales, loadAllowlist,
   supportedLanguages, namespaces, placeholders,
 } from "./scan";
 
@@ -104,6 +104,14 @@ describe("server messages", () => {
     const known = new Set(Object.values(en.server ?? {}));
     const missing = findServerMessages().filter((m) => !known.has(m.text)).map((m) => `${m.file}:${m.line} "${m.text}"`);
     assert.deepEqual(missing, [], `add these to client/public/locales/en/server.json (and translate):\n  ${list(missing)}`);
+  });
+
+  test("error responses with variable text carry a code the client can translate", () => {
+    const allowed = loadAllowlist().serverDynamic ?? [];
+    const found = findUntranslatableErrors()
+      .filter((m) => !allowed.some((a) => { const [file, needle] = a.split("::"); return m.file === file && m.text.includes(needle); }))
+      .map((m) => `${m.file}:${m.line} ${m.text}`);
+    assert.deepEqual(found, [], "send a fixed English `error` text, or add `code` + `params` (client/src/lib/server-messages.ts)");
   });
 
   test("server messages are English (the lookup key)", () => {

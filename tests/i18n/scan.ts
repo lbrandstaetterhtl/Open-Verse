@@ -23,6 +23,8 @@ type Allowlist = {
   reasons: Record<string, string>;
   /** Locale keys (ns:key) that may stay identical to English in a given language. */
   sameAsEnglish: Record<string, string[]>;
+  /** "server/file.ts::snippet" error responses that may stay dynamic, with a reason in `reasons`. */
+  serverDynamic?: string[];
 };
 
 export function loadAllowlist(): Allowlist {
@@ -423,6 +425,17 @@ export function findServerMessages(files = serverFiles()): ServerMessage[] {
     const rel = path.relative(ROOT, file);
     const sf = parse(file);
     const visit = (node: ts.Node) => {
+      if (ts.isCallExpression(node) && /^(rateLimit|done)$/.test(node.expression.getText())) {
+        for (const a of node.arguments) {
+          if (!ts.isObjectLiteralExpression(a)) continue;
+          for (const p of a.properties) {
+            if (ts.isPropertyAssignment(p) && p.name.getText() === "message" &&
+              (ts.isStringLiteral(p.initializer) || ts.isNoSubstitutionTemplateLiteral(p.initializer))) {
+              out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(p.getStart()).line + 1, text: p.initializer.text });
+            }
+          }
+        }
+      }
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
         ["send", "json"].includes(node.expression.name.text)) {
         const target = node.expression.expression;
@@ -441,6 +454,41 @@ export function findServerMessages(files = serverFiles()): ServerMessage[] {
                 (ts.isStringLiteral(p.initializer) || ts.isNoSubstitutionTemplateLiteral(p.initializer))) add(p.initializer, p.initializer.text);
             }
           }
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+  }
+  return out;
+}
+
+/**
+ * Error responses whose text is not a fixed literal (template strings, variables, error.message, raw zod errors)
+ * and that carry no `code`: the client cannot translate them, and internal texts may leak.
+ */
+export function findUntranslatableErrors(files = serverFiles()): ServerMessage[] {
+  const out: ServerMessage[] = [];
+  for (const file of files) {
+    const rel = path.relative(ROOT, file);
+    const sf = parse(file);
+    const visit = (node: ts.Node) => {
+      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && ["send", "json"].includes(node.expression.name.text)) {
+        const target = node.expression.expression;
+        const code = ts.isCallExpression(target) && ts.isPropertyAccessExpression(target.expression) && target.expression.name.text === "status" ? target.arguments[0] : undefined;
+        const arg = node.arguments[0];
+        if (code && ts.isNumericLiteral(code) && Number(code.text) >= 400 && arg) {
+          const isLiteral = (e: ts.Expression) => ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e);
+          let bad = false;
+          if (ts.isObjectLiteralExpression(arg)) {
+            const props = arg.properties.filter(ts.isPropertyAssignment);
+            const hasCode = props.some((p) => p.name.getText() === "code");
+            const text = props.find((p) => ["error", "message"].includes(p.name.getText()));
+            bad = !!text && !isLiteral(text.initializer) && !hasCode;
+          } else if (!isLiteral(arg) && !ts.isNumericLiteral(arg)) {
+            bad = true;
+          }
+          if (bad) out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(node.getStart()).line + 1, text: node.getText().replace(/\s+/g, " ").slice(0, 100) });
         }
       }
       ts.forEachChild(node, visit);

@@ -4,13 +4,14 @@ import { isAuthenticated } from "../middleware/auth";
 import { messageSchema } from "@shared/schema";
 import { z } from "zod";
 
+import { sendValidationError } from "../utils/http-errors";
 const router = Router();
 
 router.post("/", isAuthenticated, async (req, res) => {
     try {
         const result = messageSchema.safeParse(req.body);
         if (!result.success) {
-            return res.status(400).json(result.error);
+            return sendValidationError(res, result.error);
         }
 
         const senderId = (req.user as any).id;

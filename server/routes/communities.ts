@@ -5,6 +5,7 @@ import { insertCommunitySchema } from "@shared/schema";
 import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
 
+import { sendValidationError } from "../utils/http-errors";
 const router = Router();
 
 router.get("/", async (req, res) => {
@@ -39,7 +40,7 @@ router.post("/", isAuthenticated, async (req, res) => {
 
         if (!result.success) {
             console.error("[Community] Validation failed:", result.error.flatten());
-            return res.status(400).json(result.error);
+            return sendValidationError(res, result.error);
         }
 
         const slug = result.data.name

@@ -28,7 +28,8 @@
     "components/layout/star-chart.tsx::Cygnus": "Official IAU constellation name, decorative",
     "components/layout/star-chart.tsx::Leo": "Official IAU constellation name, decorative",
     "components/layout/star-chart.tsx::Lyra": "Official IAU constellation name, decorative",
-    "sameAsEnglish": "Reviewed: these texts are spelled the same in that language (log prefix, 'pts' abbreviation, 'Version', the loanword 'Stress test')."
+    "sameAsEnglish": "Reviewed: these texts are spelled the same in that language (log prefix, 'pts' abbreviation, 'Version', the loanword 'Stress test').",
+    "serverDynamic": "auth.ts: passport's message is one of the literal done() messages (checked separately). index.ts: plain HTML fallback page for browser navigation while the database is down."
   },
   "sameAsEnglish": {
     "es": [
@@ -45,5 +46,9 @@
     "de": [
       "translation:auth.version_label"
     ]
-  }
+  },
+  "serverDynamic": [
+    "server/auth.ts::info?.message",
+    "server/routes/index.ts::<html>"
+  ]
 }

@@ -50,7 +50,7 @@ export async function setupVite(app: Express, server: Server) {
 
     if (url.startsWith("/api")) {
       console.log(`[API 404] ${req.method} ${url}`);
-      res.status(404).json({ error: `API route not found: ${url}` });
+      res.status(404).json({ error: "API route not found", code: "API_NOT_FOUND" });
       return;
     }
 
@@ -87,7 +87,7 @@ export function serveStatic(app: Express) {
   app.use("*", (req, res) => {
     if (req.originalUrl.startsWith("/api")) {
       console.log(`[API 404] ${req.method} ${req.originalUrl}`);
-      res.status(404).json({ error: `API route not found: ${req.originalUrl}` });
+      res.status(404).json({ error: "API route not found", code: "API_NOT_FOUND" });
       return;
     }
     // SEC-FIX: Prevent caching of index.html to ensure clients always get the latest asset hashes

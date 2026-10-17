@@ -12,6 +12,7 @@ import { hasPermission, isAdmin, isOwner } from "../middleware/auth";
 import { sanitizeUser } from "../storage";
 import { parsePagination } from "../utils/pagination";
 
+import { sendValidationError, sendInternalError, isZodError } from "../utils/http-errors";
 const router = Router();
 
 // Every admin route requires an admin or owner; routes below add their specific permission on top.
@@ -142,7 +143,7 @@ router.patch("/users/:id", hasPermission("users"), async (req, res) => {
 
         const result = adminUpdateUserSchema.safeParse(req.body);
         if (!result.success) {
-            return res.status(400).json(result.error);
+            return sendValidationError(res, result.error);
         }
 
         // Prevent crash on empty update object
@@ -304,7 +305,7 @@ router.patch("/reports/:id", hasPermission("reports"), async (req, res) => {
     try {
         // SECURITY FIX [VULN-005]: Validate report status against schema
         const result = adminUpdateReportSchema.safeParse(req.body);
-        if (!result.success) return res.status(400).json(result.error);
+        if (!result.success) return sendValidationError(res, result.error);
 
         const [updatedReport] = await db.update(reports)
             .set({ status: result.data.status })
@@ -464,7 +465,7 @@ router.post("/bulk/users", hasPermission("security"), async (req, res) => {
         });
         res.json(result);
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        sendInternalError(res, e, "admin.ts request failed");
     }
 });
 
@@ -478,7 +479,7 @@ router.post("/bulk/reports", hasPermission("reports"), async (req, res) => {
         });
         res.json(result);
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        sendInternalError(res, e, "admin.ts request failed");
     }
 });
 
@@ -492,7 +493,7 @@ router.post("/bulk/posts", hasPermission("reports"), async (req, res) => {
         });
         res.json(result);
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        sendInternalError(res, e, "admin.ts request failed");
     }
 });
 
@@ -502,7 +503,7 @@ router.get("/bans", hasPermission("security"), async (req, res) => {
         const allBans = await db.select().from(bans).orderBy(desc(bans.createdAt));
         res.json(allBans);
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        sendInternalError(res, e, "admin.ts request failed");
     }
 });
 
@@ -536,7 +537,7 @@ router.post("/bans", hasPermission("security"), async (req, res) => {
         }
         res.json(newBan[0]);
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        sendInternalError(res, e, "admin.ts request failed");
     }
 });
 
@@ -562,7 +563,7 @@ router.patch("/bans/:id/revoke", hasPermission("security"), async (req, res) => 
         }
         res.json(updated[0]);
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        sendInternalError(res, e, "admin.ts request failed");
     }
 });
 
@@ -573,7 +574,7 @@ router.get("/auto-punishments", hasPermission("security"), async (req, res) => {
         const executions = await db.select().from(autoPunishmentExecutions).orderBy(desc(autoPunishmentExecutions.createdAt)).limit(50);
         res.json({ rules, executions });
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        sendInternalError(res, e, "admin.ts request failed");
     }
 });
 
@@ -589,7 +590,8 @@ router.post("/auto-punishments/rules", hasPermission("security"), async (req, re
         }).returning();
         res.json(newRule[0]);
     } catch (e: any) {
-        res.status(400).json({ error: e.message });
+        if (isZodError(e)) return sendValidationError(res, e);
+        sendInternalError(res, e, "auto-punishment rule save failed");
     }
 });
 
@@ -612,7 +614,8 @@ router.patch("/auto-punishments/rules/:id", hasPermission("security"), async (re
         if (updated.length === 0) return res.status(404).json({ error: "Rule not found" });
         res.json(updated[0]);
     } catch (e: any) {
-        res.status(400).json({ error: e.message });
+        if (isZodError(e)) return sendValidationError(res, e);
+        sendInternalError(res, e, "auto-punishment rule save failed");
     }
 });
 
@@ -626,7 +629,7 @@ router.delete("/auto-punishments/rules/:id", hasPermission("security"), async (r
         if (deleted.length === 0) return res.status(404).json({ error: "Rule not found" });
         res.json({ success: true });
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        sendInternalError(res, e, "admin.ts request failed");
     }
 });
 

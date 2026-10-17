@@ -897,3 +897,36 @@ describe("community moderation from the member list", () => {
     assert.equal((await member.client.get(`/api/communities/${cid}/bans`)).status, 403);
   });
 });
+
+describe("error responses", () => {
+  test("validation errors have a code and field issues instead of a raw zod dump", async () => {
+    const c = new Client();
+    await c.refreshCsrf();
+    const res = await c.post("/api/register", { username: "ab", email: "not-an-email", password: "x" });
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.equal(body.code, "VALIDATION_ERROR");
+    assert.equal(body.error, "Invalid input");
+    assert.ok(Array.isArray(body.issues) && body.issues.length > 0);
+    const user = body.issues.find((i: any) => i.path === "username");
+    assert.equal(user?.code, "too_small");
+    assert.equal(user?.minimum, 3);
+    assert.equal(body.name, undefined, "no raw ZodError");
+  });
+
+  test("unknown API routes answer with a code, without echoing the URL", async () => {
+    const res = await alice.client.get("/api/does-not-exist/<script>");
+    assert.equal(res.status, 404);
+    const body = await res.json();
+    assert.equal(body.code, "API_NOT_FOUND");
+    assert.ok(!JSON.stringify(body).includes("<script>"));
+  });
+
+  test("server errors do not leak internal details", async () => {
+    // A ticket id that passes the route check but hits the database with an absurd value
+    const res = await alice.client.get("/api/tickets/99999999999999999999");
+    assert.ok(res.status === 404 || res.status === 500, `got ${res.status}`);
+    const text = await res.text();
+    assert.ok(!/Failed query|relation|syntax|stack|at \//i.test(text), `leaks: ${text.slice(0, 200)}`);
+  });
+});

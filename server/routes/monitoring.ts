@@ -4,6 +4,7 @@ import { activityLogs, anomalyEvents, users } from "@shared/schema";
 import { count, eq, desc, and, inArray, sql, or, like } from "drizzle-orm";
 import { isOwner, isAdmin, hasPermission } from "../middleware/auth";
 
+import { sendInternalError } from "../utils/http-errors";
 const router = Router();
 
 // Admin permission for monitoring
@@ -62,7 +63,7 @@ router.get("/activity-logs", async (req, res) => {
 
     res.json({ logs: items, total: totalResult?.total ?? 0, page });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    sendInternalError(res, error, "monitoring.ts request failed");
   }
 });
 
@@ -86,7 +87,7 @@ router.get("/anomalies", async (req, res) => {
 
     res.json({ anomalies: items });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    sendInternalError(res, error, "monitoring.ts request failed");
   }
 });
 
@@ -135,7 +136,7 @@ router.get("/metrics/overview", async (req, res) => {
       active_users_now: activeUsersNow?.count ?? 0
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    sendInternalError(res, error, "monitoring.ts request failed");
   }
 });
 
@@ -210,7 +211,7 @@ router.get("/metrics/chart-data", async (req, res) => {
 
     res.json({ timeData, categoryData });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    sendInternalError(res, error, "monitoring.ts request failed");
   }
 });
 
