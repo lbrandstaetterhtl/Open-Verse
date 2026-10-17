@@ -297,22 +297,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const wss = new WebSocketServer({ noServer: true });
 
     httpServer.on('upgrade', (req, socket, head) => {
-        const url = new URL(req.url || '', `http://${req.headers.host}`);
-        
+        const reject = (status: string) => {
+            socket.write(`HTTP/1.1 ${status}\r\n\r\n`);
+            socket.destroy();
+        };
+        // Any error in here would be an uncaught exception that takes the whole server down
+        let url: URL;
+        try {
+            url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+        } catch {
+            return reject('400 Bad Request');
+        }
+
         // SEC-FIX [SEC-006]: Strict Origin Validation to prevent CSWSH
         const origin = req.headers.origin;
         const host = req.headers.host;
-        
+
         if (origin) {
-            const originUrl = new URL(origin);
-            const isLocalhost = originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1';
-            const matchesHost = host && originUrl.host === host;
+            let originUrl: URL | null = null;
+            try {
+                originUrl = new URL(origin);
+            } catch {
+                originUrl = null; // e.g. "null" from sandboxed frames or file:// pages
+            }
+            const isDev = process.env.NODE_ENV !== 'production';
+            const isLocalhost = !!originUrl && isDev && (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1');
+            const matchesHost = !!originUrl && !!host && originUrl.host === host;
 
             if (!matchesHost && !isLocalhost) {
                 logger.warn('security', `Blocked WebSocket upgrade from unauthorized origin: ${origin}`, { origin, host });
-                socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
-                socket.destroy();
-                return;
+                return reject('403 Forbidden');
             }
         }
 

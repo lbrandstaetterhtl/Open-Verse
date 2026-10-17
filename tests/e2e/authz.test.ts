@@ -385,6 +385,13 @@ describe("object ownership", () => {
     assert.ok(list.some((n: any) => n.id === fx.notificationId), "the victim's notification is gone");
   });
 
+  test("notifications do not expose the acting user's email or password hash", async () => {
+    const text = await (await victim.client.get("/api/notifications")).text();
+    assert.ok(text.includes(user.username), "follow notification missing");
+    assert.ok(!text.includes("$2b$"), "notification contains a password hash");
+    assert.ok(!text.includes(`${user.username}@e2e.test`), "notification contains the actor's email");
+  });
+
   test("users cannot change or delete another user's theme", async () => {
     const patch = await user.client.patch(`/api/user/themes/${fx.themeId}`, { name: "hijacked" });
     assert.ok([403, 404].includes(patch.status), `PATCH got ${patch.status}`);
