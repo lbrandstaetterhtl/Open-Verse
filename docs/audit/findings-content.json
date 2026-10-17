@@ -1,0 +1,222 @@
+[
+  {
+    "id": "CONTENT-1",
+    "severity": "critical",
+    "title": "Truncated multipart request crashes the whole server process (DoS)",
+    "route": "POST /api/posts (also every other multer route: /api/profile-upload, /api/user/themes/background)",
+    "evidence": "Logged-in user sends multipart with boundary=XYZ and a file part without closing boundary -> busboy 'Unexpected end of form' raised as uncaughtException -> shutdown('UncaughtException'); shared server at :5063 went down at 06:48:47Z (log: scratchpad/run-routes/server.log). With multer 2.0.2 (upgraded by coordinator during the audit) the process survives but still answers 500 (see CONTENT-13).",
+    "test": "tests/e2e/content.test.ts › a malformed multipart body (a file part cut off before its closing boundary) answers 4xx and the server stays up",
+    "cause": "package.json:100 multer ^1.4.5-lts.1 (CVE-2025-47935/CVE-2025-47944: busboy error emitted after the request finished is not caught); server/index.ts:282 turns every uncaughtException into a process shutdown.",
+    "fix": "Keep multer >= 2.0.2 pinned (lockfile), add npm audit to CI; additionally make the uncaughtException handler log and keep a supervisor (systemd/pm2/docker restart policy) so a single bad request cannot take the service down."
+  },
+  {
+    "id": "CONTENT-2",
+    "severity": "high",
+    "title": "Private community posts and comments are readable by anyone (anonymous included) through many routes",
+    "route": "GET /api/posts/:id, GET /api/posts?communityId=, GET /api/posts/:id/comments, GET /api/users/:username/posts, GET /api/users/:username/comments, GET /api/users/:username/liked",
+    "evidence": "Member posts 'private-secret-<RUN_ID>' into a private community -> anonymous GET /api/posts/<id> -> 200 with title/content/comments; GET /api/posts?communityId=<priv> lists it; /comments, /users/<member>/posts, /comments and /liked all contain the marker. Only /api/feed/communities is membership-filtered.",
+    "test": "tests/e2e/content.test.ts › post detail is not readable by non-members (+ the communityId filter does not list private posts to non-members, the comments endpoint does not show private comments to non-members, the author's profile post list hides private posts from non-members, the author's profile comment list hides private comments from non-members, the liked-posts list hides private posts from non-members)",
+    "cause": "server/routes/posts.ts:163-225, 227-235 and 424-445 never look at post.communityId / community.isPrivate; server/routes/users.ts:110, 152, 204 return storage.getPostsByUser/getCommentsByUser/getLikedPostsByUser unfiltered.",
+    "fix": "Add one helper canViewPost(user, post) (public post, or community not private, or viewer is member / global admin) and apply it in every route that returns posts or comments (detail 404 for non-members; lists filter by joining communities and excluding private communities the viewer is not in)."
+  },
+  {
+    "id": "CONTENT-3",
+    "severity": "high",
+    "title": "Non-members can post, comment, react, save and like comments inside a private community",
+    "route": "POST /api/posts (communityId), POST /api/comments, POST /api/posts/:id/react, POST /api/posts/:id/save, POST /api/comments/:id/like",
+    "evidence": "Outsider POST /api/posts {communityId: <private>} -> 201; POST /api/comments {postId: <private post>} -> 201; POST /api/posts/<private>/react -> 200; save -> 200 and the saved list then returns the full private post; POST /api/comments/<private comment>/like -> 200.",
+    "test": "tests/e2e/content.test.ts › a non-member cannot post into a private community (+ non-members cannot comment on, react to, or save a private post; non-members cannot like a private comment)",
+    "cause": "server/routes/posts.ts:65-79 only checks allowedCategories; comments.ts:19-27, posts.ts:324-334, 348-360 and comments.ts:73-86 only check that the target exists.",
+    "fix": "Use the same canViewPost helper as CONTENT-2 for every write on a post/comment; for post creation require membership (and no community ban) via storage.getCommunityMember / isUserBannedFromCommunity."
+  },
+  {
+    "id": "CONTENT-4",
+    "severity": "high",
+    "title": "Other users' email addresses and moderation fields are exposed (post author, user search)",
+    "route": "GET /api/posts/:id, GET /api/search, GET /api/users/search",
+    "evidence": "Anonymous GET /api/posts/<id> -> author.email='ct..@e2e.test', isShadowBanned, freezeReason, frozenUntil, adminGroupId, emailVerified. Logged-in GET /api/search?q=% -> 10 users incl. routeowner with email 'routeowner@localhost'.",
+    "test": "tests/e2e/content.test.ts › post detail exposes the author's username but no email or moderation fields (+ /api/search does not expose other users' emails or moderation fields, /api/users/search does not expose other users' emails or moderation fields)",
+    "cause": "server/routes/posts.ts:214 and server/routes/users.ts:262 use sanitizeUser (server/storage.ts:165-169), which only removes the password.",
+    "fix": "Introduce a toPublicUser() projection (id, username, displayName, avatar/profilePictureUrl, role, verified, karma, createdAt) and use it for every user object that is not the requester's own record."
+  },
+  {
+    "id": "CONTENT-5",
+    "severity": "medium",
+    "title": "Community membership and community bans are not enforced when posting",
+    "route": "POST /api/posts (communityId)",
+    "evidence": "User who never joined the public community -> 201; user banned via POST /api/communities/:id/ban -> still 201 into that community.",
+    "test": "tests/e2e/content.test.ts › a non-member cannot post into a public community without joining (+ a user banned from a community cannot post into it)",
+    "cause": "server/routes/posts.ts:65-79 checks only that the community exists and the category is allowed.",
+    "fix": "Require storage.getCommunityMember(communityId, user.id) and !isUserBannedFromCommunity before creating a community post (global admins may bypass)."
+  },
+  {
+    "id": "CONTENT-6",
+    "severity": "medium",
+    "title": "Comments can be created for posts that do not exist or were deleted",
+    "route": "POST /api/comments",
+    "evidence": "POST /api/comments {content:'orphan', postId: 999999999} -> 201 {postId: 999999999}; same for a just-deleted post -> 201.",
+    "test": "tests/e2e/content.test.ts › commenting on a post that does not exist is rejected (+ commenting on a deleted post is rejected)",
+    "cause": "server/routes/comments.ts:23-27 inserts before looking the post up (the lookup at :29 is only used for the notification); comments.post_id has no foreign key (shared/schema.ts:63-70).",
+    "fix": "Load the post first and answer 404 if missing (plus the visibility check from CONTENT-3); add a FK comments.post_id -> posts.id ON DELETE CASCADE."
+  },
+  {
+    "id": "CONTENT-7",
+    "severity": "medium",
+    "title": "Report creation accepts no target, several targets, non-existent targets, self-reports, duplicates and unlimited reasons",
+    "route": "POST /api/reports",
+    "evidence": "{reason:'x'} -> 201 with all targets null; {postId:A, discussionId:B} -> 201; {postId: 999999999} -> 201; author reports own post -> 201; same user reports same post twice -> 201 twice; reason '    ' -> 201; reason of 100k chars -> 201. With mixed targets PATCH /api/reports/:id 'resolved' deletes discussionId (reports.ts:107) while the admin list shows postId content (admin.ts:111), so a reporter can make a moderator delete a different post than the one displayed.",
+    "test": "tests/e2e/content.test.ts › a report without any target is rejected (+ a report naming several targets at once is rejected, reporting a post or comment that does not exist is rejected, users cannot report their own post, reporting the same post twice does not create a second open report, a report reason that is whitespace-only is rejected, a report reason that is 100k characters is rejected)",
+    "cause": "shared/schema.ts:595-600 insertReportSchema: reason z.string().min(1) without trim/max, all targets optional, no exactly-one rule; server/routes/reports.ts:18-40 does no existence/ownership/duplicate check.",
+    "fix": "Schema: reason trim().min(1).max(1000); refine so exactly one of postId/commentId/discussionId is set (int, positive). Route: 404 if the target does not exist or is not visible, 400 for own content, 409 if the user already has a pending report on that target (unique partial index)."
+  },
+  {
+    "id": "CONTENT-8",
+    "severity": "medium",
+    "title": "Shadow-ban filter is missing on the comments endpoint and the profile post list",
+    "route": "GET /api/posts/:id/comments, GET /api/users/:username/posts",
+    "evidence": "After POST /api/admin/bulk/users {action:'shadow'} the user's comment is hidden in GET /api/posts/:id but returned by anonymous GET /api/posts/:id/comments; their post is hidden in /api/posts but listed by GET /api/users/<name>/posts.",
+    "test": "tests/e2e/content.test.ts › the comments endpoint hides the shadow-banned user's comment from others (+ the shadow-banned user's profile post list is hidden from others)",
+    "cause": "server/routes/posts.ts:424-445 and server/routes/users.ts:110-150 have no isShadowBanned filter (posts.ts:193 and :271-278 do).",
+    "fix": "Move the shadow-ban visibility rule into a shared filter used by every list of posts/comments (detail, comments endpoint, profile posts/comments/liked, community feed)."
+  },
+  {
+    "id": "CONTENT-9",
+    "severity": "low",
+    "title": "Post input is barely validated (types, whitespace, length, category)",
+    "route": "POST /api/posts",
+    "evidence": "content 12345 / ['a','b'] / {$gt:''} -> 201 stored as '12345' / '{\"a\",\"b\"}' / '{\"$gt\":\"\"}'; title {a:1} -> 201; category ['news'] -> '{\"news\"}'; category '<script>alert(1)</script>' or 2000 chars -> 201; content '   ' -> 201; content 108k chars -> 201; title 5000 chars -> 201; multipart with empty content and no file -> 201 with empty post.",
+    "test": "tests/e2e/content.test.ts › whitespace-only content is rejected (+ multipart post without content and without a file is rejected, content of 100k characters is rejected, a title of 5000 characters is rejected, wrong type (…) is rejected with 4xx, unknown categories are rejected)",
+    "cause": "server/routes/posts.ts:27-93 reads req.body fields without a schema; :29 '!req.files' is always false for multipart (multer sets []), so empty multipart posts pass.",
+    "fix": "Validate with zod: title string trim max ~300, content string trim min 1 (unless a file is attached) max ~20000, category enum ['news','entertainment','discussion','general'], communityId coerce int positive optional; check req.files.length instead of truthiness."
+  },
+  {
+    "id": "CONTENT-10",
+    "severity": "low",
+    "title": "Invalid ids, null bytes and object query params cause HTTP 500",
+    "route": "GET/DELETE /api/posts/:id, GET /api/posts/:id/comments, POST /api/posts/:id/react, DELETE /api/comments/:id, POST /api/comments/:id/like, POST /api/posts, POST /api/comments, GET /api/posts, GET /api/search",
+    "evidence": "GET /api/posts/abc -> 500; /api/posts/abc/comments -> 500; DELETE /api/posts/abc -> 500; POST /api/posts/abc/react -> 500; DELETE /api/comments/abc and POST /api/comments/abc/like -> 500; POST /api/posts {communityId:'abc'} -> 500; content 'a\\u0000b' (post and comment) -> 500; GET /api/posts?category[$ne]=x -> 500; GET /api/search?q=%00 -> 500. Bodies are generic (no SQL leak).",
+    "test": "tests/e2e/content.test.ts › non-numeric, negative and out-of-range post ids answer 404, not 500 (+ comments endpoint with a non-numeric id answers 404, not 500; deleting a non-existent or non-numeric post id answers 404; reacting needs a login and an existing post; deleting a non-existent or non-numeric comment id answers 404; liking a non-existent or non-numeric comment answers 404; a non-numeric communityId is rejected instead of silently creating a global post; a null byte in the content is rejected without a server error; a null byte in a comment is rejected without a server error; array and object query parameters do not cause a server error; odd search inputs do not cause a server error)",
+    "cause": "parseInt() results (NaN, values > int4) are passed to Postgres unchecked (posts.ts:165, 289, 350, 426; comments.ts:75, 137; posts.ts:62); req.query.category is assumed to be a string (posts.ts:230, content-storage.ts:98-104); Postgres text columns reject \\u0000 (no input sanitising).",
+    "fix": "One parseId() helper (Number.isSafeInteger, 1..2147483647, else 404); reject or strip \\u0000 in all text inputs (zod refine); accept only string query params (typeof check) and 400 otherwise."
+  },
+  {
+    "id": "CONTENT-11",
+    "severity": "low",
+    "title": "Post cooldown can be bypassed with parallel requests",
+    "route": "POST /api/posts",
+    "evidence": "6 parallel POST /api/posts from a fresh user -> 2 x 201 (cooldown 30 s).",
+    "test": "tests/e2e/content.test.ts › parallel requests cannot bypass the cooldown",
+    "cause": "server/routes/posts.ts:34-55 check-then-insert without lock/transaction; the check reads the last post, the insert happens later at :136.",
+    "fix": "Do the check atomically: e.g. a per-user advisory lock (pg_advisory_xact_lock(user.id)) around check+insert, or a users.last_post_at column updated with UPDATE ... WHERE last_post_at < now() - interval RETURNING."
+  },
+  {
+    "id": "CONTENT-12",
+    "severity": "low",
+    "title": "Profanity filter blocks ordinary words that contain a banned substring",
+    "route": "POST /api/posts",
+    "evidence": "content 'Improve your skills in Essex' -> 400 CONTENT_BLOCKED ('kill', 'sex'). Same for e.g. 'skillet', 'Sussex', 'Middlesex'.",
+    "test": "tests/e2e/content.test.ts › ordinary words that merely contain a banned word are allowed",
+    "cause": "server/services/moderation.ts:51 uses lowerText.includes(word).",
+    "fix": "Match whole words with Unicode-aware boundaries (e.g. new RegExp(`(^|[^\\\\p{L}])${escape(word)}([^\\\\p{L}]|$)`, 'iu')), and keep an allowlist for known false positives."
+  },
+  {
+    "id": "CONTENT-13",
+    "severity": "low",
+    "title": "Upload errors (file too large, malformed multipart) answer 500 instead of 413/400",
+    "route": "POST /api/posts",
+    "evidence": "51 MB video/mp4 -> 500 {error:'Internal server error'} (MulterError 'File too large'); truncated multipart / body without boundary -> 500 (multer 2.0.2).",
+    "test": "tests/e2e/content.test.ts › a file above the 50 MB upload limit answers 413, not 500 (+ a malformed multipart body (…) answers 4xx and the server stays up)",
+    "cause": "server/routes/posts.ts:21 uses postUpload.any() directly; multer errors fall through to server/middleware/error-handler.ts:47 which uses err.status || 500. The profile route already wraps multer (users.ts:322-334).",
+    "fix": "Wrap postUpload like receiveProfileImage: LIMIT_FILE_SIZE -> 413 FILE_TOO_LARGE, other MulterError / busboy errors -> 400 INVALID_UPLOAD; also limit files: 1 instead of any()."
+  },
+  {
+    "id": "CONTENT-14",
+    "severity": "low",
+    "title": "Images whose bytes cannot be decoded are stored unsanitised",
+    "route": "POST /api/posts",
+    "evidence": "image/png consisting of the 8-byte PNG signature + '<html><script>…' -> 201, stored and served as-is (served as image/png + nosniff, so not executable, but EXIF/sanitisation guarantee is broken).",
+    "test": "tests/e2e/content.test.ts › a file with a PNG signature but no decodable image is rejected",
+    "cause": "server/utils/file-upload.ts:76-79 sanitizeImage catches the sharp error and returns normally, so the 'Failed to process image metadata' branch in server/routes/posts.ts:123-129 is dead code.",
+    "fix": "Re-throw in sanitizeImage (or return false) so the route deletes the file and answers 400; also decode GIFs with sharp to verify them."
+  },
+  {
+    "id": "CONTENT-15",
+    "severity": "low",
+    "title": "Post images are re-encoded to WebP but served with the original JPEG/PNG content type",
+    "route": "POST /api/posts → GET /uploads/<file>",
+    "evidence": "JPEG upload -> mediaUrl '<n>-<n>.jpg'; GET /uploads/<file> -> Content-Type image/jpeg, body starts with RIFF....WEBP.",
+    "test": "tests/e2e/content.test.ts › an uploaded JPEG is served with a content type that matches its bytes",
+    "cause": "server/utils/file-upload.ts:55-80 writes WebP into the original path (.jpg/.png) and the filename extension decides the served Content-Type.",
+    "fix": "Store the sanitised file with a .webp name (as processProfileImage does) and save that name in posts.media_url."
+  },
+  {
+    "id": "CONTENT-16",
+    "severity": "low",
+    "title": "Unsupported media (e.g. SVG) is silently dropped and the post is published without it",
+    "route": "POST /api/posts",
+    "evidence": "multipart with image/svg+xml containing <script> -> 201, mediaUrl null (the SVG is not stored, so no XSS, but the user gets no error).",
+    "test": "tests/e2e/content.test.ts › an SVG with a script is not accepted as media and the post is not published silently without it",
+    "cause": "server/utils/file-upload.ts:112-119 fileFilter calls cb(null, false) for disallowed types; posts.ts:29/95 then treat the request as text-only.",
+    "fix": "Reject in fileFilter with an error (cb(new Error('INVALID_TYPE'))) mapped to 400 INVALID_TYPE, like the profile upload."
+  },
+  {
+    "id": "CONTENT-17",
+    "severity": "low",
+    "title": "Client controls the stored mediaType of an upload",
+    "route": "POST /api/posts",
+    "evidence": "PNG upload with form field mediaType=video -> 201 {mediaType:'video'} (any string is accepted).",
+    "test": "tests/e2e/content.test.ts › the client cannot override the stored mediaType",
+    "cause": "server/routes/posts.ts:133 req.body.mediaType || derived value.",
+    "fix": "Always derive mediaType from the verified MIME type (image/* -> image, video/* -> video) and ignore the body field."
+  },
+  {
+    "id": "CONTENT-18",
+    "severity": "low",
+    "title": "Comment lists are silently capped at 100 without order or pagination",
+    "route": "GET /api/posts/:id, GET /api/posts/:id/comments",
+    "evidence": "Post with 101 comments -> /comments returns 100 (detail too) while commentCount in feeds is 101; no way to fetch the rest.",
+    "test": "tests/e2e/content.test.ts › all comments of a post can be retrieved (no silent cap at 100)",
+    "cause": "server/storage/content-storage.ts:217 .limit(100) without orderBy and without limit/offset parameters.",
+    "fix": "Add orderBy(comments.createdAt) and limit/offset (parsePagination) to getComments and expose them on /api/posts/:id/comments."
+  },
+  {
+    "id": "CONTENT-19",
+    "severity": "low",
+    "title": "LIKE wildcards in user search are not escaped",
+    "route": "GET /api/search, GET /api/users/search",
+    "evidence": "GET /api/search?q=% -> 10 arbitrary users (incl. routeowner); '_' likewise matches any character.",
+    "test": "tests/e2e/content.test.ts › LIKE wildcards are matched literally, not as 'match everything'",
+    "cause": "server/storage/user-storage.ts:514 builds ILIKE `%${query}%` without escaping % _ \\.",
+    "fix": "Escape with query.replace(/[\\\\%_]/g, '\\\\$&') (and ESCAPE '\\\\'), require a minimum length (e.g. 2) and cap the length (e.g. 50)."
+  },
+  {
+    "id": "CONTENT-20",
+    "severity": "info",
+    "title": "Uploaded files are orphaned in several cases",
+    "route": "POST /api/posts",
+    "evidence": "Code review: postUpload.any() stores every file part but only req.files[0] is used; files are also not deleted when the post is rejected after upload (cooldown 429, CATEGORY_NOT_ALLOWED, CONTENT_BLOCKED, community 404). Not asserted by a test because other agents write to the same uploads folder.",
+    "test": "",
+    "cause": "server/routes/posts.ts:21 (any()), :44-49, :70-78, :85 return without unlinking req.files.",
+    "fix": "Use postUpload.single('media') with limits.files=1 and unlink all req.files in a finally/early-return helper; better: run the cheap checks before accepting the upload."
+  },
+  {
+    "id": "CONTENT-21",
+    "severity": "info",
+    "title": "Smaller content notes from code review",
+    "route": "various",
+    "evidence": "(a) deletePost (content-storage.ts:175-177, Postgres path) does not delete comment_likes, saved_posts or reports of the post; (b) POST /api/reports stores the raw X-Forwarded-For header as ipAddress (reports.ts:28) instead of req.ip; (c) comments have no rate limit besides the global 1000/15 min; (d) nested replies are not supported (no parentId), so they could not be tested; (e) the feeds expose author.isShadowBanned, so a shadow-banned user can see their own status on their posts.",
+    "test": "",
+    "cause": "see evidence",
+    "fix": "(a) delete dependents in a transaction or add FKs with ON DELETE CASCADE; (b) use req.ip; (c) add a per-user comment limiter; (e) drop isShadowBanned from public author objects."
+  },
+  {
+    "id": "CONTENT-22",
+    "severity": "medium",
+    "title": "Parallel likes from one user create duplicate reactions and inflate the author's karma",
+    "route": "POST /api/posts/:id/react (same pattern: POST /api/comments/:id/like)",
+    "evidence": "8 parallel POST /api/posts/<id>/react {isLike:true} from one user -> GET /api/posts/<id> likes=2 (intermittent; reproduced on the final run). Each inserted row adds +1 karma; the next toggle deletes all rows of that user but subtracts only 1, so repeating the cycle raises karma without bound (karma gates community creation at 200).",
+    "test": "tests/e2e/content.test.ts › parallel likes from one user count only once",
+    "cause": "server/routes/posts.ts:361-377 read-then-insert without a transaction; shared/schema.ts:131 post_likes (and :147 comment_likes) have no UNIQUE(user_id, post_id/comment_id).",
+    "fix": "Add unique indexes on post_likes(user_id, post_id) and comment_likes(user_id, comment_id); use INSERT ... ON CONFLICT DO UPDATE/NOTHING in a transaction and derive the karma delta from the rows actually changed."
+  }
+]

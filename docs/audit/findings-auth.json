@@ -1,0 +1,142 @@
+[
+  {
+    "id": "AUTH-1",
+    "severity": "high",
+    "title": "PATCH /api/profile does not apply the registration rules to username and email (empty, markup, any length, invalid email)",
+    "route": "PATCH /api/profile",
+    "evidence": "{username:\"<script>alert(1)</script>\"} → 200; {username:\"\"} → 200 (profile URL /profile/ breaks); {username:\"x\"*31} → 200; {email:\"not-an-email\"} → 200",
+    "test": "tests/e2e/auth-account.test.ts › AUTH PATCH /api/profile › username change follows the registration rules (charset, length); › username cannot be changed to an empty string; › email change rejects invalid addresses",
+    "cause": "shared/schema.ts:555 updateProfileSchema is createInsertSchema(users).pick(...) so username/email are plain z.string() without the trim/min/max/regex/email checks of insertUserSchema (shared/schema.ts:526-527); server/auth.ts:474/481 also skip the duplicate check for an empty string because of `if (result.data.username)`",
+    "fix": "Reuse the field schemas: export usernameSchema/emailSchema from insertUserSchema and use them in updateProfileSchema (.extend({ username: usernameSchema, email: emailSchema })); compare with `!== undefined` instead of truthiness before the duplicate checks"
+  },
+  {
+    "id": "AUTH-2",
+    "severity": "medium",
+    "title": "Usernames and emails are unique only case-sensitively (impersonation, duplicate accounts per mailbox)",
+    "route": "POST /api/register, PATCH /api/profile",
+    "evidence": "register Casexyz → 201, register casexyz → 201; email a@x.test exists, register A@X.TEST → 201; PATCH /api/profile {username: existing.toLowerCase()} → 200, {email: existing.toUpperCase()} → 200",
+    "test": "tests/e2e/auth-account.test.ts › AUTH register: validation › usernames that differ only in case are treated as duplicates; › duplicate email is rejected, also with different case; › AUTH PATCH /api/profile › username change to a case variant of an existing name is rejected; › email change: valid works, invalid format and duplicates (any case) are rejected",
+    "cause": "server/storage/user-storage.ts:47 and :66 use eq(users.username, …)/eq(users.email, …) (case-sensitive) and the DB unique constraints in shared/schema.ts are on the raw text columns",
+    "fix": "Normalise email to lower case on write; compare usernames with lower(): unique index on lower(username) and lower(email), and getUserByUsername/getUserByEmail using sql`lower(${users.username}) = lower(${value})` (keep display case for usernames)"
+  },
+  {
+    "id": "AUTH-3",
+    "severity": "medium",
+    "title": "CORS reflects any Origin with Access-Control-Allow-Credentials: true",
+    "route": "ALL /api/*",
+    "evidence": "GET /api/user, Origin: https://evil.example → ACAO: https://evil.example, ACAC: true; OPTIONS /api/profile preflight from evil.example with x-csrf-token → approved",
+    "test": "tests/e2e/auth-account.test.ts › AUTH sessions and cookies › CORS does not grant credentialed access to arbitrary origins; › CORS preflight from a foreign origin does not allow the CSRF header",
+    "cause": "server/index.ts:43-46 cors({ origin: true, credentials: true }) for every environment. SameSite=Lax currently keeps the cookie off cross-site fetches, but any same-site origin (other subdomain, http variant) can read /api/csrf-token and /api/user and then make authenticated writes — the CSRF protection relies entirely on SameSite",
+    "fix": "Use an allow-list: cors({ origin: process.env.CORS_ORIGINS?.split(',') ?? false, credentials: true }); the SPA is same-origin and does not need CORS at all"
+  },
+  {
+    "id": "AUTH-4",
+    "severity": "medium",
+    "title": "Login, register and logout are not CSRF protected (login CSRF via plain HTML form, forced logout)",
+    "route": "POST /api/login, POST /api/register, POST /api/logout",
+    "evidence": "POST /api/login without x-csrf-token → 200; urlencoded form body from Origin evil.example → 200 + session cookie; POST /api/register without token → 201; POST /api/logout without token → 200",
+    "test": "tests/e2e/auth-account.test.ts › AUTH login › login requires a CSRF token (no login CSRF); › an urlencoded cross-site form cannot log a browser into an account; › AUTH register: validation › register requires a CSRF token like every other state-changing request; › AUTH sessions and cookies › logout requires a CSRF token (no forced logout from other sites)",
+    "cause": "server/auth.ts:248/384/432 are registered inside setupAuth (server/routes/index.ts:146) before the global app.use(\"/api\", validateCsrf) at server/routes/index.ts:225 and do not add validateCsrf themselves (unlike /api/profile); server/index.ts:49 also accepts urlencoded bodies, so a cross-site <form> works without preflight",
+    "fix": "Add validateCsrf to the three routes (the client already fetches /api/csrf-token before login/register), or move the global CSRF middleware before setupAuth's routes; drop express.urlencoded if no form posts are needed"
+  },
+  {
+    "id": "AUTH-5",
+    "severity": "medium",
+    "title": "Frozen (and IP/device-banned) accounts can still change profile and password",
+    "route": "PATCH /api/profile, PATCH /api/profile/password",
+    "evidence": "admin sets isFrozen=1; POST /api/comments → 403 ACCOUNT_FROZEN, but PATCH /api/profile {bio} → 200 and PATCH /api/profile/password → 200",
+    "test": "tests/e2e/auth-account.test.ts › AUTH frozen accounts › a frozen account cannot change its profile; › a frozen account cannot change its password",
+    "cause": "Both routes are registered in setupAuth (server/auth.ts:468, :504), which runs before app.use(banCheckMiddleware) at server/routes/index.ts:149, so the freeze/ban checks in server/middleware/ban-check.ts never run for them (same for POST /api/login)",
+    "fix": "Register banCheckMiddleware before the auth routes (it only needs req.user, i.e. right after passport.session() in setupAuth), or move the profile routes into a router mounted after it"
+  },
+  {
+    "id": "AUTH-6",
+    "severity": "medium",
+    "title": "Public profile and user search leak moderation state and other users' email addresses",
+    "route": "GET /api/users/:username, GET /api/users/search, GET /api/user",
+    "evidence": "anonymous GET /api/users/<frozen user> → isShadowBanned:1, isFrozen:1, freezeReason:\"internal-note-…\", adminGroupId, emailVerified; GET /api/users/search?q=<other> → email \"srchme…@e2e.test\"; a shadow-banned user sees isShadowBanned:1 in GET /api/user",
+    "test": "tests/e2e/auth-account.test.ts › AUTH public profile and privacy › public profile of another user exposes no moderation or internal fields; › user search does not return other users' email addresses; › AUTH GET /api/user › a shadow-banned user cannot see the shadow ban in /api/user",
+    "cause": "server/routes/users.ts:299 only strips password/email and spreads the full row; server/routes/users.ts:262 uses sanitizeUser (server/storage.ts:165, only removes password) for search results; server/auth.ts:463 returns the deserialized row incl. isShadowBanned",
+    "fix": "Build public user DTOs from an explicit allow-list (id, username, displayName, bio, location, website, avatarUrl, coverUrl, role, verified, karma, createdAt, isPrivate); for /api/user omit isShadowBanned/freezeReason (keep frozenUntil only if the UI needs it)"
+  },
+  {
+    "id": "AUTH-7",
+    "severity": "medium",
+    "title": "Changing the password does not end other sessions",
+    "route": "PATCH /api/profile/password",
+    "evidence": "session B logged in, session A changes password → 200; B GET /api/user → 200 (still logged in)",
+    "test": "tests/e2e/auth-account.test.ts › AUTH PATCH /api/profile/password › changing the password ends the user's other sessions",
+    "cause": "server/auth.ts:520-524 only updates the hash; sessions in the session table (passport.user = id) stay valid and deserializeUser (server/auth.ts:213) does not compare any password/version stamp",
+    "fix": "On password change delete the user's other rows from the session table (sess->'passport'->>'user' = id, except req.sessionID) or store a passwordChangedAt/sessionVersion in the session and reject older sessions in deserializeUser; regenerate the current session id"
+  },
+  {
+    "id": "AUTH-8",
+    "severity": "medium",
+    "title": "PATCH /api/profile never answers on an empty body or a DB error (unhandled rejection, hanging request)",
+    "route": "PATCH /api/profile",
+    "evidence": "PATCH /api/profile {} → no response after 5 s (log: Unhandled Rejection \"No values to set\"); user A renamed to \"\", user B renamed to \"\" → no response (log: Unhandled Rejection \"Failed query: update users …\" unique violation)",
+    "test": "tests/e2e/auth-account.test.ts › AUTH PATCH /api/profile › an empty update answers promptly (no hanging request); › a second account renamed to the same empty username gets a prompt 4xx (no hanging request)",
+    "cause": "server/auth.ts:468-502 is an async Express 4 handler without try/catch; storage.updateUserProfile (server/storage/user-storage.ts:199 .set(mappedProfile)) throws for {} and for unique violations, the rejection is swallowed by process.on('unhandledRejection') (server/index.ts:277) and the socket stays open (resource exhaustion)",
+    "fix": "Wrap the handler in try/catch → sendInternalError; answer 400 when the parsed update is empty; map unique-violation (23505) to 400 \"Username already taken\"/\"Email already registered\"; same try/catch for PATCH /api/profile/password"
+  },
+  {
+    "id": "AUTH-9",
+    "severity": "medium",
+    "title": "Private accounts are not private: anonymous visitors get all posts of a private user",
+    "route": "GET /api/users/:username/posts",
+    "evidence": "user sets isPrivate:true (UI: \"Only members can see your content\"); anonymous GET /api/users/<user>/posts → 200 with 1 post",
+    "test": "tests/e2e/auth-account.test.ts › AUTH public profile and privacy › a private account's posts are hidden from anonymous visitors",
+    "cause": "server/routes/users.ts:110-150 (and /:username/comments :152, /:username/liked :204, /:username :269) never read user.isPrivate; nothing in server/ checks it (grep isPrivate)",
+    "fix": "In the /:username/* list routes return 403 (or an empty list) when user.isPrivate and the viewer is not logged in (or, per the intended rule, not a follower / not the owner/admin); reduce the profile itself to public fields"
+  },
+  {
+    "id": "AUTH-10",
+    "severity": "medium",
+    "title": "Profile text fields have no length limit and website accepts javascript:/data: URLs",
+    "route": "PATCH /api/profile",
+    "evidence": "displayName/bio/location 100 000 chars → 200; website \"https://example.com/\"+100k → 200; website \"javascript:alert(document.cookie)\" → 200, \"data:text/html,<script>…\" → 200",
+    "test": "tests/e2e/auth-account.test.ts › AUTH PATCH /api/profile › displayName with 100k characters is rejected (sane limit ≈ 100); › bio …; › location …; › website …; › website must be an http(s) URL — javascript:, data: and vbscript: are rejected",
+    "cause": "shared/schema.ts:555-567 updateProfileSchema derives plain z.string().nullable() from text columns; no .max() and no URL/scheme validation for website, which the profile page renders as a link",
+    "fix": "Extend updateProfileSchema: displayName z.string().trim().max(50), bio .max(500–2000), location .max(100), website z.string().trim().max(500).url().refine(u => /^https?:\\/\\//i.test(u)) or '' / null"
+  },
+  {
+    "id": "AUTH-11",
+    "severity": "low",
+    "title": "Login timing reveals whether a username exists",
+    "route": "POST /api/login",
+    "evidence": "median of 5: unknown user 4 ms vs existing user with wrong password 291 ms (status and message are identical)",
+    "test": "tests/e2e/auth-account.test.ts › AUTH login › login of an unknown user takes as long as a wrong password (no timing oracle)",
+    "cause": "server/auth.ts:133-148 returns immediately when the user is not found; only existing users pay the bcrypt(12) compare at server/auth.ts:151",
+    "fix": "When the user is not found, run bcrypt.compare(password, DUMMY_BCRYPT_HASH) before returning the generic failure"
+  },
+  {
+    "id": "AUTH-12",
+    "severity": "low",
+    "title": "Session cookie is not Secure behind the HTTPS reverse proxy unless REQUIRE_HTTPS is set (default false)",
+    "route": "ALL (Set-Cookie connect.sid)",
+    "evidence": "request with X-Forwarded-Proto: https (TRUST_PROXY=true) → Set-Cookie: connect.sid=…; Path=/; Expires=…; HttpOnly; SameSite=Lax (no Secure)",
+    "test": "tests/e2e/auth-account.test.ts › AUTH sessions and cookies › behind an HTTPS reverse proxy the session cookie is marked Secure",
+    "cause": "server/routes/index.ts:138 secure: process.env.REQUIRE_HTTPS === 'true'; docker-compose.yml:46 and .env.example:39 default REQUIRE_HTTPS to false although the documented deployment is nginx + TLS",
+    "fix": "Use cookie.secure: 'auto' (express-session sets Secure when req.secure, which honours X-Forwarded-Proto with trust proxy) or default REQUIRE_HTTPS to true in production"
+  },
+  {
+    "id": "AUTH-13",
+    "severity": "low",
+    "title": "isPrivate accepts any number (5, -1, 1.5) and stores it",
+    "route": "PATCH /api/profile",
+    "evidence": "{isPrivate: 5} → 200, GET /api/user isPrivate: 5",
+    "test": "tests/e2e/auth-account.test.ts › AUTH public profile and privacy › isPrivate only accepts boolean-like values",
+    "cause": "shared/schema.ts:541 boolOrInt = z.union([z.boolean(), z.number()]) without restricting the number to 0/1",
+    "fix": "z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(...)"
+  },
+  {
+    "id": "AUTH-14",
+    "severity": "info",
+    "title": "Registration reveals taken usernames/emails; no per-account login limit; no self-service account deletion",
+    "route": "POST /api/register, POST /api/login",
+    "evidence": "register with an existing email → 400 \"Email already registered\"; login limiter is 20/15 min per IP only (server/auth.ts:110), the brute_force_login anomaly rule freezes the account afterwards; no DELETE /api/user or similar route exists (only DELETE /api/admin/users/:id)",
+    "test": "tests/e2e/auth-account.test.ts › AUTH register: validation › registering a taken email answers 400 with a text message (documents email enumeration, info)",
+    "cause": "server/auth.ts:254-262; server/auth.ts:110-114; route inventory",
+    "fix": "Optional: generic registration error + verification mail for existing addresses; add a per-username limiter (keyGenerator on req.body.username); consider a self-service delete endpoint that reuses the admin deletion transaction"
+  }
+]

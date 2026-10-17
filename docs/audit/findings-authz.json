@@ -1,0 +1,152 @@
+[
+  {
+    "id": "AUTHZ-1",
+    "severity": "high",
+    "title": "Any admin (even with no group permission) can create admin groups and assign one to themselves, gaining every permission",
+    "route": "POST /api/admin/groups, POST /api/admin/groups/assign, PATCH/DELETE/GET /api/admin/groups[/:id]",
+    "evidence": "admin without group: GET /api/admin/settings → 403; POST /api/admin/groups {name, permissions:'[\"settings\",\"users\",\"security\",\"logs\"]'} → 201; POST /api/admin/groups/assign {userId:self, groupId} → 200; GET /api/admin/settings → 200, /api/admin/bans → 200, /api/admin/logs → 200",
+    "test": "tests/e2e/authz.test.ts › admin group permissions › an admin without the groups permission cannot create a group / an admin without the groups permission cannot put themselves into a group / POST /api/admin/groups needs the \"groups\" permission (and the other 4 group routes) / route inventory › admin routes check a group permission, not just the admin role",
+    "cause": "server/routes/admin-groups.ts:12,22,47,68,89 guard every route with isAdmin only (role check). The 'groups' permission that the UI uses (client/src/components/layout/AppSidebar.tsx:158, dashboard.tsx:422) is never checked, so the whole group permission model (server/middleware/auth.ts hasPermission) can be bypassed by any admin.",
+    "fix": "Replace isAdmin with hasPermission(\"groups\") on all admin-groups routes (router.use(hasPermission(\"groups\"))). Additionally forbid assigning a group to yourself and creating/assigning a group with permissions the caller does not hold (or restrict group management to the owner)."
+  },
+  {
+    "id": "AUTHZ-2",
+    "severity": "high",
+    "title": "An admin with the 'users' permission can give themselves any admin group via PATCH /api/admin/users/:id",
+    "route": "PATCH /api/admin/users/:id",
+    "evidence": "admin with only 'users': PATCH /api/admin/users/<self> {adminGroupId:<all-permissions group>} → 200; GET /api/admin/settings → 200 (was 403)",
+    "test": "tests/e2e/authz.test.ts › admin group permissions › the users permission does not let an admin change their own group",
+    "cause": "server/routes/admin.ts:144 validates with adminUpdateUserSchema (shared/schema.ts:545) = every users column except id/password, including adminGroupId, role, karma. Nothing stops an admin from editing their own adminGroupId, or setting it on another account.",
+    "fix": "Remove adminGroupId (and other privilege fields) from adminUpdateUserSchema or require hasPermission(\"groups\") for changing it; reject edits of the caller's own role/adminGroupId."
+  },
+  {
+    "id": "AUTHZ-3",
+    "severity": "high",
+    "title": "Admins can demote or lock out a platform owner (role change, negative karma)",
+    "route": "PATCH /api/admin/users/:id",
+    "evidence": "admin (all permissions) PATCH /api/admin/users/<second owner> {role:'admin'} → 200, role becomes admin; {karma:-1} → 200 (karma<0 invalidates the owner's session and blocks login, server/auth.ts:222 and :187)",
+    "test": "tests/e2e/authz.test.ts › owner-only actions › an admin cannot demote another owner / an admin cannot lock an owner out by setting negative karma",
+    "cause": "server/routes/admin.ts:159-186 only blocks promoting TO owner (line 174) and demoting the LAST owner (line 180). Any other change to an owner account (role, karma, isFrozen, email, username …) by a non-owner admin is accepted.",
+    "fix": "If the target user's role is 'owner' and the caller is not an owner, return 403 for any change (mirror the DELETE rule at admin.ts:240)."
+  },
+  {
+    "id": "AUTHZ-4",
+    "severity": "high",
+    "title": "Notifications list exposes the acting user's email and bcrypt password hash",
+    "route": "GET /api/notifications",
+    "evidence": "user A follows B; B: GET /api/notifications → [{…, actor:{id, username, email:'a@…', password:'$2b$12$…', role, …}}]",
+    "test": "tests/e2e/authz.test.ts › object ownership › notifications do not expose the acting user's email or password hash",
+    "cause": "server/storage/notification-storage.ts:145-156 (Postgres path) selects `actor: users` — the full users row — and returns it unchanged; the SQLite path (lines 126-129) only returns id/username/avatar.",
+    "fix": "Select only { id, username, profilePictureUrl } for the actor (as the SQLite branch does), or run it through a public-user projection."
+  },
+  {
+    "id": "AUTHZ-5",
+    "severity": "medium",
+    "title": "Any user can mark-as-read or delete (archive) other users' notifications (IDOR)",
+    "route": "POST /api/notifications/:id/read, DELETE /api/notifications/:id",
+    "evidence": "user A: POST /api/notifications/<B's id>/read → 200 (B's notification now read); DELETE /api/notifications/<B's id> → 200 (gone from B's list)",
+    "test": "tests/e2e/authz.test.ts › object ownership › users cannot mark another user's notification as read / users cannot delete another user's notification",
+    "cause": "server/routes/notifications.ts:76-104 never compares the notification's userId with req.user.id; storage.markNotificationAsRead / deleteNotification (server/storage/notification-storage.ts:177-211) update by id only.",
+    "fix": "Pass req.user.id to the storage methods and add `AND user_id = ?` to the UPDATE; return 404 when no row matched."
+  },
+  {
+    "id": "AUTHZ-6",
+    "severity": "medium",
+    "title": "Stress tests can be started by any admin without the 'stress_test' permission",
+    "route": "POST /api/security/stress-test/:testName?, GET /api/security/stress-test/available",
+    "evidence": "admin with no group: POST /api/security/stress-test/<name> → 200 text/event-stream (test runner invoked; the suite used a non-existent name so nothing ran); GET …/available → 200",
+    "test": "tests/e2e/authz.test.ts › admin group permissions › POST /api/security/stress-test/:testName? needs the \"stress_test\" permission / GET /api/security/stress-test/available needs the \"stress_test\" permission",
+    "cause": "server/routes/security.ts:9,45 use isAdmin only; the UI gates the page with the 'stress_test' permission (client/src/pages/admin/security/StressTestPage.tsx:58, AppSidebar.tsx:175). Stress tests flood the API/DB/CPU, so this is a DoS lever for every admin.",
+    "fix": "Use hasPermission(\"stress_test\") (or isOwner) on both routes; consider disabling the runner in production."
+  },
+  {
+    "id": "AUTHZ-7",
+    "severity": "medium",
+    "title": "'tickets' permission is not enforced: every admin reads all support tickets and ticket stats",
+    "route": "GET /api/tickets/stats, GET /api/tickets, GET /api/tickets/:id",
+    "evidence": "admin with no group: GET /api/tickets/stats → 200; GET /api/tickets/<another user's ticket> → 200 with full ticket, comments and history",
+    "test": "tests/e2e/authz.test.ts › admin group permissions › GET /api/tickets/stats needs the \"tickets\" permission / an admin without the tickets permission cannot read other users' support tickets",
+    "cause": "server/routes/tickets.ts:11-17,41 (checkAdminOrOwner = role only) and server/services/ticket-service.ts:30,89 grant access by role 'admin'; the UI requires the 'tickets' permission (AppSidebar.tsx:157).",
+    "fix": "Check the 'tickets' group permission (hasPermission-style helper taking the user) in checkAdminOrOwner and in TicketService.getTickets/getTicketById; admins without it should only see their own tickets."
+  },
+  {
+    "id": "AUTHZ-8",
+    "severity": "low",
+    "title": "Auto-punishment routes check 'security' instead of the 'auto_punishment' permission the UI uses",
+    "route": "GET /api/admin/auto-punishments, POST/PATCH/DELETE /api/admin/auto-punishments/rules[/:id]",
+    "evidence": "admin with only 'security': GET /api/admin/auto-punishments → 200, POST rules {} → 400 (passes auth); admin with only 'auto_punishment': GET → 403",
+    "test": "tests/e2e/authz.test.ts › admin group permissions › GET /api/admin/auto-punishments needs the \"auto_punishment\" permission (and the 3 rule routes)",
+    "cause": "server/routes/admin.ts:571,581,598,622 use hasPermission(\"security\"); client/src/pages/admin/AutoPunishmentPage.tsx:33 and AppSidebar.tsx:165 require 'auto_punishment', and GroupsManagement.tsx:52 offers it as a separate permission. Granting 'auto_punishment' does nothing, granting 'security' silently includes rule management.",
+    "fix": "Use hasPermission(\"auto_punishment\") on these four routes (or drop the separate permission from the UI)."
+  },
+  {
+    "id": "AUTHZ-9",
+    "severity": "medium",
+    "title": "CORS reflects any Origin with Access-Control-Allow-Credentials: true",
+    "route": "ALL /api/*",
+    "evidence": "GET /api/csrf-token with Origin: https://evil.example (logged in) → Access-Control-Allow-Origin: https://evil.example, Access-Control-Allow-Credentials: true",
+    "test": "tests/e2e/authz.test.ts › cross-origin requests › credentialed CORS is not granted to arbitrary origins",
+    "cause": "server/index.ts:43-46 cors({ origin: true, credentials: true }). Any page whose requests carry the session cookie (same-site origins: other ports/subdomains; SameSite=lax only blocks cross-site) can read /api/csrf-token and then perform any authenticated action and read private data.",
+    "fix": "Use an explicit allow-list (e.g. from an ALLOWED_ORIGINS env var) or disable CORS entirely since the SPA is same-origin."
+  },
+  {
+    "id": "AUTHZ-10",
+    "severity": "medium",
+    "title": "Community join-request endpoints return raw SQL errors to any logged-in user; admin user delete returns DB error details",
+    "route": "GET /api/communities/:id/requests, POST /api/communities/:id/requests/:userId/approve|decline, DELETE /api/admin/users/:id",
+    "evidence": "GET /api/communities/abc/requests → 500 {\"error\":\"Failed to fetch requests\",\"details\":\"Failed query: select \\\"id\\\", \\\"co…\"}; DELETE /api/admin/users/99999999999 → 500 {\"details\":\"Failed query …\"}",
+    "test": "tests/e2e/authz.test.ts › numeric path parameters › GET /api/communities/:id/requests answers malformed ids with 4xx (also …/approve, …/decline, DELETE /api/admin/users/:id)",
+    "cause": "server/routes/communities.ts:216,251,271 and server/routes/admin.ts:287-290 put error.message (drizzle 'Failed query: <SQL> params: …') into the response.",
+    "fix": "Use sendInternalError (server/utils/http-errors.ts) in these catch blocks; validate ids before querying."
+  },
+  {
+    "id": "AUTHZ-11",
+    "severity": "low",
+    "title": "Malformed or out-of-range numeric ids cause HTTP 500 (or a false success) on ~50 routes",
+    "route": "every route with :id/:userId/:postId/:reportId/:cId (52 of 53 tested)",
+    "evidence": "GET /api/posts/abc → 500; POST /api/follow/abc → 500; GET /api/tickets/99999999999 → 500; PATCH /api/admin/reports/-1 {status} → 500; PATCH /api/admin/groups/0 → 500; PATCH /api/admin/bans/-1/revoke → 200 empty body; DELETE /api/admin/groups/-1 → 204; DELETE /api/notifications/-1 → 200",
+    "test": "tests/e2e/authz.test.ts › numeric path parameters › <METHOD> <path> answers malformed ids with 4xx (52 failing tests)",
+    "cause": "Handlers use parseInt(req.params.x) without validation: NaN goes into the query ('invalid input syntax for type integer') and values > 2^31-1 overflow the int4 column; several handlers dereference a missing row (admin-groups.ts:50-52 group.name, admin.ts:310-319 updatedReport.id) or answer 200/204 when nothing matched (admin.ts:553-564, admin-groups.ts:71, notifications.ts:76-104). tickets.ts:20 validates only :id (not :cId) and not the range.",
+    "fix": "Add one router.param / middleware for numeric params: /^[1-9]\\d{0,9}$/ and <= 2147483647, else 400/404; return 404 when an UPDATE/DELETE affects no row."
+  },
+  {
+    "id": "AUTHZ-12",
+    "severity": "low",
+    "title": "Fractional ids are silently truncated ('169.5' acts on object 169)",
+    "route": "GET /api/posts/:id, POST /api/posts/:id/react|save, POST /api/comments/:id/like, POST /api/communities/:id/join|leave, PATCH /api/admin/users/:id, PATCH /api/admin/reports/:id, PATCH /api/reports/:id, PATCH /api/admin/groups/:id, PATCH /api/user/themes/:id, PATCH /api/tickets/:id/comments/:cId …",
+    "evidence": "GET /api/posts/169.5 → 200 post 169; PATCH /api/admin/users/576.5 {displayName} → 200 updates user 576; PATCH /api/tickets/31/comments/42.5 → 200",
+    "test": "tests/e2e/authz.test.ts › numeric path parameters › (same tests as AUTHZ-11, ':<param>=<id>.5' entries)",
+    "cause": "parseInt('169.5') === 169 in every handler (e.g. server/routes/posts.ts:165, admin.ts:139).",
+    "fix": "Covered by the strict numeric param validation proposed in AUTHZ-11."
+  },
+  {
+    "id": "AUTHZ-13",
+    "severity": "low",
+    "title": "Member list of a private community is visible to any logged-in user",
+    "route": "GET /api/communities/:id/members",
+    "evidence": "non-member: GET /api/communities/<private community>/members → 200 with member list (user ids, roles)",
+    "test": "tests/e2e/authz.test.ts › object ownership › the member list of a private community is hidden from non-members",
+    "cause": "server/routes/communities.ts:477-486 only requires isAuthenticated and never checks community.isPrivate or membership.",
+    "fix": "For private communities require membership (or global admin) before returning members."
+  },
+  {
+    "id": "AUTHZ-14",
+    "severity": "low",
+    "title": "Admins can delete posts written by an owner (comments are protected, posts are not)",
+    "route": "DELETE /api/posts/:id",
+    "evidence": "admin (no group) DELETE /api/posts/<post by an owner> → 204",
+    "test": "tests/e2e/authz.test.ts › owner-only actions › an admin cannot delete a post written by an owner",
+    "cause": "server/routes/posts.ts:297-299 allows any role 'admin'; server/utils/permissions.ts:11 (canDeleteContent, used for comments) excludes owner content. The two rules are inconsistent.",
+    "fix": "Use canDeleteContent(req.user, post.authorId, author.role) in DELETE /api/posts/:id."
+  },
+  {
+    "id": "AUTHZ-15",
+    "severity": "low",
+    "title": "Login, registration and logout are not CSRF-protected (login CSRF via HTML form)",
+    "route": "POST /api/login, POST /api/register, POST /api/logout",
+    "evidence": "logged-in user without X-CSRF-Token: POST /api/logout → 200 (logged out); POST /api/login {} → 401, POST /api/register {} → 400 (handlers run, no 403)",
+    "test": "tests/e2e/authz.test.ts › csrf protection › POST /api/login without a CSRF token is rejected for a logged-in user (also /api/logout, /api/register)",
+    "cause": "server/auth.ts:248,384,432 register the routes inside setupAuth, before app.use(\"/api\", validateCsrf) (server/routes/index.ts:225). express.urlencoded is enabled (server/index.ts:49), so a cross-site form can log the victim into an attacker account. Logout CSRF is mitigated cross-site by SameSite=lax.",
+    "fix": "Add validateCsrf to these three routes (client/src/lib/queryClient.ts:19-34 already sends the token on every mutating request), or at least check Origin/Referer."
+  }
+]
