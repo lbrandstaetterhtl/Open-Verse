@@ -16,6 +16,8 @@ import {
   normalizeSurface,
   normalizeFonts,
   normalizeGalaxy,
+  normalizeParticles,
+  defaultParticles,
   type CustomTheme,
   type ThemeColors,
 } from "../../client/src/lib/theme-utils";
@@ -224,4 +226,23 @@ test("an untouched copy of the previous (v3) default moves to the accessible pal
 test("the standard design keeps panels opaque and cursor particles on", () => {
   assert.equal(defaultTheme.surface?.opacity, 1);
   assert.equal(defaultTheme.particles?.enabled, true);
+});
+
+test("particles come in three glow colors by default", () => {
+  assert.equal(defaultParticles.glowColors.length, 3);
+  assert.equal(new Set(defaultParticles.glowColors).size, 3);
+  assert.deepEqual(migrateTheme(v2Theme()).particles?.glowColors, defaultParticles.glowColors);
+});
+
+test("a theme with a single glow color keeps it as the first of the three", () => {
+  const migrated = migrateTheme(v2Theme({ particles: { ...defaultParticles, glowColors: undefined, glowColor: "#ff0000" } }));
+  assert.deepEqual(migrated.particles?.glowColors, ["#ff0000", defaultParticles.glowColors[1], defaultParticles.glowColors[2]]);
+  assert.equal(migrated.particles?.glowColor, "#ff0000");
+});
+
+test("saved glow colors survive, invalid ones fall back to the default", () => {
+  const p = normalizeParticles({ glowColors: ["#112233", "red", "#445566"], coreColor: "url(x)" } as never);
+  assert.deepEqual(p.glowColors, ["#112233", defaultParticles.glowColors[1], "#445566"]);
+  assert.equal(p.glowColor, "#112233");
+  assert.equal(p.coreColor, defaultParticles.coreColor);
 });
