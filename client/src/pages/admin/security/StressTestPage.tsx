@@ -29,16 +29,19 @@ interface LogEntry {
   type?: 'info' | 'warn' | 'error' | 'success';
 }
 
+// Fake shell prompt shown in the terminal header; not prose, intentionally untranslated.
+const TERMINAL_PROMPT = "osiris_stress_forge@system: ~";
+
 const TEST_MODULES = [
-  { id: "api-endpoints", label: "API Load", icon: Globe, description: "Floods REST endpoints with concurrent HTTP traffic." },
-  { id: "database-connections", label: "Database Stress", icon: Database, description: "Concurrent Drizzle/SQLite query pressure." },
-  { id: "websocket-flood", label: "WebSocket Flood", icon: Activity, description: "Rapid connection establishment and message bursts." },
-  { id: "file-upload", label: "File I/O", icon: Upload, description: "Multipart file upload processing and disk pressure." },
-  { id: "authentication", label: "Auth (Bcrypt)", icon: UserCheck, description: "Heavy Bcrypt computational cycles (Login/Register)." },
-  { id: "memory-leak", label: "Memory Pressure", icon: ShieldAlert, description: "Heap allocation monitoring and RSS tracking." },
-  { id: "cpu-intensive", label: "CPU Burn", icon: Cpu, description: "Math-heavy blocking loops to monitor event loop lag." },
-  { id: "concurrent-users", label: "User Sessions", icon: Zap, description: "Scripted multi-step user flows (Register -> Post)." },
-  { id: "all", label: "Full Suite", icon: Zap, description: "Sequential execution of all available stress tests.", primary: true },
+  { id: "api-endpoints", labelKey: "stress_test.modules.api_endpoints", descriptionKey: "stress_test.modules.api_endpoints_desc", fallback: "API Load", icon: Globe, descriptionFallback: "Floods REST endpoints with concurrent HTTP traffic." },
+  { id: "database-connections", labelKey: "stress_test.modules.database_connections", descriptionKey: "stress_test.modules.database_connections_desc", fallback: "Database Stress", icon: Database, descriptionFallback: "Concurrent Drizzle/SQLite query pressure." },
+  { id: "websocket-flood", labelKey: "stress_test.modules.websocket_flood", descriptionKey: "stress_test.modules.websocket_flood_desc", fallback: "WebSocket Flood", icon: Activity, descriptionFallback: "Rapid connection establishment and message bursts." },
+  { id: "file-upload", labelKey: "stress_test.modules.file_upload", descriptionKey: "stress_test.modules.file_upload_desc", fallback: "File I/O", icon: Upload, descriptionFallback: "Multipart file upload processing and disk pressure." },
+  { id: "authentication", labelKey: "stress_test.modules.authentication", descriptionKey: "stress_test.modules.authentication_desc", fallback: "Auth (Bcrypt)", icon: UserCheck, descriptionFallback: "Heavy Bcrypt computational cycles (Login/Register)." },
+  { id: "memory-leak", labelKey: "stress_test.modules.memory_leak", descriptionKey: "stress_test.modules.memory_leak_desc", fallback: "Memory Pressure", icon: ShieldAlert, descriptionFallback: "Heap allocation monitoring and RSS tracking." },
+  { id: "cpu-intensive", labelKey: "stress_test.modules.cpu_intensive", descriptionKey: "stress_test.modules.cpu_intensive_desc", fallback: "CPU Burn", icon: Cpu, descriptionFallback: "Math-heavy blocking loops to monitor event loop lag." },
+  { id: "concurrent-users", labelKey: "stress_test.modules.concurrent_users", descriptionKey: "stress_test.modules.concurrent_users_desc", fallback: "User Sessions", icon: Zap, descriptionFallback: "Scripted multi-step user flows (Register -> Post)." },
+  { id: "all", labelKey: "stress_test.modules.all", descriptionKey: "stress_test.modules.all_desc", fallback: "Full Suite", icon: Zap, descriptionFallback: "Sequential execution of all available stress tests.", primary: true },
 ];
 
 export default function StressTestPage() {
@@ -60,8 +63,8 @@ export default function StressTestPage() {
             <AlertTriangle className="h-8 w-8 text-destructive" />
           </div>
           <div className="text-center">
-            <h2 className="font-display text-xl font-semibold">Access Restricted</h2>
-            <p className="text-sm text-muted-foreground max-w-xs mx-auto">You do not have the required permissions to execute system stress tests.</p>
+            <h2 className="font-display text-xl font-semibold">{t("stress_test.access_restricted", "Access Restricted")}</h2>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto">{t("stress_test.access_restricted_desc", "You do not have the required permissions to execute system stress tests.")}</p>
           </div>
         </div>
       </AdminLayout>
@@ -84,8 +87,8 @@ export default function StressTestPage() {
     setCurrentModule(moduleId);
     
     toast({ 
-      title: "Stress Test Initiated", 
-      description: `Starting ${moduleId} with ${intensity} intensity.` 
+      title: t("stress_test.toast_started", "Stress test initiated"), 
+      description: t("stress_test.toast_started_desc", { module: moduleId, intensity: t(`stress_test.intensity.${intensity}`, intensity), defaultValue: "Starting {{module}} with {{intensity}} intensity." }) 
     });
 
     const startStreaming = async () => {
@@ -123,23 +126,23 @@ export default function StressTestPage() {
               }
               if (data.complete) {
                 setIsRunning(false);
-                toast({ title: "Test Complete", description: "The stress test finished successfully." });
+                toast({ title: t("stress_test.toast_complete", "Test complete"), description: t("stress_test.toast_complete_desc", "The stress test finished successfully.") });
               }
               if (data.error) {
                 setLogs(prev => [...prev, { 
-                  message: `\n❌ ERROR: ${data.error}`, 
+                  message: `\n❌ ${t("stress_test.log_error", { error: data.error, defaultValue: "ERROR: {{error}}" })}`, 
                   timestamp: new Date().toISOString(),
                   type: 'error'
                 }]);
                 setIsRunning(false);
-                toast({ title: "Test Failed", description: data.error, variant: "destructive" });
+                toast({ title: t("stress_test.toast_failed", "Test failed"), description: data.error, variant: "destructive" });
               }
             }
           }
         }
       } catch (err: any) {
         setLogs(prev => [...prev, { 
-          message: `\n❌ System Error: ${err.message}`, 
+          message: `\n❌ ${t("stress_test.log_system_error", { error: err.message, defaultValue: "System error: {{error}}" })}`, 
           timestamp: new Date().toISOString(),
           type: 'error'
         }]);
@@ -161,8 +164,8 @@ export default function StressTestPage() {
       <div className="space-y-8 animate-in fade-in duration-500 pb-12">
         <PageHeader
           eyebrow={t("security.eyebrow", "Admin / Security")}
-          title="Osiris Stress Forge"
-          description="Verify platform resilience under extreme load conditions."
+          title={t("stress_test.title", "Osiris Stress Forge")}
+          description={t("stress_test.description", "Verify platform resilience under extreme load conditions.")}
           actions={
             <div className="flex items-center gap-1 rounded-pill border border-border bg-card p-1">
               {(["low", "medium", "high", "extreme"] as const).map((lvl) => (
@@ -176,7 +179,7 @@ export default function StressTestPage() {
                   )}
                   onClick={() => setIntensity(lvl)}
                 >
-                  {lvl}
+                  {t(`stress_test.intensity.${lvl}`, lvl)}
                 </Button>
               ))}
             </div>
@@ -190,9 +193,9 @@ export default function StressTestPage() {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <ShieldAlert className="h-4 w-4 text-primary" />
-                  Test Modules
+                  {t("stress_test.test_modules", "Test modules")}
                 </CardTitle>
-                <CardDescription className="text-xs">Select a specific area of the platform to pressure test.</CardDescription>
+                <CardDescription className="text-xs">{t("stress_test.test_modules_desc", "Select a specific area of the platform to pressure test.")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
                 {TEST_MODULES.map((module) => (
@@ -214,8 +217,8 @@ export default function StressTestPage() {
                         <module.icon className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold">{module.label}</div>
-                        <div className="text-xs text-muted-foreground line-clamp-1">{module.description}</div>
+                        <div className="text-sm font-semibold">{t(module.labelKey, module.fallback)}</div>
+                        <div className="text-xs text-muted-foreground line-clamp-1">{t(module.descriptionKey, module.descriptionFallback)}</div>
                       </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
                     </div>
@@ -234,7 +237,7 @@ export default function StressTestPage() {
                 onClick={killTest}
               >
                 <Square className="h-5 w-5 fill-current" />
-                Kill Active Test
+                {t("stress_test.kill_test", "Kill active test")}
               </Button>
             )}
           </div>
@@ -250,12 +253,12 @@ export default function StressTestPage() {
                     <div className="h-2 w-2 rounded-full bg-primary/70" />
                   </div>
                   <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-data text-[11px] text-muted-foreground">osiris_stress_forge@system: ~{isRunning ? '/running' : '/idle'}</span>
+                  <span className="font-data text-[11px] text-muted-foreground">{TERMINAL_PROMPT}{isRunning ? '/running' : '/idle'}</span>
                 </div>
                 {isRunning && (
                   <div className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                    <span className="ov-label text-primary">Live Stream Active</span>
+                    <span className="ov-label text-primary">{t("stress_test.live_stream_active", "Live stream active")}</span>
                   </div>
                 )}
               </div>
@@ -264,7 +267,7 @@ export default function StressTestPage() {
                 {logs.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4 opacity-60 select-none">
                     <Terminal className="h-16 w-16" />
-                    <p className="text-sm font-semibold">Select a module to begin forge process</p>
+                    <p className="text-sm font-semibold">{t("stress_test.empty", "Select a module to begin the forge process")}</p>
                   </div>
                 ) : (
                   logs.map((log, idx) => (
@@ -285,8 +288,8 @@ export default function StressTestPage() {
                 <div className="absolute inset-0 bg-background/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="ov-panel ov-panel-solid px-6 py-3 flex items-center gap-4">
                     <History className="h-5 w-5 text-primary" />
-                    <span className="font-sans text-sm font-semibold text-foreground">Test Log Session Complete</span>
-                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setLogs([])}>Clear</Button>
+                    <span className="font-sans text-sm font-semibold text-foreground">{t("stress_test.session_complete", "Test log session complete")}</span>
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setLogs([])}>{t("stress_test.clear", "Clear")}</Button>
                   </div>
                 </div>
               )}
@@ -295,21 +298,21 @@ export default function StressTestPage() {
             <div className="grid grid-cols-3 gap-4">
               <Card>
                 <CardContent className="p-4 flex flex-col items-center gap-2">
-                  <span className="ov-label">Stability Score</span>
-                  <span className="ov-data text-xl font-semibold">{logs.length > 0 ? (logs.some(l => l.type === 'error') ? "DEGRADED" : "NOMINAL") : "—"}</span>
+                  <span className="ov-label">{t("stress_test.stability_score", "Stability score")}</span>
+                  <span className="ov-data text-xl font-semibold">{logs.length > 0 ? (logs.some(l => l.type === 'error') ? t("stress_test.degraded", "DEGRADED") : t("stress_test.nominal", "NOMINAL")) : "—"}</span>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 flex flex-col items-center gap-2">
-                  <span className="ov-label">Metrics Captured</span>
+                  <span className="ov-label">{t("stress_test.metrics_captured", "Metrics captured")}</span>
                   <span className="ov-data text-xl font-semibold">{logs.length}</span>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 flex flex-col items-center gap-2">
-                  <span className="ov-label">System Status</span>
+                  <span className="ov-label">{t("stress_test.system_status", "System status")}</span>
                   <span className="ov-chip ov-chip-success font-data text-sm font-semibold">
-                    <Activity className="h-4 w-4" /> LIVE
+                    <Activity className="h-4 w-4" /> {t("stress_test.live", "LIVE")}
                   </span>
                 </CardContent>
               </Card>

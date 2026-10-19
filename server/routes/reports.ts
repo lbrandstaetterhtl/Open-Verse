@@ -7,6 +7,7 @@ import { WebSocket } from 'ws';
 import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
 
+import { sendValidationError } from "../utils/http-errors";
 const router = Router();
 
 router.get("/", hasPermission("reports"), async (req, res) => {
@@ -20,7 +21,7 @@ router.post("/", isAuthenticated, async (req, res) => {
         const result = insertReportSchema.safeParse(req.body);
         if (!result.success) {
             console.error("[Report] Validation Failed:", result.error.format());
-            return res.status(400).json(result.error);
+            return sendValidationError(res, result.error);
         }
 
         console.log("[Report] Validation Passed, building storage object...");

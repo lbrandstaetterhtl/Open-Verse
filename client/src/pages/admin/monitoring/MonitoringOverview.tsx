@@ -30,8 +30,8 @@ export function MonitoringOverview() {
           <AlertTriangle className="h-8 w-8 text-destructive" />
         </div>
         <div className="text-center">
-          <h2 className="font-display text-xl font-semibold">Access Restricted</h2>
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto">You do not have the required permissions to access system monitoring logs.</p>
+          <h2 className="font-display text-xl font-semibold">{t("monitoring.access_restricted", "Access Restricted")}</h2>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto">{t("monitoring.access_restricted_desc", "You do not have the required permissions to access system monitoring logs.")}</p>
         </div>
       </div>
     );
@@ -54,7 +54,7 @@ export function MonitoringOverview() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="ov-data text-2xl font-semibold">{metrics?.events_today || "N/A"}</div>
+            <div className="ov-data text-2xl font-semibold">{metrics?.events_today || t("monitoring.not_available", "N/A")}</div>
           </CardContent>
         </Card>
         
@@ -116,9 +116,9 @@ export function MonitoringOverview() {
                 <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={false} />
                 <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }} />
-                <Area type="monotone" dataKey="info" name="Info" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorInfo)" />
-                <Area type="monotone" dataKey="warning" name="Warning" stroke="hsl(var(--star))" fillOpacity={1} fill="url(#colorWarn)" />
-                <Area type="monotone" dataKey="error" name="Error/Critical" stroke="hsl(var(--destructive))" fillOpacity={0.2} fill="hsl(var(--destructive))" />
+                <Area type="monotone" dataKey="info" name={t("monitoring.severity_levels.info", "Info")} stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorInfo)" />
+                <Area type="monotone" dataKey="warning" name={t("monitoring.severity_levels.warning", "Warning")} stroke="hsl(var(--star))" fillOpacity={1} fill="url(#colorWarn)" />
+                <Area type="monotone" dataKey="error" name={t("monitoring.error_critical", "Error/Critical")} stroke="hsl(var(--destructive))" fillOpacity={0.2} fill="hsl(var(--destructive))" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -152,7 +152,7 @@ export function MonitoringOverview() {
             ) : (
               <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full border border-dashed border-border rounded-sm p-6">
                  <XCircle className="w-8 h-8 opacity-20 mb-2" />
-                 <p className="text-sm">No recent incidents</p>
+                 <p className="text-sm">{t("monitoring.no_recent_incidents", "No recent incidents")}</p>
               </div>
             )}
           </CardContent>

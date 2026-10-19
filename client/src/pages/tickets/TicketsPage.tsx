@@ -43,10 +43,10 @@ export default function TicketsPage() {
           eyebrow={t("subtitle", "Support Hub")}
           title={
             <>
-              {isOwner ? t("allTickets") : t("myTickets")} <span className="text-primary">Verse</span>
+              {isOwner ? t("allTickets", "All Tickets") : t("myTickets", "My Tickets")} <span className="text-primary">Verse</span>
             </>
           }
-          description="Manage and track support issues across the platform in zero-gravity."
+          description={t("pageDescription", "Manage and track support issues across the platform in zero-gravity.")}
           actions={
             <Link href="/tickets/new" className="w-full md:w-auto">
               <Button className="w-full md:w-auto">
@@ -90,18 +90,18 @@ export default function TicketsPage() {
         <div className="flex flex-wrap items-center gap-3 pt-5 border-t border-border">
           <div className="ov-label flex items-center gap-2 mr-2">
             <Filter className="w-3.5 h-3.5" />
-            <span>Refine Signal:</span>
+            <span>{t("filters.refine", "Refine Signal:")}</span>
           </div>
 
           <Select value={filters.sortBy || "newest"} onValueChange={(val) => setFilters(f => ({ ...f, sortBy: val, page: 1 }))}>
-            <SelectTrigger className="w-[200px] h-10" aria-label="Sort tickets">
-              <SelectValue placeholder="Sort Projection" />
+            <SelectTrigger className="w-[200px] h-10" aria-label={t("filters.sortAria", "Sort tickets")}>
+              <SelectValue placeholder={t("filters.sortPlaceholder", "Sort Projection")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="updated">Recently Updated</SelectItem>
-              <SelectItem value="priority">Highest Priority</SelectItem>
+              <SelectItem value="newest">{t("filters.newest", "Newest first")}</SelectItem>
+              <SelectItem value="oldest">{t("filters.oldest", "Oldest first")}</SelectItem>
+              <SelectItem value="updated">{t("filters.lastUpdated", "Last updated")}</SelectItem>
+              <SelectItem value="priority">{t("filters.priority", "Priority (Critical first)")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -111,13 +111,13 @@ export default function TicketsPage() {
               if (val === "me") setFilters(f => ({ ...f, assignedTo: user?.id, createdBy: undefined, page: 1 }));
               if (val === "created") setFilters(f => ({ ...f, assignedTo: undefined, createdBy: user?.id, page: 1 }));
             }}>
-              <SelectTrigger className="w-[220px] h-10" aria-label="Filter tickets">
-                <SelectValue placeholder="Signal Source" />
+              <SelectTrigger className="w-[220px] h-10" aria-label={t("filters.ownerAria", "Filter tickets")}>
+                <SelectValue placeholder={t("filters.sourcePlaceholder", "Signal Source")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Projections</SelectItem>
-                <SelectItem value="me">Assigned to Me</SelectItem>
-                <SelectItem value="created">Initiated by Me</SelectItem>
+                <SelectItem value="all">{t("filters.allSources", "All Projections")}</SelectItem>
+                <SelectItem value="me">{t("filters.assignedToMe", "Assigned to me")}</SelectItem>
+                <SelectItem value="created">{t("filters.createdByMe", "Initiated by me")}</SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -131,8 +131,8 @@ export default function TicketsPage() {
           </div>
         ) : isError ? (
           <div className="ov-panel flex flex-col items-center justify-center p-10 text-center [--ov-line:hsl(var(--destructive)/0.4)]">
-            <p className="text-destructive font-semibold mb-4">{(error as any)?.message || "Failed to load"}</p>
-            <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
+            <p className="text-destructive font-semibold mb-4">{(error as any)?.message || t("errors.loadFailed", "Failed to load tickets")}</p>
+            <Button variant="outline" onClick={() => refetch()}>{t("actions.tryAgain", "Try again")}</Button>
           </div>
         ) : data?.tickets?.length === 0 ? (
           <div className="ov-panel flex flex-col items-center justify-center p-12 text-center">

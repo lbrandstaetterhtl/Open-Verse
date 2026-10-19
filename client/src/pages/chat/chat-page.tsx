@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ type User = {
 export default function ChatPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { userId: urlUserId } = useParams<{ userId?: string }>();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(
     urlUserId ? parseInt(urlUserId) : null
@@ -117,13 +119,13 @@ export default function ChatPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/messages", selectedUserId] });
       setMessageInput("");
       toast({
-        title: "Success",
-        description: "Message sent successfully",
+        title: t("common.success", "Success"),
+        description: t("chat.message_sent", "Message sent successfully"),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: t("common.error"),
         description: error.message,
         variant: "destructive",
       });
@@ -144,7 +146,7 @@ export default function ChatPage() {
         <div className="w-full flex items-center justify-between px-4 h-16 border-b bg-background">
           <div className="flex items-center gap-4">
             <BackButton fallback="/feed" className="h-10 px-3" />
-            <h1 className="font-display text-xl md:text-2xl font-semibold">Messages</h1>
+            <h1 className="font-display text-xl md:text-2xl font-semibold">{t("navbar.messages")}</h1>
           </div>
           <Button
             variant="ghost"
@@ -163,14 +165,14 @@ export default function ChatPage() {
             !showUserList && "hidden lg:flex"
           )}>
             <div className="p-4 border-b">
-              <h3 className="ov-label">Mutual Connections</h3>
+              <h3 className="ov-label">{t("chat.mutual_connections", "Mutual Connections")}</h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {mutualFollowers?.length === 0 && (
                 <div className="p-6 text-center">
                   <Info className="h-10 w-10 mx-auto text-muted-foreground/20 mb-3" />
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Chat is exclusive to mutual followers. Follow more users to start conversations!
+                    {t("chat.mutual_only", "Chat is exclusive to mutual followers. Follow more users to start conversations!")}
                   </p>
                 </div>
               )}
@@ -189,7 +191,7 @@ export default function ChatPage() {
                   <UserAvatar user={followedUser} size="sm" className="h-10 w-10" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{followedUser.username}</p>
-                    <p className="ov-label">Active now</p>
+                    <p className="ov-label">{t("chat.active_now", "Active now")}</p>
                   </div>
                 </div>
               ))}
@@ -258,7 +260,7 @@ export default function ChatPage() {
                     })
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                      <p className="text-sm">Start of conversation</p>
+                      <p className="text-sm">{t("chat.conversation_start", "Start of conversation")}</p>
                     </div>
                   )}
                 </div>
@@ -267,7 +269,7 @@ export default function ChatPage() {
                 <div className="p-4 md:p-6 bg-background border-t">
                   <div className="flex gap-3 max-w-4xl mx-auto">
                     <Input
-                      placeholder="Share your thoughts..."
+                      placeholder={t("chat.input_placeholder", "Share your thoughts...")}
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       onKeyDown={(e) => {
@@ -280,7 +282,7 @@ export default function ChatPage() {
                       disabled={!messageInput.trim() || sendMessageMutation.isPending}
                       className="h-12 w-12 px-0 md:w-auto md:px-6"
                     >
-                      {sendMessageMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+                      {sendMessageMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("chat.send", "Send")}
                     </Button>
                   </div>
                 </div>
@@ -289,16 +291,16 @@ export default function ChatPage() {
               <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 text-center">
                  <div className="ov-panel p-8">
                     <Send className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
-                    <h2 className="font-display text-xl font-semibold mb-2">No Chat Selected</h2>
+                    <h2 className="font-display text-xl font-semibold mb-2">{t("chat.none_selected", "No Chat Selected")}</h2>
                     <p className="text-sm text-muted-foreground max-w-xs">
-                      Pick a friend from the list and start vibing.
+                      {t("chat.none_selected_desc", "Pick a friend from the list and start vibing.")}
                     </p>
                     <Button 
                       variant="outline" 
                       className="mt-6 lg:hidden"
                       onClick={() => setShowUserList(true)}
                     >
-                      View Connections
+                      {t("chat.view_connections", "View Connections")}
                     </Button>
                  </div>
               </div>

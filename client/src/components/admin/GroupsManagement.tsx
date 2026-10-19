@@ -41,23 +41,25 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const AVAILABLE_PERMISSIONS = [
-    { id: "dashboard", label: "Dashboard Access", icon: Activity, description: "View admin overview and statistics" },
-    { id: "users", label: "User Management", icon: Users, description: "Manage roles, verification, and profile data" },
-    { id: "reports", label: "Content Moderation", icon: Flag, description: "Handle reports and resolve content disputes" },
-    { id: "groups", label: "Group Management", icon: Shield, description: "Edit admin groups and permissions" },
-    { id: "security", label: "Security & Bans", icon: Lock, description: "Access ban system and security tools" },
-    { id: "auto_punishment", label: "Auto-Punishment", icon: Activity, description: "Manage automated rule enforcement systems" },
-    { id: "logs", label: "Activity Monitoring", icon: Activity, description: "View system logs and anomaly reports" },
-    { id: "analytics", label: "Platform Analytics", icon: BarChart3, description: "View growth charts and usage metrics" },
-    { id: "performance", label: "Moderator Performance", icon: Award, description: "Track moderation efficiency and stats" },
-    { id: "tickets", label: "Support Tickets", icon: Ticket, description: "Manage and resolve user support tickets" },
-    { id: "stress_test", label: "Stress Testing", icon: AlertTriangle, description: "Run system stress tests and performance audits" },
-    { id: "settings", label: "System Settings", icon: Settings, description: "Configure global platform parameters" },
+    { id: "dashboard", labelKey: "admin_groups.permissions.dashboard.label", fallback: "Dashboard Access", descriptionKey: "admin_groups.permissions.dashboard.description", icon: Activity, descriptionFallback: "View admin overview and statistics" },
+    { id: "users", labelKey: "admin_groups.permissions.users.label", fallback: "User Management", descriptionKey: "admin_groups.permissions.users.description", icon: Users, descriptionFallback: "Manage roles, verification, and profile data" },
+    { id: "reports", labelKey: "admin_groups.permissions.reports.label", fallback: "Content Moderation", descriptionKey: "admin_groups.permissions.reports.description", icon: Flag, descriptionFallback: "Handle reports and resolve content disputes" },
+    { id: "groups", labelKey: "admin_groups.permissions.groups.label", fallback: "Group Management", descriptionKey: "admin_groups.permissions.groups.description", icon: Shield, descriptionFallback: "Edit admin groups and permissions" },
+    { id: "security", labelKey: "admin_groups.permissions.security.label", fallback: "Security & Bans", descriptionKey: "admin_groups.permissions.security.description", icon: Lock, descriptionFallback: "Access ban system and security tools" },
+    { id: "auto_punishment", labelKey: "admin_groups.permissions.auto_punishment.label", fallback: "Auto-Punishment", descriptionKey: "admin_groups.permissions.auto_punishment.description", icon: Activity, descriptionFallback: "Manage automated rule enforcement systems" },
+    { id: "logs", labelKey: "admin_groups.permissions.logs.label", fallback: "Activity Monitoring", descriptionKey: "admin_groups.permissions.logs.description", icon: Activity, descriptionFallback: "View system logs and anomaly reports" },
+    { id: "analytics", labelKey: "admin_groups.permissions.analytics.label", fallback: "Platform Analytics", descriptionKey: "admin_groups.permissions.analytics.description", icon: BarChart3, descriptionFallback: "View growth charts and usage metrics" },
+    { id: "performance", labelKey: "admin_groups.permissions.performance.label", fallback: "Moderator Performance", descriptionKey: "admin_groups.permissions.performance.description", icon: Award, descriptionFallback: "Track moderation efficiency and stats" },
+    { id: "tickets", labelKey: "admin_groups.permissions.tickets.label", fallback: "Support Tickets", descriptionKey: "admin_groups.permissions.tickets.description", icon: Ticket, descriptionFallback: "Manage and resolve user support tickets" },
+    { id: "stress_test", labelKey: "admin_groups.permissions.stress_test.label", fallback: "Stress Testing", descriptionKey: "admin_groups.permissions.stress_test.description", icon: AlertTriangle, descriptionFallback: "Run system stress tests and performance audits" },
+    { id: "settings", labelKey: "admin_groups.permissions.settings.label", fallback: "System Settings", descriptionKey: "admin_groups.permissions.settings.description", icon: Settings, descriptionFallback: "Configure global platform parameters" },
 ];
 
 export function GroupsManagement() {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -80,7 +82,7 @@ export function GroupsManagement() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/groups"] });
             setIsCreateOpen(false);
-            toast({ title: "Success", description: "Admin group created." });
+            toast({ title: t("admin_groups.toast.success", "Success"), description: t("admin_groups.toast.created", "Admin group created.") });
         }
     });
 
@@ -92,7 +94,7 @@ export function GroupsManagement() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/groups"] });
             setEditingGroup(null);
-            toast({ title: "Success", description: "Admin group updated." });
+            toast({ title: t("admin_groups.toast.success", "Success"), description: t("admin_groups.toast.updated", "Admin group updated.") });
         }
     });
 
@@ -102,7 +104,7 @@ export function GroupsManagement() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/groups"] });
-            toast({ title: "Success", description: "Admin group deleted." });
+            toast({ title: t("admin_groups.toast.success", "Success"), description: t("admin_groups.toast.deleted", "Admin group deleted.") });
         }
     });
 
@@ -111,26 +113,26 @@ export function GroupsManagement() {
     };
 
     if (isLoading) {
-        return <div className="p-8 text-center opacity-50">Loading groups...</div>;
+        return <div className="p-8 text-center opacity-50">{t("admin_groups.loading", "Loading groups...")}</div>;
     }
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="font-display text-xl font-semibold">Admin Groups</h3>
-                    <p className="text-sm text-muted-foreground">Manage administrative roles and their granular access permissions.</p>
+                    <h3 className="font-display text-xl font-semibold">{t("admin_groups.title", "Admin groups")}</h3>
+                    <p className="text-sm text-muted-foreground">{t("admin_groups.description", "Manage administrative roles and their granular access permissions.")}</p>
                 </div>
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                     <DialogTrigger asChild>
                         <Button>
                             <Plus className="h-4 w-4" />
-                            Create Group
+                            {t("admin_groups.create", "Create group")}
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl">
                         <GroupForm 
-                            title="Create Admin Group" 
+                            title={t("admin_groups.form.create_title", "Create admin group")} 
                             onSubmit={(data: any) => createMutation.mutate(data)} 
                             onCancel={() => setIsCreateOpen(false)}
                             isLoading={createMutation.isPending}
@@ -154,18 +156,19 @@ export function GroupsManagement() {
                                         className="font-data font-medium"
                                         style={{ backgroundColor: `${group.color}20`, color: group.color, border: `1px solid ${group.color}40` }}
                                     >
-                                        Group ID: {group.id}
+                                        {t("admin_groups.group_id", { id: group.id, defaultValue: "Group ID: {{id}}" })}
                                     </Badge>
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingGroup(group)}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t("admin_groups.edit", "Edit group")} onClick={() => setEditingGroup(group)}>
                                             <Pencil className="h-3.5 w-3.5" />
                                         </Button>
                                         <Button 
                                             variant="ghost" 
                                             size="icon" 
                                             className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            aria-label={t("admin_groups.delete", "Delete group")}
                                             onClick={() => {
-                                                if (confirm("Are you sure you want to delete this group?")) {
+                                                if (confirm(t("admin_groups.delete_confirm", "Are you sure you want to delete this group?"))) {
                                                     deleteMutation.mutate(group.id);
                                                 }
                                             }}
@@ -180,7 +183,7 @@ export function GroupsManagement() {
                             <CardContent>
                                 <div className="space-y-4">
                                     <div>
-                                        <span className="ov-label mb-2 block">Active Permissions</span>
+                                        <span className="ov-label mb-2 block">{t("admin_groups.active_permissions", "Active permissions")}</span>
                                         <div className="flex flex-wrap gap-1.5">
                                             {(() => {
                                                 const perms = typeof group.permissions === 'string' ? JSON.parse(group.permissions) : group.permissions;
@@ -206,7 +209,7 @@ export function GroupsManagement() {
                                                 </div>
                                             )}
                                             {members.length === 0 && (
-                                                <span className="text-xs text-muted-foreground">No members yet</span>
+                                                <span className="text-xs text-muted-foreground">{t("admin_groups.no_members", "No members yet")}</span>
                                             )}
                                         </div>
                                         <Button 
@@ -216,7 +219,7 @@ export function GroupsManagement() {
                                             onClick={() => setViewingMembers({ group, members })}
                                             disabled={members.length === 0}
                                         >
-                                            View {members.length} {members.length === 1 ? 'Member' : 'Members'}
+                                            {t("admin_groups.view_members", { count: members.length, defaultValue: "View {{count}} members" })}
                                         </Button>
                                     </div>
                                 </div>
@@ -230,7 +233,7 @@ export function GroupsManagement() {
                 <DialogContent className="max-w-2xl">
                     {editingGroup && (
                         <GroupForm 
-                            title="Edit Admin Group" 
+                            title={t("admin_groups.form.edit_title", "Edit admin group")} 
                             initialData={editingGroup}
                             onSubmit={(data: any) => updateMutation.mutate({ id: editingGroup.id, data })} 
                             onCancel={() => setEditingGroup(null)}
@@ -247,9 +250,9 @@ export function GroupsManagement() {
                             <DialogHeader>
                                 <DialogTitle className="font-display text-xl font-semibold flex items-center gap-3">
                                     <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: viewingMembers.group.color }} />
-                                    {viewingMembers.group.name} Members
+                                    {t("admin_groups.members_dialog.title", { name: viewingMembers.group.name, defaultValue: "{{name}} members" })}
                                 </DialogTitle>
-                                <CardDescription>List of administrators assigned to this permission group.</CardDescription>
+                                <CardDescription>{t("admin_groups.members_dialog.description", "List of administrators assigned to this permission group.")}</CardDescription>
                             </DialogHeader>
                             
                             <div className="max-h-[400px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
@@ -261,16 +264,16 @@ export function GroupsManagement() {
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-semibold">{m.username}</span>
-                                                <span className="ov-label">{m.role}</span>
+                                                <span className="ov-label">{t(`admin.roles.${m.role}`, String(m.role))}</span>
                                             </div>
                                         </div>
-                                        <Badge variant="outline" className="font-data font-medium text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity">ID: {m.id}</Badge>
+                                        <Badge variant="outline" className="font-data font-medium text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity">{t("admin_groups.members_dialog.member_id", { id: m.id, defaultValue: "ID: {{id}}" })}</Badge>
                                     </div>
                                 ))}
                             </div>
 
                             <DialogFooter>
-                                <Button onClick={() => setViewingMembers(null)} className="w-full">Close</Button>
+                                <Button onClick={() => setViewingMembers(null)} className="w-full">{t("admin_groups.members_dialog.close", "Close")}</Button>
                             </DialogFooter>
                         </div>
                     )}
@@ -281,6 +284,7 @@ export function GroupsManagement() {
 }
 
 function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
+    const { t } = useTranslation();
     const [name, setName] = useState(initialData?.name || "");
     const [description, setDescription] = useState(initialData?.description || "");
     const [color, setColor] = useState(initialData?.color || "#3b82f6");
@@ -304,16 +308,16 @@ function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
             <div className="grid gap-6">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label className="ov-label text-[11px]">Group Name</Label>
+                        <Label className="ov-label text-[11px]">{t("admin_groups.form.name", "Group name")}</Label>
                         <Input 
                             value={name} 
                             onChange={(e) => setName(e.target.value)} 
-                            placeholder="e.g. Content Moderator" 
+                            placeholder={t("admin_groups.form.name_placeholder", "e.g. Content moderator")} 
                             className="h-11 font-semibold"
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label className="ov-label text-[11px]">Accent Color</Label>
+                        <Label className="ov-label text-[11px]">{t("admin_groups.form.color", "Accent color")}</Label>
                         <div className="flex gap-2">
                             <Input 
                                 type="color"
@@ -331,17 +335,17 @@ function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="ov-label text-[11px]">Description</Label>
+                    <Label className="ov-label text-[11px]">{t("admin_groups.form.description", "Description")}</Label>
                     <Input 
                         value={description} 
                         onChange={(e) => setDescription(e.target.value)} 
-                        placeholder="What is this group responsible for?" 
+                        placeholder={t("admin_groups.form.description_placeholder", "What is this group responsible for?")} 
                         className="h-11"
                     />
                 </div>
 
                 <div className="space-y-4">
-                    <Label className="ov-label text-[11px]">Granular Permissions</Label>
+                    <Label className="ov-label text-[11px]">{t("admin_groups.form.permissions", "Granular permissions")}</Label>
                     <div className="grid grid-cols-2 gap-3">
                         {AVAILABLE_PERMISSIONS.map((perm) => (
                             <div 
@@ -360,10 +364,10 @@ function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="text-xs font-semibold">{perm.label}</span>
+                                        <span className="text-xs font-semibold">{t(perm.labelKey, perm.fallback)}</span>
                                         <Checkbox checked={permissions.includes(perm.id)} className="h-4 w-4" />
                                     </div>
-                                    <p className="text-[11px] text-muted-foreground leading-snug">{perm.description}</p>
+                                    <p className="text-[11px] text-muted-foreground leading-snug">{t(perm.descriptionKey, perm.descriptionFallback)}</p>
                                 </div>
                             </div>
                         ))}
@@ -372,7 +376,7 @@ function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
             </div>
 
             <DialogFooter className="pt-6">
-                <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+                <Button variant="ghost" onClick={onCancel}>{t("common.cancel", "Cancel")}</Button>
                 <Button 
                     disabled={isLoading || !name}
                     onClick={() => onSubmit({ 
@@ -382,7 +386,7 @@ function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
                         permissions: JSON.stringify(permissions) 
                     })}
                 >
-                    {isLoading ? "Saving..." : "Save Group"}
+                    {isLoading ? t("admin_groups.form.saving", "Saving...") : t("admin_groups.form.save", "Save group")}
                 </Button>
             </DialogFooter>
         </div>

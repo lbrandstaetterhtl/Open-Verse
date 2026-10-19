@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import { useLocation } from "wouter";
 import { useCustomTheme } from "@/hooks/use-custom-theme";
 import { ThemeGroup } from "@/components/theme/theme-group";
@@ -90,28 +90,32 @@ import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
 /* THEME-REDESIGN [TB-003]: Human-readable metadata for theme tokens */
-const COLOR_METADATA: Record<keyof ThemeColors, { label: string; description: string; contrastAgainst?: keyof ThemeColors }> = {
-  background: { label: "Page Background", description: "Main color behind all content" },
-  foreground: { label: "Main Text", description: "Standard text color", contrastAgainst: "background" },
-  card: { label: "Card Color", description: "Background of posts and panels" },
-  cardForeground: { label: "Card Text", description: "Text color inside cards", contrastAgainst: "card" },
-  popover: { label: "Menu Background", description: "Dropdown menus and tooltips" },
-  popoverForeground: { label: "Menu Text", description: "Text inside menus", contrastAgainst: "popover" },
-  primary: { label: "Primary Brand Color", description: "Main buttons and active states" },
-  primaryForeground: { label: "Primary Button Text", description: "Text on brand-colored buttons", contrastAgainst: "primary" },
-  secondary: { label: "Subtle Action Color", description: "Secondary buttons and backgrounds" },
-  secondaryForeground: { label: "Subtle Action Text", description: "Text on secondary elements", contrastAgainst: "secondary" },
-  muted: { label: "Ghost Background", description: "Very subtle backgrounds and borders" },
-  mutedForeground: { label: "Subtle Text", description: "Secondary or less important text", contrastAgainst: "background" },
-  accent: { label: "Highlight Color", description: "Hover states and active highlights" },
-  accentForeground: { label: "Highlight Text", description: "Text on highlight backgrounds", contrastAgainst: "accent" },
-  destructive: { label: "Danger Color", description: "Delete buttons and error states" },
-  destructiveForeground: { label: "Danger Text", description: "Text on danger buttons", contrastAgainst: "destructive" },
-  border: { label: "Border Color", description: "Lines between layout sections" },
-  input: { label: "Input Border", description: "Borders of text and select fields" },
-  ring: { label: "Focus Outline", description: "Ring visible when an element is focused" },
-  star: { label: "Starlight", description: "Warm highlight for badges, markers and single stars", contrastAgainst: "card" },
+const COLOR_METADATA: Record<keyof ThemeColors, { defaultLabel: string; defaultDescription: string; contrastAgainst?: keyof ThemeColors }> = {
+  background: { defaultLabel: "Page Background", defaultDescription: "Main color behind all content" },
+  foreground: { defaultLabel: "Main Text", defaultDescription: "Standard text color", contrastAgainst: "background" },
+  card: { defaultLabel: "Card Color", defaultDescription: "Background of posts and panels" },
+  cardForeground: { defaultLabel: "Card Text", defaultDescription: "Text color inside cards", contrastAgainst: "card" },
+  popover: { defaultLabel: "Menu Background", defaultDescription: "Dropdown menus and tooltips" },
+  popoverForeground: { defaultLabel: "Menu Text", defaultDescription: "Text inside menus", contrastAgainst: "popover" },
+  primary: { defaultLabel: "Primary Brand Color", defaultDescription: "Main buttons and active states" },
+  primaryForeground: { defaultLabel: "Primary Button Text", defaultDescription: "Text on brand-colored buttons", contrastAgainst: "primary" },
+  secondary: { defaultLabel: "Subtle Action Color", defaultDescription: "Secondary buttons and backgrounds" },
+  secondaryForeground: { defaultLabel: "Subtle Action Text", defaultDescription: "Text on secondary elements", contrastAgainst: "secondary" },
+  muted: { defaultLabel: "Ghost Background", defaultDescription: "Very subtle backgrounds and borders" },
+  mutedForeground: { defaultLabel: "Subtle Text", defaultDescription: "Secondary or less important text", contrastAgainst: "background" },
+  accent: { defaultLabel: "Highlight Color", defaultDescription: "Hover states and active highlights" },
+  accentForeground: { defaultLabel: "Highlight Text", defaultDescription: "Text on highlight backgrounds", contrastAgainst: "accent" },
+  destructive: { defaultLabel: "Danger Color", defaultDescription: "Delete buttons and error states" },
+  destructiveForeground: { defaultLabel: "Danger Text", defaultDescription: "Text on danger buttons", contrastAgainst: "destructive" },
+  border: { defaultLabel: "Border Color", defaultDescription: "Lines between layout sections" },
+  input: { defaultLabel: "Input Border", defaultDescription: "Borders of text and select fields" },
+  ring: { defaultLabel: "Focus Outline", defaultDescription: "Ring visible when an element is focused" },
+  star: { defaultLabel: "Starlight", defaultDescription: "Warm highlight for badges, markers and single stars", contrastAgainst: "card" },
 };
+
+/* Translation key of a colour token: "theme_builder.colors.card_foreground" for "cardForeground". The English
+   label and description above are the defaults. */
+const colorKey = (token: string) => `theme_builder.colors.${token.replaceAll(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)}`;
 
 /* Segmented control for small option sets; the selected option carries aria-pressed. */
 function SegmentedControl<T extends string>({
@@ -252,7 +256,7 @@ export default function ThemeBuilderPage() {
   // The standard design is fixed. Editing always starts from a copy ("New" or "Import").
   const [editingCopy, setEditingCopy] = useState(false);
   const locked = isStandard && !editingCopy;
-  const [themeName, setThemeName] = useState("My Custom Theme");
+  const [themeName, setThemeName] = useState(() => t("theme_builder.default_theme_name", "My custom theme"));
   const [activeThemeId, setActiveThemeId] = useState<string | number | null>(null);
   const [unifiedMode, setUnifiedMode] = useState(false);
   const [bgUploading, setBgUploading] = useState(false);
@@ -475,7 +479,10 @@ export default function ThemeBuilderPage() {
       return updated;
     });
     setHasUnsavedChanges(true);
-    toast({ title: "Theme Shuffled", description: "A new harmonious palette has been generated." });
+    toast({
+      title: t("theme_builder.shuffled_title", "Theme shuffled"),
+      description: t("theme_builder.shuffled_desc", "A new harmonious palette has been generated."),
+    });
   };
 
   const handleHarmonize = () => {
@@ -510,7 +517,10 @@ export default function ThemeBuilderPage() {
       return updated;
     });
     setHasUnsavedChanges(true);
-    toast({ title: "Theme Harmonized", description: "Colors have been adjusted to match your Primary color." });
+    toast({
+      title: t("theme_builder.harmonized_title", "Theme harmonized"),
+      description: t("theme_builder.harmonized_desc", "Colors have been adjusted to match your primary color."),
+    });
   };
 
   const handleSave = async () => {
@@ -520,9 +530,12 @@ export default function ThemeBuilderPage() {
       setActiveThemeId(saved.id);
       setActiveThemeInfo(saved.id, saved.name);
       setHasUnsavedChanges(false);
-      toast({ title: t("theme.saved"), description: t("theme.saved_desc", { name: themeName }) });
+      toast({
+        title: t("theme.saved", "Theme saved"),
+        description: t("theme.saved_desc", { name: themeName, defaultValue: "\"{{name}}\" has been saved." }),
+      });
     } catch {
-      toast({ title: t("theme.save_failed"), variant: "destructive" });
+      toast({ title: t("theme.save_failed", "The theme could not be saved"), variant: "destructive" });
     }
   };
 
@@ -599,14 +612,14 @@ export default function ThemeBuilderPage() {
       setHasUnsavedChanges(true);
       pushToHistory(updated);
     } catch {
-      toast({ title: "Upload failed", variant: "destructive" });
+      toast({ title: t("theme_builder.upload_failed", "Upload failed"), variant: "destructive" });
     } finally {
       setBgUploading(false);
     }
   };
 
   const descriptions = Object.fromEntries(
-    Object.entries(COLOR_METADATA).map(([key, meta]) => [key, meta.description])
+    Object.entries(COLOR_METADATA).map(([key, meta]) => [key, t(`${colorKey(key)}.description`, meta.defaultDescription)])
   ) as Partial<Record<keyof ThemeColors, string>>;
 
   const contrastPairs = Object.fromEntries(
@@ -627,12 +640,20 @@ export default function ThemeBuilderPage() {
   const galaxy = normalizeGalaxy(workingTheme.galaxy);
 
   const colorLabels: Partial<Record<keyof ThemeColors, string>> = {
+    ...(Object.fromEntries(
+      Object.entries(COLOR_METADATA).map(([key, meta]) => [key, t(`${colorKey(key)}.label`, meta.defaultLabel)])
+    ) as Partial<Record<keyof ThemeColors, string>>),
     star: t("theme_builder.color_star", "Starlight"),
   };
 
+  const backgroundModeLabels: Record<BackgroundMode, string> = {
+    solid: t("theme_builder.bg_mode_solid", "Solid"),
+    gradient: t("theme_builder.bg_mode_gradient", "Gradient"),
+    image: t("theme_builder.bg_mode_image", "Image"),
+  };
   const backgroundModeOptions: { value: BackgroundMode; label: string }[] = (["solid", "gradient", "image"] as const).map((mode) => ({
     value: mode,
-    label: mode.charAt(0).toUpperCase() + mode.slice(1),
+    label: backgroundModeLabels[mode],
   }));
 
   const cornerStyleOptions: { value: ShapeStyle; label: string }[] = [
@@ -654,6 +675,9 @@ export default function ThemeBuilderPage() {
   ];
 
   // "Same as text" uses the body font, so the list leaves that font out to avoid two items with one value.
+  // Rendered through <Trans> so "contrast checker" can be bold; t() registers the key and its English default.
+  const proTipText = t("theme_builder.pro_tip_text", "Use the <strong>contrast checker</strong> icons next to text colors to make sure your theme stays accessible for everyone.");
+
   const dataFontOptions = dataFonts.filter((font) => font.name !== fonts.body);
   const hasUnlistedDataFont = fonts.data !== fonts.body && !dataFonts.some((font) => font.name === fonts.data);
 
@@ -690,20 +714,20 @@ export default function ThemeBuilderPage() {
                       <div className="flex items-center gap-2 mt-1">
                         {hasUnsavedChanges ? (
                           <span className="ov-chip ov-chip-star h-5 px-2 text-[11px]">
-                            Unsaved Changes
+                            {t("theme_builder.unsaved_changes", "Unsaved changes")}
                           </span>
                         ) : (
                           <span className="ov-chip ov-chip-success h-5 px-2 text-[11px] text-foreground">
-                            All Saved
+                            {t("theme_builder.all_saved", "All saved")}
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="flex gap-1.5">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={undo} disabled={locked || historyIndex.current <= 0} title="Undo (Ctrl+Z)">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={undo} disabled={locked || historyIndex.current <= 0} title={t("theme_builder.undo", "Undo (Ctrl+Z)")}>
                         <History className="h-4 w-4 rotate-180" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={redo} disabled={locked || historyIndex.current >= history.current.length - 1} title="Redo (Ctrl+Y)">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={redo} disabled={locked || historyIndex.current >= history.current.length - 1} title={t("theme_builder.redo", "Redo (Ctrl+Y)")}>
                         <History className="h-4 w-4" />
                       </Button>
                     </div>
@@ -720,7 +744,7 @@ export default function ThemeBuilderPage() {
                       }}
                     >
                       <SelectTrigger className="flex-1 h-9" aria-label={t("theme_builder.choose_theme", "Choose theme")}>
-                        <SelectValue placeholder="Select Theme..." />
+                        <SelectValue placeholder={t("theme_builder.select_theme", "Select theme...")} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="standard">{t("theme_builder.standard_name", "Standard")}</SelectItem>
@@ -731,7 +755,7 @@ export default function ThemeBuilderPage() {
                     </Select>
                     <Button onClick={handleSave} className="h-9 gap-2" disabled={locked || (!hasUnsavedChanges && activeThemeId !== null)}>
                       <Save className="h-4 w-4" />
-                      Save
+                      {t("common.save", "Save")}
                     </Button>
                   </div>
                   
@@ -739,13 +763,13 @@ export default function ThemeBuilderPage() {
                   
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <Button variant="outline" size="sm" onClick={handleCreateNew} className="text-xs h-8">
-                      <Plus className="h-3 w-3 mr-1.5" /> New
+                      <Plus className="h-3 w-3 mr-1.5" /> {t("theme_builder.new", "New")}
                     </Button>
                     <Button variant="outline" size="sm" onClick={handleImport} className="text-xs h-8">
-                      <Upload className="h-3 w-3 mr-1.5" /> Import
+                      <Upload className="h-3 w-3 mr-1.5" /> {t("theme_builder.import", "Import")}
                     </Button>
                     <Button variant="outline" size="sm" onClick={handleExport} className="text-xs h-8">
-                      <Download className="h-3 w-3 mr-1.5" /> Export
+                      <Download className="h-3 w-3 mr-1.5" /> {t("theme_builder.export", "Export")}
                     </Button>
                     <Button variant="outline" size="sm" onClick={handleUseStandard} disabled={locked} className="text-xs h-8">
                       <RotateCcw className="h-3 w-3 mr-1.5" /> {t("theme_builder.use_standard", "Standard")}
@@ -757,11 +781,11 @@ export default function ThemeBuilderPage() {
                   {!locked && <div className="flex gap-2">
                     <Button variant="secondary" size="sm" onClick={handleShuffle} className="flex-1 text-xs h-9 bg-primary/10 text-primary hover:bg-primary/20">
                       <Shuffle className="h-3.5 w-3.5 mr-2" />
-                      Shuffle
+                      {t("theme_builder.shuffle", "Shuffle")}
                     </Button>
                     <Button variant="secondary" size="sm" onClick={handleHarmonize} className="flex-1 text-xs h-9 bg-accent/10 text-accent-foreground hover:bg-accent/20">
                       <Sparkles className="h-3.5 w-3.5 mr-2" />
-                      Harmonize
+                      {t("theme_builder.harmonize", "Harmonize")}
                     </Button>
                   </div>}
                 </CardContent>
@@ -884,7 +908,7 @@ export default function ThemeBuilderPage() {
                 <CardHeader className="pb-3 px-4">
                   <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                     <Type className="h-5 w-5" />
-                    Typography
+                    {t("theme_builder.typography", "Typography")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
@@ -895,7 +919,7 @@ export default function ThemeBuilderPage() {
                       </Label>
                       <Select value={fonts.display} onValueChange={(value) => handleFontChange("display", value)}>
                         <SelectTrigger id="theme-font-display" className="w-full h-10">
-                          <SelectValue placeholder="Select a font" />
+                          <SelectValue placeholder={t("theme_builder.select_font", "Select a font")} />
                         </SelectTrigger>
                         <SelectContent>
                           {withCurrentFont(availableFonts, fonts.display).map((font) => (
@@ -913,7 +937,7 @@ export default function ThemeBuilderPage() {
                       </Label>
                       <Select value={fonts.body} onValueChange={(value) => handleFontChange("body", value)}>
                         <SelectTrigger id="theme-font-body" className="w-full h-10">
-                          <SelectValue placeholder="Select a font" />
+                          <SelectValue placeholder={t("theme_builder.select_font", "Select a font")} />
                         </SelectTrigger>
                         <SelectContent>
                           {withCurrentFont(availableFonts, fonts.body).map((font) => (
@@ -931,7 +955,7 @@ export default function ThemeBuilderPage() {
                       </Label>
                       <Select value={fonts.data} onValueChange={(value) => handleFontChange("data", value)}>
                         <SelectTrigger id="theme-font-data" className="w-full h-10">
-                          <SelectValue placeholder="Select a font" />
+                          <SelectValue placeholder={t("theme_builder.select_font", "Select a font")} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={fonts.body} style={{ fontFamily: fonts.body }}>
@@ -959,12 +983,12 @@ export default function ThemeBuilderPage() {
                 <CardHeader className="pb-3 px-4">
                   <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                     <Layers className="h-5 w-5" />
-                    Background Style
+                    {t("theme_builder.background_style", "Background style")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-4 space-y-6">
                   <SegmentedControl
-                    ariaLabel="Background Style"
+                    ariaLabel={t("theme_builder.background_style", "Background style")}
                     options={backgroundModeOptions}
                     value={workingTheme.background?.mode || "solid"}
                     onChange={handleBgModeChange}
@@ -992,14 +1016,14 @@ export default function ThemeBuilderPage() {
 
                   {workingTheme.background?.mode === "image" && (
                     <div className="space-y-3">
-                      <Label className="text-xs font-semibold">Custom Background Image</Label>
+                      <Label className="text-xs font-semibold">{t("theme_builder.custom_background_image", "Custom background image")}</Label>
                       <label className="flex flex-col items-center justify-center h-24 rounded-lg border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors bg-muted/20">
                         {bgUploading ? (
-                          <Badge variant="outline">Uploading...</Badge>
+                          <Badge variant="outline">{t("theme_builder.uploading", "Uploading...")}</Badge>
                         ) : (
                           <>
                             <Image className="h-6 w-6 text-muted-foreground mb-1" />
-                            <span className="text-xs font-medium">Click to upload image</span>
+                            <span className="text-xs font-medium">{t("theme_builder.click_to_upload", "Click to upload image")}</span>
                           </>
                         )}
                         <input type="file" className="hidden" onChange={handleBgImageUpload} accept="image/*" />
@@ -1012,14 +1036,14 @@ export default function ThemeBuilderPage() {
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-semibold flex items-center gap-2">
                           <Sun className="h-3 w-3" />
-                          Brightness
+                          {t("theme_builder.brightness", "Brightness")}
                         </Label>
                         <span className="ov-data text-xs text-muted-foreground">
                           {Math.round((workingTheme.background?.overlay.brightness ?? 1) * 100)}%
                         </span>
                       </div>
                       <Slider
-                        aria-label="Brightness"
+                        aria-label={t("theme_builder.brightness", "Brightness")}
                         value={[workingTheme.background?.overlay.brightness ?? 1]}
                         min={0.1}
                         max={2}
@@ -1036,14 +1060,14 @@ export default function ThemeBuilderPage() {
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-semibold flex items-center gap-2">
                           <ContrastIcon className="h-3 w-3" />
-                          Contrast
+                          {t("theme_builder.contrast", "Contrast")}
                         </Label>
                         <span className="ov-data text-xs text-muted-foreground">
                           {Math.round((workingTheme.background?.overlay.contrast ?? 1) * 100)}%
                         </span>
                       </div>
                       <Slider
-                        aria-label="Contrast"
+                        aria-label={t("theme_builder.contrast", "Contrast")}
                         value={[workingTheme.background?.overlay.contrast ?? 1]}
                         min={0.1}
                         max={2}
@@ -1137,16 +1161,16 @@ export default function ThemeBuilderPage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <span className="text-base text-star">✦</span> Particles
+                    <span className="text-base text-star">✦</span> {t("theme_builder.particles", "Particles")}
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">
-                    Cursor-following star particles. Customise core dot and glow halo colors.
+                    {t("theme_builder.particles_desc", "Cursor-following star particles. Customize the core dot and glow halo colors.")}
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Enable/Disable toggle */}
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-medium">Enable Particles</Label>
+                    <Label className="text-xs font-medium">{t("theme_builder.enable_particles", "Enable particles")}</Label>
                     <Checkbox
                       checked={workingTheme.particles?.enabled ?? defaultParticles.enabled}
                       onCheckedChange={(val) => {
@@ -1167,8 +1191,8 @@ export default function ThemeBuilderPage() {
                   {/* Core Color */}
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <Label className="text-xs font-medium">Core Dot Color</Label>
-                      <p className="text-xs text-muted-foreground">Bright center of each particle</p>
+                      <Label className="text-xs font-medium">{t("theme_builder.core_dot_color", "Core dot color")}</Label>
+                      <p className="text-xs text-muted-foreground">{t("theme_builder.core_dot_color_desc", "Bright center of each particle")}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div
@@ -1196,8 +1220,8 @@ export default function ThemeBuilderPage() {
                   {/* Glow Color */}
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <Label className="text-xs font-medium">Glow Halo Color</Label>
-                      <p className="text-xs text-muted-foreground">Soft light surrounding each particle</p>
+                      <Label className="text-xs font-medium">{t("theme_builder.glow_halo_color", "Glow halo color")}</Label>
+                      <p className="text-xs text-muted-foreground">{t("theme_builder.glow_halo_color_desc", "Soft light surrounding each particle")}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div
@@ -1228,7 +1252,7 @@ export default function ThemeBuilderPage() {
                   <div className="space-y-4 pt-2">
                     {/* Twinkle Toggle */}
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-medium">Twinkle Effect</Label>
+                      <Label className="text-xs font-medium">{t("theme_builder.twinkle_effect", "Twinkle effect")}</Label>
                       <Checkbox
                         checked={workingTheme.particles?.twinkle ?? defaultParticles.twinkle}
                         onCheckedChange={(val) => {
@@ -1247,13 +1271,13 @@ export default function ThemeBuilderPage() {
                     {/* Speed Slider */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold flex items-center gap-2">Speed</Label>
+                        <Label className="text-xs font-semibold flex items-center gap-2">{t("theme_builder.particle_speed", "Speed")}</Label>
                         <span className="ov-data text-xs text-muted-foreground">
                           {Math.round((workingTheme.particles?.speed ?? defaultParticles.speed) * 100)}%
                         </span>
                       </div>
                       <Slider
-                        aria-label="Speed"
+                        aria-label={t("theme_builder.particle_speed", "Speed")}
                         value={[workingTheme.particles?.speed ?? defaultParticles.speed]}
                         min={0.1}
                         max={3}
@@ -1274,13 +1298,13 @@ export default function ThemeBuilderPage() {
                     {/* Attraction Slider */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold flex items-center gap-2">Cursor Pull</Label>
+                        <Label className="text-xs font-semibold flex items-center gap-2">{t("theme_builder.cursor_pull", "Cursor pull")}</Label>
                         <span className="ov-data text-xs text-muted-foreground">
                           {Math.round(((workingTheme.particles?.attraction ?? defaultParticles.attraction) / 0.008) * 100)}%
                         </span>
                       </div>
                       <Slider
-                        aria-label="Cursor Pull"
+                        aria-label={t("theme_builder.cursor_pull", "Cursor pull")}
                         value={[workingTheme.particles?.attraction ?? defaultParticles.attraction]}
                         min={0}
                         max={0.03}
@@ -1301,13 +1325,13 @@ export default function ThemeBuilderPage() {
                     {/* Size Slider */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold flex items-center gap-2">Size</Label>
+                        <Label className="text-xs font-semibold flex items-center gap-2">{t("theme_builder.particle_size", "Size")}</Label>
                         <span className="ov-data text-xs text-muted-foreground">
                           {Math.round((workingTheme.particles?.size ?? defaultParticles.size) * 100)}%
                         </span>
                       </div>
                       <Slider
-                        aria-label="Size"
+                        aria-label={t("theme_builder.particle_size", "Size")}
                         value={[workingTheme.particles?.size ?? defaultParticles.size]}
                         min={0.5}
                         max={4}
@@ -1328,13 +1352,13 @@ export default function ThemeBuilderPage() {
                     {/* Glow Strength Slider */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold flex items-center gap-2">Glow Strength</Label>
+                        <Label className="text-xs font-semibold flex items-center gap-2">{t("theme_builder.glow_strength", "Glow strength")}</Label>
                         <span className="ov-data text-xs text-muted-foreground">
                           {Math.round((workingTheme.particles?.glowStrength ?? defaultParticles.glowStrength) * 100)}%
                         </span>
                       </div>
                       <Slider
-                        aria-label="Glow Strength"
+                        aria-label={t("theme_builder.glow_strength", "Glow strength")}
                         value={[workingTheme.particles?.glowStrength ?? defaultParticles.glowStrength]}
                         min={0}
                         max={5}
@@ -1366,7 +1390,7 @@ export default function ThemeBuilderPage() {
                       pushToHistory(updated);
                     }}
                   >
-                    Reset to Default
+                    {t("theme_builder.reset_to_default", "Reset to default")}
                   </Button>
                 </CardContent>
               </Card>
@@ -1388,19 +1412,19 @@ export default function ThemeBuilderPage() {
                         }
                       }} 
                     />
-                    <Label htmlFor="unified" className="text-xs font-medium">Link Light/Dark Modes</Label>
+                    <Label htmlFor="unified" className="text-xs font-medium">{t("theme_builder.link_modes", "Link light and dark modes")}</Label>
                   </div>
                   {!unifiedMode && (
                     <TabsList className="h-8 p-1">
-                      <TabsTrigger value="light" className="text-xs px-3">Light</TabsTrigger>
-                      <TabsTrigger value="dark" className="text-xs px-3">Dark</TabsTrigger>
+                      <TabsTrigger value="light" className="text-xs px-3">{t("theme_builder.mode_light", "Light")}</TabsTrigger>
+                      <TabsTrigger value="dark" className="text-xs px-3">{t("theme_builder.mode_dark", "Dark")}</TabsTrigger>
                     </TabsList>
                   )}
                 </div>
 
                 <div className="space-y-4">
                   <ThemeGroup
-                    title="Layout Colors"
+                    title={t("theme_builder.group_layout_colors", "Layout colors")}
                     icon={<Square className="h-5 w-5" />}
                     colors={currentColors}
                     defaultColors={defaultColors}
@@ -1410,7 +1434,7 @@ export default function ThemeBuilderPage() {
                   />
 
                   <ThemeGroup
-                    title="Typography"
+                    title={t("theme_builder.typography", "Typography")}
                     icon={<Type className="h-5 w-5" />}
                     colors={currentColors}
                     defaultColors={defaultColors}
@@ -1421,7 +1445,7 @@ export default function ThemeBuilderPage() {
                   />
 
                   <ThemeGroup
-                   title="Brand & Interactive"
+                   title={t("theme_builder.group_brand_interactive", "Brand & interactive")}
                    icon={<MousePointer className="h-5 w-5" />}
                    colors={currentColors}
                    defaultColors={defaultColors}
@@ -1442,15 +1466,15 @@ export default function ThemeBuilderPage() {
         <div className={`lg:flex flex-1 flex-col bg-muted/10 ${mobileActiveTab === "settings" ? "hidden lg:flex" : "flex"}`}>
           <div className="flex items-center justify-between px-6 py-4 border-b bg-background">
             <h2 className="flex items-center gap-2">
-              <span className="ov-label">Live App Preview</span>
-              <span className="ov-chip ov-chip-primary h-5 px-2 text-[11px]">Real-time</span>
+              <span className="ov-label">{t("theme_builder.live_preview", "Live app preview")}</span>
+              <span className="ov-chip ov-chip-primary h-5 px-2 text-[11px]">{t("theme_builder.real_time", "Real-time")}</span>
             </h2>
             <div className="flex items-center gap-1 rounded-pill border border-border p-1">
               <Button 
                 variant={previewSize === "desktop" ? "default" : "ghost"} 
                 size="icon" 
                 className="h-7 w-7"
-                aria-label="Desktop preview"
+                aria-label={t("theme_builder.desktop_preview", "Desktop preview")}
                 aria-pressed={previewSize === "desktop"}
                 onClick={() => setPreviewSize("desktop")}
               >
@@ -1460,7 +1484,7 @@ export default function ThemeBuilderPage() {
                 variant={previewSize === "mobile" ? "default" : "ghost"} 
                 size="icon" 
                 className="h-7 w-7"
-                aria-label="Mobile preview"
+                aria-label={t("theme_builder.mobile_preview", "Mobile preview")}
                 aria-pressed={previewSize === "mobile"}
                 onClick={() => setPreviewSize("mobile")}
               >
@@ -1485,7 +1509,7 @@ export default function ThemeBuilderPage() {
                       <div className="ov-cut h-8 w-8 rounded-sm bg-primary flex items-center justify-center">
                         <Palette className="h-5 w-5 text-primary-foreground" />
                       </div>
-                      <span className="font-display text-sm font-semibold">Osiris App</span>
+                      <span className="font-display text-sm font-semibold">{t("theme_builder.preview_app_name", "Osiris App")}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="h-4 w-12 bg-muted rounded-pill" />
@@ -1498,9 +1522,9 @@ export default function ThemeBuilderPage() {
                 {/* Hero / Stat Section */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
-                    { label: "Followers", value: "1.2k", icon: Users, star: false },
-                    { label: "Karma", value: "840", icon: Sparkles, star: true },
-                    { label: "Posts", value: "142", icon: FileText, star: false },
+                    { label: t("theme_builder.preview_followers", "Followers"), value: "1.2k", icon: Users, star: false },
+                    { label: t("theme_builder.preview_karma", "Karma"), value: "840", icon: Sparkles, star: true },
+                    { label: t("theme_builder.preview_posts", "Posts"), value: "142", icon: FileText, star: false },
                   ].map((s) => (
                     <Card key={s.label} className="p-4">
                       <div className="flex justify-between items-start mb-2">
@@ -1519,16 +1543,16 @@ export default function ThemeBuilderPage() {
                       <UserAvatar user={{ username: "Designer" }} size="sm" />
                       <div>
                         <p className="flex items-center gap-1 text-sm font-semibold text-foreground">
-                          Creative Lead
+                          {t("theme_builder.preview_author", "Creative lead")}
                           <BadgeCheck className="h-3.5 w-3.5 text-star" />
                         </p>
-                        <p className="ov-data text-[11px] text-muted-foreground">2 hours ago</p>
+                        <p className="ov-data text-[11px] text-muted-foreground">{t("theme_builder.preview_time", "2 hours ago")}</p>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <h3 className="font-display text-base font-semibold text-foreground leading-tight">Implementing the new Theme Builder design system!</h3>
+                      <h3 className="font-display text-base font-semibold text-foreground leading-tight">{t("theme_builder.preview_post_title", "Implementing the new theme builder design system!")}</h3>
                       <p className="text-sm text-foreground/90 leading-relaxed">
-                        The two-column layout provides a much better workflow. It's now possible to see every color tweak in real-time without scrolling.
+                        {t("theme_builder.preview_post_body", "The two-column layout provides a much better workflow. It's now possible to see every color tweak in real time without scrolling.")}
                       </p>
                     </div>
                     {/* Media placeholder: shows the cut corners on images and the coordinate grid */}
@@ -1547,7 +1571,7 @@ export default function ThemeBuilderPage() {
                           <MessageCircle /> <span className="ov-data">8</span>
                         </Button>
                       </div>
-                      <Button variant="outline" size="sm" className="h-8 px-3 text-xs">Read More</Button>
+                      <Button variant="outline" size="sm" className="h-8 px-3 text-xs">{t("theme_builder.preview_read_more", "Read more")}</Button>
                     </div>
                   </div>
                 </Card>
@@ -1555,34 +1579,34 @@ export default function ThemeBuilderPage() {
                 {/* Interactive Elements / Form */}
                 <Card className="p-6 space-y-6">
                   <div className="space-y-2">
-                    <h3 className="font-display text-lg font-semibold text-foreground">Interactive Elements</h3>
-                    <p className="text-xs text-muted-foreground">Test your interactive and modal colors here.</p>
+                    <h3 className="font-display text-lg font-semibold text-foreground">{t("theme_builder.preview_interactive", "Interactive elements")}</h3>
+                    <p className="text-xs text-muted-foreground">{t("theme_builder.preview_interactive_desc", "Test your interactive and modal colors here.")}</p>
                   </div>
                   
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold">Join the conversation</Label>
+                      <Label className="text-xs font-semibold">{t("theme_builder.preview_join", "Join the conversation")}</Label>
                       <div className="flex gap-2">
-                        <Input placeholder="Type something..." className="h-9 text-xs bg-background" />
-                        <Button size="sm" className="h-9 px-4">Send</Button>
+                        <Input placeholder={t("theme_builder.preview_input_placeholder", "Type something...")} className="h-9 text-xs bg-background" />
+                        <Button size="sm" className="h-9 px-4">{t("theme_builder.preview_send", "Send")}</Button>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-2">
-                      <Button variant="default" size="sm">Primary</Button>
-                      <Button variant="secondary" size="sm">Secondary</Button>
-                      <Button variant="outline" size="sm">Outline</Button>
-                      <Button variant="ghost" size="sm">Ghost</Button>
-                      <Button variant="destructive" size="sm">Destructive</Button>
+                      <Button variant="default" size="sm">{t("theme_builder.preview_btn_primary", "Primary")}</Button>
+                      <Button variant="secondary" size="sm">{t("theme_builder.preview_btn_secondary", "Secondary")}</Button>
+                      <Button variant="outline" size="sm">{t("theme_builder.preview_btn_outline", "Outline")}</Button>
+                      <Button variant="ghost" size="sm">{t("theme_builder.preview_btn_ghost", "Ghost")}</Button>
+                      <Button variant="destructive" size="sm">{t("theme_builder.preview_btn_destructive", "Destructive")}</Button>
                     </div>
                   </div>
                   
                   <div className="ov-panel p-4 flex items-start gap-3">
                     <Info className="h-4 w-4 text-primary mt-0.5" />
                     <div className="space-y-1">
-                      <p className="ov-label">Pro Tip</p>
+                      <p className="ov-label">{t("theme_builder.pro_tip", "Pro tip")}</p>
                       <p className="text-xs text-muted-foreground leading-normal">
-                        Use the <strong>Contrast Checker</strong> icons next to text colors to ensure your theme remains accessible for everyone.
+                        <Trans t={t} i18nKey="theme_builder.pro_tip_text" defaults={proTipText} components={{ strong: <strong /> }} />
                       </p>
                     </div>
                   </div>
@@ -1601,7 +1625,7 @@ export default function ThemeBuilderPage() {
           className="rounded-pill px-6 h-9"
           onClick={() => setMobileActiveTab("settings")}
         >
-          Settings
+          {t("theme_builder.mobile_settings", "Settings")}
         </Button>
         <Button
           variant={mobileActiveTab === "preview" ? "default" : "ghost"}
@@ -1609,7 +1633,7 @@ export default function ThemeBuilderPage() {
           className="rounded-pill px-6 h-9"
           onClick={() => setMobileActiveTab("preview")}
         >
-          Preview
+          {t("theme_builder.mobile_preview_tab", "Preview")}
         </Button>
       </div>
     </div>

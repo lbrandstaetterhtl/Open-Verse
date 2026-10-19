@@ -61,7 +61,7 @@ export default function UserProfilePage() {
   };
 
   if (isProfileLoading) return <ProfilePageSkeleton />;
-  if (profileError || !profile) return <div>User not found</div>;
+  if (profileError || !profile) return <div>{t("profile.user_not_found", "User not found")}</div>;
 
   const isOwnProfile = currentUser?.username === profile.username;
 

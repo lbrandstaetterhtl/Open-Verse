@@ -24,7 +24,8 @@
     "createdAt": "Created at",
     "updatedAt": "Updated at",
     "resolvedAt": "Resolved at",
-    "closedAt": "Closed at"
+    "closedAt": "Closed at",
+    "optional": "(Optional)"
   },
   "types": {
     "bug_report": "Bug Report",
@@ -63,7 +64,10 @@
     "deleteComment": "Delete",
     "markInternal": "Mark as internal",
     "viewHistory": "View History",
-    "backToTickets": "Back to my tickets"
+    "backToTickets": "Back to my tickets",
+    "tryAgain": "Try again",
+    "decommission": "Decommission Signal",
+    "deactivate": "Deactivate Transmission"
   },
   "comments": {
     "title": "Activity",
@@ -92,7 +96,15 @@
     "priority": "Priority (Critical first)",
     "lastUpdated": "Last updated",
     "resetFilters": "Reset Filters",
-    "activeFilters": "{{count}} active filters"
+    "activeFilters": "{{count}} active filters",
+    "refine": "Refine Signal:",
+    "sortAria": "Sort tickets",
+    "sortPlaceholder": "Sort Projection",
+    "ownerAria": "Filter tickets",
+    "sourcePlaceholder": "Signal Source",
+    "allSources": "All Projections",
+    "assignedToMe": "Assigned to me",
+    "createdByMe": "Initiated by me"
   },
   "stats": {
     "total": "Total",
@@ -119,7 +131,8 @@
     "deleteTicketDescription": "Ticket {{number}} will be permanently deleted.",
     "deleteComment": "Delete comment?",
     "closeTicket": "Close ticket?",
-    "closeTicketDescription": "Closed tickets can only be reopened by an owner."
+    "closeTicketDescription": "Closed tickets can only be reopened by an owner.",
+    "deleteTicketConfirm": "Are you sure you want to delete this ticket?"
   },
   "errors": {
     "loadFailed": "Failed to load tickets",
@@ -131,7 +144,9 @@
     "notFound": "Ticket not found",
     "invalidTransition": "Status transition not allowed",
     "notFoundHint": "This ticket doesn't exist or you don't have access to it.",
-    "tryAgainHint": "Please try again in a moment."
+    "tryAgainHint": "Please try again in a moment.",
+    "assignFailed": "Failed to assign ticket",
+    "loadTicketFailed": "The ticket could not be loaded"
   },
   "success": {
     "created": "Ticket {{number}} has been created",
@@ -139,7 +154,9 @@
     "deleted": "Ticket has been deleted",
     "statusChanged": "Status has been changed to '{{status}}'",
     "commentAdded": "Comment has been added",
-    "assigned": "Ticket has been assigned"
+    "assigned": "Ticket has been assigned",
+    "ticketDeleted": "Ticket deleted successfully",
+    "assignmentUpdated": "Assignment updated"
   },
   "help": {
     "title": "Writing a good ticket",
@@ -151,5 +168,27 @@
     "priority_medium": "Should be processed soon",
     "priority_high": "Should be processed in the next few days",
     "priority_critical": "Must be processed immediately"
+  },
+  "subtitle": "Support Hub",
+  "pageDescription": "Manage and track support issues across the platform in zero-gravity.",
+  "createDescription": "Submit a new signal for the team to process in zero-gravity.",
+  "detail": {
+    "initiatedSignal": "initiated signal",
+    "history": "Transmission History",
+    "commanderBadge": "COMMANDER",
+    "internalBadge": "INTERNAL SIGNAL",
+    "internalChannel": "Secure Internal Channel",
+    "transmit": "Transmit Response",
+    "sidebarTitle": "Signal Core",
+    "statusPhase": "Status Phase",
+    "priorityLevel": "Priority Level",
+    "relatedSignal": "Related Signal",
+    "assignedPersonnel": "Assigned Personnel",
+    "selectStaff": "Select staff"
+  },
+  "assignment": {
+    "unassigned": "Awaiting Pilot",
+    "assigned": "Personnel Active",
+    "active": "Active"
   }
 }

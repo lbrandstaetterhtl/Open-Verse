@@ -53,6 +53,7 @@ function isItemActive(item: NavItem, location: string) {
 
 function NavItemRow({ item, collapsed, onNavigate }: { item: NavItem; collapsed: boolean; onNavigate?: () => void }) {
   const [location] = useLocation();
+  const { t } = useTranslation();
   const isActive = isItemActive(item, location);
   const badge = item.badge && item.badge > 0 ? (item.badge > 99 ? "99+" : String(item.badge)) : null;
 
@@ -79,7 +80,7 @@ function NavItemRow({ item, collapsed, onNavigate }: { item: NavItem; collapsed:
             "font-data flex h-4 min-w-[16px] items-center justify-center rounded-xs bg-primary px-1 text-[10px] font-semibold tabular-nums text-primary-foreground",
             collapsed && "absolute right-1 top-1",
           )}
-          aria-label={`${badge} ungelesen`}
+          aria-label={t("layout.sidebar.unread_badge", { badge, defaultValue: "{{badge}} unread" })}
         >
           {badge}
         </span>
@@ -113,7 +114,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
       title: t("nav.section_discover", "Discover"),
       items: [
         { href: "/feed/media", icon: Home, label: t("navbar.media_feed", "Media feed"), alsoActive: ["/"] },
-        { href: "/feed/discussions", icon: MessagesSquare, label: t("navbar.discussions_feed", "Discussions") },
+        { href: "/feed/discussions", icon: MessagesSquare, label: t("navbar.discussions_feed", "Discussions feed") },
         { href: "/feed/communities", icon: Users, label: t("navbar.communities", "Communities"), alsoActive: ["/c", "/create-community"] },
       ],
     },
@@ -260,7 +261,7 @@ export function AppSidebar({ isAdmin, collapsed, onToggleCollapse, onClose }: Ap
                 <>
                   <div className="min-w-0 flex-1 space-y-0.5 text-left sidebar-label">
                     <p className="truncate text-[13px] font-semibold leading-tight">{user?.username}</p>
-                    <p className="ov-label truncate">{user?.role}</p>
+                    <p className="ov-label truncate">{user?.role ? t(`admin.roles.${user.role}`, user.role) : null}</p>
                   </div>
                   <MoreHorizontal className="h-4 w-4 flex-shrink-0 text-muted-foreground sidebar-label" />
                 </>

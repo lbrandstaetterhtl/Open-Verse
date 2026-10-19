@@ -26,12 +26,12 @@ export default function ModeratorPerformancePage() {
         try {
             await triggerSnapshot.mutateAsync();
             toast({
-                title: t("modPerf.snapshot_success", "Snapshot Completed"),
-                description: t("modPerf.snapshot_success_desc", "Performance metrics have been updated for today."),
+                title: t("modPerf:snapshot_success", "Snapshot Completed"),
+                description: t("modPerf:snapshot_success_desc", "Performance metrics have been updated for today."),
             });
         } catch {
             toast({
-                title: t("modPerf.snapshot_error", "Error"),
+                title: t("modPerf:snapshot_error", "Error creating snapshot"),
                 variant: "destructive",
             });
         }
@@ -48,8 +48,8 @@ export default function ModeratorPerformancePage() {
         <div className="space-y-6">
                 <PageHeader
                     eyebrow={t("modPerf.eyebrow", "Admin / Analytics")}
-                    title={t("modPerf.title", "Moderator Performance Audit")}
-                    description={t("modPerf.subtitle", "Audit moderator efficiency, response times, and incident resolution.")}
+                    title={t("modPerf:title", "Moderator Performance Audit")}
+                    description={t("modPerf:subtitle", "Audit moderator efficiency, response times, and incident resolution.")}
                     actions={
                         <Button
                             variant="outline"
@@ -58,7 +58,7 @@ export default function ModeratorPerformancePage() {
                             disabled={triggerSnapshot.isPending}
                         >
                             <RefreshCcw className={triggerSnapshot.isPending ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"} />
-                            {t("modPerf.sync_now", "Recalculate Now")}
+                            {t("modPerf:sync_now", "Recalculate Now")}
                         </Button>
                     }
                 />
@@ -66,31 +66,31 @@ export default function ModeratorPerformancePage() {
                 {/* Team KPIs */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <KPICard 
-                        title={t("modPerf.reports_resolved", "Reports Resolved")} 
+                        title={t("modPerf:reports_resolved", "Reports Resolved")} 
                         value={teamOverview?.reportsHandledToday?.toString() || "0"} 
                         icon={ShieldCheck}
                         trend={{ value: Number(teamOverview?.reportsTrend || 0), isPositive: Number(teamOverview?.reportsTrend || 0) > 0 }}
                         loading={loadingOverview}
                     />
                     <KPICard 
-                        title={t("modPerf.tickets_solved", "Tickets Solved")} 
+                        title={t("modPerf:tickets_solved", "Tickets Solved")} 
                         value={teamOverview?.ticketsResolvedToday?.toString() || "0"} 
                         icon={TicketCheck}
                         trend={{ value: Number(teamOverview?.ticketsTrend || 0), isPositive: Number(teamOverview?.ticketsTrend || 0) > 0 }}
                         loading={loadingOverview}
                     />
                     <KPICard 
-                        title={t("modPerf.avg_response", "Avg Response")} 
+                        title={t("modPerf:avg_response", "Avg Response")} 
                         value={formatTime(teamOverview?.avgTicketResponseSeconds || 0)} 
                         icon={Clock}
-                        description={t("modPerf.global_avg", "Global platform average")}
+                        description={t("modPerf:global_avg", "Global platform average")}
                         loading={loadingOverview}
                     />
                     <KPICard 
-                        title={t("modPerf.pending_work", "Open Queue")} 
+                        title={t("modPerf:pending_work", "Open Queue")} 
                         value={( (teamOverview?.openReports || 0) + (teamOverview?.openTickets || 0) ).toString()} 
                         icon={AlertCircle}
-                        description={`${teamOverview?.openReports || 0} Reports, ${teamOverview?.openTickets || 0} Tickets`}
+                        description={t("modPerf:open_queue_desc", { reports: teamOverview?.openReports || 0, tickets: teamOverview?.openTickets || 0, defaultValue: "{{reports}} Reports, {{tickets}} Tickets" })}
                         loading={loadingOverview}
                     />
                 </div>
@@ -100,8 +100,8 @@ export default function ModeratorPerformancePage() {
                     <section className="md:col-span-5 space-y-4">
                         <div className="flex flex-wrap items-end justify-between gap-4">
                             <div>
-                                <h2 className="font-display text-xl font-semibold">{t("modPerf.leaderboard", "Moderator Leaderboard")}</h2>
-                                <p className="text-sm text-muted-foreground">{t("modPerf.leaderboard_desc", "Ranking based on weighted performance score.")}</p>
+                                <h2 className="font-display text-xl font-semibold">{t("modPerf:leaderboard", "Moderator Leaderboard")}</h2>
+                                <p className="text-sm text-muted-foreground">{t("modPerf:leaderboard_desc", "Ranking based on weighted performance score.")}</p>
                             </div>
                             <div className="flex gap-2">
                                 <Select value={period} onValueChange={(v: any) => setPeriod(v)}>
@@ -109,9 +109,9 @@ export default function ModeratorPerformancePage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="today">{t("modPerf.today", "Today")}</SelectItem>
-                                        <SelectItem value="7d">{t("modPerf.7d", "Last 7 Days")}</SelectItem>
-                                        <SelectItem value="30d">{t("modPerf.30d", "Last 30 Days")}</SelectItem>
+                                        <SelectItem value="today">{t("modPerf:today", "Today")}</SelectItem>
+                                        <SelectItem value="7d">{t("modPerf:7d", "Last 7 Days")}</SelectItem>
+                                        <SelectItem value="30d">{t("modPerf:30d", "Last 30 Days")}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -121,7 +121,7 @@ export default function ModeratorPerformancePage() {
                             columns={[
                                 { 
                                     key: "rank", 
-                                    label: t("modPerf.rank", "Rank"), 
+                                    label: t("modPerf:rank", "Rank"), 
                                     render: (_, index) => (
                                         <div className="ov-data font-medium">
                                             {index === 0 ? <Award className="h-5 w-5 text-star" /> : index + 1}
@@ -130,7 +130,7 @@ export default function ModeratorPerformancePage() {
                                 },
                                 { 
                                     key: "moderator", 
-                                    label: t("modPerf.moderator", "Moderator"), 
+                                    label: t("modPerf:moderator", "Moderator"), 
                                     render: (entry) => (
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-8 w-8">
@@ -145,10 +145,10 @@ export default function ModeratorPerformancePage() {
                                         </div>
                                     )
                                 },
-                                { key: "totalReportsHandled", label: t("modPerf.reports", "Reports"), render: (e) => <span className="ov-data">{e.totalReportsHandled}</span> },
-                                { key: "totalTicketsResolved", label: t("modPerf.tickets", "Tickets"), render: (e) => <span className="ov-data">{e.totalTicketsResolved}</span> },
-                                { key: "avgResponse", label: t("modPerf.avg_response_short", "Avg Resp."), render: (e) => <span className="ov-data">{formatTime(e.avgTicketResponseS)}</span> },
-                                { key: "score", label: t("modPerf.score", "Score"), render: (e) => <span className="ov-data font-semibold text-primary">{Math.round(e.totalScore)}</span> }
+                                { key: "totalReportsHandled", label: t("modPerf:reports", "Reports"), render: (e) => <span className="ov-data">{e.totalReportsHandled}</span> },
+                                { key: "totalTicketsResolved", label: t("modPerf:tickets", "Tickets"), render: (e) => <span className="ov-data">{e.totalTicketsResolved}</span> },
+                                { key: "avgResponse", label: t("modPerf:avg_response_short", "Avg Resp."), render: (e) => <span className="ov-data">{formatTime(e.avgTicketResponseS)}</span> },
+                                { key: "score", label: t("modPerf:score", "Score"), render: (e) => <span className="ov-data font-semibold text-primary">{Math.round(e.totalScore)}</span> }
                             ]}
                             data={leaderboard || []}
                             loading={loadingLeaderboard}
@@ -165,7 +165,7 @@ export default function ModeratorPerformancePage() {
                                     </div>
                                     <div className="text-right">
                                         <p className="ov-data text-lg font-semibold text-primary">{Math.round(entry.totalScore)}</p>
-                                        <p className="ov-label">Points</p>
+                                        <p className="ov-label">{t("modPerf:points", "Points")}</p>
                                     </div>
                                 </div>
                             )}
@@ -177,39 +177,39 @@ export default function ModeratorPerformancePage() {
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <TrendingUp className="h-5 w-5 text-primary" />
-                                {t("modPerf.scoring_logic", "Audit Scoring")}
+                                {t("modPerf:scoring_logic", "Audit Scoring")}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
-                                    <span>{t("modPerf.weight_report", "Report Resolution")}</span>
-                                    <span className="ov-data font-semibold text-primary">+3 pts</span>
+                                    <span>{t("modPerf:weight_report", "Report Resolution")}</span>
+                                    <span className="ov-data font-semibold text-primary">{t("modPerf:points_plus", { value: 3, defaultValue: "+{{value}} pts" })}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span>{t("modPerf.weight_ticket", "Ticket Solved")}</span>
-                                    <span className="ov-data font-semibold text-primary">+5 pts</span>
+                                    <span>{t("modPerf:weight_ticket", "Ticket Solved")}</span>
+                                    <span className="ov-data font-semibold text-primary">{t("modPerf:points_plus", { value: 5, defaultValue: "+{{value}} pts" })}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span>{t("modPerf.weight_comment", "Ticket Reply")}</span>
-                                    <span className="ov-data font-semibold text-primary">+1 pt</span>
+                                    <span>{t("modPerf:weight_comment", "Ticket Reply")}</span>
+                                    <span className="ov-data font-semibold text-primary">{t("modPerf:points_plus_one", "+1 pt")}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span>{t("modPerf.weight_response", "Fast Response (<2h)")}</span>
-                                    <span className="ov-data font-semibold text-primary">+10 pts</span>
+                                    <span>{t("modPerf:weight_response", "Fast Response (<2h)")}</span>
+                                    <span className="ov-data font-semibold text-primary">{t("modPerf:points_plus", { value: 10, defaultValue: "+{{value}} pts" })}</span>
                                 </div>
                             </div>
                             
                             <div className="p-3 bg-muted/50 rounded-sm text-xs text-muted-foreground border border-border">
                                 <BarChart3 className="h-4 w-4 mb-1 inline mr-2 text-primary" />
-                                {t("modPerf.scoring_hint", "Scores are recalculated daily. Weights are optimized to prioritize resolution speed and ticket quality.")}
+                                {t("modPerf:scoring_hint", "Scores are recalculated daily. Weights are optimized to prioritize resolution speed and ticket quality.")}
                             </div>
 
                             <div className="pt-4 border-t border-border space-y-4">
-                                <h4 className="ov-label">{t("modPerf.team_stats", "Team Stats (30d)")}</h4>
+                                <h4 className="ov-label">{t("modPerf:team_stats", "Team Stats (30d)")}</h4>
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-xs mb-1 text-muted-foreground">
-                                        <span>{t("modPerf.reports_efficiency", "Report Efficiency")}</span>
+                                        <span>{t("modPerf:reports_efficiency", "Report Efficiency")}</span>
                                         <span className="ov-data">88%</span>
                                     </div>
                                     <div className="h-1 w-full bg-secondary rounded-pill overflow-hidden">
@@ -218,7 +218,7 @@ export default function ModeratorPerformancePage() {
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-xs mb-1 text-muted-foreground">
-                                        <span>{t("modPerf.ticket_sla", "Ticket SLA (D1)")}</span>
+                                        <span>{t("modPerf:ticket_sla", "Ticket SLA (D1)")}</span>
                                         <span className="ov-data">92%</span>
                                     </div>
                                     <div className="h-1 w-full bg-secondary rounded-pill overflow-hidden">

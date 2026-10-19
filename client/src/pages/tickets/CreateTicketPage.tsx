@@ -54,7 +54,7 @@ export default function CreateTicketPage() {
         <PageHeader
           eyebrow={t("title", "Tickets")}
           title={t("createTicket")}
-          description="Submit a new signal for the team to process in zero-gravity."
+          description={t("createDescription", "Submit a new signal for the team to process in zero-gravity.")}
         />
 
         <div className="mt-8 grid lg:grid-cols-[1fr,320px] gap-8">
@@ -114,7 +114,7 @@ export default function CreateTicketPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="ov-label block">{t("fields.relatedUrl")} (Optional)</label>
+                  <label className="ov-label block">{t("fields.relatedUrl")} {t("fields.optional", "(Optional)")}</label>
                   <Input
                     type="url"
                     placeholder="https://..."
@@ -126,7 +126,7 @@ export default function CreateTicketPage() {
 
               </CardContent>
               <CardFooter className="flex justify-end gap-3 px-6 py-4 border-t border-border">
-                <Button type="button" variant="ghost" onClick={() => window.history.back()}>Cancel</Button>
+                <Button type="button" variant="ghost" onClick={() => window.history.back()}>{t("common.cancel", { ns: "translation", defaultValue: "Cancel" })}</Button>
                 <Button type="submit" disabled={isPending} className="w-48">
                   {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : t("createTicket")}
                 </Button>

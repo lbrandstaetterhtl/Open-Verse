@@ -16,7 +16,7 @@ export function ProfileTabs({ activeTab, onTabChange, counts, showSaved }: Profi
   const tabs = [
     { id: "posts", label: t("profile.tabs.posts", "Posts"), icon: LayoutGrid, count: counts?.posts },
     { id: "comments", label: t("profile.tabs.comments", "Comments"), icon: MessageCircle, count: counts?.comments },
-    { id: "liked", label: t("profile.tabs.liked", "Likes"), icon: Heart, count: counts?.liked },
+    { id: "liked", label: t("profile.tabs.liked", "Liked"), icon: Heart, count: counts?.liked },
     ...(showSaved ? [{ id: "saved", label: t("profile.tabs.saved", "Saved"), icon: Bookmark, count: undefined }] : []),
   ];
 

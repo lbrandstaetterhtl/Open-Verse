@@ -3,6 +3,7 @@ import { isAuthenticated, hasPermission } from "../middleware/auth";
 import { moderatorPerformanceService } from "../services/moderator-performance-service";
 import { activityLogger } from "../services/activity-logger";
 
+import { sendInternalError } from "../utils/http-errors";
 const router = Router();
 
 // Admin permission for mod performance
@@ -16,7 +17,7 @@ router.get("/leaderboard", isAuthenticated, checkPerm, async (req, res) => {
     const leaderboard = await moderatorPerformanceService.getModeratorLeaderboard(period, sortBy);
     res.json(leaderboard);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "mod-performance.ts request failed");
   }
 });
 
@@ -26,7 +27,7 @@ router.get("/team-overview", isAuthenticated, checkPerm, async (req, res) => {
     const overview = await moderatorPerformanceService.getTeamOverview();
     res.json(overview);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "mod-performance.ts request failed");
   }
 });
 
@@ -38,7 +39,7 @@ router.get("/moderator/:id", isAuthenticated, checkPerm, async (req, res) => {
     const detail = await moderatorPerformanceService.getModeratorDetail(modId, period);
     res.json(detail);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "mod-performance.ts request failed");
   }
 });
 
@@ -58,7 +59,7 @@ router.post("/snapshot", isAuthenticated, checkPerm, async (req, res) => {
 
     res.json({ success: true });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendInternalError(res, err, "mod-performance.ts request failed");
   }
 });
 

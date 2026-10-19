@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
+import { ApiError } from "@/lib/server-messages";
 import { z } from "zod";
 import {
   Dialog,
@@ -104,12 +105,12 @@ export function EditProfileModal({
     input.value = ""; // picking the same file again must fire onChange again
     if (!file) return;
     const fail = (description: string) =>
-      toast({ title: t("profile.image.upload_failed", "Bild konnte nicht hochgeladen werden"), description, variant: "destructive" });
+      toast({ title: t("profile.image.upload_failed", "Could not upload the image"), description, variant: "destructive" });
     if (!IMAGE_TYPES.includes(file.type)) {
-      return fail(t("profile.image.wrong_type", "Nur JPG, PNG oder WebP erlaubt."));
+      return fail(t("profile.image.wrong_type", "Only JPG, PNG or WebP are allowed."));
     }
     if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
-      return fail(t("profile.image.too_large", { defaultValue: "Die Datei ist zu groß (max. {{mb}} MB).", mb: MAX_IMAGE_MB }));
+      return fail(t("profile.image.too_large", { defaultValue: "The file is too large (max. {{mb}} MB).", mb: MAX_IMAGE_MB }));
     }
     const formData = new FormData();
     formData.append("type", kind);
@@ -163,15 +164,15 @@ export function EditProfileModal({
                   <TabsList className="h-12 w-full justify-start gap-1 rounded-none bg-transparent p-0 shadow-none">
                     <TabsTrigger value="general" className="h-full rounded-none px-3">
                       <Info className="w-4 h-4 mr-2" />
-                      {t("profile.edit_tabs.general", "Allgemein")}
+                      {t("profile.edit_tabs.general", "General")}
                     </TabsTrigger>
                     <TabsTrigger value="appearance" className="h-full rounded-none px-3">
                       <Palette className="w-4 h-4 mr-2" />
-                      {t("profile.edit_tabs.images", "Bilder")}
+                      {t("profile.edit_tabs.images", "Images")}
                     </TabsTrigger>
                     <TabsTrigger value="privacy" className="h-full rounded-none px-3">
                       <Shield className="w-4 h-4 mr-2" />
-                      {t("profile.edit_tabs.privacy", "Privatsphäre")}
+                      {t("profile.edit_tabs.privacy", "Privacy")}
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -191,7 +192,7 @@ export function EditProfileModal({
                                 {t('profile.form.name')}
                               </FormLabel>
                               <FormControl>
-                                <Input placeholder="John Doe" {...field} className="h-11 px-4" />
+                                <Input placeholder={t("profile.form.name_placeholder", "John Doe")} {...field} className="h-11 px-4" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -232,7 +233,7 @@ export function EditProfileModal({
                                   {t('profile.form.location')}
                                 </FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Berlin, Germany" {...field} className="h-11 px-4" />
+                                  <Input placeholder={t("profile.form.location_placeholder", "Berlin, Germany")} {...field} className="h-11 px-4" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -268,7 +269,7 @@ export function EditProfileModal({
                             <FormItem>
                               <FormLabel className="ov-label flex items-center gap-2 text-[11px]">
                                 <Camera className="h-3 w-3" />
-                                {t("profile.image.avatar", "Profilbild")}
+                                {t("profile.image.avatar", "Profile picture")}
                               </FormLabel>
                               <div className="ov-panel flex items-center gap-6 p-5">
                                 <div className="ov-avatar h-24 w-24 shrink-0 bg-muted relative group">
@@ -277,7 +278,7 @@ export function EditProfileModal({
                                       <Loader2 className="h-8 w-8 text-primary animate-spin" />
                                     </div>
                                   ) : field.value ? (
-                                    <img src={field.value} alt="Avatar Preview" className="w-full h-full object-cover" />
+                                    <img src={field.value} alt={t("profile.image.avatar_preview", "Avatar Preview")} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
                                       <UserIcon className="h-10 w-10" />
@@ -296,7 +297,7 @@ export function EditProfileModal({
                                       disabled={isUploadingAvatar}
                                       onClick={() => avatarInput.current?.click()}
                                     >
-                                      {field.value ? t("profile.image.change_avatar", "Profilbild ändern") : t("profile.image.choose_avatar", "Profilbild wählen")}
+                                      {field.value ? t("profile.image.change_avatar", "Change profile picture") : t("profile.image.choose_avatar", "Choose profile picture")}
                                     </Button>
                                     {field.value && (
                                       <Button
@@ -306,11 +307,11 @@ export function EditProfileModal({
                                         className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                         onClick={() => field.onChange("")}
                                       >
-                                        {t("profile.image.remove", "Entfernen")}
+                                        {t("profile.image.remove", "Remove")}
                                       </Button>
                                     )}
                                   </div>
-                                  <p className="text-xs text-muted-foreground">{t("profile.image.hint", { defaultValue: "JPG, PNG oder WebP, max. {{mb}} MB.", mb: MAX_IMAGE_MB })}</p>
+                                  <p className="text-xs text-muted-foreground">{t("profile.image.hint", { defaultValue: "JPG, PNG or WebP, max. {{mb}} MB.", mb: MAX_IMAGE_MB })}</p>
                                 </div>
                                 <input
                                   ref={avatarInput}
@@ -334,38 +335,38 @@ export function EditProfileModal({
                             <FormItem>
                               <FormLabel className="ov-label flex items-center gap-2 text-[11px]">
                                 <ImageIcon className="h-3 w-3" />
-                                {t("profile.image.cover", "Titelbild")}
+                                {t("profile.image.cover", "Cover image")}
                               </FormLabel>
                               <div className="space-y-4">
                                 <button
                                   type="button"
                                   disabled={isUploadingCover}
-                                  aria-label={field.value ? t("profile.image.change_cover", "Titelbild ändern") : t("profile.image.choose_cover", "Titelbild wählen")}
+                                  aria-label={field.value ? t("profile.image.change_cover", "Change cover image") : t("profile.image.choose_cover", "Choose cover image")}
                                   className="ov-cut-2 relative block w-full bg-muted/60 overflow-hidden aspect-[3/1] group cursor-pointer"
                                   onClick={() => coverInput.current?.click()}
                                 >
                                   {isUploadingCover ? (
                                     <div className="w-full h-full flex flex-col items-center justify-center bg-background/60 gap-3">
                                       <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                                      <span className="ov-label text-primary">{t("profile.image.uploading", "Wird hochgeladen …")}</span>
+                                      <span className="ov-label text-primary">{t("profile.image.uploading", "Uploading …")}</span>
                                     </div>
                                   ) : field.value ? (
-                                    <img src={field.value} alt="Cover Preview" className="w-full h-full object-cover" />
+                                    <img src={field.value} alt={t("profile.image.cover_preview", "Cover Preview")} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/40 gap-2">
                                       <ImageIcon className="h-12 w-12" />
-                                      <span className="ov-label">{t("profile.image.choose_cover", "Titelbild wählen")}</span>
+                                      <span className="ov-label">{t("profile.image.choose_cover", "Choose cover image")}</span>
                                     </div>
                                   )}
                                   <div className="absolute inset-0 bg-background/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                     <div className="ov-chip bg-background text-foreground">
                                       <Camera className="h-3.5 w-3.5" />
-                                      <span>{field.value ? t("profile.image.change_cover", "Titelbild ändern") : t("profile.image.choose_cover", "Titelbild wählen")}</span>
+                                      <span>{field.value ? t("profile.image.change_cover", "Change cover image") : t("profile.image.choose_cover", "Choose cover image")}</span>
                                     </div>
                                   </div>
                                 </button>
                                 <div className="flex justify-between items-center px-1">
-                                  <p className="text-xs text-muted-foreground">{t("profile.image.cover_hint", { defaultValue: "Querformat, z. B. 1500 × 500 px. JPG, PNG oder WebP, max. {{mb}} MB.", mb: MAX_IMAGE_MB })}</p>
+                                  <p className="text-xs text-muted-foreground">{t("profile.image.cover_hint", { defaultValue: "Landscape, e.g. 1500 × 500 px. JPG, PNG or WebP, max. {{mb}} MB.", mb: MAX_IMAGE_MB })}</p>
                                   {field.value && (
                                     <Button
                                       type="button"
@@ -374,7 +375,7 @@ export function EditProfileModal({
                                       className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                       onClick={(e) => { e.stopPropagation(); field.onChange(""); }}
                                     >
-                                      {t("profile.image.remove", "Entfernen")}
+                                      {t("profile.image.remove", "Remove")}
                                     </Button>
                                   )}
                                 </div>
@@ -444,17 +445,11 @@ export function EditProfileModal({
   );
 }
 
-// Server errors arrive as "413: {\"error\":\"...\"}" from apiRequest; show the readable part.
+// Upload errors: the server's (already translated) reason, or a hint when a proxy rejected the file.
 function uploadErrorMessage(err: unknown, t: (key: string, fallback: string) => string): string {
-  const raw = err instanceof Error ? err.message : String(err);
-  const status = Number(raw.split(":")[0]);
-  const body = raw.slice(raw.indexOf(":") + 1).trim();
-  try {
-    const parsed = JSON.parse(body);
-    if (parsed?.error) return String(parsed.error);
-  } catch {
-    // not JSON, e.g. an HTML page from a proxy
+  if (err instanceof ApiError) {
+    if (err.status === 413 && !err.code) return t("profile.image.too_large_proxy", "The file is too large.");
+    if (err.code || err.status < 500) return err.message;
   }
-  if (status === 413) return t("profile.image.too_large_proxy", "Die Datei ist zu groß.");
-  return t("profile.image.try_again", "Bitte versuche es noch einmal.");
+  return t("profile.image.try_again", "Please try again.");
 }

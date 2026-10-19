@@ -25,7 +25,7 @@ export function ModeratorStatsCard() {
                             <ShieldCheck className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="ov-label">{t("modPerf.reports_today", "Reports Handled")}</p>
+                            <p className="ov-label">{t("modPerf:reports_today", "Reports Handled")}</p>
                             <p className="ov-data text-xl font-semibold">{team?.reportsHandledToday || 0}</p>
                         </div>
                     </div>
@@ -35,7 +35,7 @@ export function ModeratorStatsCard() {
                             <TicketCheck className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="ov-label">{t("modPerf.tickets_today", "Tickets Resolved")}</p>
+                            <p className="ov-label">{t("modPerf:tickets_today", "Tickets Resolved")}</p>
                             <p className="ov-data text-xl font-semibold">{team?.ticketsResolvedToday || 0}</p>
                         </div>
                     </div>
@@ -45,7 +45,7 @@ export function ModeratorStatsCard() {
                             <Clock className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="ov-label">{t("modPerf.resp_time", "Avg Response")}</p>
+                            <p className="ov-label">{t("modPerf:resp_time", "Avg Response")}</p>
                             <p className="ov-data text-xl font-semibold">{formatTime(team?.avgTicketResponseSeconds || 0)}</p>
                         </div>
                     </div>
@@ -55,7 +55,7 @@ export function ModeratorStatsCard() {
                             <TrendingUp className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="ov-label">{t("modPerf.audit_score", "Audit Score")}</p>
+                            <p className="ov-label">{t("modPerf:audit_score", "Audit Score")}</p>
                             <div className="flex items-center gap-2">
                                 <p className="ov-data text-xl font-semibold">{(team?.reportsHandledToday || 0) * 3 + (team?.ticketsResolvedToday || 0) * 5}</p>
                                 {Number(team?.reportsTrend || 0) > 0 && (

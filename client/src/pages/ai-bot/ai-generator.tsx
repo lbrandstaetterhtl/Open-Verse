@@ -143,7 +143,7 @@ export default function AIGeneratorPage() {
             <CardHeader className="ov-rule flex-row items-center gap-4 space-y-0 p-6">
               <img
                 src="/ai-mascot.png"
-                alt="Mecha Osiris"
+                alt={t("ai_generator.mascot_alt", "Mecha Osiris, the AI mascot")}
                 className="h-20 w-20 md:h-24 md:w-24 shrink-0 object-contain"
               />
               <div className="min-w-0 space-y-2">
@@ -222,7 +222,7 @@ export default function AIGeneratorPage() {
                       >
                         <img
                           src={imagePreview}
-                          alt="Preview"
+                          alt={t("ai_generator.preview_alt", "Preview of your image")}
                           className="object-cover w-full h-full"
                         />
                         <Button

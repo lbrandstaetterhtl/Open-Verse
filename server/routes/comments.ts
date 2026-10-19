@@ -7,6 +7,7 @@ import { canDeleteContent } from "../utils/permissions";
 import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
 
+import { sendValidationError } from "../utils/http-errors";
 const router = Router();
 
 // We need to move canDeleteContent to a shared utility
@@ -17,7 +18,7 @@ const router = Router();
 
 router.post("/", isAuthenticated, async (req, res) => {
     const result = insertCommentSchema.safeParse(req.body);
-    if (!result.success) return res.status(400).json(result.error);
+    if (!result.success) return sendValidationError(res, result.error);
 
     try {
         const comment = await storage.createComment({
