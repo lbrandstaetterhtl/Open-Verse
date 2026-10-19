@@ -1102,7 +1102,8 @@
     "back_to_profile": "Volver al perfil",
     "back_to_feed": "Volver al feed",
     "user_followed": "Ahora sigues a este usuario",
-    "user_unfollowed": "Has dejado de seguir a este usuario"
+    "user_unfollowed": "Has dejado de seguir a este usuario",
+    "deleted_author": "[eliminado]"
   },
   "onboarding": {
     "bio_saved": "Tu biografía se ha guardado correctamente.",

@@ -18,7 +18,7 @@ interface ParticleBackgroundProps {
 
 export function ParticleBackground({ 
   count = 60, 
-  color = "rgba(255, 255, 255, 0.4)", 
+  color = "rgba(255, 255, 255, 0.7)", 
   speed = 0.5 
 }: ParticleBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -144,7 +144,7 @@ export function ParticleBackground({
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full mix-blend-screen pointer-events-none opacity-30"
+      className="absolute inset-0 w-full h-full mix-blend-screen pointer-events-none opacity-70"
     />
   );
 }

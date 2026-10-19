@@ -1102,7 +1102,8 @@
     "back_to_profile": "Back to Profile",
     "back_to_feed": "Back to Feed",
     "user_followed": "User followed successfully",
-    "user_unfollowed": "User unfollowed successfully"
+    "user_unfollowed": "User unfollowed successfully",
+    "deleted_author": "[deleted]"
   },
   "onboarding": {
     "bio_saved": "Your bio has been saved successfully.",

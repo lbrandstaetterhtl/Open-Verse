@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
+import type { TFunction } from "i18next";
 
 type MaybeAuthor = { id?: number | null; username?: string | null; deleted?: boolean } | null | undefined;
-
-export const DELETED_NAME = "[deleted]";
 
 /** Posts and comments of deleted accounts stay visible; their author comes as { deleted: true }. */
 export function isDeletedAuthor(author: MaybeAuthor): boolean {
@@ -23,7 +22,7 @@ export function AuthorLink({ author, className, children }: { author: MaybeAutho
   );
 }
 
-/** Display name: the username, or "[deleted]". */
-export function authorName(author: MaybeAuthor): string {
-  return isDeletedAuthor(author) ? DELETED_NAME : author!.username!;
+/** Display name: the username, or the translated placeholder for a deleted account ("[deleted]"). */
+export function authorName(author: MaybeAuthor, t: TFunction): string {
+  return isDeletedAuthor(author) ? t("post.deleted_author", "[deleted]") : author!.username!;
 }
