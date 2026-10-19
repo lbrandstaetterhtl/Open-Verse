@@ -19,7 +19,8 @@ i18n
     ns: ["translation", "tickets", "analytics", "modPerf", "server"],
     defaultNS: "translation",
     backend: {
-      loadPath: "/locales/{{lng}}/{{ns}}.json",
+      // ?v= changes whenever a translation file changes (see vite.config.ts), so browsers never use stale texts
+      loadPath: `/locales/{{lng}}/{{ns}}.json?v=${__LOCALES_VERSION__}`,
     },
   });
 

@@ -78,9 +78,19 @@ export function serveStatic(app: Express) {
   }
 
   app.use(express.static(distPath, {
-    maxAge: '1y',
-    immutable: true,
-    index: false
+    index: false,
+    setHeaders: (res, filePath) => {
+      const rel = path.relative(distPath, filePath).split(path.sep).join("/");
+      if (rel.startsWith("assets/")) {
+        // Vite puts a content hash into these file names: safe to cache forever
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      } else if (rel.startsWith("locales/")) {
+        // Translations keep their names; the browser must revalidate (ETag) so updates show up at once
+        res.setHeader("Cache-Control", "no-cache");
+      } else {
+        res.setHeader("Cache-Control", "public, max-age=3600");
+      }
+    },
   }));
 
   // fall through to index.html if the file doesn't exist

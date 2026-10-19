@@ -132,7 +132,12 @@ function ownerLog(level: 'info' | 'warn' | 'error' | 'critical', message: string
 
 export async function seedInitialOwner() {
   const username = process.env.INITIAL_OWNER_USERNAME?.trim();
-  const password = process.env.INITIAL_OWNER_PASSWORD;
+  // Trailing spaces in .env lines are almost always accidental (and invisible in editors)
+  const rawPassword = process.env.INITIAL_OWNER_PASSWORD;
+  const password = rawPassword?.replace(/\s+$/, "");
+  if (rawPassword && password !== rawPassword) {
+    ownerLog('warn', 'INITIAL_OWNER_PASSWORD ended with spaces; they were ignored');
+  }
   const email = process.env.INITIAL_OWNER_EMAIL?.trim() || `${username}@localhost`;
   const resetPassword = process.env.INITIAL_OWNER_RESET_PASSWORD?.trim() === 'true';
 
