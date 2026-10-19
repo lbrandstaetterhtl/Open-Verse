@@ -10,27 +10,31 @@ interface Particle {
   opacity: number;
   life: number;
   maxLife: number;
+  /** Which of the three glow colors this particle uses. */
+  color: number;
+}
+
+interface GlowStops {
+  inner: string;
+  mid: string;
+  outer: string;
 }
 
 interface ResolvedColors {
   core: string;
-  glowInner: string;
-  glowMid: string;
-  glowOuter: string;
+  glows: GlowStops[];
 }
 
 /** Reads particle CSS variables set by applyParticleConfig() */
 function readParticleColors(): ResolvedColors {
   const style = getComputedStyle(document.documentElement);
   const core = style.getPropertyValue("--particle-core").trim() || defaultParticles.coreColor;
-  const glow = style.getPropertyValue("--particle-glow").trim() || defaultParticles.glowColor;
+  const glows = defaultParticles.glowColors.map((fallback, i) => {
+    const glow = style.getPropertyValue(`--particle-glow-${i + 1}`).trim() || fallback;
+    return { inner: glow + "ff", mid: glow + "88", outer: glow + "00" };
+  });
 
-  return {
-    core,
-    glowInner: glow + "ff",
-    glowMid:   glow + "88",
-    glowOuter: glow + "00",
-  };
+  return { core, glows };
 }
 
 /** Reads --particle-enabled CSS variable */
@@ -61,7 +65,7 @@ function readSettings(): ParticleSettings {
 
 /**
  * CursorParticles — Canvas particle system.
- * Colors are driven by --particle-core and --particle-glow CSS variables,
+ * Colors are driven by --particle-core and --particle-glow-1..3 CSS variables,
  * set via applyParticleConfig() from the ThemeBuilder.
  */
 export function CursorParticles() {
@@ -119,6 +123,7 @@ export function CursorParticles() {
         opacity: 0.35 + Math.random() * 0.65,
         life:    Math.random() * maxLife,
         maxLife,
+        color:   Math.floor(Math.random() * 3),
       };
     }
 
@@ -131,11 +136,12 @@ export function CursorParticles() {
       const renderSize = p.size * settings.size;
       const renderGlow = renderSize * 3.5 * settings.glowStrength;
 
-      // Glow halo using custom glow color
+      // Glow halo in this particle's color
+      const glow = colors.glows[p.color] ?? colors.glows[0];
       const g = ctx!.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(renderGlow, 0.1));
-      g.addColorStop(0,   colors.glowInner);
-      g.addColorStop(0.4, colors.glowMid);
-      g.addColorStop(1,   colors.glowOuter);
+      g.addColorStop(0,   glow.inner);
+      g.addColorStop(0.4, glow.mid);
+      g.addColorStop(1,   glow.outer);
       ctx!.beginPath();
       ctx!.arc(p.x, p.y, Math.max(renderGlow, 0.1), 0, Math.PI * 2);
       ctx!.fillStyle = g;
