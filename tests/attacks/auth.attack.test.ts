@@ -179,8 +179,9 @@ describe("Angriff: User enumeration", () => {
     const victim = await makeUser("srchmail", STRONG);
     const viewer = await makeUser("srchview", STRONG);
     const r = await viewer.client.get(`/api/users/search?q=${victim.username}`);
-    assert.equal(r.status, 200, await r.text());
-    const rows = (await r.json()) as any[];
+    const text = await r.text();
+    assert.equal(r.status, 200, text);
+    const rows = JSON.parse(text) as any[];
     const hit = rows.find((u) => u.username === victim.username);
     assert.ok(hit, "search did not find the user");
     assert.ok(
@@ -196,8 +197,9 @@ describe("Angriff: User enumeration", () => {
     try {
       const anon = freshClient();
       const r = await anon.get(`/api/users/${victim.username}`);
-      assert.equal(r.status, 200, await r.text());
-      const body = (await r.json()) as any;
+      const text = await r.text();
+      assert.equal(r.status, 200, text);
+      const body = JSON.parse(text) as any;
       const leaked = ["isShadowBanned", "isFrozen", "freezeReason", "adminGroupId", "emailVerified", "email"].filter(
         (f) => body[f] !== undefined && body[f] !== null,
       );
@@ -331,7 +333,12 @@ describe("Angriff: CSRF and CORS", () => {
   test("PATCH /api/profile rejects a CSRF token that belongs to another session", async () => {
     const victim = await makeUser("csrfcross", STRONG);
     const other = await makeUser("csrfother", STRONG);
-    const r = await victim.client.patch("/api/profile", { bio: "x" }, { headers: { "x-csrf-token": other.client.csrfToken! } });
+    // csrf:false stops the client from auto-injecting victim's own token, so only the foreign token is sent.
+    const r = await victim.client.patch(
+      "/api/profile",
+      { bio: "x" },
+      { csrf: false, headers: { "x-csrf-token": other.client.csrfToken! } },
+    );
     assert.equal(r.status, 403, "a CSRF token from a different session was accepted (token not bound to the session)");
   });
 
@@ -376,8 +383,9 @@ describe("Angriff: Account takeover and privilege escalation", () => {
       emailVerified: 1,
       adminGroupId: 1,
     });
-    assert.equal(r.status, 201, await r.text());
-    const body = (await r.json()) as any;
+    const text = await r.text();
+    assert.equal(r.status, 201, text);
+    const body = JSON.parse(text) as any;
     assert.equal(body.role ?? "user", "user", "register let the body set role");
     assert.ok(!body.isAdmin, "register let the body set isAdmin");
     assert.equal(body.karma ?? 0, 0, "register let the body set karma");
@@ -386,7 +394,9 @@ describe("Angriff: Account takeover and privilege escalation", () => {
 
   test("PATCH /api/profile ignores privilege fields (no self-promotion)", async () => {
     const victim = await makeUser("escprof", STRONG);
+    // Include a cosmetic field so the update is non-empty (an all-stripped body hangs — AUTH-8).
     const r = await victim.client.patch("/api/profile", {
+      bio: "hello",
       role: "owner",
       isAdmin: 1,
       karma: 99999,
@@ -394,7 +404,8 @@ describe("Angriff: Account takeover and privilege escalation", () => {
       emailVerified: 1,
       adminGroupId: 1,
     });
-    assert.ok(r.status === 200 || r.status === 400, await r.text());
+    const text = await r.text();
+    assert.ok(r.status === 200 || r.status === 400, text);
     const me = await (await victim.client.get("/api/user")).json();
     assert.equal(me.role, "user", "PATCH /api/profile changed the caller's role");
     assert.ok(!me.isAdmin, "PATCH /api/profile set isAdmin");
@@ -452,7 +463,7 @@ describe("Angriff: Account takeover and privilege escalation", () => {
   });
 
   test.todo(
-    "INITIAL_OWNER bootstrap can be squatted: pre-registering the owner username before first boot blocks owner creation (needs a fresh, un-bootstrapped DB; see finding ATK-AUTH-OWNER)",
+    "INITIAL_OWNER bootstrap can be squatted: pre-registering the owner username before first boot blocks owner creation (needs a fresh, un-bootstrapped DB; see finding ATK-AUTH-17)",
   );
 });
 
