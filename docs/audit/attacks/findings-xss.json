@@ -1,0 +1,50 @@
+[
+  {
+    "id": "ATK-XSS-1",
+    "severity": "high",
+    "title": "Stored javascript:/data: URL in ticket relatedUrl is rendered as a clickable link in the owner/admin ticket view (stored XSS targeting staff)",
+    "scenario": "A normal user files a support ticket whose 'relatedUrl' is a javascript: URL so that when staff open the ticket and click the 'Related Signal' link, attacker JavaScript runs in the most-privileged session.",
+    "route": "POST /api/tickets -> GET /tickets/:id (TicketDetailPage)",
+    "evidence": "POST /api/tickets {relatedUrl:\"javascript:window.__xss=1;...\"} -> 201, stored verbatim and returned by GET /api/tickets/:id. Owner opens /tickets/:id -> DOM contains <a href=\"javascript:window.__xss=1...\" target=\"_blank\" rel=\"noreferrer\">. Variants javascript:/JaVaScRiPt:/ leading-space/ data:text/html/ vbscript: are all stored unchanged. Clicking it in this build is blocked only by the app-page CSP (console: 'Refused to run the JavaScript URL because it violates the following Content Security Policy directive: script-src self'); i.e. the application code itself has no scheme validation and relies entirely on CSP.",
+    "test": "tests/attacks/xss.browser.attack.mjs › Angriff: javascript: URL in ticket relatedUrl (stored XSS targeting staff) › ticket relatedUrl link is http(s) only, never a javascript:/data: href; tests/attacks/xss.attack.test.ts › Angriff: javascript:/data: URL stored in ticket relatedUrl › relatedUrl ... must be rejected or sanitized (5 cases)",
+    "cause": "server/routes/tickets.ts:87-114 validates only title/description/type/priority and passes the whole req.body (incl. relatedUrl) into TicketService.createTicket; server/services/ticket-service.ts:104 spreads ...data into the insert; shared/schema.ts:307 relatedUrl is an unconstrained text column; client/src/pages/tickets/TicketDetailPage.tsx:318 renders href={ticket.relatedUrl} with no scheme check (React only warns on javascript: URLs, it does not block them).",
+    "fix": "Validate relatedUrl server-side: z.string().trim().max(2048).url().refine(u => /^https?:\\/\\//i.test(u)) or empty, reject otherwise with 400. Client: only render the <a> when /^https?:\\/\\//i.test(relatedUrl), else show plain text; a reusable isSafeHttpUrl() already exists in spirit at client/src/lib/theme-utils.ts:163 (isSafeUrl).",
+    "sameAs": "UI-1"
+  },
+  {
+    "id": "ATK-XSS-2",
+    "severity": "low",
+    "title": "Profile 'website' external link opens with target=_blank but no rel=noopener/noreferrer (reverse tabnabbing); server stores unvalidated URL scheme",
+    "scenario": "An attacker sets their profile website to a page they control; a victim viewing the profile clicks the link, and the opened page can navigate the opener tab (reverse tabnabbing / phishing).",
+    "route": "PATCH /api/profile -> GET /users/:username (ProfileHeader)",
+    "evidence": "Profile with website=https://example.com/attacker renders <a target=\"_blank\"> with rel=null (no noopener). PATCH /api/profile {website:\"javascript:...\"} / \"data:text/html,...\" / \"vbscript:...\" -> 200 stored verbatim; the dangerous schemes themselves are neutralised at render because ProfileHeader prefixes 'https://' when the value does not start with 'http', so no JS executes, but the missing rel= and the absent server-side scheme validation remain.",
+    "test": "tests/attacks/xss.browser.attack.mjs › Angriff: profile website link (tabnabbing / scheme) › external website link is http(s) and carries rel=noopener/noreferrer; › javascript: scheme in website never becomes an executable link (passes); tests/attacks/xss.attack.test.ts › Angriff: dangerous-scheme URL stored in profile website (3 cases)",
+    "cause": "client/src/components/profile/ProfileHeader.tsx:132-141 sets target=\"_blank\" with no rel attribute; shared/schema.ts:555-567 updateProfileSchema derives a plain z.string() for website with no .url()/scheme check (same root as AUTH-10). Modern Chromium implicitly severs window.opener for target=_blank, so real-world impact is limited, hence low.",
+    "fix": "Add rel=\"noopener noreferrer\" to the website anchor (and any other user-data target=_blank link). Validate website server-side to http(s) only (see ATK-XSS-1 / AUTH-10 fix) instead of relying on the client 'https://' prefix hack.",
+    "sameAs": "AUTH-10"
+  },
+  {
+    "id": "ATK-XSS-3",
+    "severity": "info",
+    "title": "Theme background gradient and image-URL values are written into inline styles without URL validation (CSS url() fetch), contained only by CSP and self-apply scope",
+    "scenario": "A crafted theme config carries a gradient/image value containing url(https://attacker/...) so that applying it would make the browser fetch an attacker-controlled resource (tracking/exfil) from CSS.",
+    "route": "client theme engine (localStorage customTheme / GET /api/user/themes) -> ThemeBackground / applyTheme",
+    "evidence": "Code review: client/src/components/theme/theme-background.tsx:84 style={{ background: bg.gradient }} and :95 backgroundImage: `url(${resolvedImageUrl})` take raw theme values; client/src/lib/theme-utils.ts:639 (--bg-gradient) and :647 (--bg-image-ref) setProperty the raw strings; isSafeUrl (theme-utils.ts:163) is applied ONLY to background.image.value of type 'url' during migrateTheme (theme-utils.ts:871), not to the gradient and not to colors. Reproduction in Chromium: a theme with gradient=url(https://xss-beacon.example.com/pixel.png) did NOT load the beacon — the app-document CSP img-src 'self' data: blob: blocked it, and themes are applied only to the user's own session (no cross-user apply path found in server/routes/themes.ts), so no exploit was reproduced. Filed as info/defense-in-depth.",
+    "test": "tests/attacks/xss.browser.attack.mjs › Angriff: theme CSS value injection › gradient/image-url theme value cannot fetch a cross-origin beacon or run JS (passes: CSP contains it)",
+    "cause": "Theme values are trusted end-to-end on the client; no central URL/CSS sanitisation for gradient/colors. Safe today only because (a) CSP img-src is 'self' and (b) a theme cannot be forced onto another user. If CSP img-src were relaxed to include https:, or a 'share/apply this user's theme' feature were added, these become a CSS-exfil / UI-redress vector.",
+    "fix": "Run gradient and image values through isSafeUrl / an allow-list (no url() to foreign origins, or restrict to /uploads/ and data:image/), and keep theme application strictly to the owning user. Keep CSP img-src without a broad https:.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-XSS-4",
+    "severity": "low",
+    "title": "Inconsistent CSP: /api/* responses ship a weaker Content-Security-Policy (script-src 'unsafe-inline' 'unsafe-eval', frame-ancestors 'self') than the app document",
+    "scenario": "Defense-in-depth: the strict app-document CSP is the only control stopping the stored javascript: link in ATK-XSS-1; a second, looser CSP on other responses weakens the overall guarantee and would permit inline script / framing if such a response were ever rendered as a document.",
+    "route": "GET / (app document) vs GET /api/* (JSON)",
+    "evidence": "GET / -> CSP 'default-src self; ...; script-src self; ...; frame-ancestors none' (strict, blocks inline & javascript: URLs, confirmed). GET /api/health -> CSP 'default-src self; script-src self unsafe-inline unsafe-eval; ...; frame-ancestors self; upgrade-insecure-requests'. Two helmet configurations exist and set different policies per path.",
+    "test": "tests/attacks/xss.attack.test.ts › Angriff: response headers that limit script execution and framing › API responses use the same strict script-src as the app document (no weaker CSP on /api/*) — fails; the three app-document header checks (strict script-src, anti-framing, nosniff) pass.",
+    "cause": "server/index.ts:25-40 installs a first helmet with scriptSrc ['self','unsafe-inline','unsafe-eval'] and frameSrc 'none'; server/routes/index.ts:95-114 installs a second helmet whose scriptSrc is ['self'] only in production and frameAncestors 'none'. Depending on middleware order the first (looser) policy remains on API responses while the app document gets the strict one.",
+    "fix": "Use a single helmet/CSP configuration for the whole app with scriptSrc ['self'] (no unsafe-inline/unsafe-eval) and frame-ancestors 'none' everywhere; remove the duplicate helmet in server/index.ts.",
+    "sameAs": null
+  }
+]

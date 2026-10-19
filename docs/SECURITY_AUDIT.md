@@ -1,38 +1,51 @@
 # Sicherheits- und Funktions-Audit
 
-Stand: 2026-10-17. Geprüft wurde jede API-Route (151, automatisch aus dem Code ermittelt) und jedes Formular der Oberfläche – auf Funktion und Sicherheit.
+Stand: 2026-10-19. Geprüft wurde jede API-Route (automatisch aus dem Code ermittelt), jedes Formular der Oberfläche und – in einer zweiten Runde – gezielte **Angriffsszenarien**: Ein Angreifer verfolgt ein Ziel (Konto übernehmen, Admin werden, fremde Daten lesen, Code im Browser eines Opfers ausführen, den Server lahmlegen) und verkettet dafür mehrere Schritte.
+
+Jeder Test prüft das **sichere** Verhalten. Ein fehlschlagender Test ist ein nachgewiesener Befund und wird grün, sobald der Befund behoben ist.
 
 ## Testsuiten
 
-| Datei | Bereich | Tests |
-|---|---|---|
-|  | Zugriffsrechte jeder Route: anonym, Benutzer, Admin je Berechtigung, Owner, CSRF, fremde Objekte, kaputte IDs (aus  generiert) | 376 |
-|  | Registrierung, Login, Logout, Sitzungen, Cookies, Header, Profil, Passwort, private Profile | 82 |
-|  | Beiträge, Kommentare, Reaktionen, Speichern, Meldungen, Feeds, Suche, Uploads | 129 |
-|  | Folgen, Direktnachrichten, Benachrichtigungen, Communities, WebSocket | 105 |
-|  | Jede schreibende Route und jeder Query-Parameter mit kaputten, riesigen und bösartigen Eingaben | 189 |
-|  | Jedes Formular im Browser: Validierung, Fehlermeldungen, Doppel-Klick, XSS-Darstellung | 79 |
-|  | Bestehende Funktionstests | 127 |
-| ,  | Tests, die globale Einstellungen ändern oder zerstörerisch sind – nur gegen einen Wegwerf-Server ausführen | – |
+| Datei | Bereich | Tests | Fehlgeschlagen vorher | Fehlgeschlagen nachher |
+|---|---|---|---|---|
+| `tests/e2e/api.test.ts` | Funktionstests aller Hauptfunktionen | 128 | 0 | – |
+| `tests/e2e/auth-account.test.ts` | Registrierung, Login, Sitzungen, Profil, Passwort | 82 | 30 | – |
+| `tests/e2e/authz.test.ts` | Zugriffsrechte jeder Route (anonym, Benutzer, jede Admin-Berechtigung, Owner, CSRF, fremde Objekte, kaputte IDs) | 376 | 80 | – |
+| `tests/e2e/content.test.ts` | Beiträge, Kommentare, Reaktionen, Meldungen, Feeds, Suche, Uploads | 129 | 55 | – |
+| `tests/e2e/social.test.ts` | Folgen, Nachrichten, Benachrichtigungen, Communities, WebSocket | 105 | 37 | – |
+| `tests/e2e/input-fuzz.test.ts` | Jede schreibende Route und jeder Query-Parameter mit kaputten, riesigen und bösartigen Eingaben | 189 | 76 | – |
+| `tests/attacks/auth.attack.test.ts` | Angriffe: Brute Force, Konto-Übernahme, Sitzungen, CSRF, CORS, Sperren umgehen | 40 | 25 | – |
+| `tests/attacks/authz.attack.test.ts` | Angriffe: Rechteausweitung, fremde Daten (IDOR), private Communities, Shadow-Bans | 43 | 18 | – |
+| `tests/attacks/inject.attack.test.ts` | Angriffe: SQL, Typ-Verwirrung, Prototype Pollution, ReDoS, riesige Bodies | 36 | 16 | – |
+| `tests/attacks/upload.attack.test.ts` | Angriffe: Datei-Uploads (Typen, SVG/HTML, Pfade, Metadaten, Pixel-Bomben) | 16 | 7 | – |
+| `tests/attacks/realtime.attack.test.ts` | Angriffe: WebSocket, Verfügbarkeit, Informationslecks, Konfiguration | 16 | 2 | – |
+| `tests/attacks/xss.attack.test.ts` | Angriffe: XSS über API-Felder, Sicherheits-Header | 13 | 9 | – |
+| **gesamt** | | **1173** | **355** | **–** |
 
-Ausführen: 
+Dazu kommen die Browser-Suiten `tests/browser/forms.test.mjs` (jedes Formular) und `tests/attacks/xss.browser.attack.mjs` (gespeicherte Schadcode-Texte in jedem angezeigten Feld, in Chromium geprüft).
 
-Die Befunde mit Beleg, Ursache (Datei:Zeile) und Fix-Vorschlag liegen in .
+**Ausführen:** Jede Suite gegen einen eigenen Wegwerf-Server mit eigener Datenbank, z. B.
 
-## Audit 1 – Befunde
+```bash
+E2E_BASE_URL=http://127.0.0.1:5099 E2E_ADMIN_USER=<owner> E2E_ADMIN_PASSWORD=<passwort> \
+  npx tsx --test --test-reporter=spec tests/attacks/auth.attack.test.ts
+```
 
-Während des Audits sind zwei Abstürze sofort behoben worden, weil sie den gemeinsamen Testserver lahmlegten: ein abgeschnittener Upload (multer 1.4.5, CVE-2025-47935/47944 → Update auf 2.0.2) und eine WebSocket-Verbindung mit .
+Die Angriffs- und Admin-Suiten ändern globale Einstellungen, sperren Benutzer und löschen Dateien – **nie gegen die echte Instanz ausführen**.
 
-Einige Befunde wurden von mehreren Suiten unabhängig gefunden (z. B. das Datenleck in Benachrichtigungen als SOCIAL-1, AUTHZ-4 und INPUT-1).
+## Überblick
+
+Eindeutige Befunde (Duplikate aus Runde 2 mit „wie …“ markiert und nicht doppelt gezählt): **154**
 
 | Schwere | Anzahl |
 |---|---|
 | kritisch | 5 |
-| hoch | 17 |
-| mittel | 42 |
-| niedrig | 52 |
-| Hinweis | 8 |
-| **gesamt** | **124** |
+| hoch | 22 |
+| mittel | 49 |
+| niedrig | 62 |
+| Hinweis | 16 |
+
+## Runde 1 – Routen und Formulare
 
 ### Zugriffsrechte (alle Routen)
 
@@ -192,4 +205,93 @@ Einige Befunde wurden von mehreren Suiten unabhängig gefunden (z. B. das Datenl
 | UI-15 | Hinweis | No password change form in the client although PATCH /api/profile/password exists | `PATCH /api/profile/password` | – |
 | UI-16 | Hinweis | Ticket form checks description >= 20 characters, server requires 50 (message says 50) | `POST /api/tickets` | – |
 | UI-17 | Hinweis | Registration under a near-simultaneous double submit: second request 500, user sees 'Registrierung fehlgeschlagen' although the account was created | `POST /api/register` | – |
+
+## Runde 2 – Angriffsszenarien
+
+### Konto-Übernahme und Sitzungen
+
+| ID | Schwere | Befund | Route | Status |
+|---|---|---|---|---|
+| ATK-AUTH-1 | hoch | Unlimited password brute force against any account by rotating X-Forwarded-For (per-IP limiter and per-account anomaly detection both bypassed, no lockout) | `POST /api/login` | wie AUTH-14 |
+| ATK-AUTH-2 | mittel | Registration and password-change rate limits are also per-IP and bypassed by X-Forwarded-For rotation (mass account creation; current-password brute force with a stolen session) | `POST /api/register, PATCH /api/profile/password` | – |
+| ATK-AUTH-3 | mittel | Login, register and logout have no CSRF protection (login CSRF, forced logout) | `POST /api/login, POST /api/register, POST /api/logout` | wie AUTH-4 |
+| ATK-AUTH-4 | mittel | CORS reflects any Origin (including 'null') with Access-Control-Allow-Credentials: true | `ALL /api/*` | wie AUTH-3 |
+| ATK-AUTH-5 | mittel | IP/device bans do not cover the auth routes: a banned client can still register and log in | `POST /api/register, POST /api/login` | wie AUTH-5 |
+| ATK-AUTH-6 | mittel | A frozen account can still change its own profile and password | `PATCH /api/profile, PATCH /api/profile/password` | wie AUTH-5 |
+| ATK-AUTH-7 | mittel | Changing the password does not invalidate the user's other sessions | `PATCH /api/profile/password` | wie AUTH-7 |
+| ATK-AUTH-8 | mittel | bcrypt 72-byte truncation: passwords sharing their first 72 bytes are interchangeable | `POST /api/login, POST /api/register` | – |
+| ATK-AUTH-9 | mittel | registration_enabled setting is never enforced — registration cannot actually be disabled | `POST /api/register` | – |
+| ATK-AUTH-11 | mittel | Public profile exposes other users' moderation and internal fields | `GET /api/users/:username` | wie AUTH-6 |
+| ATK-AUTH-12 | mittel | User search leaks other users' email addresses | `GET /api/users/search` | wie AUTH-6 |
+| ATK-AUTH-13 | mittel | Usernames/emails are unique only case-sensitively, enabling impersonation and per-mailbox duplicates | `POST /api/register` | wie AUTH-2 |
+| ATK-AUTH-10 | niedrig | Maintenance mode fails to block registration and profile/password edits | `POST /api/register, PATCH /api/profile, PATCH /api/profile/password` | – |
+| ATK-AUTH-14 | niedrig | Session cookie is not marked Secure behind the HTTPS reverse proxy | `ALL (Set-Cookie connect.sid)` | wie AUTH-12 |
+| ATK-AUTH-15 | niedrig | No password strength policy — weak/common passwords are accepted | `POST /api/register, PATCH /api/profile/password` | – |
+| ATK-AUTH-16 | Hinweis | Registration reveals whether a username or email is already taken (enumeration) | `POST /api/register` | wie AUTH-14 |
+| ATK-AUTH-17 | Hinweis | INITIAL_OWNER bootstrap can be squatted: pre-registering the owner username blocks owner creation | `server/db-migrations.ts seedInitialOwner()` | – |
+
+### Rechteausweitung und fremde Daten
+
+| ID | Schwere | Befund | Route | Status |
+|---|---|---|---|---|
+| ATK-AUTHZ-1 | hoch | Any logged-in user can rewrite the content of any support-ticket comment (including staff/owner-internal ones) via a ticket they own | `PATCH /api/tickets/:id/comments/:cId` | – |
+| ATK-AUTHZ-2 | hoch | Any logged-in user can delete any support-ticket comment via a ticket they own (IDOR) | `DELETE /api/tickets/:id/comments/:cId` | – |
+| ATK-AUTHZ-6 | hoch | Admin with no permissions escalates to all permissions by creating an admin group and assigning it to themselves | `POST /api/admin/groups, POST /api/admin/groups/assign` | wie AUTHZ-1 |
+| ATK-AUTHZ-7 | hoch | Admin with only the 'users' permission escalates to all permissions by editing their own adminGroupId | `PATCH /api/admin/users/:id` | wie AUTHZ-2 |
+| ATK-AUTHZ-8 | hoch | A non-owner admin can demote or lock out a platform owner | `PATCH /api/admin/users/:id` | wie AUTHZ-3 |
+| ATK-AUTHZ-9 | hoch | Notifications expose the acting user's email and bcrypt password hash | `GET /api/notifications` | wie AUTHZ-4 |
+| ATK-AUTHZ-3 | mittel | Non-member can read posts of a private community (feed filter and single-post view) | `GET /api/posts?communityId=:id, GET /api/posts/:id` | – |
+| ATK-AUTHZ-10 | mittel | Any user can mark-as-read or delete (archive) other users' notifications (IDOR) | `POST /api/notifications/:id/read, DELETE /api/notifications/:id` | wie AUTHZ-5 |
+| ATK-AUTHZ-12 | mittel | The 'tickets' permission is not enforced: every admin reads ticket stats and other users' tickets | `GET /api/tickets/stats, GET /api/tickets, GET /api/tickets/:id` | wie AUTHZ-7 |
+| ATK-AUTHZ-4 | niedrig | Shadow-banned user's comments leak through GET /api/posts/:postId/comments | `GET /api/posts/:postId/comments` | – |
+| ATK-AUTHZ-5 | niedrig | Shadow-banned user's posts leak through their public profile (GET /api/:username/posts) | `GET /api/:username/posts (also /api/user[s]/:username/posts)` | – |
+| ATK-AUTHZ-11 | niedrig | Member list of a private community is visible to any logged-in non-member | `GET /api/communities/:id/members` | wie AUTHZ-13 |
+| ATK-AUTHZ-13 | niedrig | Admins can delete posts written by an owner (comments are protected, posts are not) | `DELETE /api/posts/:id` | wie AUTHZ-14 |
+
+### Eingaben auf dem Server
+
+| ID | Schwere | Befund | Route | Status |
+|---|---|---|---|---|
+| ATK-INJECT-1 | mittel | Array/object/duplicate query parameters crash the notifications list (type confusion → 500 DoS) | `GET /api/notifications` | – |
+| ATK-INJECT-2 | mittel | Public posts feed crashes (500) on object-valued query parameters | `GET /api/posts` | wie CONTENT-10 |
+| ATK-INJECT-3 | mittel | Admin log/monitoring/leaderboard endpoints crash (500) on object/array query values and unknown sortBy | `GET /api/admin/logs, GET /api/admin/monitoring/activity-logs, GET /api/admin/performance/leaderboard` | wie INPUT-14 |
+| ATK-INJECT-4 | mittel | Numeric path parameters without validateIdParams crash routes with 500 (out-of-range / non-numeric / NUL) | `GET /api/messages/:userId, GET /api/tickets/:id/history, GET /api/communities/:id/members, GET /api/admin/performance/moderator/:id, GET /api/users/:username/posts` | wie SOCIAL-22 |
+| ATK-INJECT-6 | mittel | Oversized email bypasses profile validation and hangs the request forever (connection-exhaustion DoS) | `PATCH /api/profile` | wie INPUT-6 |
+| ATK-INJECT-7 | mittel | Notification preferences write the raw body; an object-valued flag reaches the DB (500) | `PATCH /api/notifications/preferences` | wie INPUT-4 |
+| ATK-INJECT-5 | niedrig | Negative pagination offset reaches SQL OFFSET on the notifications list (500) | `GET /api/notifications` | wie SOCIAL-22 |
+| ATK-INJECT-8 | niedrig | Profanity filter is a raw substring match: unicode (zero-width / fullwidth / homoglyph) evades it | `POST /api/posts (also POST /api/comments via the same checkContent)` | – |
+
+### Schadcode im Browser
+
+| ID | Schwere | Befund | Route | Status |
+|---|---|---|---|---|
+| ATK-XSS-1 | hoch | Stored javascript:/data: URL in ticket relatedUrl is rendered as a clickable link in the owner/admin ticket view (stored XSS targeting staff) | `POST /api/tickets -> GET /tickets/:id (TicketDetailPage)` | wie UI-1 |
+| ATK-XSS-2 | niedrig | Profile 'website' external link opens with target=_blank but no rel=noopener/noreferrer (reverse tabnabbing); server stores unvalidated URL scheme | `PATCH /api/profile -> GET /users/:username (ProfileHeader)` | wie AUTH-10 |
+| ATK-XSS-4 | niedrig | Inconsistent CSP: /api/* responses ship a weaker Content-Security-Policy (script-src 'unsafe-inline' 'unsafe-eval', frame-ancestors 'self') than the app document | `GET / (app document) vs GET /api/* (JSON)` | – |
+| ATK-XSS-3 | Hinweis | Theme background gradient and image-URL values are written into inline styles without URL validation (CSS url() fetch), contained only by CSP and self-apply scope | `client theme engine (localStorage customTheme / GET /api/user/themes) -> ThemeBackground / applyTheme` | – |
+
+### Datei-Uploads
+
+| ID | Schwere | Befund | Route | Status |
+|---|---|---|---|---|
+| ATK-UPLOAD-1 | hoch | Path traversal in theme-background DELETE allows deleting any server-writable file | `DELETE /api/user/themes/background/:fileRef` | – |
+| ATK-UPLOAD-2 | hoch | Missing file-ownership check lets a user delete another user's uploaded background | `DELETE /api/user/themes/background/:fileRef` | – |
+| ATK-UPLOAD-3 | mittel | Decompression/pixel bomb: huge-dimension images decoded without an input-pixel limit | `POST /api/posts (postUpload.any) and POST /api/user/themes/background` | – |
+| ATK-UPLOAD-4 | mittel | Rejected uploads leave orphan files on disk (no cleanup on early returns) | `POST /api/posts` | – |
+| ATK-UPLOAD-5 | niedrig | No per-user upload quota or count limit (disk-exhaustion hardening) | `POST /api/posts, POST /api/profile-upload, POST /api/user/themes/background` | – |
+| ATK-UPLOAD-6 | niedrig | Uploaded GIFs are stored byte-for-byte (not re-encoded); metadata and polyglot payloads persist | `POST /api/posts (and POST /api/user/themes/background, which also accept image/gif)` | – |
+| ATK-UPLOAD-7 | Hinweis | Post images keep their original extension while their bytes are re-encoded to WebP | `POST /api/posts` | – |
+
+### WebSocket, Verfügbarkeit, Konfiguration
+
+| ID | Schwere | Befund | Route | Status |
+|---|---|---|---|---|
+| ATK-RT-1 | hoch | Any logged-in user crashes the entire server with one malformed WebSocket frame | `WS /ws` | – |
+| ATK-RT-2 | niedrig | new_comment is broadcast with full content to every connected socket regardless of relationship | `POST /api/comments (fan-out over WS /ws)` | – |
+| ATK-RT-6 | niedrig | Production dependencies have known high/critical advisories (npm audit --omit=dev) | `(dependencies) package-lock.json` | – |
+| ATK-RT-3 | Hinweis | WebSocket server sets no maxPayload; a single frame may buffer up to 100 MiB | `WS /ws` | – |
+| ATK-RT-4 | Hinweis | WebSocket Origin check is skipped entirely when the Origin header is absent | `WS /ws` | – |
+| ATK-RT-5 | Hinweis | Upgrade requests to any path other than /ws leak the socket (never destroyed) | `HTTP upgrade (WS)` | – |
+| ATK-RT-7 | Hinweis | CSP connect-src allows WebSocket connections to any host (ws:/wss: scheme-only) | `(config) server/index.ts / server/routes/index.ts (helmet CSP)` | – |
+| ATK-RT-8 | Hinweis | Stress-test endpoint takes unvalidated duration/intensity/config (admin self-DoS tool) | `POST /api/security/stress-test/:testName?` | – |
 
