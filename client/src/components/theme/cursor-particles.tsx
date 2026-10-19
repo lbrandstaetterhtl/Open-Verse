@@ -37,8 +37,11 @@ function readParticleColors(): ResolvedColors {
 function readEnabled(): boolean {
   const v = getComputedStyle(document.documentElement)
     .getPropertyValue("--particle-enabled").trim();
-  return v !== "0" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return v !== "0";
 }
+
+/** With "reduce motion" (e.g. Windows "Animation effects" off) the particles are shown, but stand still. */
+const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 interface ParticleSettings {
   speed: number;
@@ -79,9 +82,11 @@ export function CursorParticles() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const reducedMotion = prefersReducedMotion();
     const resize = () => {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
+      if (reducedMotion) drawStill();
     };
     resize();
     window.addEventListener("resize", resize);
@@ -95,6 +100,7 @@ export function CursorParticles() {
       colorsRef.current = readParticleColors();
       enabledRef.current = readEnabled();
       settingsRef.current = readSettings();
+      if (reducedMotion) drawStill();
     };
     const classObserver = new MutationObserver(refreshColors);
     classObserver.observe(document.documentElement, {
@@ -122,12 +128,46 @@ export function CursorParticles() {
       };
     }
 
+    function drawParticle(p: Particle, alpha: number) {
+      const colors = colorsRef.current;
+      const settings = settingsRef.current;
+      ctx!.save();
+      ctx!.globalAlpha = alpha;
+
+      const renderSize = p.size * settings.size;
+      const renderGlow = renderSize * 3.5 * settings.glowStrength;
+
+      // Glow halo using custom glow color
+      const g = ctx!.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(renderGlow, 0.1));
+      g.addColorStop(0,   colors.glowInner);
+      g.addColorStop(0.4, colors.glowMid);
+      g.addColorStop(1,   colors.glowOuter);
+      ctx!.beginPath();
+      ctx!.arc(p.x, p.y, Math.max(renderGlow, 0.1), 0, Math.PI * 2);
+      ctx!.fillStyle = g;
+      ctx!.fill();
+
+      // Core dot using custom core color
+      ctx!.beginPath();
+      ctx!.arc(p.x, p.y, Math.max(renderSize * 0.6, 0.1), 0, Math.PI * 2);
+      ctx!.fillStyle = colors.core;
+      ctx!.fill();
+
+      ctx!.restore();
+    }
+
+    /** One still frame (reduced motion): every particle at a steady brightness, no cursor attraction. */
+    function drawStill() {
+      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
+      if (!enabledRef.current) return;
+      particlesRef.current.forEach((p) => drawParticle(p, p.opacity * 0.8));
+    }
+
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (enabledRef.current) {
         const mouse  = mouseRef.current;
-        const colors = colorsRef.current;
         const settings = settingsRef.current;
 
         particlesRef.current.forEach((p, i) => {
@@ -155,29 +195,7 @@ export function CursorParticles() {
           }
           alpha = Math.max(0, alpha);
 
-          ctx.save();
-          ctx.globalAlpha = alpha;
-
-          const renderSize = p.size * settings.size;
-          const renderGlow = renderSize * 3.5 * settings.glowStrength;
-
-          // Glow halo using custom glow color
-          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(renderGlow, 0.1));
-          g.addColorStop(0,   colors.glowInner);
-          g.addColorStop(0.4, colors.glowMid);
-          g.addColorStop(1,   colors.glowOuter);
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, Math.max(renderGlow, 0.1), 0, Math.PI * 2);
-          ctx.fillStyle = g;
-          ctx.fill();
-
-          // Core dot using custom core color
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, Math.max(renderSize * 0.6, 0.1), 0, Math.PI * 2);
-          ctx.fillStyle = colors.core;
-          ctx.fill();
-
-          ctx.restore();
+          drawParticle(p, alpha);
 
           if (p.life >= p.maxLife) {
             particlesRef.current[i]      = spawnRandom();
@@ -189,7 +207,8 @@ export function CursorParticles() {
       frameRef.current = requestAnimationFrame(animate);
     };
 
-    frameRef.current = requestAnimationFrame(animate);
+    if (reducedMotion) drawStill();
+    else frameRef.current = requestAnimationFrame(animate);
 
     return () => {
       cancelAnimationFrame(frameRef.current);
