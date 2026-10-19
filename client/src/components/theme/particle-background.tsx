@@ -18,7 +18,7 @@ interface ParticleBackgroundProps {
 
 export function ParticleBackground({ 
   count = 60, 
-  color = "rgba(255, 255, 255, 0.4)", 
+  color = "rgba(255, 255, 255, 0.7)", 
   speed = 0.5 
 }: ParticleBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -120,31 +120,24 @@ export function ParticleBackground({
         );
       }
 
-      // With "reduce motion" the stars are drawn once and stay still.
-      if (!reducedMotion) animationFrameId = requestAnimationFrame(render);
+      animationFrameId = requestAnimationFrame(render);
     };
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     handleResize();
     initParticles();
     render();
 
-    // Resizing clears the canvas; redraw the still picture when the loop is off.
-    const onResize = () => {
-      handleResize();
-      if (reducedMotion) render();
-    };
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", handleResize);
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", handleResize);
     };
   }, [count, color, speed]);
 
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full mix-blend-screen pointer-events-none opacity-30"
+      className="absolute inset-0 w-full h-full mix-blend-screen pointer-events-none opacity-70"
     />
   );
 }

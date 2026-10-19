@@ -797,12 +797,13 @@
     "brightness": "Helligkeit",
     "contrast": "Kontrast",
     "particles": "Partikel",
-    "particles_desc": "Sternpartikel, die dem Cursor folgen. Passe die Farben von Kernpunkt und Leuchthof an.",
+    "particles_desc": "Sternpartikel, die dem Cursor folgen. Passe die Farbe des Kernpunkts und die drei Leuchtfarben an.",
     "enable_particles": "Partikel aktivieren",
     "core_dot_color": "Farbe des Kernpunkts",
     "core_dot_color_desc": "Heller Mittelpunkt jedes Partikels",
-    "glow_halo_color": "Farbe des Leuchthofs",
-    "glow_halo_color_desc": "Weiches Licht rund um jedes Partikel",
+    "glow_colors": "Leuchtfarben",
+    "glow_colors_desc": "Jedes Partikel leuchtet in einer dieser drei Farben, zufällig gewählt",
+    "glow_color_n": "Leuchtfarbe {{n}}",
     "twinkle_effect": "Funkeleffekt",
     "particle_speed": "Geschwindigkeit",
     "cursor_pull": "Cursor-Anziehung",
@@ -1102,7 +1103,8 @@
     "back_to_profile": "Zurück zum Profil",
     "back_to_feed": "Zurück zum Feed",
     "user_followed": "Du folgst dem Benutzer jetzt",
-    "user_unfollowed": "Du folgst dem Benutzer nicht mehr"
+    "user_unfollowed": "Du folgst dem Benutzer nicht mehr",
+    "deleted_author": "[gelöscht]"
   },
   "onboarding": {
     "bio_saved": "Deine Bio wurde erfolgreich gespeichert.",

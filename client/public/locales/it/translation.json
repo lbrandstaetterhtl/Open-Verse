@@ -797,12 +797,13 @@
     "brightness": "Luminosità",
     "contrast": "Contrasto",
     "particles": "Particelle",
-    "particles_desc": "Particelle stellari che seguono il cursore. Personalizza i colori del nucleo e dell'alone luminoso.",
+    "particles_desc": "Particelle stellari che seguono il cursore. Personalizza il colore del nucleo e i tre colori dell'alone.",
     "enable_particles": "Attiva particelle",
     "core_dot_color": "Colore del nucleo",
     "core_dot_color_desc": "Centro luminoso di ogni particella",
-    "glow_halo_color": "Colore dell'alone",
-    "glow_halo_color_desc": "Luce soffusa attorno a ogni particella",
+    "glow_colors": "Colori dell'alone",
+    "glow_colors_desc": "Ogni particella brilla in uno di questi tre colori, scelto a caso",
+    "glow_color_n": "Colore dell'alone {{n}}",
     "twinkle_effect": "Effetto scintillio",
     "particle_speed": "Velocità",
     "cursor_pull": "Attrazione del cursore",
@@ -1102,7 +1103,8 @@
     "back_to_profile": "Torna al profilo",
     "back_to_feed": "Torna al feed",
     "user_followed": "Ora segui questo utente",
-    "user_unfollowed": "Non segui più questo utente"
+    "user_unfollowed": "Non segui più questo utente",
+    "deleted_author": "[eliminato]"
   },
   "onboarding": {
     "bio_saved": "La tua bio è stata salvata.",

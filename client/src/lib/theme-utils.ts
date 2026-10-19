@@ -28,7 +28,10 @@ export interface ThemeColors {
 
 export interface ParticleConfig {
   coreColor: string;   // hex e.g. "#c8d2ff"
+  /** First glow color; kept for themes saved before there were three. */
   glowColor: string;   // hex e.g. "#8496ff"
+  /** Three glow colors; every particle picks one at random. */
+  glowColors?: string[];
   enabled: boolean;
   speed?: number;
   attraction?: number;
@@ -87,6 +90,7 @@ export interface CustomTheme {
 export const defaultParticles: Required<ParticleConfig> = {
   coreColor: "#c8d2ff",
   glowColor: "#8496ff",
+  glowColors: ["#8496ff", "#c08cff", "#ffcf7a"],
   enabled: true,
   speed: 1,
   attraction: 0.008,
@@ -258,6 +262,23 @@ function normalizeBackground(background: BackgroundConfig | undefined, legacyPal
   };
 }
 
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+/** Three valid glow colors; a theme from before keeps its single glow color as the first one. */
+export function normalizeParticles(particles?: Partial<ParticleConfig>): Required<ParticleConfig> {
+  const merged = { ...defaultParticles, ...particles };
+  const given = Array.isArray(particles?.glowColors) ? particles.glowColors : [particles?.glowColor];
+  const glowColors = defaultParticles.glowColors.map((fallback, i) =>
+    typeof given[i] === "string" && HEX_COLOR.test(given[i]!) ? given[i]! : fallback,
+  );
+  return {
+    ...merged,
+    coreColor: HEX_COLOR.test(String(merged.coreColor)) ? merged.coreColor : defaultParticles.coreColor,
+    glowColor: glowColors[0],
+    glowColors,
+  };
+}
+
 /** Brings any stored, imported or server theme up to the current version. Safe to call repeatedly. */
 export function migrateTheme(theme: CustomTheme): CustomTheme {
   const legacyPalette = (theme.version ?? 0) < THEME_VERSION && isLegacyDefaultPalette(theme);
@@ -273,7 +294,7 @@ export function migrateTheme(theme: CustomTheme): CustomTheme {
     dark: { ...dark, star: dark.star ?? defaultTheme.dark.star },
     font: fonts.body,
     background: normalizeBackground(theme.background, legacyPalette),
-    particles: { ...defaultParticles, ...theme.particles },
+    particles: normalizeParticles(theme.particles),
     shape: normalizeShape(theme.shape),
     surface: normalizeSurface(theme.surface),
     fonts,
@@ -639,10 +660,11 @@ export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string, 
 
 // Apply particle CSS variables to document root
 export function applyParticleConfig(particles?: ParticleConfig): void {
-  const p = particles || defaultParticles;
+  const p = normalizeParticles(particles);
   const root = document.documentElement;
   root.style.setProperty("--particle-core",         p.coreColor);
   root.style.setProperty("--particle-glow",         p.glowColor);
+  p.glowColors.forEach((color, i) => root.style.setProperty(`--particle-glow-${i + 1}`, color));
   root.style.setProperty("--particle-enabled",      p.enabled      ? "1" : "0");
   root.style.setProperty("--particle-speed",        String(p.speed         ?? 1));
   root.style.setProperty("--particle-attraction",   String(p.attraction    ?? 0.008));

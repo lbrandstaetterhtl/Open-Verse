@@ -69,7 +69,7 @@ import type {
   FontConfig,
   GalaxyConfig,
 } from "@/lib/theme-utils";
-import { galaxyGradients, defaultBackground, defaultParticles, applyParticleConfig, CONSTELLATION_NAMES, setThemePreviewActive, applyColorScheme, applyStoredTheme } from "@/lib/theme-utils";
+import { galaxyGradients, defaultBackground, defaultParticles, applyParticleConfig, normalizeParticles, CONSTELLATION_NAMES, setThemePreviewActive, applyColorScheme, applyStoredTheme } from "@/lib/theme-utils";
 import { StarChart, STAR_CHARTS } from "@/components/layout/star-chart";
 import { Input } from "@/components/ui/input";
 import {
@@ -1164,7 +1164,7 @@ export default function ThemeBuilderPage() {
                     <span className="text-base text-star">✦</span> {t("theme_builder.particles", "Particles")}
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">
-                    {t("theme_builder.particles_desc", "Cursor-following star particles. Customize the core dot and glow halo colors.")}
+                    {t("theme_builder.particles_desc", "Cursor-following star particles. Customize the core dot and the three glow colors.")}
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1217,32 +1217,34 @@ export default function ThemeBuilderPage() {
                     </div>
                   </div>
 
-                  {/* Glow Color */}
+                  {/* Glow Colors: every particle picks one of the three at random */}
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <Label className="text-xs font-medium">{t("theme_builder.glow_halo_color", "Glow halo color")}</Label>
-                      <p className="text-xs text-muted-foreground">{t("theme_builder.glow_halo_color_desc", "Soft light surrounding each particle")}</p>
+                      <Label className="text-xs font-medium">{t("theme_builder.glow_colors", "Glow colors")}</Label>
+                      <p className="text-xs text-muted-foreground">{t("theme_builder.glow_colors_desc", "Each particle glows in one of these three colors, picked at random")}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div
-                        className="h-6 w-6 rounded-full border border-border"
-                        style={{ backgroundColor: workingTheme.particles?.glowColor ?? defaultParticles.glowColor }}
-                      />
-                      <input
-                        type="color"
-                        value={workingTheme.particles?.glowColor ?? defaultParticles.glowColor}
-                        className="h-8 w-16 cursor-pointer rounded-sm border border-border bg-transparent"
-                        onChange={(e) => {
-                          const updated = {
-                            ...workingTheme,
-                            particles: { ...(workingTheme.particles || defaultParticles), glowColor: e.target.value },
-                          };
-                          setWorkingTheme(updated);
-                          applyParticleConfig(updated.particles);
-                          setHasUnsavedChanges(true);
-                        }}
-                        onBlur={() => pushToHistory(workingTheme)}
-                      />
+                      {normalizeParticles(workingTheme.particles).glowColors.map((color, i) => (
+                        <input
+                          key={i}
+                          type="color"
+                          value={color}
+                          aria-label={t("theme_builder.glow_color_n", { n: i + 1, defaultValue: "Glow color {{n}}" })}
+                          className="h-8 w-10 cursor-pointer rounded-sm border border-border bg-transparent"
+                          onChange={(e) => {
+                            const current = normalizeParticles(workingTheme.particles);
+                            const glowColors = current.glowColors.map((c, j) => (j === i ? e.target.value : c));
+                            const updated = {
+                              ...workingTheme,
+                              particles: { ...current, glowColors, glowColor: glowColors[0] },
+                            };
+                            setWorkingTheme(updated);
+                            applyParticleConfig(updated.particles);
+                            setHasUnsavedChanges(true);
+                          }}
+                          onBlur={() => pushToHistory(workingTheme)}
+                        />
+                      ))}
                     </div>
                   </div>
 

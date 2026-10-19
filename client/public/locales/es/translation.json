@@ -797,12 +797,13 @@
     "brightness": "Brillo",
     "contrast": "Contraste",
     "particles": "Partículas",
-    "particles_desc": "Partículas de estrellas que siguen al cursor. Personaliza los colores del núcleo y del halo.",
+    "particles_desc": "Partículas de estrellas que siguen al cursor. Personaliza el color del núcleo y los tres colores del halo.",
     "enable_particles": "Activar partículas",
     "core_dot_color": "Color del núcleo",
     "core_dot_color_desc": "Centro brillante de cada partícula",
-    "glow_halo_color": "Color del halo",
-    "glow_halo_color_desc": "Luz suave alrededor de cada partícula",
+    "glow_colors": "Colores del halo",
+    "glow_colors_desc": "Cada partícula brilla en uno de estos tres colores, elegido al azar",
+    "glow_color_n": "Color del halo {{n}}",
     "twinkle_effect": "Efecto de destello",
     "particle_speed": "Velocidad",
     "cursor_pull": "Atracción del cursor",
@@ -1102,7 +1103,8 @@
     "back_to_profile": "Volver al perfil",
     "back_to_feed": "Volver al feed",
     "user_followed": "Ahora sigues a este usuario",
-    "user_unfollowed": "Has dejado de seguir a este usuario"
+    "user_unfollowed": "Has dejado de seguir a este usuario",
+    "deleted_author": "[eliminado]"
   },
   "onboarding": {
     "bio_saved": "Tu biografía se ha guardado correctamente.",

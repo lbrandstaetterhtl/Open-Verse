@@ -930,3 +930,20 @@ describe("error responses", () => {
     assert.ok(!/Failed query|relation|syntax|stack|at \//i.test(text), `leaks: ${text.slice(0, 200)}`);
   });
 });
+
+describe("caching", () => {
+  test("translation files are revalidated, hashed assets are cached forever", async () => {
+    const locale = await new Client().get("/locales/en/translation.json");
+    assert.equal(locale.status, 200);
+    const cc = locale.headers.get("cache-control") ?? "";
+    assert.ok(!/immutable/.test(cc) && /no-cache/.test(cc), `locales cache-control: ${cc}`);
+
+    const html = await (await new Client().get("/")).text();
+    const asset = html.match(/\/assets\/[\w.-]+\.js/)?.[0];
+    assert.ok(asset, "index.html references a hashed asset");
+    const js = await new Client().get(asset);
+    assert.match(js.headers.get("cache-control") ?? "", /immutable/);
+    // The app requests translations with a version parameter so stale browser caches are bypassed
+    assert.match(await js.text(), /locales\/\{\{lng\}\}\/\{\{ns\}\}\.json\?v=[0-9a-f]{12}/);
+  });
+});
