@@ -1102,7 +1102,8 @@
     "back_to_profile": "返回个人资料",
     "back_to_feed": "返回动态",
     "user_followed": "已关注该用户",
-    "user_unfollowed": "已取消关注该用户"
+    "user_unfollowed": "已取消关注该用户",
+    "deleted_author": "[已删除]"
   },
   "onboarding": {
     "bio_saved": "你的个人简介已成功保存。",

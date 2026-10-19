@@ -221,7 +221,7 @@ export default function PostViewPage() {
                           author={post.author}
                           className="hover:underline text-xs lg:text-sm text-muted-foreground"
                         >
-                          {authorName(post.author)}
+                          {authorName(post.author, t)}
                         </AuthorLink>
                         {post.author?.verified && <BadgeCheck className="h-4 w-4 shrink-0 text-star" />}
                         <span className="font-data text-xs text-muted-foreground">
@@ -339,7 +339,7 @@ export default function PostViewPage() {
                                   author={comment.author}
                                   className="text-xs lg:text-sm font-semibold hover:underline"
                                 >
-                                  {authorName(comment.author)}
+                                  {authorName(comment.author, t)}
                                 </AuthorLink>
                                 {comment.author?.verified && (
                                   <BadgeCheck className="h-4 w-4 shrink-0 text-star" />

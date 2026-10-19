@@ -135,7 +135,7 @@ export const PostCard = React.memo(function PostCard({
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
                   <AuthorLink author={author} className="font-semibold text-[14px] md:text-[15px] hover:text-primary transition-colors truncate">
-                    {authorName(author)}
+                    {authorName(author, t)}
                   </AuthorLink>
                   {author.verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-star" />}
                 </div>
