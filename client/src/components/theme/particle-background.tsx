@@ -120,24 +120,17 @@ export function ParticleBackground({
         );
       }
 
-      // With "reduce motion" the stars are drawn once and stay still.
-      if (!reducedMotion) animationFrameId = requestAnimationFrame(render);
+      animationFrameId = requestAnimationFrame(render);
     };
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     handleResize();
     initParticles();
     render();
 
-    // Resizing clears the canvas; redraw the still picture when the loop is off.
-    const onResize = () => {
-      handleResize();
-      if (reducedMotion) render();
-    };
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", handleResize);
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", handleResize);
     };
   }, [count, color, speed]);
 
