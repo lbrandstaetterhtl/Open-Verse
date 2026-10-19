@@ -40,9 +40,6 @@ function readEnabled(): boolean {
   return v !== "0";
 }
 
-/** With "reduce motion" (e.g. Windows "Animation effects" off) the particles are shown, but stand still. */
-const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 interface ParticleSettings {
   speed: number;
   attraction: number;
@@ -82,11 +79,9 @@ export function CursorParticles() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const reducedMotion = prefersReducedMotion();
     const resize = () => {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
-      if (reducedMotion) drawStill();
     };
     resize();
     window.addEventListener("resize", resize);
@@ -100,7 +95,6 @@ export function CursorParticles() {
       colorsRef.current = readParticleColors();
       enabledRef.current = readEnabled();
       settingsRef.current = readSettings();
-      if (reducedMotion) drawStill();
     };
     const classObserver = new MutationObserver(refreshColors);
     classObserver.observe(document.documentElement, {
@@ -156,13 +150,6 @@ export function CursorParticles() {
       ctx!.restore();
     }
 
-    /** One still frame (reduced motion): every particle at a steady brightness, no cursor attraction. */
-    function drawStill() {
-      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
-      if (!enabledRef.current) return;
-      particlesRef.current.forEach((p) => drawParticle(p, p.opacity * 0.8));
-    }
-
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -207,8 +194,7 @@ export function CursorParticles() {
       frameRef.current = requestAnimationFrame(animate);
     };
 
-    if (reducedMotion) drawStill();
-    else frameRef.current = requestAnimationFrame(animate);
+    frameRef.current = requestAnimationFrame(animate);
 
     return () => {
       cancelAnimationFrame(frameRef.current);
