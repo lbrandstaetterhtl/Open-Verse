@@ -59,7 +59,9 @@ async function newSession() {
   page.on("dialog", (d) => { dialogs.push(d.message()); d.dismiss().catch(() => {}); });
   page.on("console", (m) => consoleMsgs.push(m.text()));
   page.on("pageerror", (e) => pageErrors.push(e.message.split("\n")[0]));
-  await page.goto(`${BASE}/auth`, { waitUntil: "load" });
+  // Wait until the app's own start-up requests are done: one still in flight with the old session cookie
+  // would answer with a fresh anonymous session after a login/register and overwrite the new cookie.
+  await page.goto(`${BASE}/auth`, { waitUntil: "networkidle" });
   const api = (method, url, body) =>
     page.evaluate(async ([method, url, body]) => {
       const tok = (await (await fetch("/api/csrf-token")).json()).csrfToken;
