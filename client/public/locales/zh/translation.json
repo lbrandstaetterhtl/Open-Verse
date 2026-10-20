@@ -172,7 +172,8 @@
     "edit_tabs": {
       "general": "常规",
       "images": "图片",
-      "privacy": "隐私"
+      "privacy": "隐私",
+      "security": "安全"
     },
     "image": {
       "avatar": "头像",
@@ -195,7 +196,22 @@
     },
     "follows_you": "关注了你",
     "on_post": "评论于",
-    "user_not_found": "未找到用户"
+    "user_not_found": "未找到用户",
+    "private_account_title": "该账户为私密账户",
+    "private_account_desc": "登录后即可查看此账户的帖子、评论和点赞。",
+    "password": {
+      "title": "修改密码",
+      "current": "当前密码",
+      "new": "新密码",
+      "rules": "至少 {{count}} 个字符。不接受过于常见的密码。",
+      "confirm": "再次输入新密码",
+      "mismatch": "两次输入的新密码不一致",
+      "sessions_hint": "修改后你在此处保持登录，其他所有会话都将被注销。",
+      "submit": "修改密码",
+      "changed_title": "密码已修改",
+      "changed_desc": "你在此处保持登录，其他所有会话均已注销。",
+      "change_failed": "无法修改密码"
+    }
   },
   "common": {
     "loading": "加载中…",
@@ -840,7 +856,8 @@
     "preview_btn_destructive": "危险",
     "pro_tip": "专业提示",
     "mobile_settings": "设置",
-    "mobile_preview_tab": "预览"
+    "mobile_preview_tab": "预览",
+    "import_invalid": "此文件不是有效的主题。"
   },
   "footer": {
     "default_tagline": "释放你的创造力，构建你的宇宙。",
@@ -1409,7 +1426,11 @@
       "verify": "认证",
       "toggle_shadowban": "切换影子封禁",
       "toggle_restriction": "切换限制",
-      "purge_account": "清除账户"
+      "purge_account": "清除账户",
+      "delete_confirm_title": "要永久删除此账户吗？",
+      "delete_confirm_desc": "{{username}} 的账户将被永久删除，此操作无法撤销。",
+      "ban_confirm_title": "要限制 {{username}} 吗？",
+      "ban_confirm_desc": "该账户将一直被封禁，直到管理员解除限制。"
     },
     "reports": {
       "title": "内容审核队列",

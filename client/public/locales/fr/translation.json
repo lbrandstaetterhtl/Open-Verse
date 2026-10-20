@@ -172,7 +172,8 @@
     "edit_tabs": {
       "general": "Général",
       "images": "Images",
-      "privacy": "Confidentialité"
+      "privacy": "Confidentialité",
+      "security": "Sécurité"
     },
     "image": {
       "avatar": "Photo de profil",
@@ -195,7 +196,22 @@
     },
     "follows_you": "Te suit",
     "on_post": "Sur",
-    "user_not_found": "Utilisateur introuvable"
+    "user_not_found": "Utilisateur introuvable",
+    "private_account_title": "Ce compte est privé",
+    "private_account_desc": "Connecte-toi pour voir les publications, les commentaires et les mentions J'aime de ce compte.",
+    "password": {
+      "title": "Changer le mot de passe",
+      "current": "Mot de passe actuel",
+      "new": "Nouveau mot de passe",
+      "rules": "Au moins {{count}} caractères. Les mots de passe très courants ne sont pas acceptés.",
+      "confirm": "Répète le nouveau mot de passe",
+      "mismatch": "Les nouveaux mots de passe ne correspondent pas",
+      "sessions_hint": "Après le changement, tu restes connecté ici ; toutes les autres sessions sont déconnectées.",
+      "submit": "Changer le mot de passe",
+      "changed_title": "Mot de passe modifié",
+      "changed_desc": "Tu restes connecté ici ; toutes tes autres sessions ont été déconnectées.",
+      "change_failed": "Le mot de passe n'a pas pu être modifié"
+    }
   },
   "common": {
     "loading": "Chargement...",
@@ -840,7 +856,8 @@
     "preview_btn_destructive": "Destructif",
     "pro_tip": "Astuce",
     "mobile_settings": "Paramètres",
-    "mobile_preview_tab": "Aperçu"
+    "mobile_preview_tab": "Aperçu",
+    "import_invalid": "Ce fichier n'est pas un thème valide."
   },
   "footer": {
     "default_tagline": "Libère ta créativité. Construis l'univers.",
@@ -1409,7 +1426,11 @@
       "verify": "Vérifier",
       "toggle_shadowban": "Activer/désactiver le shadowban",
       "toggle_restriction": "Activer/désactiver la restriction",
-      "purge_account": "Purger le compte"
+      "purge_account": "Purger le compte",
+      "delete_confirm_title": "Supprimer ce compte définitivement ?",
+      "delete_confirm_desc": "Le compte de {{username}} sera supprimé définitivement. Cette action est irréversible.",
+      "ban_confirm_title": "Restreindre {{username}} ?",
+      "ban_confirm_desc": "Le compte reste banni jusqu'à ce qu'un administrateur lève la restriction."
     },
     "reports": {
       "title": "File d'intégrité du contenu",

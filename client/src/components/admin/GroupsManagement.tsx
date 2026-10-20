@@ -194,8 +194,8 @@ export function GroupsManagement() {
                                         <span className="ov-label mb-2 block">{t("admin_groups.active_permissions", "Active permissions")}</span>
                                         <div className="flex flex-wrap gap-1.5">
                                             {(() => {
-                                                const perms = typeof group.permissions === 'string' ? JSON.parse(group.permissions) : group.permissions;
-                                                return Array.isArray(perms) ? perms.map(p => (
+                                                const perms = parsePermissions(group.permissions);
+                                                return perms.length ? perms.map(p => (
                                                     <div key={p} className="ov-chip h-6 px-2 font-data text-[11px]">
                                                         {p.toUpperCase()}
                                                     </div>
@@ -291,14 +291,22 @@ export function GroupsManagement() {
     );
 }
 
+/** The permission names of a group; stored as a JSON string (old or broken rows must not crash the page). */
+function parsePermissions(value: unknown): string[] {
+    let list: unknown = value;
+    if (typeof value === "string") {
+        try { list = JSON.parse(value); } catch { return []; }
+    }
+    return Array.isArray(list) ? list.filter((p): p is string => typeof p === "string") : [];
+}
+
 function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
     const { t } = useTranslation();
     const [name, setName] = useState(initialData?.name || "");
     const [description, setDescription] = useState(initialData?.description || "");
     const [color, setColor] = useState(initialData?.color || "#3b82f6");
     const [permissions, setPermissions] = useState<string[]>(() => {
-        if (!initialData?.permissions) return [];
-        return typeof initialData.permissions === 'string' ? JSON.parse(initialData.permissions) : initialData.permissions;
+        return parsePermissions(initialData?.permissions);
     });
 
     const togglePermission = (id: string) => {

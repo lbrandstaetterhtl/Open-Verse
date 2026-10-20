@@ -172,7 +172,8 @@
     "edit_tabs": {
       "general": "Allgemein",
       "images": "Bilder",
-      "privacy": "Privatsphäre"
+      "privacy": "Privatsphäre",
+      "security": "Sicherheit"
     },
     "image": {
       "avatar": "Profilbild",
@@ -195,7 +196,22 @@
     },
     "follows_you": "Folgt dir",
     "on_post": "Zu",
-    "user_not_found": "Benutzer nicht gefunden"
+    "user_not_found": "Benutzer nicht gefunden",
+    "private_account_title": "Dieses Konto ist privat",
+    "private_account_desc": "Melde dich an, um die Beiträge, Kommentare und Likes dieses Kontos zu sehen.",
+    "password": {
+      "title": "Passwort ändern",
+      "current": "Aktuelles Passwort",
+      "new": "Neues Passwort",
+      "rules": "Mindestens {{count}} Zeichen. Sehr verbreitete Passwörter werden nicht akzeptiert.",
+      "confirm": "Neues Passwort wiederholen",
+      "mismatch": "Die neuen Passwörter stimmen nicht überein",
+      "sessions_hint": "Nach der Änderung bleibst du hier angemeldet; alle anderen Sitzungen werden abgemeldet.",
+      "submit": "Passwort ändern",
+      "changed_title": "Passwort geändert",
+      "changed_desc": "Du bleibst hier angemeldet; alle deine anderen Sitzungen wurden abgemeldet.",
+      "change_failed": "Das Passwort konnte nicht geändert werden"
+    }
   },
   "common": {
     "loading": "Wird geladen…",
@@ -840,7 +856,8 @@
     "preview_btn_destructive": "Destruktiv",
     "pro_tip": "Profi-Tipp",
     "mobile_settings": "Einstellungen",
-    "mobile_preview_tab": "Vorschau"
+    "mobile_preview_tab": "Vorschau",
+    "import_invalid": "Diese Datei ist kein gültiges Theme."
   },
   "footer": {
     "default_tagline": "Entfessle deine Kreativität. Erschaffe das Universum.",
@@ -1409,7 +1426,11 @@
       "verify": "Verifizieren",
       "toggle_shadowban": "Shadowban umschalten",
       "toggle_restriction": "Einschränkung umschalten",
-      "purge_account": "Konto endgültig löschen"
+      "purge_account": "Konto endgültig löschen",
+      "delete_confirm_title": "Dieses Konto endgültig löschen?",
+      "delete_confirm_desc": "Das Konto von {{username}} wird endgültig gelöscht. Das lässt sich nicht rückgängig machen.",
+      "ban_confirm_title": "{{username}} einschränken?",
+      "ban_confirm_desc": "Das Konto bleibt gesperrt, bis ein Administrator die Einschränkung aufhebt."
     },
     "reports": {
       "title": "Warteschlange für Inhaltsintegrität",

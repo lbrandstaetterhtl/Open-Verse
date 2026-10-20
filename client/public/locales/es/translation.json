@@ -172,7 +172,8 @@
     "edit_tabs": {
       "general": "General",
       "images": "Imágenes",
-      "privacy": "Privacidad"
+      "privacy": "Privacidad",
+      "security": "Seguridad"
     },
     "image": {
       "avatar": "Foto de perfil",
@@ -195,7 +196,22 @@
     },
     "follows_you": "Te sigue",
     "on_post": "En",
-    "user_not_found": "Usuario no encontrado"
+    "user_not_found": "Usuario no encontrado",
+    "private_account_title": "Esta cuenta es privada",
+    "private_account_desc": "Inicia sesión para ver las publicaciones, los comentarios y los «me gusta» de esta cuenta.",
+    "password": {
+      "title": "Cambiar contraseña",
+      "current": "Contraseña actual",
+      "new": "Nueva contraseña",
+      "rules": "Al menos {{count}} caracteres. No se aceptan contraseñas muy comunes.",
+      "confirm": "Repite la nueva contraseña",
+      "mismatch": "Las nuevas contraseñas no coinciden",
+      "sessions_hint": "Tras el cambio seguirás con la sesión iniciada aquí; todas las demás sesiones se cerrarán.",
+      "submit": "Cambiar contraseña",
+      "changed_title": "Contraseña cambiada",
+      "changed_desc": "Sigues con la sesión iniciada aquí; todas tus demás sesiones se han cerrado.",
+      "change_failed": "No se ha podido cambiar la contraseña"
+    }
   },
   "common": {
     "loading": "Cargando...",
@@ -840,7 +856,8 @@
     "preview_btn_destructive": "Destructivo",
     "pro_tip": "Consejo",
     "mobile_settings": "Ajustes",
-    "mobile_preview_tab": "Vista previa"
+    "mobile_preview_tab": "Vista previa",
+    "import_invalid": "Este archivo no es un tema válido."
   },
   "footer": {
     "default_tagline": "Libera tu creatividad. Construye el universo.",
@@ -1409,7 +1426,11 @@
       "verify": "Verificar",
       "toggle_shadowban": "Alternar shadowban",
       "toggle_restriction": "Alternar restricción",
-      "purge_account": "Purgar cuenta"
+      "purge_account": "Purgar cuenta",
+      "delete_confirm_title": "¿Eliminar esta cuenta de forma permanente?",
+      "delete_confirm_desc": "La cuenta de {{username}} se eliminará de forma permanente. Esta acción no se puede deshacer.",
+      "ban_confirm_title": "¿Restringir a {{username}}?",
+      "ban_confirm_desc": "La cuenta permanecerá bloqueada hasta que un administrador levante la restricción."
     },
     "reports": {
       "title": "Cola de integridad del contenido",

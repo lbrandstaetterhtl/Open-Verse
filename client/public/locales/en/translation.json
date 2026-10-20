@@ -172,7 +172,8 @@
     "edit_tabs": {
       "general": "General",
       "images": "Images",
-      "privacy": "Privacy"
+      "privacy": "Privacy",
+      "security": "Security"
     },
     "image": {
       "avatar": "Profile picture",
@@ -195,7 +196,22 @@
     },
     "follows_you": "Follows You",
     "on_post": "On",
-    "user_not_found": "User not found"
+    "user_not_found": "User not found",
+    "private_account_title": "This account is private",
+    "private_account_desc": "Log in to see the posts, comments and likes of this account.",
+    "password": {
+      "title": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "rules": "At least {{count}} characters. Very common passwords are not accepted.",
+      "confirm": "Repeat new password",
+      "mismatch": "The new passwords do not match",
+      "sessions_hint": "After the change you stay signed in here; all other sessions are signed out.",
+      "submit": "Change password",
+      "changed_title": "Password changed",
+      "changed_desc": "You stay signed in here; all your other sessions have been signed out.",
+      "change_failed": "The password could not be changed"
+    }
   },
   "common": {
     "loading": "Loading...",
@@ -840,7 +856,8 @@
     "preview_btn_destructive": "Destructive",
     "pro_tip": "Pro tip",
     "mobile_settings": "Settings",
-    "mobile_preview_tab": "Preview"
+    "mobile_preview_tab": "Preview",
+    "import_invalid": "This file is not a valid theme."
   },
   "footer": {
     "default_tagline": "Unleash your creativity. Build the universe.",
@@ -1409,7 +1426,11 @@
       "verify": "Verify",
       "toggle_shadowban": "Toggle shadowban",
       "toggle_restriction": "Toggle restriction",
-      "purge_account": "Purge account"
+      "purge_account": "Purge account",
+      "delete_confirm_title": "Delete this account permanently?",
+      "delete_confirm_desc": "The account of {{username}} will be deleted permanently. This cannot be undone.",
+      "ban_confirm_title": "Restrict {{username}}?",
+      "ban_confirm_desc": "The account is banned until an administrator lifts the restriction."
     },
     "reports": {
       "title": "Content Integrity Queue",

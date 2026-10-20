@@ -172,7 +172,8 @@
     "edit_tabs": {
       "general": "Generale",
       "images": "Immagini",
-      "privacy": "Privacy"
+      "privacy": "Privacy",
+      "security": "Sicurezza"
     },
     "image": {
       "avatar": "Immagine del profilo",
@@ -195,7 +196,22 @@
     },
     "follows_you": "Ti segue",
     "on_post": "Su",
-    "user_not_found": "Utente non trovato"
+    "user_not_found": "Utente non trovato",
+    "private_account_title": "Questo account è privato",
+    "private_account_desc": "Accedi per vedere i post, i commenti e i Mi piace di questo account.",
+    "password": {
+      "title": "Cambia password",
+      "current": "Password attuale",
+      "new": "Nuova password",
+      "rules": "Almeno {{count}} caratteri. Le password molto comuni non sono accettate.",
+      "confirm": "Ripeti la nuova password",
+      "mismatch": "Le nuove password non coincidono",
+      "sessions_hint": "Dopo la modifica resti connesso qui; tutte le altre sessioni vengono disconnesse.",
+      "submit": "Cambia password",
+      "changed_title": "Password modificata",
+      "changed_desc": "Resti connesso qui; tutte le altre sessioni sono state disconnesse.",
+      "change_failed": "Impossibile modificare la password"
+    }
   },
   "common": {
     "loading": "Caricamento...",
@@ -840,7 +856,8 @@
     "preview_btn_destructive": "Distruttivo",
     "pro_tip": "Consiglio",
     "mobile_settings": "Impostazioni",
-    "mobile_preview_tab": "Anteprima"
+    "mobile_preview_tab": "Anteprima",
+    "import_invalid": "Questo file non è un tema valido."
   },
   "footer": {
     "default_tagline": "Libera la tua creatività. Costruisci l'universo.",
@@ -1409,7 +1426,11 @@
       "verify": "Verifica",
       "toggle_shadowban": "Attiva/disattiva shadowban",
       "toggle_restriction": "Attiva/disattiva restrizione",
-      "purge_account": "Elimina account"
+      "purge_account": "Elimina account",
+      "delete_confirm_title": "Eliminare definitivamente questo account?",
+      "delete_confirm_desc": "L'account di {{username}} verrà eliminato definitivamente. L'operazione non può essere annullata.",
+      "ban_confirm_title": "Limitare {{username}}?",
+      "ban_confirm_desc": "L'account resta bannato finché un amministratore non rimuove la limitazione."
     },
     "reports": {
       "title": "Coda di integrità dei contenuti",

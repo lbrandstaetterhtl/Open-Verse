@@ -291,7 +291,7 @@ export default function ActivityLogsPage() {
                                 <div className="ov-panel p-5">
                                   <p className="ov-label mb-3">{t("admin_logs.previous_state", "Previous state")}</p>
                                   <pre className="ov-data text-[11px] whitespace-pre-wrap leading-relaxed text-muted-foreground max-h-40 overflow-y-auto thin-scrollbar">
-                                    {JSON.stringify(JSON.parse(log.oldValue), null, 2)}
+                                    {prettyJson(log.oldValue)}
                                   </pre>
                                 </div>
                               )}
@@ -299,7 +299,7 @@ export default function ActivityLogsPage() {
                                 <div className="ov-panel ov-panel-active p-5">
                                   <p className="ov-label mb-3 text-primary">{t("admin_logs.new_state", "New state")}</p>
                                   <pre className="ov-data text-[11px] whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto thin-scrollbar">
-                                    {JSON.stringify(JSON.parse(log.newValue), null, 2)}
+                                    {prettyJson(log.newValue)}
                                   </pre>
                                 </div>
                               )}
@@ -366,7 +366,7 @@ export default function ActivityLogsPage() {
                                  <div className="space-y-3">
                                     <p className="ov-label text-primary">{t("admin_logs.new_state_delta", "New state delta")}</p>
                                     <pre className="ov-data text-[10px] bg-primary/10 p-4 rounded-sm overflow-x-auto">
-                                       {JSON.stringify(JSON.parse(log.newValue), null, 2)}
+                                       {prettyJson(log.newValue)}
                                     </pre>
                                  </div>
                               )}
@@ -380,4 +380,14 @@ export default function ActivityLogsPage() {
         </div>
     </div>
   );
+}
+
+/** Stored values are JSON text; anything else (old or broken rows) is shown as it is instead of crashing. */
+function prettyJson(value: unknown): string {
+  if (typeof value !== "string") return JSON.stringify(value, null, 2);
+  try {
+    return JSON.stringify(JSON.parse(value), null, 2);
+  } catch {
+    return value;
+  }
 }

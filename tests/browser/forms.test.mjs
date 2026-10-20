@@ -1226,7 +1226,8 @@ if (!ONLY.length || ONLY.includes("admin")) {
     }
   });
 
-  const groupName = `Gruppe ${XSS_IMG} ${RUN}`;
+  // Group names are limited to 50 characters (server schema, input maxLength)
+  const groupName = `G ${XSS_IMG} ${RUN}`;
   await test("admin", "groups: whitespace-only name is not accepted", async () => {
     focus = page;
     await o.goto("/admin/groups", 1800);
