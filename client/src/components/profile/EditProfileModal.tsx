@@ -28,7 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import type { UpdateProfile, User } from "@shared/schema";
 import { updateProfileSchema } from "@shared/schema";
 import { useTranslation } from "react-i18next";
-import { Loader2, Globe, MapPin, AtSign, User as UserIcon, Lock, Camera, Palette, Shield, Info, Image as ImageIcon } from "lucide-react";
+import { Loader2, Globe, MapPin, AtSign, User as UserIcon, Lock, Camera, Palette, Shield, Info, Image as ImageIcon, KeyRound } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeIn, scaleIn } from "@/lib/animations";
@@ -36,12 +36,13 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { LIMITS, tooLongMessage } from "@/lib/input-limits";
 import { safeExternalUrl } from "@/lib/safe-url";
+import { PasswordChangeForm } from "./PasswordChangeForm";
 
 // Must match PROFILE_IMAGE_MAX_BYTES on the server.
 const MAX_IMAGE_MB = 10;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-export type EditProfileTab = "general" | "appearance" | "privacy";
+export type EditProfileTab = "general" | "appearance" | "privacy" | "security";
 
 interface EditProfileModalProps {
   user: User;
@@ -190,6 +191,10 @@ export function EditProfileModal({
                     <TabsTrigger value="privacy" className="h-full rounded-none px-3">
                       <Shield className="w-4 h-4 mr-2" />
                       {t("profile.edit_tabs.privacy", "Privacy")}
+                    </TabsTrigger>
+                    <TabsTrigger value="security" className="h-full rounded-none px-3">
+                      <KeyRound className="w-4 h-4 mr-2" />
+                      {t("profile.edit_tabs.security", "Security")}
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -442,6 +447,13 @@ export function EditProfileModal({
                         />
                       </motion.div>
                     </TabsContent>
+
+                    {/* Password change: its own request and button, not part of the profile save */}
+                    <TabsContent value="security" className="mt-0 space-y-8 outline-none">
+                      <motion.div variants={fadeIn} initial="initial" animate="animate">
+                        <PasswordChangeForm />
+                      </motion.div>
+                    </TabsContent>
                   </AnimatePresence>
                 </div>
               </Tabs>
@@ -450,10 +462,12 @@ export function EditProfileModal({
                 <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
                   {t('common.cancel')}
                 </Button>
-                <Button type="submit" disabled={isSubmitting || isUploadingAvatar || isUploadingCover} className="px-6">
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-                  {t('common.save')}
-                </Button>
+                {tab !== "security" && (
+                  <Button type="submit" disabled={isSubmitting || isUploadingAvatar || isUploadingCover} className="px-6">
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                    {t('common.save')}
+                  </Button>
+                )}
               </div>
             </form>
           </Form>

@@ -10,6 +10,11 @@ async function throwIfResNotOk(res: Response) {
 
 let csrfToken: string | null = null;
 
+/** Forget the cached CSRF token, e.g. after the server started a new session (password change). */
+export function resetCsrfToken(): void {
+  csrfToken = null;
+}
+
 export async function apiRequest(
   method: string,
   url: string,

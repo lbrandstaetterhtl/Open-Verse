@@ -205,32 +205,57 @@ describe("Angriff: stored payload in direct messages", () => {
 // Angriff: a user files a support ticket whose "relatedUrl" is a javascript: URL; the owner/admin opens the ticket
 // and the rendered link is a live javascript: href — one click runs attacker JS in the admin's session.
 describe("Angriff: javascript: URL in ticket relatedUrl (stored XSS targeting staff)", () => {
+  // Safe outcomes: the API refuses the javascript: URL (4xx), or stores it but the ticket page never renders it as
+  // a link. To check the rendering even though the API now refuses such URLs, a ticket is created with an http(s)
+  // URL and switched to a javascript: URL directly in the database (old data from before the fix), when
+  // E2E_DATABASE_URL (postgres://user:pw@host:port/db of the server under test) is set.
+  const DATABASE_URL = process.env.E2E_DATABASE_URL ?? "";
+  const payloadUrl = `javascript:window.__xss=1;console.log('XSSFIRE ${MARK}')`;
+  const ticketBody = (relatedUrl) => ({ title: `${MARK} relatedUrl attack`, description: "x".repeat(60), type: "bug_report", priority: "low", relatedUrl });
+
+  async function assertOwnerSeesNoDangerousLink(id) {
+    const admin = await newSession();
+    try {
+      await login(admin, OWNER, OWNER_PW);
+      await admin.goto(`/tickets/${id}`, 1500);
+      const related = await admin.page.evaluate(() =>
+        [...document.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")).filter((h) => /alert|__xss|XSSFIRE|^\s*(javascript|data|vbscript):/i.test(h)),
+      );
+      assert.deepEqual(related, [], `relatedUrl rendered as a dangerous href the admin can click: ${JSON.stringify(related)}`);
+      // Even if present, it must not have executed on render.
+      await assertNoExec(admin, "ticket detail (admin)");
+    } finally { await admin.close(); }
+  }
+
   test("ticket relatedUrl link is http(s) only, never a javascript:/data: href", async () => {
     const atk = await newSession();
     try {
       await register(atk, uname("tk"));
-      const payloadUrl = `javascript:window.__xss=1;console.log('XSSFIRE ${MARK}')`;
-      const t = await atk.api("POST", "/api/tickets", {
-        title: `${MARK} relatedUrl attack`,
-        description: "x".repeat(60),
-        type: "bug_report",
-        priority: "low",
-        relatedUrl: payloadUrl,
-      });
-      assert.ok(t.status === 201, `create ticket: ${t.status} ${JSON.stringify(t.body).slice(0, 150)}`);
+      const t = await atk.api("POST", "/api/tickets", ticketBody(payloadUrl));
+      assert.ok(t.status === 201 || (t.status >= 400 && t.status < 500), `create ticket: ${t.status} ${JSON.stringify(t.body).slice(0, 150)}`);
+      // Refused by the API: nothing dangerous was stored (the rendering is checked with old data below)
+      if (t.status !== 201) return;
+      assert.ok(/^https?:/i.test(t.body.ticket.relatedUrl ?? "") || !t.body.ticket.relatedUrl, `stored relatedUrl ${JSON.stringify(t.body.ticket.relatedUrl)}`);
+      await assertOwnerSeesNoDangerousLink(t.body.ticket.id);
+    } finally { await atk.close(); }
+  });
+
+  test("an old ticket whose relatedUrl is javascript: is shown without a dangerous link",
+    { skip: DATABASE_URL ? false : "E2E_DATABASE_URL not set (needs to write a javascript: URL into an existing ticket)" }, async () => {
+    const pg = (await import("pg")).default;
+    const atk = await newSession();
+    try {
+      await register(atk, uname("to"));
+      const t = await atk.api("POST", "/api/tickets", ticketBody("https://example.org/old"));
+      assert.equal(t.status, 201, `create ticket: ${t.status} ${JSON.stringify(t.body).slice(0, 150)}`);
       const id = t.body.ticket.id;
-      // The owner opens the ticket (owner role can view every ticket).
-      const admin = await newSession();
+      const db = new pg.Client({ connectionString: DATABASE_URL });
+      await db.connect();
       try {
-        await login(admin, OWNER, OWNER_PW);
-        await admin.goto(`/tickets/${id}`, 1500);
-        const related = await admin.page.evaluate(() =>
-          [...document.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")).filter((h) => /alert|__xss|XSSFIRE|javascript:/i.test(h)),
-        );
-        assert.deepEqual(related, [], `relatedUrl rendered as a dangerous href the admin can click: ${JSON.stringify(related)}`);
-        // Even if present, it must not have executed on render.
-        await assertNoExec(admin, "ticket detail (admin)");
-      } finally { await admin.close(); }
+        const r = await db.query("update tickets set related_url = $1 where id = $2", [payloadUrl, id]);
+        assert.equal(r.rowCount, 1, "ticket row not found in E2E_DATABASE_URL (wrong database?)");
+      } finally { await db.end(); }
+      await assertOwnerSeesNoDangerousLink(id);
     } finally { await atk.close(); }
   });
 });
