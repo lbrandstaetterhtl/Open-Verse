@@ -1375,6 +1375,17 @@
         "update_avatar": "更换了头像",
         "update_cover": "更换了封面图"
       }
+    },
+    "target_types": {
+      "User": "用户",
+      "Post": "帖子",
+      "Comment": "评论",
+      "Community": "社区",
+      "Report": "举报",
+      "Setting": "设置",
+      "AdminGroup": "管理员组",
+      "StressTest": "压力测试",
+      "Ticket": "工单"
     }
   },
   "admin_dashboard": {

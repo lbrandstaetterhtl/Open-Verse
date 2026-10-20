@@ -313,7 +313,7 @@ export function AutoPunishmentPage() {
                 {data?.executions?.map(exec => (
                   <TableRow key={exec.id}>
                     <TableCell className="ov-data text-xs text-muted-foreground">
-                        {new Date(exec.createdAt * 1000).toLocaleString()}
+                        {new Date(typeof exec.createdAt === "number" ? exec.createdAt * 1000 : exec.createdAt).toLocaleString()}
                     </TableCell>
                     <TableCell className="font-medium">{exec.ruleName}</TableCell>
                     <TableCell>{t("admin_autopunish.executions.user", "User")} <span className="ov-data">#{exec.userId}</span></TableCell>

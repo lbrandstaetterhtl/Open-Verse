@@ -1375,6 +1375,17 @@
         "update_avatar": "Photo de profil modifiée",
         "update_cover": "Image de couverture modifiée"
       }
+    },
+    "target_types": {
+      "User": "Utilisateur",
+      "Post": "Publication",
+      "Comment": "Commentaire",
+      "Community": "Communauté",
+      "Report": "Signalement",
+      "Setting": "Paramètre",
+      "AdminGroup": "Groupe d'administration",
+      "StressTest": "Test de charge",
+      "Ticket": "Ticket"
     }
   },
   "admin_dashboard": {

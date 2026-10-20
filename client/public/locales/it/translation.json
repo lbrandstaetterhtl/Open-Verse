@@ -1375,6 +1375,17 @@
         "update_avatar": "Immagine del profilo modificata",
         "update_cover": "Immagine di copertina modificata"
       }
+    },
+    "target_types": {
+      "User": "Utente",
+      "Post": "Post",
+      "Comment": "Commento",
+      "Community": "Community",
+      "Report": "Segnalazione",
+      "Setting": "Impostazione",
+      "AdminGroup": "Gruppo di amministrazione",
+      "StressTest": "Test di carico",
+      "Ticket": "Ticket"
     }
   },
   "admin_dashboard": {

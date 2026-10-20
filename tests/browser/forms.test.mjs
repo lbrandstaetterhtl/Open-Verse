@@ -974,7 +974,9 @@ if (!ONLY.length || ONLY.includes("ticket")) {
   });
 
   await test("ticket", "the javascript: related URL is not a clickable javascript link for the owner", async () => {
-    assert.ok(ticketIds.length, "no ticket with the URL was created (previous test passed)");
+    // Refused on create (previous test) is the safe outcome: nothing to render. Old data with such a URL is
+    // covered by tests/attacks/xss.browser.attack.mjs, which writes it into the database directly.
+    if (!ticketIds.length) return;
     focus = o.page;
     await o.goto(`/tickets/${ticketIds[0]}`, 1800);
     const hrefs = await o.page.evaluate(() => [...document.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")).filter((h) => /^\s*javascript:/i.test(h)));

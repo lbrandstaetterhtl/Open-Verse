@@ -42,6 +42,8 @@ import { useDateLocale } from "@/lib/date-locale";
 export default function ActivityLogsPage() {
   const { t } = useTranslation();
   const dateLocale = useDateLocale();
+  // Target types are code values ("User", "Post", ...) stored with each log entry
+  const targetTypeLabel = (type: string) => t(`admin_logs.target_types.${type}`, type);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [severity, setSeverity] = useState("all");
@@ -272,7 +274,7 @@ export default function ActivityLogsPage() {
                           <div className="grid grid-cols-2 gap-8 px-2">
                              <div>
                                 <h4 className="ov-label mb-2">{t("admin_logs.target_type", "Target type")}</h4>
-                                <p className="text-sm font-semibold text-primary">{log.targetType || t("admin_logs.not_available", "N/A")}</p>
+                                <p className="text-sm font-semibold text-primary">{log.targetType ? targetTypeLabel(log.targetType) : t("admin_logs.not_available", "N/A")}</p>
                              </div>
                              <div>
                                 <h4 className="ov-label mb-2">{t("admin_logs.target_identifier", "Target identifier")}</h4>
@@ -328,7 +330,7 @@ export default function ActivityLogsPage() {
                      <p className="text-sm leading-relaxed text-foreground/80">"{log.description}"</p>
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-border">
-                     <span className="ov-label">{log.targetType}</span>
+                     <span className="ov-label">{targetTypeLabel(log.targetType)}</span>
                      <Sheet>
                         <SheetTrigger asChild>
                           <Button variant="outline" size="sm" className="h-8">{t("admin_logs.details", "Details")}</Button>
@@ -355,7 +357,7 @@ export default function ActivityLogsPage() {
                               <div className="grid grid-cols-2 gap-4">
                                  <div className="ov-panel p-4">
                                     <p className="ov-label mb-1">{t("admin_logs.target", "Target")}</p>
-                                    <p className="text-xs font-semibold truncate">{log.targetLabel || log.targetType || "—"}</p>
+                                    <p className="text-xs font-semibold truncate">{log.targetLabel || (log.targetType ? targetTypeLabel(log.targetType) : "—")}</p>
                                  </div>
                                  <div className="ov-panel p-4">
                                     <p className="ov-label mb-1">{t("admin_logs.ip_address", "IP address")}</p>

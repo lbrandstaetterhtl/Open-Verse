@@ -1375,6 +1375,17 @@
         "update_avatar": "Foto de perfil cambiada",
         "update_cover": "Portada cambiada"
       }
+    },
+    "target_types": {
+      "User": "Usuario",
+      "Post": "Publicación",
+      "Comment": "Comentario",
+      "Community": "Comunidad",
+      "Report": "Denuncia",
+      "Setting": "Ajuste",
+      "AdminGroup": "Grupo de administración",
+      "StressTest": "Prueba de carga",
+      "Ticket": "Ticket"
     }
   },
   "admin_dashboard": {

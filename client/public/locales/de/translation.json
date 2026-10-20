@@ -1375,6 +1375,17 @@
         "update_avatar": "Profilbild geändert",
         "update_cover": "Titelbild geändert"
       }
+    },
+    "target_types": {
+      "User": "Benutzer",
+      "Post": "Beitrag",
+      "Comment": "Kommentar",
+      "Community": "Community",
+      "Report": "Meldung",
+      "Setting": "Einstellung",
+      "AdminGroup": "Admin-Gruppe",
+      "StressTest": "Lasttest",
+      "Ticket": "Ticket"
     }
   },
   "admin_dashboard": {
