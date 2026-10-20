@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type KeyboardEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -64,7 +64,7 @@ export function PasswordChangeForm() {
       form.reset();
       toast({
         title: t("profile.password.changed_title", "Password changed"),
-        description: t("profile.password.changed_desc", "You have been signed out on all other devices."),
+        description: t("profile.password.changed_desc", "You stay signed in here; all your other sessions have been signed out."),
       });
     },
     onError: (error: Error) => {
@@ -80,7 +80,7 @@ export function PasswordChangeForm() {
     if (!changePassword.isPending) changePassword.mutate(data);
   });
   // Enter inside a field must not submit the surrounding profile form
-  const onKeyDown = (e: React.KeyboardEvent) => {
+  const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
       submit();

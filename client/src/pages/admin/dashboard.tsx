@@ -512,7 +512,7 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <ResponsiveTable<User>
+                  <ResponsiveTable<AdminUser>
                     keyField="id"
                     columns={[
                       { 
