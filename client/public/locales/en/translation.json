@@ -155,13 +155,15 @@
       "name": "Display Name",
       "bio": "Bio",
       "bio_placeholder": "Tell us about yourself...",
-      "bio_description": "Displayed on your profile. Max 160 characters.",
+      "bio_description": "Displayed on your profile. Max. {{max}} characters.",
       "location": "Location",
       "website": "Website",
       "privacy": "Private Account",
       "privacy_description": "Only members can see your content.",
       "name_placeholder": "John Doe",
-      "location_placeholder": "Berlin, Germany"
+      "location_placeholder": "Berlin, Germany",
+      "invalid": "The profile could not be saved",
+      "invalid_hint": "Please check your entries."
     },
     "update_success_title": "Profile updated",
     "update_success_desc": "Your changes have been saved successfully.",
@@ -507,7 +509,8 @@
       "restriction_desc": "You need at least 200 reputation to create a community.",
       "current_rep": "Your current reputation:",
       "eyebrow": "Communities / New",
-      "success_desc": "Welcome to {{name}}!"
+      "success_desc": "Welcome to {{name}}!",
+      "categories_required": "Select at least one category."
     },
     "page": {
       "not_found_title": "Community Not Found",
@@ -1548,7 +1551,9 @@
     "send": "Send",
     "none_selected": "No Chat Selected",
     "none_selected_desc": "Pick a friend from the list and start vibing.",
-    "view_connections": "View Connections"
+    "view_connections": "View Connections",
+    "load_older": "Load older messages",
+    "load_older_failed": "Older messages could not be loaded."
   },
   "communities": {
     "roles": {

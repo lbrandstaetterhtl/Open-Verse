@@ -155,13 +155,15 @@
       "name": "Anzeigename",
       "bio": "Bio",
       "bio_placeholder": "Erzähl uns etwas über dich…",
-      "bio_description": "Wird in deinem Profil angezeigt. Max. 160 Zeichen.",
+      "bio_description": "Wird in deinem Profil angezeigt. Max. {{max}} Zeichen.",
       "location": "Standort",
       "website": "Website",
       "privacy": "Privates Konto",
       "privacy_description": "Nur Mitglieder können deine Inhalte sehen.",
       "name_placeholder": "Max Mustermann",
-      "location_placeholder": "Berlin, Deutschland"
+      "location_placeholder": "Berlin, Deutschland",
+      "invalid": "Das Profil konnte nicht gespeichert werden",
+      "invalid_hint": "Bitte überprüfe deine Eingaben."
     },
     "update_success_title": "Profil aktualisiert",
     "update_success_desc": "Deine Änderungen wurden erfolgreich gespeichert.",
@@ -507,7 +509,8 @@
       "restriction_desc": "Du brauchst mindestens 200 Reputationspunkte, um eine Community zu erstellen.",
       "current_rep": "Deine aktuelle Reputation:",
       "eyebrow": "Communities / Neu",
-      "success_desc": "Willkommen bei {{name}}!"
+      "success_desc": "Willkommen bei {{name}}!",
+      "categories_required": "Wähle mindestens eine Kategorie aus."
     },
     "page": {
       "not_found_title": "Community nicht gefunden",
@@ -1548,7 +1551,9 @@
     "send": "Senden",
     "none_selected": "Kein Chat ausgewählt",
     "none_selected_desc": "Wähle jemanden aus der Liste und leg los.",
-    "view_connections": "Kontakte anzeigen"
+    "view_connections": "Kontakte anzeigen",
+    "load_older": "Ältere Nachrichten laden",
+    "load_older_failed": "Ältere Nachrichten konnten nicht geladen werden."
   },
   "communities": {
     "roles": {

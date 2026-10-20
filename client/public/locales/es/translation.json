@@ -155,13 +155,15 @@
       "name": "Nombre visible",
       "bio": "Biografía",
       "bio_placeholder": "Cuéntanos sobre ti...",
-      "bio_description": "Se muestra en tu perfil. Máximo 160 caracteres.",
+      "bio_description": "Se muestra en tu perfil. Máximo {{max}} caracteres.",
       "location": "Ubicación",
       "website": "Sitio web",
       "privacy": "Cuenta privada",
       "privacy_description": "Solo los miembros pueden ver tu contenido.",
       "name_placeholder": "Juan Pérez",
-      "location_placeholder": "Madrid, España"
+      "location_placeholder": "Madrid, España",
+      "invalid": "No se ha podido guardar el perfil",
+      "invalid_hint": "Revisa los datos introducidos."
     },
     "update_success_title": "Perfil actualizado",
     "update_success_desc": "Tus cambios se han guardado correctamente.",
@@ -507,7 +509,8 @@
       "restriction_desc": "Necesitas al menos 200 de reputación para crear una comunidad.",
       "current_rep": "Tu reputación actual:",
       "eyebrow": "Comunidades / Nueva",
-      "success_desc": "¡Bienvenido a {{name}}!"
+      "success_desc": "¡Bienvenido a {{name}}!",
+      "categories_required": "Selecciona al menos una categoría."
     },
     "page": {
       "not_found_title": "Comunidad no encontrada",
@@ -1548,7 +1551,9 @@
     "send": "Enviar",
     "none_selected": "Ningún chat seleccionado",
     "none_selected_desc": "Elige a un amigo de la lista y empieza a conversar.",
-    "view_connections": "Ver conexiones"
+    "view_connections": "Ver conexiones",
+    "load_older": "Cargar mensajes anteriores",
+    "load_older_failed": "No se han podido cargar los mensajes anteriores."
   },
   "communities": {
     "roles": {

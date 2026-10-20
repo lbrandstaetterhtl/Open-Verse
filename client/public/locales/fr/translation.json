@@ -155,13 +155,15 @@
       "name": "Nom affiché",
       "bio": "Bio",
       "bio_placeholder": "Parle-nous de toi…",
-      "bio_description": "Affichée sur ton profil. 160 caractères max.",
+      "bio_description": "Affichée sur ton profil. {{max}} caractères max.",
       "location": "Localisation",
       "website": "Site web",
       "privacy": "Compte privé",
       "privacy_description": "Seuls les membres peuvent voir ton contenu.",
       "name_placeholder": "Jean Dupont",
-      "location_placeholder": "Lyon, France"
+      "location_placeholder": "Lyon, France",
+      "invalid": "Le profil n'a pas pu être enregistré",
+      "invalid_hint": "Vérifie les informations saisies."
     },
     "update_success_title": "Profil mis à jour",
     "update_success_desc": "Tes modifications ont bien été enregistrées.",
@@ -507,7 +509,8 @@
       "restriction_desc": "Il te faut au moins 200 points de réputation pour créer une communauté.",
       "current_rep": "Ta réputation actuelle :",
       "eyebrow": "Communautés / Nouvelle",
-      "success_desc": "Bienvenue dans {{name}} !"
+      "success_desc": "Bienvenue dans {{name}} !",
+      "categories_required": "Sélectionne au moins une catégorie."
     },
     "page": {
       "not_found_title": "Communauté introuvable",
@@ -1548,7 +1551,9 @@
     "send": "Envoyer",
     "none_selected": "Aucune conversation sélectionnée",
     "none_selected_desc": "Choisis un ami dans la liste et commence à discuter.",
-    "view_connections": "Voir les relations"
+    "view_connections": "Voir les relations",
+    "load_older": "Charger les messages plus anciens",
+    "load_older_failed": "Les messages plus anciens n'ont pas pu être chargés."
   },
   "communities": {
     "roles": {

@@ -155,13 +155,15 @@
       "name": "Nome visualizzato",
       "bio": "Bio",
       "bio_placeholder": "Parlaci di te...",
-      "bio_description": "Visibile sul tuo profilo. Max 160 caratteri.",
+      "bio_description": "Visibile sul tuo profilo. Max {{max}} caratteri.",
       "location": "Località",
       "website": "Sito web",
       "privacy": "Account privato",
       "privacy_description": "Solo i membri possono vedere i tuoi contenuti.",
       "name_placeholder": "Mario Rossi",
-      "location_placeholder": "Roma, Italia"
+      "location_placeholder": "Roma, Italia",
+      "invalid": "Impossibile salvare il profilo",
+      "invalid_hint": "Controlla i dati inseriti."
     },
     "update_success_title": "Profilo aggiornato",
     "update_success_desc": "Le tue modifiche sono state salvate.",
@@ -507,7 +509,8 @@
       "restriction_desc": "Ti servono almeno 200 punti di reputazione per creare una comunità.",
       "current_rep": "La tua reputazione attuale:",
       "eyebrow": "Comunità / Nuova",
-      "success_desc": "Benvenuto in {{name}}!"
+      "success_desc": "Benvenuto in {{name}}!",
+      "categories_required": "Seleziona almeno una categoria."
     },
     "page": {
       "not_found_title": "Comunità non trovata",
@@ -1548,7 +1551,9 @@
     "send": "Invia",
     "none_selected": "Nessuna chat selezionata",
     "none_selected_desc": "Scegli un amico dall'elenco e inizia a chiacchierare.",
-    "view_connections": "Vedi connessioni"
+    "view_connections": "Vedi connessioni",
+    "load_older": "Carica messaggi precedenti",
+    "load_older_failed": "Impossibile caricare i messaggi precedenti."
   },
   "communities": {
     "roles": {

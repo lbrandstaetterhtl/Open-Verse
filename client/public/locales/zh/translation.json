@@ -155,13 +155,15 @@
       "name": "显示名称",
       "bio": "个人简介",
       "bio_placeholder": "介绍一下你自己…",
-      "bio_description": "显示在你的个人资料中，最多 160 个字符。",
+      "bio_description": "显示在你的个人资料中，最多 {{max}} 个字符。",
       "location": "所在地",
       "website": "网站",
       "privacy": "私密账户",
       "privacy_description": "只有成员可以查看你的内容。",
       "name_placeholder": "张三",
-      "location_placeholder": "中国，北京"
+      "location_placeholder": "中国，北京",
+      "invalid": "无法保存个人资料",
+      "invalid_hint": "请检查你的输入。"
     },
     "update_success_title": "个人资料已更新",
     "update_success_desc": "你的更改已成功保存。",
@@ -507,7 +509,8 @@
       "restriction_desc": "你需要至少 200 声望才能创建社区。",
       "current_rep": "你当前的声望：",
       "eyebrow": "社区 / 新建",
-      "success_desc": "欢迎来到 {{name}}！"
+      "success_desc": "欢迎来到 {{name}}！",
+      "categories_required": "请至少选择一个分类。"
     },
     "page": {
       "not_found_title": "未找到社区",
@@ -1548,7 +1551,9 @@
     "send": "发送",
     "none_selected": "未选择聊天",
     "none_selected_desc": "从列表中选择一位好友，开始畅聊吧。",
-    "view_connections": "查看互关好友"
+    "view_connections": "查看互关好友",
+    "load_older": "加载更早的消息",
+    "load_older_failed": "无法加载更早的消息。"
   },
   "communities": {
     "roles": {

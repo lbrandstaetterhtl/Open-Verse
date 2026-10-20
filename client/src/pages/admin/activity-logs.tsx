@@ -330,7 +330,7 @@ export default function ActivityLogsPage() {
                      <p className="text-sm leading-relaxed text-foreground/80">"{log.description}"</p>
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-border">
-                     <span className="ov-label">{targetTypeLabel(log.targetType)}</span>
+                     <span className="ov-label">{targetTypeLabel(log.targetType ?? "")}</span>
                      <Sheet>
                         <SheetTrigger asChild>
                           <Button variant="outline" size="sm" className="h-8">{t("admin_logs.details", "Details")}</Button>
