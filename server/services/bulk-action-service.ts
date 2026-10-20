@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { users, bans, bulkActionLogs, reports, posts } from "@shared/schema";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, lte, or } from "drizzle-orm";
 import { activityLogger } from "./activity-logger";
 import { logger } from "../logger";
 
@@ -13,39 +13,43 @@ export interface BulkResult {
 
 type Performer = { id: number; role: string };
 
-/** Karma value that marks an account as banned in the admin UI (see dashboard handleBanToggle). */
-export const BANNED_KARMA = -9999;
+/** An active ban: not revoked and either permanent or not yet expired (same rule as middleware/ban-check.ts). */
+export const activeBanCondition = () =>
+  and(eq(bans.isActive, 1), or(eq(bans.isPermanent, 1), gt(bans.expiresAt, new Date())));
 
-/** Remembers the karma an account had before an account ban so that revoking the ban can restore it. */
-export const banNotes = (previousKarma: number) => JSON.stringify({ previousKarma });
-export function previousKarmaOf(notes: string | null | undefined): number | null {
-  if (!notes) return null;
-  try {
-    const v = JSON.parse(notes)?.previousKarma;
-    return Number.isInteger(v) && v > BANNED_KARMA ? v : null;
-  } catch {
-    return null;
-  }
+/**
+ * Bans are state of their own (the bans table, enforced by middleware/ban-check.ts and the login); karma is
+ * never touched. Lifting a ban only clears the shadow-ban flag, and only when no other active shadow ban
+ * of that user remains.
+ */
+export async function liftUserBanEffects(ban: { userId: number | null; banType: string }) {
+  if (!ban.userId || ban.banType !== "shadow") return;
+  const stillBanned = await db.select({ id: bans.id }).from(bans)
+    .where(and(eq(bans.userId, ban.userId), eq(bans.banType, "shadow"), activeBanCondition())).limit(1);
+  if (stillBanned.length > 0) return;
+  await db.update(users).set({ isShadowBanned: 0 }).where(eq(users.id, ban.userId));
 }
 
 /**
- * Lifts the user-level effects of a revoked account/shadow ban, unless another active ban of the same
- * kind still applies. Restores the karma stored on the ban (0 when it is unknown).
+ * Temporary bans end at their end date: marks expired bans inactive and lifts the shadow-ban flag they set.
+ * Runs periodically (startBanExpirySweep); account/IP/device bans are already ignored by ban-check once expired.
  */
-export async function liftUserBanEffects(ban: { userId: number | null; banType: string; notes?: string | null }) {
-  if (!ban.userId) return;
-  const stillBanned = await db.select({ id: bans.id }).from(bans)
-    .where(and(eq(bans.userId, ban.userId), eq(bans.banType, ban.banType), eq(bans.isActive, 1))).limit(1);
-  if (stillBanned.length > 0) return;
-  if (ban.banType === "shadow") {
-    await db.update(users).set({ isShadowBanned: 0 }).where(eq(users.id, ban.userId));
-  } else if (ban.banType === "account") {
-    const [user] = await db.select({ karma: users.karma }).from(users).where(eq(users.id, ban.userId));
-    // Only undo the ban marker; karma that changed since the ban (e.g. set by an admin) stays.
-    if (user && user.karma <= BANNED_KARMA) {
-      await db.update(users).set({ karma: previousKarmaOf(ban.notes) ?? 0 }).where(eq(users.id, ban.userId));
-    }
-  }
+export async function expireBans(): Promise<number> {
+  const expired = await db.update(bans)
+    .set({ isActive: 0, updatedAt: new Date() })
+    .where(and(eq(bans.isActive, 1), eq(bans.isPermanent, 0), isNotNull(bans.expiresAt), lte(bans.expiresAt, new Date())))
+    .returning();
+  for (const ban of expired) await liftUserBanEffects(ban);
+  return expired.length;
+}
+
+let sweepTimer: NodeJS.Timeout | null = null;
+export function startBanExpirySweep(intervalMs = 5 * 60 * 1000) {
+  if (sweepTimer) return;
+  const run = () => expireBans().catch((err) => logger.error("security", "ban expiry sweep failed", err));
+  sweepTimer = setInterval(run, intervalMs);
+  sweepTimer.unref?.();
+  setTimeout(run, 10_000).unref?.();
 }
 
 class BulkActionService {
@@ -81,13 +85,10 @@ class BulkActionService {
           createdAt: now,
           updatedAt: now,
           isActive: 1,
-          notes: params.banType === "account" ? banNotes(user.karma) : null,
         });
 
         if (params.banType === "shadow") {
           await db.update(users).set({ isShadowBanned: 1 }).where(eq(users.id, userId));
-        } else {
-          await db.update(users).set({ karma: BANNED_KARMA }).where(eq(users.id, userId));
         }
         results.success++;
       } catch (error) {
@@ -124,10 +125,6 @@ class BulkActionService {
           .where(and(eq(bans.userId, userId), eq(bans.isActive, 1), or(eq(bans.banType, "account"), eq(bans.banType, "shadow"))))
           .returning();
         for (const ban of revoked) await liftUserBanEffects(ban);
-        if (revoked.length === 0) {
-          // Legacy "ban" = karma marker without a bans row (dashboard toggle).
-          await db.update(users).set({ karma: 0 }).where(and(eq(users.id, userId), eq(users.karma, BANNED_KARMA)));
-        }
         results.success++;
       } catch (error) {
         logger.error("security", "bulk unban failed for one user", error, { userId });

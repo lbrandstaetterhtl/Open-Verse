@@ -1,6 +1,6 @@
 import { db } from './db';
 import { users } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, lte } from 'drizzle-orm';
 import { logger } from './logger';
 import { sql } from 'drizzle-orm';
 import fs from 'node:fs';
@@ -98,7 +98,20 @@ export async function runMigrations() {
  */
 export async function bootstrapAccounts() {
   await disableLegacyTestAdmin();
+  await resetLegacyBanKarma();
   await seedInitialOwner();
+}
+
+// Earlier versions marked account bans by setting karma to -9999 (and treated any negative karma as banned).
+// Bans now live only in the bans table and karma is plain reputation, so that marker is reset to 0 once.
+// Idempotent: afterwards no account has karma <= -9999.
+async function resetLegacyBanKarma() {
+  try {
+    const reset = await db.update(users).set({ karma: 0 }).where(lte(users.karma, -9999)).returning({ id: users.id });
+    if (reset.length > 0) logger.info('db', `Reset the legacy ban karma (-9999) of ${reset.length} account(s) to 0`);
+  } catch (err) {
+    logger.error('db', 'Failed to reset legacy ban karma', err);
+  }
 }
 
 // Earlier versions created "testadmin" with a password that is public in this repository.

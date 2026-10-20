@@ -6,7 +6,7 @@ import { and, eq } from "drizzle-orm";
 import { storage } from "./storage";
 import { db } from "./db";
 import type { User as SelectUser } from "@shared/schema";
-import { bans, users, updateProfileSchema, updatePasswordSchema, insertUserSchema } from "@shared/schema";
+import { bans, updateProfileSchema, updatePasswordSchema, insertUserSchema } from "@shared/schema";
 import { sendVerificationEmail } from "./utils/email";
 import rateLimit from "express-rate-limit";
 import { activityLogger } from "./services/activity-logger";
@@ -15,7 +15,7 @@ import { closeSessionSockets, closeUserSockets } from "./services/websocket";
 import { logger } from "./logger";
 import { hashPassword, verifyPassword, burnPasswordCheck, passwordStamp } from "./utils/password-hash";
 import { toSelfUser } from "./utils/public-user";
-import { BANNED_KARMA, previousKarmaOf } from "./services/bulk-action-service";
+import { activeBanCondition } from "./services/bulk-action-service";
 
 import { sendValidationError, sendInternalError } from "./utils/http-errors";
 declare global {
@@ -131,33 +131,17 @@ function uniqueViolationField(err: any): "username" | "email" | null {
 }
 
 /**
- * Negative karma marks a banned account. Account bans from the admin panel set karma to -9999 and have an
- * expiry; once every account ban of the user has expired (or was revoked) the ban is lifted here, so temporary
- * bans really end. Negative karma without any ban record (set by hand) stays a ban.
+ * Whether the account is banned: an active account ban in the bans table (not revoked, permanent or not yet
+ * expired). Karma is reputation only (one dislike can make it negative); it no longer decides about bans.
  */
-async function isKarmaBanned(user: { id: number; karma: number }): Promise<boolean> {
-  if (user.karma >= 0) return false;
+export async function isAccountBanned(user: { id: number }): Promise<boolean> {
   try {
-    const rows = await db.select().from(bans).where(and(eq(bans.userId, user.id), eq(bans.banType, "account")));
-    if (rows.length === 0 || user.karma > BANNED_KARMA) return true;
-    const now = Date.now();
-    const active = rows.some((b: any) => {
-      if (!b.isActive) return false;
-      if (b.isPermanent) return true;
-      if (!b.expiresAt) return true;
-      const ms = b.expiresAt instanceof Date ? b.expiresAt.getTime() : Number(b.expiresAt) * 1000;
-      return ms > now;
-    });
-    if (active) return true;
-    // Restore the karma from before the (latest) ban, like revoking it does
-    const latest = rows.reduce((a: any, b: any) => (Number(b.id) > Number(a.id) ? b : a));
-    const karma = previousKarmaOf(latest.notes) ?? 0;
-    await db.update(users).set({ karma }).where(eq(users.id, user.id));
-    user.karma = karma;
-    logger.info("auth", "Expired account ban lifted", { userId: user.id });
-    return false;
+    const rows = await db.select({ id: bans.id }).from(bans)
+      .where(and(eq(bans.userId, user.id), eq(bans.banType, "account"), activeBanCondition()))
+      .limit(1);
+    return rows.length > 0;
   } catch (err) {
-    logger.error("auth", "Ban expiry check failed", err, { userId: user.id });
+    logger.error("auth", "Ban check failed", err, { userId: user.id });
     return true;
   }
 }
@@ -256,8 +240,8 @@ export function setupSession(app: Express, sessionParser: any) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        // Check if user is banned (negative karma; temporary account bans end here once they expired)
-        if (await isKarmaBanned(user)) {
+        // Account ban (bans table; temporary bans end once they expired)
+        if (await isAccountBanned(user)) {
           logger.authEvent({
             event: 'login_failed',
             userId: user.id,
@@ -309,7 +293,7 @@ export function setupSession(app: Express, sessionParser: any) {
       }
 
       // SEC-003 FIX: Check ban status
-      if (await isKarmaBanned(user)) {
+      if (await isAccountBanned(user)) {
         logger.warn('auth', "Session invalid: User is banned", { userId: id });
         return done(null, false); // Invalidate session
       }

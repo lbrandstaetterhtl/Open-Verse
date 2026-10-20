@@ -44,6 +44,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET}
       TRUST_PROXY: "true"
       REQUIRE_HTTPS: ${REQUIRE_HTTPS:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
       # Optional one-time owner bootstrap (see DEPLOYMENT.md)
       INITIAL_OWNER_USERNAME: ${INITIAL_OWNER_USERNAME:-}
       INITIAL_OWNER_PASSWORD: ${INITIAL_OWNER_PASSWORD:-}

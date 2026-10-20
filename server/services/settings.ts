@@ -96,19 +96,19 @@ export class SettingsService {
       
       // Users
       { category: "users", key: "registration_enabled", label: "Allow Registration", value: "true", valueType: "boolean", description: "Toggle whether new users can create accounts on the platform." },
-      { category: "users", key: "require_email_verification", label: "Require Email Verification", value: "false", valueType: "boolean", description: "If enabled, users must verify their email before they can post, comment, or vote." },
+      { category: "users", key: "require_email_verification", label: "Require Email Verification", value: "false", valueType: "boolean", description: "Not enforced: there is no email verification link endpoint yet, so enforcing it would lock every new user out." },
       { category: "users", key: "default_user_karma", label: "Default User Karma", value: "0", valueType: "integer", description: "The starting amount of Karma given to newly registered users." },
-      { category: "users", key: "max_usernames_per_ip", label: "Max Accounts per IP", value: "5", valueType: "integer", description: "Limit the number of accounts that can be registered from a single IP address to prevent spam." },
+      { category: "users", key: "max_usernames_per_ip", label: "Max Accounts per IP", value: "5", valueType: "integer", description: "Not enforced: registration is limited to 5 attempts per IP and hour. A lifetime per-IP account limit would need the registration address stored per account." },
       
       // Content
       { category: "content", key: "ai_generation_enabled", label: "AI Post Generation", value: "true", valueType: "boolean", description: "Enable or disable the built-in AI post generator tool for users." },
-      { category: "content", key: "max_upload_size_mb", label: "Max Upload Size (MB)", value: "10", valueType: "integer", description: "Maximum file size allowed for media uploads (images and videos)." },
+      { category: "content", key: "max_upload_size_mb", label: "Max Upload Size (MB)", value: "10", valueType: "integer", description: "Not enforced yet: the upload routes use fixed limits (10 MB for images)." },
       { category: "content", key: "post_cooldown_seconds", label: "Post Cooldown (Seconds)", value: "30", valueType: "integer", description: "Required wait time between creating new posts to prevent flooding." },
       { category: "content", key: "profanity_filter_enabled", label: "Enable Profanity Filter", value: "true", valueType: "boolean", description: "Automatically censor known profanity and slurs in posts and comments." },
       
       // Security
-      { category: "security", key: "session_timeout_minutes", label: "Session Timeout", value: "60", valueType: "integer", description: "How long an inactive user session remains valid before requiring them to log in again." },
-      { category: "security", key: "max_login_attempts", label: "Max Login Attempts", value: "5", valueType: "integer", description: "Number of failed login attempts allowed before temporarily locking the account." },
+      { category: "security", key: "session_timeout_minutes", label: "Session Timeout", value: "60", valueType: "integer", description: "Minutes of inactivity after which a session ends (minimum 5, 0 = off; sessions end after 24 hours in any case)." },
+      { category: "security", key: "max_login_attempts", label: "Max Login Attempts", value: "5", valueType: "integer", description: "Not enforced: an account is locked for 15 minutes after 20 failed logins (a low value would let anyone lock other users out)." },
       { category: "security", key: "admin_ip_allowlist", label: "Admin IP Allowlist", value: "", valueType: "text", description: "Comma-separated list of IP addresses allowed to access the admin dashboard. Leave blank to disable." },
       
       // Email

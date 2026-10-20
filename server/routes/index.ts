@@ -4,7 +4,7 @@ import session from 'express-session';
 import rateLimit from "express-rate-limit";
 import { WebSocketServer } from 'ws';
 
-import { setupSession, registerAuthRoutes, validateCsrf } from "../auth";
+import { setupSession, registerAuthRoutes, validateCsrf, isAccountBanned } from "../auth";
 import { storage } from "../storage";
 import { addConnection, removeConnection } from "../services/websocket";
 import { passwordStamp } from "../utils/password-hash";
@@ -151,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (req.path === "/api/register") {
                 return res.status(503).json({
                     error: "Registration is temporarily disabled during maintenance.",
-                    code: "MAINTENANCE",
+                    code: "MAINTENANCE_REGISTRATION",
                     maintenance: true
                 });
             }
@@ -342,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Same checks as for HTTP requests: the session must belong to the current password and the
                 // account must not be banned or deleted.
                 const user = await storage.getUser(userId);
-                if (!user || currentSession.authStamp !== passwordStamp(user.password) || user.karma < 0) {
+                if (!user || currentSession.authStamp !== passwordStamp(user.password) || (await isAccountBanned(user))) {
                     return reject('401 Unauthorized');
                 }
                 wss.handleUpgrade(req, socket, head, (ws) => {

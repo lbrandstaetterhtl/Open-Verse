@@ -62,18 +62,18 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
 
     if (activeBans.length > 0) {
       // IP Ban
-      if (activeBans.some(b => b.banType === 'ip' && b.ipAddress === ip)) {
+      if (activeBans.some((b: any) => b.banType === 'ip' && b.ipAddress === ip)) {
         return res.status(403).json({ error: "Access denied (IP ban)", code: "IP_BANNED" });
       }
 
       // Hardware Ban
-      if (deviceId && activeBans.some(b => b.banType === 'hardware' && b.deviceFingerprint === deviceId)) {
+      if (deviceId && activeBans.some((b: any) => b.banType === 'hardware' && b.deviceFingerprint === deviceId)) {
         return res.status(403).json({ error: "This device is banned", code: "DEVICE_BANNED" });
       }
 
       // Account Ban
       if (userId) {
-        const userBan = activeBans.find(b => b.userId === userId && (b.banType === 'account' || b.banType === 'shadow'));
+        const userBan = activeBans.find((b: any) => b.userId === userId && (b.banType === 'account' || b.banType === 'shadow'));
         if (userBan) {
           if (userBan.isShadow) {
             (req as any).isShadowBanned = true;

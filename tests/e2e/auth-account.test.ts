@@ -341,13 +341,21 @@ describe("AUTH login", () => {
     assert.notEqual(res.status, 200, "form login from a foreign origin succeeded");
   });
 
-  test("an account with negative karma (banned) cannot log in and its session dies", async () => {
+  // Bans live in the bans table; karma is reputation only (a single dislike can make it negative, INPUT-2).
+  test("an account with an active account ban cannot log in and its session dies", async () => {
     const u = await makeUser("negkarma");
-    await expectStatus(await admin.patch(`/api/admin/users/${u.id}`, { karma: -1 }), 200);
+    await expectStatus(await admin.post("/api/admin/bans", { ban_type: "account", user_id: u.id, reason: "e2e", duration_hours: 1 }), 200);
     const res = await freshClient().login(u.username, u.password);
     assert.equal(res.status, 401);
     assert.match(await res.text(), /banned/i);
     assert.equal((await u.client.get("/api/user")).status, 401, "existing session must be invalidated");
+  });
+
+  test("negative karma alone is not a ban", async () => {
+    const u = await makeUser("lowkarma");
+    await expectStatus(await admin.patch(`/api/admin/users/${u.id}`, { karma: -1 }), 200);
+    assert.equal((await freshClient().login(u.username, u.password)).status, 200);
+    assert.equal((await u.client.get("/api/user")).status, 200);
   });
 });
 

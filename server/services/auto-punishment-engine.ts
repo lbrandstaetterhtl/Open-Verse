@@ -185,14 +185,14 @@ class AutoPunishmentEngine {
             userId: anomaly.userId,
             reason: rule.actionReason,
             severity: rule.action === 'permanent_ban' ? 'permanent' : 'high',
-            isPermanent: rule.action === 'permanent_ban' ? 1 : 0,
+            // without an end date a "temporary" ban would never be active (ban-check: permanent OR expiresAt > now)
+            isPermanent: rule.action === 'permanent_ban' || !expiresAtDate ? 1 : 0,
             expiresAt: expiresAtDate,
             createdByType: 'auto_punishment',
             anomalyId: anomaly.id || null,
             createdAt: new Date(),
             updatedAt: new Date()
           }).returning();
-          await db.update(users).set({ karma: -1000 }).where(eq(users.id, anomaly.userId!));
           banId = accountBan.id;
           break;
 
@@ -203,6 +203,7 @@ class AutoPunishmentEngine {
               ipAddress: anomaly.ipAddress,
               reason: rule.actionReason,
               severity: 'high',
+              isPermanent: expiresAtDate ? 0 : 1,
               expiresAt: expiresAtDate,
               createdByType: 'auto_punishment',
               anomalyId: anomaly.id || null,

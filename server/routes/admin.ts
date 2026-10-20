@@ -8,7 +8,7 @@ import { eq, desc, count, sql, and, or, inArray, like } from "drizzle-orm";
 import { activityLogger } from "../services/activity-logger";
 import rateLimit from "express-rate-limit";
 import { SettingsService } from "../services/settings";
-import { bulkActionService, liftUserBanEffects, banNotes, BANNED_KARMA } from "../services/bulk-action-service";
+import { bulkActionService, liftUserBanEffects, activeBanCondition, startBanExpirySweep } from "../services/bulk-action-service";
 import { bans, autoPunishmentRules, autoPunishmentExecutions, insertAutoPunishmentRuleSchema } from "@shared/schema";
 import { hasPermission, isAdmin, isOwner } from "../middleware/auth";
 import { sanitizeUser } from "../storage";
@@ -26,13 +26,22 @@ const router = Router();
 router.use(isAdmin);
 // Malformed ids ("abc", "-1", "1.5", > 2^31-1) are answered with 404 before any handler runs.
 validateIdParams(router, ["id"]);
+// Temporary bans end at their end date (marks them inactive and lifts shadow-ban flags).
+startBanExpirySweep();
+
+/** Ids of users with an active (not revoked, not expired) account ban. */
+async function bannedUserIds(): Promise<Set<number>> {
+    const rows = await db.select({ userId: bans.userId }).from(bans).where(and(eq(bans.banType, "account"), activeBanCondition()));
+    return new Set(rows.map((r: any) => r.userId).filter((id: any): id is number => typeof id === "number"));
+}
 
 router.get("/stats", hasPermission("dashboard"), async (req, res) => {
     try {
         // Use sql`` comparisons for SQLite integer booleans (true=1, false=0)
         const totalUsersResult = await db.select({ count: count() }).from(users);
         const verifiedUsersResult = await db.select({ count: count() }).from(users).where(sql`verified = 1`);
-        const bannedUsersResult = await db.select({ count: count() }).from(users).where(sql`karma < 0`);
+        // Banned = an active account ban in the bans table (karma is not a ban state).
+        const bannedCount = (await bannedUserIds()).size;
         const totalPostsResult = await db.select({ count: count() }).from(posts);
         const pendingResult = await db.select({ count: count() }).from(reports).where(sql`status = 'pending'`);
         const resolvedResult = await db.select({ count: count() }).from(reports).where(sql`status = 'resolved'`);
@@ -44,7 +53,7 @@ router.get("/stats", hasPermission("dashboard"), async (req, res) => {
             totalUsers: toNum(totalUsersResult[0].count),
             activeUsers: toNum(totalUsersResult[0].count),
             verifiedUsers: toNum(verifiedUsersResult[0].count),
-            bannedUsers: toNum(bannedUsersResult[0].count),
+            bannedUsers: bannedCount,
             deletedUsers: 0,
             totalPosts: toNum(totalPostsResult[0].count),
             totalReports: toNum(pendingResult[0].count) + toNum(resolvedResult[0].count) + toNum(rejectedResult[0].count),
@@ -62,10 +71,12 @@ router.get("/stats", hasPermission("dashboard"), async (req, res) => {
 router.get("/users", hasPermission("users"), async (req, res) => {
     try {
         const allUsers = await db.select().from(users).orderBy(desc(users.id));
+        const banned = await bannedUserIds();
         // Normalize: SQLite stores timestamps as Unix seconds integers.
         // If createdAt is null or 0, provide a fallback ISO string.
         const normalized = allUsers.map(({ password: _password, ...u }: any) => ({
             ...u,
+            isBanned: banned.has(u.id),
             createdAt: u.createdAt
                 ? (typeof u.createdAt === "number"
                     ? new Date(u.createdAt * 1000).toISOString()
@@ -633,17 +644,13 @@ router.post("/bans", hasPermission("security"), async (req, res) => {
             isShadow: body.ban_type === "shadow" ? 1 : 0,
             createdBy: caller.id,
             createdByType: "admin",
-            notes: body.ban_type === "account" && target ? banNotes(target.karma) : null,
             createdAt: now,
             updatedAt: now,
         }).returning();
 
-        if (target) {
-            if (body.ban_type === "shadow") {
-                await db.update(users).set({ isShadowBanned: 1 }).where(eq(users.id, target.id));
-            } else if (body.ban_type === "account") {
-                await db.update(users).set({ karma: BANNED_KARMA }).where(eq(users.id, target.id));
-            }
+        // Account bans live in the bans table only (enforced by ban-check and the login); karma is untouched.
+        if (target && body.ban_type === "shadow") {
+            await db.update(users).set({ isShadowBanned: 1 }).where(eq(users.id, target.id));
         }
 
         activityLogger.logFromRequest(req, {
@@ -679,7 +686,7 @@ router.patch("/bans/:id/revoke", hasPermission("security"), async (req, res) => 
         }).where(eq(bans.id, Number(req.params.id))).returning();
         if (!updated) return res.status(404).json({ error: "Ban not found", code: "BAN_NOT_FOUND" });
 
-        // Also unban the user if it was an account/shadow ban: restores the karma it had before the ban.
+        // A shadow ban also clears the user's shadow flag (unless another shadow ban is still active); karma is never changed.
         await liftUserBanEffects(updated);
         res.json(updated);
     } catch (e: any) {
