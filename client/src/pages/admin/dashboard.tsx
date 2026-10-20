@@ -51,6 +51,8 @@ import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { BulkActionToolbar } from "@/components/admin/BulkActionToolbar";
 import { BulkActionModal } from "@/components/admin/BulkActionModal";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 function MetricCard({ 
   title, 
@@ -149,6 +151,9 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { GroupsManagement } from "@/components/admin/GroupsManagement";
 
 import { useDateLocale } from "@/lib/date-locale";
+/** /api/admin/users rows: the user plus whether an account ban is active (karma is reputation only). */
+type AdminUser = User & { isBanned?: boolean };
+
 type AdminReport = Report & {
   reporter?: { username: string };
   content?: {
@@ -175,6 +180,9 @@ export default function AdminDashboard() {
   const [bulkAction, setBulkAction] = useState<{ type: "users" | "reports", actionId: string } | null>(null);
   // Permanent deletion is confirmed in a dialog first
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  // Restricting (account ban) asks for a reason first
+  const [userToBan, setUserToBan] = useState<AdminUser | null>(null);
+  const [banReason, setBanReason] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: keyof User; direction: "asc" | "desc" } | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<{
@@ -190,7 +198,7 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/stats"],
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery<User[]>({
+  const { data: users, isLoading: usersLoading } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
   });
 
@@ -253,7 +261,7 @@ export default function AdminDashboard() {
 
       switch (userFilter) {
         case "verified": return u.verified;
-        case "banned": return u.karma < 0;
+        case "banned": return !!u.isBanned;
         default: return true;
       }
     })
@@ -281,6 +289,8 @@ export default function AdminDashboard() {
     });
   };
 
+  const isOwner = user?.role === "owner";
+
   const handleRoleChange = (userId: number, currentRole: string) => {
     const roles: ("user" | "admin" | "owner")[] = ["user", "admin", "owner"];
     const currentIndex = roles.indexOf(currentRole as any);
@@ -295,14 +305,55 @@ export default function AdminDashboard() {
     updateUserMutation.mutate({ userId, data: { role: nextRole } });
   };
 
-  const handleBanToggle = async (u: User) => {
-    const isBanned = u.karma < 0;
-    if (isBanned) {
-      // Unban: Reset karma to 0
-      updateUserMutation.mutate({ userId: u.id, data: { karma: 0 } });
-    } else {
-      // Simple Ban: Set karma to -9999
-      updateUserMutation.mutate({ userId: u.id, data: { karma: -9999 } });
+  // Account bans live in the bans table (karma is reputation only): ban = new account ban, unban = revoke the
+  // user's active account bans. A new ban asks for the reason first (userToBan dialog).
+  const banMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: number; reason: string }) => {
+      const res = await apiRequest("POST", "/api/admin/bans", { ban_type: "account", user_id: userId, reason });
+      return res.json();
+    },
+    onSuccess: () => {
+      setUserToBan(null);
+      setBanReason("");
+      invalidateBanState();
+      toast({ title: t("common.success", "Success"), description: t("admin_dashboard.user_update_success", "User updated.") });
+    },
+    onError: (error: Error) => {
+      toast({ title: t("common.error", "An error occurred"), description: error.message, variant: "destructive" });
+    },
+  });
+
+  const unbanMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await apiRequest("GET", "/api/admin/bans");
+      const all: any[] = await res.json();
+      const now = Date.now();
+      const active = all.filter((b) =>
+        b.userId === userId && b.banType === "account" && !!b.isActive && !b.revokedAt &&
+        (b.isPermanent || !b.expiresAt || new Date(b.expiresAt).getTime() > now));
+      for (const ban of active) await apiRequest("PATCH", `/api/admin/bans/${ban.id}/revoke`, {});
+    },
+    onSuccess: () => {
+      invalidateBanState();
+      toast({ title: t("common.success", "Success"), description: t("admin_dashboard.user_update_success", "User updated.") });
+    },
+    onError: (error: Error) => {
+      invalidateBanState();
+      toast({ title: t("common.error", "An error occurred"), description: error.message, variant: "destructive" });
+    },
+  });
+
+  const invalidateBanState = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/bans"] });
+  };
+
+  const handleBanToggle = (u: AdminUser) => {
+    if (u.isBanned) unbanMutation.mutate(u.id);
+    else {
+      setBanReason("");
+      setUserToBan(u);
     }
   };
 
@@ -320,28 +371,33 @@ export default function AdminDashboard() {
 
   const handleBulkAction = async (reason: string, duration?: number) => {
     if (!bulkAction) return;
-
-    if (bulkAction.type === "users") {
-       await apiRequest("POST", "/api/admin/bulk/users", {
-           user_ids: Array.from(selectedUsers),
-           action: bulkAction.actionId,
-           reason,
-           duration_hours: duration
-       });
-       setSelectedUsers(new Set());
-       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-    } else if (bulkAction.type === "reports") {
-       await apiRequest("POST", "/api/admin/bulk/reports", {
-           report_ids: Array.from(selectedReports),
-           action: bulkAction.actionId,
-           reason
-       });
-       setSelectedReports(new Set());
-       queryClient.invalidateQueries({ queryKey: ["/api/admin/reports"] });
-       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+    // An empty reason is left out (the server then uses its default); errors are shown, not swallowed
+    const trimmedReason = reason?.trim() || undefined;
+    try {
+      if (bulkAction.type === "users") {
+        await apiRequest("POST", "/api/admin/bulk/users", {
+          user_ids: Array.from(selectedUsers),
+          action: bulkAction.actionId,
+          reason: trimmedReason,
+          duration_hours: duration || undefined,
+        });
+        setSelectedUsers(new Set());
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      } else if (bulkAction.type === "reports") {
+        await apiRequest("POST", "/api/admin/bulk/reports", {
+          report_ids: Array.from(selectedReports),
+          action: bulkAction.actionId,
+          reason: trimmedReason,
+        });
+        setSelectedReports(new Set());
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/reports"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      }
+      toast({ title: t("admin_dashboard.bulk_success", "Bulk action executed successfully.") });
+    } catch (error) {
+      toast({ title: t("common.error", "An error occurred"), description: error instanceof Error ? error.message : undefined, variant: "destructive" });
     }
-
-    toast({ title: t("admin_dashboard.bulk_success", "Bulk action executed successfully.") });
     setBulkAction(null);
   };
 
@@ -523,6 +579,8 @@ export default function AdminDashboard() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56 p-2">
+                                {/* Roles are granted by owners only (the server answers 403 to admins) */}
+                                {isOwner && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onSelect={(e) => e.preventDefault()}>
@@ -548,6 +606,7 @@ export default function AdminDashboard() {
                                     )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
+                                )}
 
                                 {hasPermission("groups") && (
                                   <DropdownMenu>
@@ -595,9 +654,9 @@ export default function AdminDashboard() {
                                   <Ban className="h-4 w-4" />
                                   <div className="flex flex-col">
                                     <span className="text-sm font-medium">
-                                      {u.karma < 0 ? t("admin_dashboard.users.lift_restriction", "Lift restriction") : t("admin_dashboard.users.restrict_account", "Restrict account")}
+                                      {u.isBanned ? t("admin_dashboard.users.lift_restriction", "Lift restriction") : t("admin_dashboard.users.restrict_account", "Restrict account")}
                                     </span>
-                                    <span className="text-xs opacity-70">{u.karma < 0 ? t("admin_dashboard.users.restore_access", "Restore access") : t("admin_dashboard.users.restrict_desc", "Zero-gravity suspension")}</span>
+                                    <span className="text-xs opacity-70">{u.isBanned ? t("admin_dashboard.users.restore_access", "Restore access") : t("admin_dashboard.users.restrict_desc", "Zero-gravity suspension")}</span>
                                   </div>
                                 </DropdownMenuItem>
 
@@ -647,6 +706,8 @@ export default function AdminDashboard() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56 p-2">
+                                {/* Roles are granted by owners only (the server answers 403 to admins) */}
+                                {isOwner && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onSelect={(e) => e.preventDefault()}>
@@ -669,6 +730,7 @@ export default function AdminDashboard() {
                                     )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
+                                )}
                                 <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer" onClick={() => handleShadowBanToggle(u)}>
                                   <UserX className={cn("h-4 w-4", u.isShadowBanned ? "text-star" : "text-muted-foreground")} />
                                   <span className="text-sm font-medium">{t("admin_dashboard.users.toggle_shadowban", "Toggle shadowban")}</span>
@@ -826,6 +888,37 @@ export default function AdminDashboard() {
             onAction={(actionId) => setBulkAction({ type: currentTab, actionId })}
             onClear={() => currentTab === "users" ? setSelectedUsers(new Set()) : setSelectedReports(new Set())}
           />
+
+          <AlertDialog open={userToBan !== null} onOpenChange={(open) => { if (!open) setUserToBan(null); }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {t("admin_dashboard.users.ban_confirm_title", { username: userToBan?.username ?? "", defaultValue: "Restrict {{username}}?" })}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t("admin_dashboard.users.ban_confirm_desc", "The account is banned until an administrator lifts the restriction.")}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="space-y-2">
+                <Label htmlFor="ban-reason">{t("server:fields.reason")}</Label>
+                <Textarea id="ban-reason" value={banReason} maxLength={500} onChange={(e) => setBanReason(e.target.value)} />
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={!banReason.trim() || banMutation.isPending}
+                  onClick={(e) => {
+                    // Keep the dialog open until the ban is saved (closed in onSuccess)
+                    e.preventDefault();
+                    if (userToBan && banReason.trim()) banMutation.mutate({ userId: userToBan.id, reason: banReason.trim() });
+                  }}
+                >
+                  {t("admin_dashboard.users.restrict_account", "Restrict account")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <AlertDialog open={userToDelete !== null} onOpenChange={(open) => { if (!open) setUserToDelete(null); }}>
             <AlertDialogContent>

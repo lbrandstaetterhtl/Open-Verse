@@ -20,6 +20,8 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { ApiError } from "@/lib/server-messages";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
@@ -93,13 +95,9 @@ export default function StressTestPage() {
 
     const startStreaming = async () => {
       try {
-        const response = await fetch(`/api/security/stress-test/${moduleId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ intensity, duration })
-        });
-
-        if (!response.ok) throw new Error("Failed to start stress test.");
+        // apiRequest sends the CSRF token and turns error answers into translated ApiErrors
+        // (e.g. 409 STRESS_TEST_RUNNING: another test is still running); the stream body is left unread.
+        const response = await apiRequest("POST", `/api/security/stress-test/${moduleId}`, { intensity, duration });
 
         const reader = response.body?.getReader();
         if (!reader) throw new Error("No readable stream available.");
@@ -141,6 +139,9 @@ export default function StressTestPage() {
           }
         }
       } catch (err: any) {
+        if (err instanceof ApiError) {
+          toast({ title: t("stress_test.toast_failed", "Test failed"), description: err.message, variant: "destructive" });
+        }
         setLogs(prev => [...prev, { 
           message: `\n❌ ${t("stress_test.log_system_error", { error: err.message, defaultValue: "System error: {{error}}" })}`, 
           timestamp: new Date().toISOString(),

@@ -74,6 +74,11 @@ export function GroupsManagement() {
         queryKey: ["/api/admin/users"],
     });
 
+    // 409 GROUP_NAME_TAKEN, 403 PERMISSION_ESCALATION etc.: the server text, translated by apiRequest (server namespace)
+    const showError = (error: Error) => {
+        toast({ title: t("common.error", "An error occurred"), description: error.message, variant: "destructive" });
+    };
+
     const createMutation = useMutation({
         mutationFn: async (data: any) => {
             const res = await apiRequest("POST", "/api/admin/groups", data);
@@ -83,7 +88,8 @@ export function GroupsManagement() {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/groups"] });
             setIsCreateOpen(false);
             toast({ title: t("admin_groups.toast.success", "Success"), description: t("admin_groups.toast.created", "Admin group created.") });
-        }
+        },
+        onError: showError,
     });
 
     const updateMutation = useMutation({
@@ -95,7 +101,8 @@ export function GroupsManagement() {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/groups"] });
             setEditingGroup(null);
             toast({ title: t("admin_groups.toast.success", "Success"), description: t("admin_groups.toast.updated", "Admin group updated.") });
-        }
+        },
+        onError: showError,
     });
 
     const deleteMutation = useMutation({
@@ -105,7 +112,8 @@ export function GroupsManagement() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/groups"] });
             toast({ title: t("admin_groups.toast.success", "Success"), description: t("admin_groups.toast.deleted", "Admin group deleted.") });
-        }
+        },
+        onError: showError,
     });
 
     const getGroupMembers = (groupId: number) => {
@@ -311,6 +319,7 @@ function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
                         <Label className="ov-label text-[11px]">{t("admin_groups.form.name", "Group name")}</Label>
                         <Input 
                             value={name} 
+                            maxLength={50}
                             onChange={(e) => setName(e.target.value)} 
                             placeholder={t("admin_groups.form.name_placeholder", "e.g. Content moderator")} 
                             className="h-11 font-semibold"
@@ -338,6 +347,7 @@ function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
                     <Label className="ov-label text-[11px]">{t("admin_groups.form.description", "Description")}</Label>
                     <Input 
                         value={description} 
+                        maxLength={500}
                         onChange={(e) => setDescription(e.target.value)} 
                         placeholder={t("admin_groups.form.description_placeholder", "What is this group responsible for?")} 
                         className="h-11"
@@ -378,10 +388,10 @@ function GroupForm({ title, initialData, onSubmit, onCancel, isLoading }: any) {
             <DialogFooter className="pt-6">
                 <Button variant="ghost" onClick={onCancel}>{t("common.cancel", "Cancel")}</Button>
                 <Button 
-                    disabled={isLoading || !name}
+                    disabled={isLoading || !name.trim()}
                     onClick={() => onSubmit({ 
-                        name, 
-                        description, 
+                        name: name.trim(), 
+                        description: description.trim(), 
                         color, 
                         permissions: JSON.stringify(permissions) 
                     })}

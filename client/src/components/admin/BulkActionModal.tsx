@@ -24,7 +24,6 @@ interface BulkActionModalProps {
 const ACTION_META: Record<string, { title: [string, string]; description: [string, string]; confirm: [string, string]; danger: boolean }> = {
   ban:     { title: ["admin_bulk.ban.title", "Ban users"],     description: ["admin_bulk.ban.description", "This will restrict platform access for the selected users."],  confirm: ["admin_bulk.ban.confirm", "Confirm ban"],    danger: true  },
   unban:   { title: ["admin_bulk.unban.title", "Unban users"],   description: ["admin_bulk.unban.description", "This will restore platform access for the selected users."],   confirm: ["admin_bulk.unban.confirm", "Confirm unban"],  danger: false },
-  delete:  { title: ["admin_bulk.delete.title", "Delete users"],  description: ["admin_bulk.delete.description", "This will permanently delete the selected users and all their data. This cannot be undone."], confirm: ["admin_bulk.delete.confirm", "Delete all"], danger: true },
   resolve: { title: ["admin_bulk.resolve.title", "Resolve reports"], description: ["admin_bulk.resolve.description", "Mark all selected reports as resolved."],                    confirm: ["admin_bulk.resolve.confirm", "Resolve all"],  danger: false },
   reject:  { title: ["admin_bulk.reject.title", "Reject reports"],  description: ["admin_bulk.reject.description", "Dismiss all selected reports as rejected."],                 confirm: ["admin_bulk.reject.confirm", "Reject all"],   danger: true  },
 };

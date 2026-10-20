@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Trash2, Shield, ShieldOff, X } from "lucide-react";
+import { Shield, ShieldOff, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -10,10 +10,10 @@ interface BulkActionToolbarProps {
   onClear: () => void;
 }
 
+// No bulk delete: the server only accepts ban/unban here (deleting accounts is a single, confirmed action).
 const USER_ACTIONS = [
   { id: "ban", labelKey: "admin_bulk.toolbar.ban", fallback: "Ban selected", icon: ShieldOff, variant: "destructive" as const },
   { id: "unban", labelKey: "admin_bulk.toolbar.unban", fallback: "Unban selected", icon: Shield, variant: "default" as const },
-  { id: "delete", labelKey: "admin_bulk.toolbar.delete", fallback: "Delete selected", icon: Trash2, variant: "destructive" as const },
 ];
 
 const REPORT_ACTIONS = [
