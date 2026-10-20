@@ -19,7 +19,7 @@ export const LIMITS = {
   themeName: 60,
   ticketTitle: 200,
   ticketDescription: 10000,
-  ticketComment: 10000,
+  ticketComment: 5000,
   ticketUrl: 2048,
 } as const;
 
