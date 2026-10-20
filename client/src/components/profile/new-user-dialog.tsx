@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { LIMITS } from "@/lib/input-limits";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
@@ -69,6 +70,7 @@ export function NewUserDialog() {
             placeholder={t("onboarding.bio_placeholder", "I love coffee and coding...")}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
+            maxLength={LIMITS.bio}
             className="resize-none h-32"
           />
         </div>

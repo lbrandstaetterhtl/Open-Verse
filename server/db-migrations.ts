@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';
 import { storage } from './storage';
-import bcrypt from 'bcrypt';
+import { hashPassword, verifyPassword } from './utils/password-hash';
 import { randomBytes } from 'node:crypto';
 
 /**
@@ -106,8 +106,8 @@ export async function bootstrapAccounts() {
 async function disableLegacyTestAdmin() {
   try {
     const legacy = await storage.getUserByUsername("testadmin");
-    if (!legacy?.password || !(await bcrypt.compare("TestPassword123!", legacy.password))) return;
-    await storage.updateUserPassword(legacy.id, await bcrypt.hash(randomBytes(32).toString("hex"), 12));
+    if (!legacy?.password || !(await verifyPassword("TestPassword123!", legacy.password)).isValid) return;
+    await storage.updateUserPassword(legacy.id, await hashPassword(randomBytes(32).toString("hex")));
     logger.critical('db', 'Disabled legacy "testadmin" account that used the publicly known default password. Use INITIAL_OWNER_USERNAME / INITIAL_OWNER_PASSWORD to create your own owner.');
   } catch (err) {
     logger.error('db', 'Failed to check legacy testadmin account', err);
@@ -162,7 +162,7 @@ export async function seedInitialOwner() {
       await storage.createUser({
         username,
         email,
-        password: await bcrypt.hash(password, 12),
+        password: await hashPassword(password),
         role: 'owner',
         isAdmin: 1,
         verified: 1,
@@ -172,13 +172,16 @@ export async function seedInitialOwner() {
       return;
     }
 
-    const passwordMatches = !!existing.password && (await bcrypt.compare(password, existing.password));
+    const passwordMatches = (await verifyPassword(password, existing.password)).isValid;
     if (!passwordMatches && !resetPassword) {
-      ownerLog('warn', `account "${username}" already exists with a different password; nothing was changed. Start once with INITIAL_OWNER_RESET_PASSWORD=true to set INITIAL_OWNER_PASSWORD as its password.`);
+      // Registration and renames refuse INITIAL_OWNER_USERNAME, but an account with that name may predate
+      // the setting (registered before the owner was configured). It is NOT made owner.
+      const isOwner = existing.role === 'owner' && !!existing.isAdmin;
+      ownerLog(isOwner ? 'warn' : 'critical', `account "${username}" already exists with a different password${isOwner ? '' : ' and is NOT an owner — someone may have registered this name before the owner was configured'}; nothing was changed. Check the account, then start once with INITIAL_OWNER_RESET_PASSWORD=true to set INITIAL_OWNER_PASSWORD as its password (or choose another INITIAL_OWNER_USERNAME).`);
       return;
     }
     if (!passwordMatches) {
-      await storage.updateUserPassword(existing.id, await bcrypt.hash(password, 12));
+      await storage.updateUserPassword(existing.id, await hashPassword(password));
       ownerLog('critical', `password of "${username}" was reset from INITIAL_OWNER_PASSWORD. Remove INITIAL_OWNER_RESET_PASSWORD from .env again.`);
     }
     if (existing.role !== 'owner' || !existing.isAdmin) {

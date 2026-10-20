@@ -16,45 +16,60 @@ import compression from "compression";
 import { requestLoggerMiddleware } from "./middleware/request-logger";
 import { globalErrorHandler } from "./middleware/error-handler";
 import { dbLogger } from "./logger/service-loggers";
+import { isAllowedOrigin } from "./utils/origins";
 
 
 const app = express();
 app.use(compression());
 
-// SECURITY-FIX [SEC-001]: Global Security Headers
+// PRODUCTION SECURITY [SEC-001]: Which X-Forwarded-For / X-Forwarded-Proto headers to believe (req.ip,
+// req.secure, Secure cookies, rate limits, IP bans).
+//   TRUST_PROXY=true  -> only proxies on loopback / private / link-local addresses (nginx on the host or in the
+//                        docker network). A client that connects to port 5000 directly from the internet cannot
+//                        choose its own address with X-Forwarded-For.
+//   TRUST_PROXY=<n>   -> exactly n proxy hops; TRUST_PROXY=<list> -> those addresses/subnets (express syntax).
+const trustProxy = process.env.TRUST_PROXY?.trim();
+if (trustProxy === "true") {
+  app.set("trust proxy", "loopback, linklocal, uniquelocal");
+} else if (trustProxy && trustProxy !== "false") {
+  app.set("trust proxy", /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
+}
+
+// SECURITY-FIX [SEC-001]: Security headers, one policy for every response (app document, API, uploads).
+const isDevelopment = process.env.NODE_ENV === "development";
+const safeHost = (req: any) => {
+  const host = String(req.headers?.host ?? "");
+  return /^[a-z0-9.\-]+(:\d+)?$/i.test(host) || /^\[[0-9a-f:.]+\](:\d+)?$/i.test(host) ? host : null;
+};
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Vite/Dev need inline
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "blob:", "https:"],
-      connectSrc: ["'self'", "ws:", "wss:"],
-      fontSrc: ["'self'", "https:", "data:"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      mediaSrc: ["'self'", "data:", "blob:"],
+      // Vite's dev server needs inline/eval; production bundles do not
+      scriptSrc: isDevelopment ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"] : ["'self'"],
+      // WebSockets only to this host (ws:/wss: alone would allow any host)
+      connectSrc: ["'self'", (req: any) => { const h = safeHost(req); return h ? `ws://${h}` : "'self'"; }, (req: any) => { const h = safeHost(req); return h ? `wss://${h}` : "'self'"; }],
+      frameAncestors: ["'none'"],
       objectSrc: ["'none'"],
-      frameSrc: ["'none'"],
-      upgradeInsecureRequests: [],
+      upgradeInsecureRequests: null,
     },
   },
   crossOriginEmbedderPolicy: false, // Required for some media loads
+  hsts: false,
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
 }));
 
-// SECURITY-FIX [SEC-005]: Explicit CORS Policy
-app.use(cors({
-  origin: true, // Allow all origins in dev, or specific origins in prod
-  credentials: true,
+// SECURITY-FIX [SEC-005]: CORS only for the app's own origin and CORS_ORIGINS (never "null" / any origin)
+app.use(cors((req, cb) => {
+  const origin = req.headers.origin;
+  cb(null, { origin: isAllowedOrigin(origin, req) ? origin : false, credentials: true });
 }));
 
 app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: false, limit: "1mb" }));
-
-// PRODUCTION SECURITY [SEC-001]: Enable trust proxy if the application is behind a reverse proxy (Nginx, etc.)
-// This ensures that req.ip and secure cookies work correctly.
-if (process.env.TRUST_PROXY === "true" || process.env.TRUST_PROXY === "1") {
-  app.set("trust proxy", 1);
-} else if (process.env.TRUST_PROXY && process.env.TRUST_PROXY !== "false") {
-  app.set("trust proxy", process.env.TRUST_PROXY);
-}
+// No urlencoded parser: the client only sends JSON and multipart, and form bodies would let a plain
+// cross-site <form> post to the API without a CORS preflight.
 
 // Ensure uploads directory exists and set proper permissions
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -77,8 +92,8 @@ app.use(
       ip: req.ip 
     });
 
-    // Set slightly less restrictive security headers for debugging
-    res.setHeader("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; media-src 'self';");
+    // Uploaded files are never documents that run code
+    res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self' data: blob:; media-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'; sandbox");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     res.setHeader("X-Accel-Buffering", "no"); // For better streaming
@@ -279,9 +294,16 @@ if (!process.env.SENDGRID_API_KEY) {
       if (process.env.NODE_ENV === 'development') process.exit(1);
     });
 
+    // A single bad request (e.g. a malformed WebSocket frame or multipart body) must not take the service down
+    // for everyone: log and keep serving. Only a burst of uncaught exceptions (something is really broken)
+    // ends the process, so the supervisor (docker restart policy / systemd) starts a clean one.
+    const recentCrashes: number[] = [];
     process.on('uncaughtException', (error) => {
       logger.critical('error', 'Uncaught Exception', error);
-      shutdown('UncaughtException');
+      const now = Date.now();
+      recentCrashes.push(now);
+      while (recentCrashes.length && now - recentCrashes[0] > 60_000) recentCrashes.shift();
+      if (recentCrashes.length >= 10) shutdown('UncaughtException (10 within a minute)');
     });
   } catch (error) {
     logger.critical('system', "Failed to start server", error);

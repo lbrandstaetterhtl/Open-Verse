@@ -9,6 +9,13 @@ import {
 import { db, getSqlite } from "../db";
 import { eq, and, sql, inArray } from "drizzle-orm";
 
+/** Names/emails with control characters (e.g. NUL, which Postgres rejects) or absurd lengths can't exist. */
+const isLookupValue = (value: unknown): value is string =>
+  typeof value === "string" && value.length > 0 && value.length <= 320 && !/[\u0000-\u001f\u007f]/.test(value);
+
+/** Escapes LIKE wildcards so a search for "%" or "_" matches those characters literally. */
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
+
 export class UserStorage {
   async getUser(id: number): Promise<User | undefined> {
     const sqlite = getSqlite();
@@ -30,9 +37,12 @@ export class UserStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
+    if (!isLookupValue(username)) return undefined;
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      const user = sqlite.prepare("SELECT * FROM users WHERE username = ?").get(username);
+      const user = sqlite
+        .prepare("SELECT * FROM users WHERE username = ? COLLATE NOCASE ORDER BY (username = ?) DESC, id LIMIT 1")
+        .get(username, username);
       if (!user) return undefined;
 
       return {
@@ -44,14 +54,24 @@ export class UserStorage {
         createdAt: new Date(Number(user.created_at) * 1000),
       };
     }
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    // Case-insensitive ("Alice" and "alice" are the same account name); an exact match wins if old
+    // data still holds case variants of one name.
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.username}) = lower(${username})`)
+      .orderBy(sql`(${users.username} = ${username}) desc`, users.id)
+      .limit(1);
     return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
+    if (!isLookupValue(email)) return undefined;
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      const user = sqlite.prepare("SELECT * FROM users WHERE email = ?").get(email);
+      const user = sqlite
+        .prepare("SELECT * FROM users WHERE email = ? COLLATE NOCASE ORDER BY (email = ?) DESC, id LIMIT 1")
+        .get(email, email);
       if (!user) return undefined;
 
       return {
@@ -63,7 +83,13 @@ export class UserStorage {
         createdAt: new Date(Number(user.created_at) * 1000),
       };
     }
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    // Case-insensitive: one mailbox, one account (A@X.test and a@x.test are the same address).
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = lower(${email})`)
+      .orderBy(sql`(${users.email} = ${email}) desc`, users.id)
+      .limit(1);
     return user;
   }
 
@@ -496,12 +522,17 @@ export class UserStorage {
     return result.map((r: { user: User }) => r.user);
   }
 
+  /** Username substring search (case-insensitive, wildcards literal). Non-strings and control characters give []. */
   async searchUsers(query: string): Promise<User[]> {
+    if (typeof query !== "string") return [];
+    const q = query.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 50);
+    if (!q) return [];
+    const pattern = `%${escapeLike(q)}%`;
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const rows = sqlite
-        .prepare("SELECT * FROM users WHERE username LIKE ? LIMIT 10")
-        .all(`%${query}%`) as any[];
+        .prepare("SELECT * FROM users WHERE username LIKE ? ESCAPE '\\' LIMIT 10")
+        .all(pattern) as any[];
       return rows.map((user: any) => ({
         ...user,
         emailVerified: Boolean(user.email_verified),
@@ -511,6 +542,11 @@ export class UserStorage {
         createdAt: new Date(Number(user.created_at) * 1000),
       }));
     }
-    return db.select().from(users).where(sql`${users.username} ILIKE ${`%${query}%`}`).limit(10);
+    return db
+      .select()
+      .from(users)
+      .where(sql`${users.username} ILIKE ${pattern} ESCAPE '\\'`)
+      .orderBy(sql`(lower(${users.username}) = lower(${q})) desc`, users.username)
+      .limit(10);
   }
 }

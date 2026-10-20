@@ -18,6 +18,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
+import { LIMITS, invalidUrlMessage, requiredMessage, tooLongMessage, tooShortMessage } from "@/lib/input-limits";
+import { safeExternalUrl } from "@/lib/safe-url";
 
 export default function CreateCommunityPage() {
   const { t } = useTranslation();
@@ -26,8 +29,26 @@ export default function CreateCommunityPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Same limits as the server; the name must not be blank
+  const nameField = t("server:fields.name");
+  const descriptionField = t("server:fields.description");
+  const imageField = t("server:fields.imageUrl");
+  const formSchema = insertCommunitySchema.extend({
+    name: z.string().trim()
+      .min(1, requiredMessage(nameField))
+      .min(3, tooShortMessage(nameField, 3))
+      .max(LIMITS.communityName, tooLongMessage(nameField, LIMITS.communityName)),
+    description: z.string()
+      .max(LIMITS.communityDescription, tooLongMessage(descriptionField, LIMITS.communityDescription))
+      .optional().nullable(),
+    // Empty, an http(s) address or an uploaded file; the error is shown below the field
+    imageUrl: z.string().trim().max(LIMITS.communityImageUrl, tooLongMessage(imageField, LIMITS.communityImageUrl))
+      .refine((v) => !v || safeExternalUrl(v) !== null || /^\/uploads\/[\w.-]+$/.test(v), invalidUrlMessage(imageField))
+      .optional().nullable(),
+  });
+
   const form = useForm<InsertCommunity>({
-    resolver: zodResolver(insertCommunitySchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -121,6 +142,7 @@ export default function CreateCommunityPage() {
                     id="name"
                     placeholder={t("community.create.name_placeholder")}
                     className="h-11"
+                    maxLength={LIMITS.communityName}
                     {...form.register("name")}
                   />
                   {form.formState.errors.name && (
@@ -135,6 +157,7 @@ export default function CreateCommunityPage() {
                     placeholder={t("community.create.desc_placeholder")}
                     rows={6}
                     className="leading-relaxed"
+                    maxLength={LIMITS.communityDescription}
                     {...form.register("description")}
                   />
                   {form.formState.errors.description && (
@@ -146,7 +169,10 @@ export default function CreateCommunityPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="imageUrl">{t("community.create.image_label")}</Label>
-                  <Input id="imageUrl" placeholder="https://..." className="h-11" {...form.register("imageUrl")} />
+                  <Input id="imageUrl" placeholder="https://..." className="h-11" maxLength={LIMITS.communityImageUrl} {...form.register("imageUrl")} />
+                  {form.formState.errors.imageUrl && (
+                    <p className="text-xs font-medium text-destructive">{form.formState.errors.imageUrl.message}</p>
+                  )}
                 </div>
 
                 <div className="ov-panel space-y-4 p-5">

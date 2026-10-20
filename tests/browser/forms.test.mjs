@@ -556,6 +556,20 @@ if (!ONLY.length || ONLY.includes("profile")) {
     await dlg().getByLabel("Bio").fill(`Bio ${XSS}`);
     await dlg().getByLabel("Standort").fill(`Ort ${XSS_SCRIPT}`);
     await dlg().getByLabel("Website").fill(JS_URL);
+    // A javascript: website is refused (by the form or the server, UI-12/ATK-XSS-2) with a message, the rest is saved
+    const before = patches().length;
+    await save();
+    await page.waitForTimeout(2000);
+    const refused = patches().slice(before);
+    const websiteMsgs = [...(await visibleErrorText(page)), ...(await s.toasts())].filter((t) => /Website|URL/i.test(t));
+    assert.ok(refused.every((c) => c.status >= 400) && websiteMsgs.length > 0, `javascript: website: ${refused.map((c) => c.status)} ${JSON.stringify(websiteMsgs)}`);
+    if (await dlg().count() === 0) {
+      await open();
+      await dlg().getByLabel("Anzeigename").fill(`Name ${XSS_IMG}`);
+      await dlg().getByLabel("Bio").fill(`Bio ${XSS}`);
+      await dlg().getByLabel("Standort").fill(`Ort ${XSS_SCRIPT}`);
+    }
+    await dlg().getByLabel("Website").fill("");
     await save();
     await page.waitForTimeout(2000);
     assert.equal(patches().at(-1)?.status, 200, patches().map((c) => `${c.status} ${c.response}`).join(" | "));
@@ -696,10 +710,17 @@ if (!ONLY.length || ONLY.includes("community")) {
     assert.ok(blocked.length === before, `the client sent a ${blocked.at(-1)?.name?.length}-char name (input kept ${kept.length})`);
   });
 
-  await test("community", "XSS name/description and javascript: image URL: one community on fast double click, harmless everywhere", async () => {
+  await test("community", "XSS name/description and javascript: image URL: refused, then one community on fast double click, harmless everywhere", async () => {
     focus = page;
+    // A javascript: image URL is refused with a message (by the form or the server, ATK-XSS-1) …
+    const tried = posts().length;
+    await create({ name, description: `Beschreibung ${XSS}`, imageUrl: JS_URL });
+    const refused = posts().slice(tried);
+    const urlMsgs = [...(await visibleErrorText(page)), ...(await o.toasts())].filter((t) => /URL|Bild/i.test(t));
+    assert.ok(refused.every((c) => c.status >= 400) && urlMsgs.length > 0, `javascript: image URL: ${refused.map((c) => `${c.status} ${c.response.slice(0, 80)}`)} ${JSON.stringify(urlMsgs)}`);
+    // … and the community is created once without it
     const before = posts().length;
-    await create({ name, description: `Beschreibung ${XSS}`, imageUrl: JS_URL, dbl: true });
+    await create({ name, description: `Beschreibung ${XSS}`, imageUrl: "", dbl: true });
     const calls = posts().slice(before);
     const ok = calls.filter((c) => c.status === 201);
     assert.ok(ok.length >= 1, calls.map((c) => `${c.status} ${c.response}`).join(" | "));

@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "node:http";
 import session from 'express-session';
-import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { WebSocketServer } from 'ws';
-import compression from "compression";
 
-import { setupAuth, validateCsrf } from "../auth";
+import { setupSession, registerAuthRoutes, validateCsrf } from "../auth";
 import { storage } from "../storage";
-import { connections } from "../services/websocket";
+import { addConnection, removeConnection } from "../services/websocket";
+import { passwordStamp } from "../utils/password-hash";
+import { isAllowedOrigin } from "../utils/origins";
 import { banCheckMiddleware } from "../middleware/ban-check";
 
 // Feature Routes
@@ -40,8 +40,7 @@ import { parsePagination } from "../utils/pagination";
 import { DELETED_AUTHOR } from "../utils/post-extras";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-    // 0. Performance: Compression
-    app.use(compression());
+    // Compression is applied once in server/index.ts
 
     // 0.5. DB Health Check Middleware
     app.use(async (req, res, next) => {
@@ -91,27 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         next();
     });
 
-    // 1. Security Headers (Helmet)
-    const scriptSrcDirective = process.env.NODE_ENV === 'production'
-        ? ["'self'"]
-        : ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
-    
-    app.use(helmet({
-        contentSecurityPolicy: {
-            directives: {
-                defaultSrc: ["'self'"],
-                imgSrc: ["'self'", "data:", "blob:"],
-                mediaSrc: ["'self'", "data:", "blob:"],
-                scriptSrc: scriptSrcDirective,
-                connectSrc: ["'self'", "ws:", "wss:"],
-                frameAncestors: ["'none'"],
-                objectSrc: ["'none'"], // SEC-FIX: Block plugins
-                upgradeInsecureRequests: null, // EXPLIZIT deaktivieren (sonst ist es per Default an)
-            },
-        },
-        hsts: false, // EXPLIZIT deaktivieren (sonst ist es per Default an)
-        referrerPolicy: { policy: "strict-origin-when-cross-origin" }
-    }));
+    // 1. Security headers (helmet) are set once for the whole app in server/index.ts
 
     // SEC-FIX [SEC-011]: Permissions-Policy to disable unneeded browser features
     app.use((req, res, next) => {
@@ -135,15 +114,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         saveUninitialized: false,
         store: storage.sessionStore,
         cookie: {
-            secure: process.env.REQUIRE_HTTPS === 'true', // Muss 'true' sein, wenn ein HTTPS Reverse Proxy genutzt wird
+            // REQUIRE_HTTPS=true: always Secure. Otherwise "auto": Secure whenever the request came over HTTPS,
+            // directly or via a trusted proxy's X-Forwarded-Proto (TRUST_PROXY), and still usable over plain
+            // HTTP on localhost.
+            secure: process.env.REQUIRE_HTTPS === 'true' ? true : 'auto',
             httpOnly: true, // SEC-FIX: Prevent XSS access to cookies
             sameSite: 'lax', // Geändert von 'strict' für besseres lokales Testen
             maxAge: 1000 * 60 * 60 * 24 // 24 hours
         }
     });
 
-    // 3. Setup Auth (Registers passport and populates req.user)
-    setupAuth(app, sessionParser);
+    // 3. Session + passport (populates req.user). The auth routes themselves are registered further down,
+    // after the ban check, maintenance mode and CSRF validation, so those apply to login, registration,
+    // logout and the profile routes too.
+    setupSession(app, sessionParser);
 
     // 3.5. Security & Ban Check Middleware (Block IPs, Devices, Accounts)
     app.use(banCheckMiddleware);
@@ -165,9 +149,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (maintenanceMode) {
             // Block registration entirely during maintenance
             if (req.path === "/api/register") {
-                return res.status(503).json({ 
-                    message: "Registration is temporarily disabled during maintenance.",
-                    maintenance: true 
+                return res.status(503).json({
+                    error: "Registration is temporarily disabled during maintenance.",
+                    code: "MAINTENANCE",
+                    maintenance: true
                 });
             }
 
@@ -185,9 +170,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const isAdmin = user && (user.isAdmin || user.role === "admin" || user.role === "owner");
             
             if (!isAdmin) {
-                return res.status(503).json({ 
-                    message: "Site is currently under maintenance. Please check back later.",
-                    maintenance: true 
+                return res.status(503).json({
+                    error: "Site is currently under maintenance. Please check back later.",
+                    code: "MAINTENANCE",
+                    maintenance: true
                 });
             }
         }
@@ -230,6 +216,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Too many requests from this IP, please try again later",
     });
     app.use("/api", apiLimiter);
+
+    // Login, registration, logout, own profile and password
+    registerAuthRoutes(app);
+
+    // Admin IP allowlist (setting security.admin_ip_allowlist, comma-separated; empty = off)
+    app.use("/api/admin", async (req, res, next) => {
+        try {
+            const raw = String((await SettingsService.get("security", "admin_ip_allowlist", "")) ?? "");
+            const allowed = raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+            if (allowed.length === 0) return next();
+            const ip = (req.ip || "").replace(/^::ffff:/, "");
+            if (allowed.some((a) => a.replace(/^::ffff:/, "") === ip)) return next();
+            logger.warn('security', "Admin request from an address outside admin_ip_allowlist", { ip, path: req.path });
+            return res.status(403).json({ error: "Forbidden" });
+        } catch (err) {
+            logger.error('security', "admin_ip_allowlist check failed", err);
+            return next();
+        }
+    });
 
     app.get("/api/feed/communities", async (req, res) => {
         if (!req.isAuthenticated()) {
@@ -294,61 +299,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use("/api", userRoutes); // Fallback for any other legacy routes
 
     // 8. WebSocket Setup
-    const wss = new WebSocketServer({ noServer: true });
+    // The server never reads client frames, so 64 KiB is plenty (the ws default would buffer up to 100 MiB).
+    const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
+    wss.on('error', (err) => logger.error('security', "[WS] server error", err));
 
     httpServer.on('upgrade', (req, socket, head) => {
+        // Any throw in here would be an uncaught exception, so everything is guarded.
+        socket.on('error', () => socket.destroy());
         const reject = (status: string) => {
-            socket.write(`HTTP/1.1 ${status}\r\n\r\n`);
+            try {
+                socket.write(`HTTP/1.1 ${status}\r\nConnection: close\r\n\r\n`);
+            } catch { /* socket already gone */ }
             socket.destroy();
         };
-        // Any error in here would be an uncaught exception that takes the whole server down
         let url: URL;
         try {
-            url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+            url = new URL(req.url || '/', 'http://localhost');
         } catch {
             return reject('400 Bad Request');
         }
 
-        // SEC-FIX [SEC-006]: Strict Origin Validation to prevent CSWSH
-        const origin = req.headers.origin;
-        const host = req.headers.host;
-
-        if (origin) {
-            let originUrl: URL | null = null;
-            try {
-                originUrl = new URL(origin);
-            } catch {
-                originUrl = null; // e.g. "null" from sandboxed frames or file:// pages
-            }
-            const isDev = process.env.NODE_ENV !== 'production';
-            const isLocalhost = !!originUrl && isDev && (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1');
-            const matchesHost = !!originUrl && !!host && originUrl.host === host;
-
-            if (!matchesHost && !isLocalhost) {
-                logger.warn('security', `Blocked WebSocket upgrade from unauthorized origin: ${origin}`, { origin, host });
-                return reject('403 Forbidden');
-            }
+        if (url.pathname !== '/ws') {
+            // In development Vite's HMR server listens for its own upgrades on this server
+            if (process.env.NODE_ENV === 'development') return;
+            return reject('404 Not Found');
         }
 
-        if (url.pathname === '/ws') {
-            sessionParser(req as any, {} as any, () => {
+        // SEC-FIX [SEC-006]: Origin validation against CSWSH. Browsers always send Origin on a WebSocket
+        // handshake; a request without one cannot come from a hostile web page, and it still needs a valid
+        // session cookie below.
+        const origin = req.headers.origin;
+        if (origin !== undefined && !isAllowedOrigin(origin, req)) {
+            logger.warn('security', `Blocked WebSocket upgrade from unauthorized origin`, { origin, host: req.headers.host });
+            return reject('403 Forbidden');
+        }
+
+        sessionParser(req as any, {} as any, async () => {
+            try {
                 const currentSession = (req as any).session;
                 const userId = currentSession?.passport?.user;
-                if (!userId) {
-                    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-                    socket.destroy();
-                    return;
+                if (!userId) return reject('401 Unauthorized');
+                // Same checks as for HTTP requests: the session must belong to the current password and the
+                // account must not be banned or deleted.
+                const user = await storage.getUser(userId);
+                if (!user || currentSession.authStamp !== passwordStamp(user.password) || user.karma < 0) {
+                    return reject('401 Unauthorized');
                 }
                 wss.handleUpgrade(req, socket, head, (ws) => {
                     wss.emit('connection', ws, req);
                 });
-            });
-        }
+            } catch (err) {
+                logger.error('security', "[WS] upgrade failed", err);
+                reject('500 Internal Server Error');
+            }
+        });
     });
 
     wss.on('connection', (ws, req: any) => {
         const currentSession = req.session;
         const userId = currentSession?.passport?.user;
+
+        // A protocol error from the client (bad opcode, oversized frame, …) must only close this socket.
+        // Without a listener ws re-emits it as an uncaught exception.
+        ws.on('error', (err) => {
+            logger.warn('security', "[WS] client protocol error, closing socket", { userId, error: String((err as any)?.message ?? err) });
+            ws.terminate();
+        });
 
         if (!userId) {
             logger.warn('security', "[WS] Connection attempted without valid session/user");
@@ -356,10 +372,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return;
         }
 
-        connections.set(userId, ws);
+        // One entry per tab: closing one tab only removes that socket
+        addConnection(userId, ws, req.sessionID);
 
         ws.on('close', () => {
-            connections.delete(userId);
+            removeConnection(userId, ws);
         });
     });
 

@@ -1,57 +1,27 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import type { Express } from "express";
-import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
-import bcrypt from "bcrypt";
-import { storage, sanitizeUser } from "./storage";
+import type { Express, Request, Response, NextFunction } from "express";
+import { randomBytes } from "node:crypto";
+import { and, eq } from "drizzle-orm";
+import { storage } from "./storage";
+import { db } from "./db";
 import type { User as SelectUser } from "@shared/schema";
-import { updateProfileSchema, updatePasswordSchema } from "@shared/schema";
+import { bans, users, updateProfileSchema, updatePasswordSchema, insertUserSchema } from "@shared/schema";
 import { sendVerificationEmail } from "./utils/email";
 import rateLimit from "express-rate-limit";
-import { logSecurityEvent } from "./utils/logger";
-import { insertUserSchema } from "@shared/schema";
 import { activityLogger } from "./services/activity-logger";
+import { SettingsService } from "./services/settings";
+import { closeSessionSockets, closeUserSockets } from "./services/websocket";
 import { logger } from "./logger";
+import { hashPassword, verifyPassword, burnPasswordCheck, passwordStamp } from "./utils/password-hash";
+import { toSelfUser } from "./utils/public-user";
 
 import { sendValidationError, sendInternalError } from "./utils/http-errors";
 declare global {
   namespace Express {
-    interface User extends SelectUser { 
+    interface User extends SelectUser {
       adminGroup?: import("@shared/schema").AdminGroup;
     }
-  }
-}
-
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  return await bcrypt.hash(password, 12);
-}
-
-async function comparePasswords(supplied: string, stored: string) {
-  // Check if it's already a bcrypt hash
-  if (stored.startsWith("$2b$") || stored.startsWith("$2a$") || stored.startsWith("$2y$")) {
-    try {
-      const isValid = await bcrypt.compare(supplied, stored);
-      return { isValid, needsMigration: false };
-    } catch {
-      return { isValid: false, needsMigration: false };
-    }
-  }
-
-  // Fallback to legacy scrypt verification
-  try {
-    const [hashed, salt] = stored.split(".");
-    if (!hashed || !salt) return { isValid: false, needsMigration: false };
-
-    const hashedBuf = Buffer.from(hashed, "hex");
-    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-    const isValid = timingSafeEqual(hashedBuf, suppliedBuf);
-    return { isValid, needsMigration: isValid };
-  } catch (err) {
-    return { isValid: false, needsMigration: false };
   }
 }
 
@@ -86,44 +56,154 @@ export const validateCsrf = (req: any, res: any, next: any) => {
       severity: 'medium',
       details: { method: req.method, path: req.path },
     });
-    return res.status(403).send("Invalid CSRF Token");
+    // The client retries once with a fresh token when the body contains this text.
+    return res.status(403).json({ error: "Invalid CSRF Token", code: "CSRF_INVALID" });
   }
   next();
 };
 
-export function setupAuth(app: Express, sessionParser: any) {
-  if (process.env.NODE_ENV === "production") {
-    app.set("trust proxy", 1);
+/**
+ * Failed attempts per account (not per IP: X-Forwarded-For can be chosen by a client that reaches the app
+ * directly). After `max` failures within `windowMs` the account is locked until the window ends.
+ */
+class FailureCounter {
+  private readonly entries = new Map<string, { count: number; resetAt: number }>();
+
+  constructor(private readonly max: number, private readonly windowMs: number) {
+    setInterval(() => this.prune(), Math.min(windowMs, 10 * 60 * 1000)).unref();
   }
+
+  private current(key: string) {
+    const e = this.entries.get(key);
+    if (e && e.resetAt <= Date.now()) {
+      this.entries.delete(key);
+      return undefined;
+    }
+    return e;
+  }
+
+  isLocked(key: string): boolean {
+    return (this.current(key)?.count ?? 0) >= this.max;
+  }
+
+  fail(key: string) {
+    const e = this.current(key);
+    if (e) e.count++;
+    else this.entries.set(key, { count: 1, resetAt: Date.now() + this.windowMs });
+  }
+
+  reset(key: string) {
+    this.entries.delete(key);
+  }
+
+  private prune() {
+    const now = Date.now();
+    this.entries.forEach((e, k) => {
+      if (e.resetAt <= now) this.entries.delete(k);
+    });
+  }
+}
+
+// 20 failed logins per account in 15 minutes (the same budget the per-IP limiter gives one address)
+const loginFailures = new FailureCounter(20, 15 * 60 * 1000);
+// 5 wrong current passwords per account and hour on PATCH /api/profile/password
+const passwordFailures = new FailureCounter(5, 60 * 60 * 1000);
+
+const accountKey = (username: unknown) =>
+  typeof username === "string" && username.trim() ? username.trim().toLowerCase().slice(0, 64) : undefined;
+
+/** The configured INITIAL_OWNER_USERNAME cannot be taken by public registration or a rename (squatting). */
+function isReservedUsername(username: string): boolean {
+  const owner = process.env.INITIAL_OWNER_USERNAME?.trim().toLowerCase();
+  return !!owner && username.trim().toLowerCase() === owner;
+}
+
+/** "username" / "email" when a unique constraint on that column rejected a write, else null. */
+function uniqueViolationField(err: any): "username" | "email" | null {
+  const code = err?.code ?? err?.cause?.code;
+  const text = `${err?.constraint ?? err?.cause?.constraint ?? ""} ${err?.detail ?? err?.cause?.detail ?? ""} ${err?.message ?? ""}`;
+  const unique = code === "23505" || code === "SQLITE_CONSTRAINT_UNIQUE" || /UNIQUE constraint failed/i.test(text);
+  if (!unique) return null;
+  if (/email/i.test(text)) return "email";
+  if (/username/i.test(text)) return "username";
+  return null;
+}
+
+/**
+ * Negative karma marks a banned account. Account bans from the admin panel set karma to -9999 and have an
+ * expiry; once every account ban of the user has expired (or was revoked) the ban is lifted here, so temporary
+ * bans really end. Negative karma without any ban record (set by hand) stays a ban.
+ */
+async function isKarmaBanned(user: { id: number; karma: number }): Promise<boolean> {
+  if (user.karma >= 0) return false;
+  try {
+    const rows = await db.select().from(bans).where(and(eq(bans.userId, user.id), eq(bans.banType, "account")));
+    if (rows.length === 0 || user.karma !== -9999) return true;
+    const now = Date.now();
+    const active = rows.some((b: any) => {
+      if (!b.isActive) return false;
+      if (b.isPermanent) return true;
+      if (!b.expiresAt) return true;
+      const ms = b.expiresAt instanceof Date ? b.expiresAt.getTime() : Number(b.expiresAt) * 1000;
+      return ms > now;
+    });
+    if (active) return true;
+    await db.update(users).set({ karma: 0 }).where(eq(users.id, user.id));
+    logger.info("auth", "Expired account ban lifted", { userId: user.id });
+    return false;
+  } catch (err) {
+    logger.error("auth", "Ban expiry check failed", err, { userId: user.id });
+    return true;
+  }
+}
+
+/** Stores the logged-in user in a fresh session (new id: no session fixation) with a new CSRF token. */
+function startSession(req: Request, user: { id: number; password: string }, cb: (err?: any) => void) {
+  req.session.regenerate((err) => {
+    if (err) return cb(err);
+    const s = req.session as any;
+    s.passport = { user: user.id };
+    s.csrfToken = randomBytes(32).toString("hex");
+    s.authStamp = passwordStamp(user.password);
+    s.lastSeen = Date.now();
+    req.session.save(cb);
+  });
+}
+
+/**
+ * Session, passport and the per-session CSRF token. Must run before the ban check, maintenance mode and CSRF
+ * validation, which in turn run before the auth routes (registerAuthRoutes).
+ */
+export function setupSession(app: Express, sessionParser: any) {
   app.use(sessionParser);
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // CSRF Token Initialization
-  app.use((req, res, next) => {
-    if (req.session && !(req.session as any).csrfToken) {
-      (req.session as any).csrfToken = randomBytes(32).toString("hex");
+  // Idle timeout (setting security.session_timeout_minutes, 0 = off)
+  app.use(async (req, _res, next) => {
+    const s = req.session as any;
+    if (!s?.passport?.user) return next();
+    try {
+      const minutes = Number(await SettingsService.get("security", "session_timeout_minutes", 0)) || 0;
+      const now = Date.now();
+      if (minutes > 0 && typeof s.lastSeen === "number" && now - s.lastSeen > Math.max(minutes, 5) * 60_000) {
+        logger.info("auth", "Session ended after inactivity", { userId: s.passport.user });
+        return req.logout((err) => next(err));
+      }
+      // Writing the session on every request would be expensive; once a minute is precise enough.
+      if (typeof s.lastSeen !== "number" || now - s.lastSeen > 60_000) s.lastSeen = now;
+    } catch (err) {
+      logger.error("auth", "Idle timeout check failed", err);
     }
     next();
   });
 
-  const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // Limit each IP to 20 login attempts per window
-    message: "Too many login attempts, please try again later",
-  });
-
-  // SEC-FIX [SEC-002]: Rate limiting for sensitive operations
-  const passwordChangeLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5, // Max 5 password change attempts per hour
-    message: "Too many password change attempts, please try again later",
-  });
-
-  const strictAuthLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5, // Max 5 registration attempts per IP per hour
-    message: "Too many registration attempts, please try again later",
+  // CSRF Token Initialization
+  app.use((req, _res, next) => {
+    if (req.session && !(req.session as any).csrfToken) {
+      (req.session as any).csrfToken = randomBytes(32).toString("hex");
+    }
+    next();
   });
 
   passport.use(
@@ -131,6 +211,8 @@ export function setupAuth(app: Express, sessionParser: any) {
       try {
         const user = await storage.getUserByUsername(username);
         if (!user) {
+          // Same bcrypt cost as for an existing account, so the answer time does not reveal the username.
+          await burnPasswordCheck(password);
           logger.authEvent({
             event: 'login_failed',
             username,
@@ -142,13 +224,13 @@ export function setupAuth(app: Express, sessionParser: any) {
             description: `Fehlgeschlagener Login-Versuch (User not found)`,
             severity: 'warning',
             status: 'failure',
-            metadata: { username },
+            metadata: { username: String(username).slice(0, 100) },
             req,
           });
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        const { isValid, needsMigration } = await comparePasswords(password, user.password);
+        const { isValid, needsRehash } = await verifyPassword(password, user.password);
         if (!isValid) {
           logger.authEvent({
             event: 'login_failed',
@@ -169,19 +251,8 @@ export function setupAuth(app: Express, sessionParser: any) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        // Transparently upgrade legacy scrypt hash to bcrypt
-        if (needsMigration) {
-          try {
-            const newHash = await hashPassword(password);
-            await storage.updateUserPassword(user.id, newHash);
-            logger.info('auth', `Migrated legacy password hash to bcrypt`, { username: user.username });
-          } catch (migrateErr) {
-            logger.error('auth', `Failed to migrate password hash`, migrateErr, { username: user.username });
-          }
-        }
-
-        // Check if user is banned (negative karma)
-        if (user.karma < 0) {
+        // Check if user is banned (negative karma; temporary account bans end here once they expired)
+        if (await isKarmaBanned(user)) {
           logger.authEvent({
             event: 'login_failed',
             userId: user.id,
@@ -193,11 +264,18 @@ export function setupAuth(app: Express, sessionParser: any) {
           });
         }
 
-        logger.authEvent({
-          event: 'login',
-          userId: user.id,
-          username: user.username,
-        });
+        // Transparently upgrade older hashes (scrypt, bcrypt without pre-hash) to the current scheme
+        if (needsRehash) {
+          try {
+            const newHash = await hashPassword(password);
+            await storage.updateUserPassword(user.id, newHash);
+            user.password = newHash;
+            logger.info('auth', `Upgraded password hash`, { username: user.username });
+          } catch (migrateErr) {
+            logger.error('auth', `Failed to upgrade password hash`, migrateErr, { username: user.username });
+          }
+        }
+
         return done(null, user);
       } catch (err) {
         logger.error('auth', "Login error", err, { username });
@@ -210,7 +288,7 @@ export function setupAuth(app: Express, sessionParser: any) {
     done(null, user.id);
   });
 
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (req: Request, id: number, done: (err: any, user?: any) => void) => {
     try {
       const user = await storage.getUser(id);
       if (!user) {
@@ -218,14 +296,21 @@ export function setupAuth(app: Express, sessionParser: any) {
         return done(null, false);
       }
 
+      // Sessions remember the password hash they were created with: after a password change all older
+      // sessions (other devices, stolen cookies) end.
+      if ((req.session as any)?.authStamp !== passwordStamp(user.password)) {
+        logger.info('auth', "Session invalid: password changed or session predates the check", { userId: id });
+        return done(null, false);
+      }
+
       // SEC-003 FIX: Check ban status
-      if (user.karma < 0) {
+      if (await isKarmaBanned(user)) {
         logger.warn('auth', "Session invalid: User is banned", { userId: id });
         return done(null, false); // Invalidate session
       }
 
-      const sanitized = sanitizeUser(user) as any;
-      
+      const { password: _password, ...sanitized } = user as any;
+
       // Enrich user with admin group if assigned
       if (user.adminGroupId) {
         try {
@@ -244,15 +329,42 @@ export function setupAuth(app: Express, sessionParser: any) {
       done(err);
     }
   });
+}
+
+/** Login, registration, logout and the own-profile routes. Mount after ban check, maintenance mode and CSRF. */
+export function registerAuthRoutes(app: Express) {
+  // Per-IP limits (the address comes from X-Forwarded-For only for trusted proxies, see TRUST_PROXY)
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // Limit each IP to 20 login attempts per window
+    message: "Too many login attempts, please try again later",
+  });
+
+  // SEC-FIX [SEC-002]: Rate limiting for sensitive operations
+  const passwordChangeLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5, // Max 5 password change attempts per hour
+    message: "Too many password change attempts, please try again later",
+  });
+
+  const strictAuthLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5, // Max 5 registration attempts per IP per hour
+    message: "Too many registration attempts, please try again later",
+  });
 
   app.post("/api/register", strictAuthLimiter, async (req, res) => {
     try {
+      if ((await SettingsService.get("users", "registration_enabled", true)) === false) {
+        return res.status(403).json({ error: "Registration is currently disabled", code: "REGISTRATION_DISABLED" });
+      }
+
       const parsed = insertUserSchema.safeParse(req.body);
       if (!parsed.success) return sendValidationError(res, parsed.error);
       const data = parsed.data;
 
       const existingUser = await storage.getUserByUsername(data.username);
-      if (existingUser) {
+      if (existingUser || isReservedUsername(data.username)) {
         return res.status(400).send("Username already exists");
       }
 
@@ -261,11 +373,30 @@ export function setupAuth(app: Express, sessionParser: any) {
         return res.status(400).send("Email already registered");
       }
 
-      const user = await storage.createUser({
-        username: data.username,
-        email: data.email,
-        password: await hashPassword(data.password),
-      });
+      let user;
+      try {
+        user = await storage.createUser({
+          username: data.username,
+          email: data.email,
+          password: await hashPassword(data.password),
+        });
+      } catch (err) {
+        // Two requests for the same name at the same time: the unique constraint decides
+        const field = uniqueViolationField(err);
+        if (field === "username") return res.status(400).send("Username already exists");
+        if (field === "email") return res.status(400).send("Email already registered");
+        throw err;
+      }
+
+      // Starting karma from the admin settings (never negative: negative karma means banned)
+      const startKarma = Number(await SettingsService.get("users", "default_user_karma", 0)) || 0;
+      if (startKarma > 0) {
+        try {
+          user = await storage.updateUserProfile(user.id, { karma: Math.min(startKarma, 1_000_000) });
+        } catch (err) {
+          logger.error('auth', "Failed to apply default karma", err, { userId: user.id });
+        }
+      }
 
       // SECURITY FIX [AUTH-003]: Do not auto-verify email on registration if SendGrid is available
       // It will be verified either by the link or by being manually set if NO SendGrid is used
@@ -341,116 +472,104 @@ export function setupAuth(app: Express, sessionParser: any) {
         logger.debug("SendGrid API key not configured - skipping verification email");
       }
 
-      // Log the user in
-      req.login(user, (err) => {
+      const created = user;
+      startSession(req, created, (err) => {
         if (err) return sendInternalError(res, err, "auth session failed");
-        // SEC-FIX [SEC-005]: Session Fixation Protection
-        const passportData = (req.session as any).passport;
-        // SECURITY FIX [AUTH-002]: Preserve or regenerate CSRF token after session change
-        const oldCsrfToken = (req.session as any).csrfToken;
-        
-        req.session.regenerate((err) => {
-          if (err) return sendInternalError(res, err, "auth session failed");
-          (req.session as any).passport = passportData;
-          (req.session as any).csrfToken = oldCsrfToken || randomBytes(32).toString("hex");
-          
-          req.session.save((err) => {
-            if (err) return sendInternalError(res, err, "auth session failed");
-            logger.authEvent({
-              event: 'register',
-              userId: user.id,
-              username: user.username,
-            });
-            activityLogger.log({
-              userId: user.id,
-              userUsername: user.username,
-              action: 'auth.register',
-              category: 'auth',
-              description: `Neuer Account registriert: ${user.username}`,
-              severity: 'info',
-              status: 'success',
-              req
-            }).catch(err => logger.error('system', 'auth.register log failed', err));
-            res.status(201).json(sanitizeUser(user));
-          });
+        logger.authEvent({
+          event: 'register',
+          userId: created.id,
+          username: created.username,
         });
+        activityLogger.log({
+          userId: created.id,
+          userUsername: created.username,
+          action: 'auth.register',
+          category: 'auth',
+          description: `Neuer Account registriert: ${created.username}`,
+          severity: 'info',
+          status: 'success',
+          req
+        }).catch(err => logger.error('system', 'auth.register log failed', err));
+        res.status(201).json(toSelfUser(created));
       });
     } catch (err) {
       logger.error('auth', "Registration error", err);
-      res.status(500).send("Registration failed");
+      if (!res.headersSent) res.status(500).send("Registration failed");
     }
   });
 
   app.post("/api/login", authLimiter, (req, res, next) => {
+    const key = accountKey(req.body?.username);
+    if (key && loginFailures.isLocked(key)) {
+      logger.securityEvent({
+        type: "ACCOUNT_LOCKED",
+        ip: req.ip || req.socket.remoteAddress,
+        severity: "high",
+        details: { username: key },
+      });
+      return res.status(429).send("Too many login attempts, please try again later");
+    }
+
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return next(err);
-      if (!user) return res.status(401).send(info?.message || "Invalid credentials");
+      if (!user) {
+        if (key) loginFailures.fail(key);
+        return res.status(401).send(info?.message || "Invalid credentials");
+      }
+      if (key) loginFailures.reset(key);
 
-      req.login(user, (err) => {
+      startSession(req, user, (err) => {
         if (err) return next(err);
-        
-        // SEC-FIX [SEC-005]: Session Fixation Protection
-        const passportData = (req.session as any).passport;
-        const oldCsrfToken = (req.session as any).csrfToken;
-
-        req.session.regenerate((err) => {
-          if (err) return next(err);
-          (req.session as any).passport = passportData;
-          (req.session as any).csrfToken = oldCsrfToken || randomBytes(32).toString("hex");
-          
-          req.session.save((err) => {
-            if (err) return next(err);
-            logger.authEvent({
-              event: 'login',
-              userId: user.id,
-              username: user.username,
-              ip: req.ip,
-            });
-            activityLogger.log({
-              userId: user.id,
-              action: 'auth.login',
-              category: 'auth',
-              description: `User ${user.email} hat sich eingeloggt`,
-              targetType: 'User',
-              targetId: String(user.id),
-              targetLabel: user.email,
-              severity: 'info',
-              status: 'success',
-              metadata: { method: 'password' },
-              req,
-            });
-            res.json(sanitizeUser(user));
-          });
+        logger.authEvent({
+          event: 'login',
+          userId: user.id,
+          username: user.username,
+          ip: req.ip,
         });
+        activityLogger.log({
+          userId: user.id,
+          action: 'auth.login',
+          category: 'auth',
+          description: `User ${user.email} hat sich eingeloggt`,
+          targetType: 'User',
+          targetId: String(user.id),
+          targetLabel: user.email,
+          severity: 'info',
+          status: 'success',
+          metadata: { method: 'password' },
+          req,
+        });
+        res.json(toSelfUser(user));
       });
     })(req, res, next);
-    // Note: We don't log failed auth attempts directly here unless it's easy to intercept the failure callback, 
-    // but Passport's local strategy returns false to info if it fails.
-    // For failed logins, we'll log it inside the local strategy callback.
   });
 
   app.post("/api/logout", (req, res, next) => {
     const username = req.user?.username;
+    const userId = req.user?.id;
+    const sessionId = req.sessionID;
     req.logout((err) => {
       if (err) return next(err);
-        req.session.destroy((err) => {
-          if (err) return next(err);
-          logger.authEvent({
-            event: 'logout',
-            userId: req.user?.id,
-            username: username,
-          });
-          activityLogger.log({
-            userId: req.user?.id,
-            action: 'auth.logout',
-            category: 'auth',
-            description: `User ${username} hat sich ausgeloggt`,
-            severity: 'info',
-            status: 'success',
-            req
-          });
-          res.sendStatus(200);
+      req.session.destroy((err) => {
+        if (err) return next(err);
+        // Sockets opened with this session stop receiving the user's events
+        if (sessionId) closeSessionSockets(userId, sessionId);
+        logger.authEvent({
+          event: 'logout',
+          userId,
+          username: username,
         });
+        activityLogger.log({
+          userId,
+          action: 'auth.logout',
+          category: 'auth',
+          description: `User ${username} hat sich ausgeloggt`,
+          severity: 'info',
+          status: 'success',
+          req
+        });
+        res.sendStatus(200);
+      });
     });
   });
 
@@ -460,67 +579,98 @@ export function setupAuth(app: Express, sessionParser: any) {
       return res.sendStatus(401);
     }
     logger.trace(`User data requested for: ${req.user?.username}`);
-    res.json(req.user);
+    res.json(toSelfUser(req.user));
   });
 
-  // SECURITY FIX [VULN-012]: Apply CSRF explicitly since these routes are registered before global CSRF middleware
-  // Add profile update endpoints
-  app.patch("/api/profile", validateCsrf, async (req, res) => {
+  app.patch("/api/profile", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    const result = updateProfileSchema.safeParse(req.body);
-    if (!result.success) return sendValidationError(res, result.error);
+    try {
+      const result = updateProfileSchema.safeParse(req.body);
+      if (!result.success) return sendValidationError(res, result.error);
 
-    if (result.data.username) {
-      const existingUser = await storage.getUserByUsername(result.data.username);
-      if (existingUser && existingUser.id !== req.user!.id) {
-        return res.status(400).send("Username already taken");
+      const update: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(result.data)) if (v !== undefined) update[k] = v;
+      if (Object.keys(update).length === 0) {
+        return res.status(400).json({ error: "No valid fields provided for update", code: "NO_FIELDS" });
       }
-    }
 
-    if (result.data.email) {
-      const existingEmail = await storage.getUserByEmail(result.data.email);
-      if (existingEmail && existingEmail.id !== req.user!.id) {
-        return res.status(400).send("Email already registered");
+      if (typeof update.username === "string" && update.username !== req.user!.username) {
+        const existingUser = await storage.getUserByUsername(update.username);
+        if ((existingUser && existingUser.id !== req.user!.id) || (!existingUser && isReservedUsername(update.username))) {
+          return res.status(400).send("Username already taken");
+        }
       }
-    }
 
-    // Profile images must come from our own upload endpoint (or be cleared). An unchanged value
-    // is always fine, so older accounts with other URLs can still save the rest of the form.
-    const update: Record<string, unknown> = { ...result.data };
-    for (const field of ["avatarUrl", "coverUrl", "profilePictureUrl"] as const) {
-      const value = update[field];
-      if (value === undefined || value === null || value === "" || value === (req.user as any)[field]) continue;
-      if (typeof value !== "string" || !/^\/uploads\/[\w.-]+$/.test(value) || value.includes("..")) {
-        return res.status(400).json({ error: "Invalid image URL", field });
+      if (typeof update.email === "string") {
+        const existingEmail = await storage.getUserByEmail(update.email);
+        if (existingEmail && existingEmail.id !== req.user!.id) {
+          return res.status(400).send("Email already registered");
+        }
       }
-    }
-    if (update.avatarUrl !== undefined) update.profilePictureUrl = update.avatarUrl;
 
-    const updatedUser = await storage.updateUserProfile(req.user!.id, update as typeof result.data);
-    res.json(sanitizeUser(updatedUser));
+      // Profile images must come from our own upload endpoint (or be cleared). An unchanged value
+      // is always fine, so older accounts with other URLs can still save the rest of the form.
+      for (const field of ["avatarUrl", "coverUrl", "profilePictureUrl"] as const) {
+        const value = update[field];
+        if (value === undefined || value === null || value === "" || value === (req.user as any)[field]) continue;
+        if (typeof value !== "string" || !/^\/uploads\/[\w.-]+$/.test(value) || value.includes("..")) {
+          return res.status(400).json({ error: "Invalid image URL", field });
+        }
+      }
+      if (update.avatarUrl !== undefined) update.profilePictureUrl = update.avatarUrl;
+
+      let updatedUser;
+      try {
+        updatedUser = await storage.updateUserProfile(req.user!.id, update as any);
+      } catch (err) {
+        const field = uniqueViolationField(err);
+        if (field === "username") return res.status(400).send("Username already taken");
+        if (field === "email") return res.status(400).send("Email already registered");
+        throw err;
+      }
+      res.json(toSelfUser(updatedUser));
+    } catch (err) {
+      sendInternalError(res, err, "profile update failed");
+    }
   });
 
-  app.patch("/api/profile/password", validateCsrf, passwordChangeLimiter, async (req, res) => {
+  app.patch("/api/profile/password", passwordChangeLimiter, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = req.user!.id;
+    const key = String(userId);
 
-    const result = updatePasswordSchema.safeParse(req.body);
-    if (!result.success) return sendValidationError(res, result.error);
+    try {
+      // Per account, so a stolen session cannot guess the current password from many addresses
+      if (passwordFailures.isLocked(key)) {
+        return res.status(429).send("Too many password change attempts, please try again later");
+      }
 
-    const user = await storage.getUser(req.user!.id);
-    if (!user) {
-      return res.status(401).send("Unauthorized");
+      const result = updatePasswordSchema.safeParse(req.body);
+      if (!result.success) return sendValidationError(res, result.error);
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).send("Unauthorized");
+      }
+
+      const { isValid } = await verifyPassword(result.data.currentPassword, user.password);
+      if (!isValid) {
+        passwordFailures.fail(key);
+        return res.status(400).send("Current password is incorrect");
+      }
+
+      const updatedUser = await storage.updateUserPassword(userId, await hashPassword(result.data.newPassword));
+
+      // Every other session ends (their stamp no longer matches); this one continues under a new id.
+      startSession(req, updatedUser, (err) => {
+        if (err) return sendInternalError(res, err, "password change session failed");
+        closeUserSockets(userId, "Password changed");
+        logger.authEvent({ event: 'password_change', userId, username: user.username } as any);
+        res.json(toSelfUser(updatedUser));
+      });
+    } catch (err) {
+      sendInternalError(res, err, "password change failed");
     }
-
-    const { isValid } = await comparePasswords(result.data.currentPassword, user.password);
-    if (!isValid) {
-      return res.status(400).send("Current password is incorrect");
-    }
-
-    const updatedUser = await storage.updateUserPassword(
-      req.user!.id,
-      await hashPassword(result.data.newPassword),
-    );
-    res.json(sanitizeUser(updatedUser));
   });
 }

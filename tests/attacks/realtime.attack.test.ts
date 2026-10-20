@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import {
   Client, newUser, BASE_URL, WS_HOST,
   openWs, openWsAuthed, cookieHeader, collect,
-  serverUp, restartServer, maskedFrame, rawWrite,
+  serverUp, restartServer, maskedFrame, rawWrite, RESTART_CMD,
 } from "./helpers/realtime";
 
 async function getCsrf(client: Client): Promise<string> {
@@ -242,7 +242,7 @@ describe("Angriff: information disclosure over HTTP", () => {
 
 // ---------------------------------------------------------------------------------------------
 // DESTRUCTIVE — keep LAST. A malformed WebSocket frame currently takes the whole process down.
-describe("Angriff: crash the server for everyone with one malformed WebSocket frame", () => {
+describe("Angriff: crash the server for everyone with one malformed WebSocket frame", { skip: RESTART_CMD ? false : "E2E_RESTART_CMD is not set: this scenario may take the server down and needs a way to restart it" }, () => {
   // Attacker: any logged-in user. Goal: deny service to all users. The /ws connection handler
   // registers no 'error' listener (server/routes/index.ts:349), so a receiver protocol error is
   // re-emitted as an unhandled 'error' -> uncaughtException -> shutdown() (server/index.ts:282).

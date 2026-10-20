@@ -18,6 +18,7 @@ export async function generatePostContent({
   imageContext,
   language = "english",
 }: GenerateOptions): Promise<string> {
+  topic = String(topic);
   logger.info('business', `Generating post via AI`, { topic, language, hasImage: !!imageContext });
 
   // CHECK FOR API KEY
@@ -79,7 +80,8 @@ async function generateMockResponse(
 ): Promise<string> {
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
-  const isGerman = language.toLowerCase() === "german" || language.toLowerCase() === "de";
+  const lang = String(language ?? "").toLowerCase();
+  const isGerman = lang === "german" || lang === "de" || lang === "deutsch";
 
   const templates = isGerman
     ? [

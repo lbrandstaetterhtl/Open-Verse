@@ -65,7 +65,7 @@ export default function ActivityLogsPage() {
   });
 
   const handleExport = (exportFormat: "csv" | "json") => {
-    window.open(`/api/admin/logs/export?format=${exportFormat}`, "_blank");
+    window.open(`/api/admin/logs/export?format=${exportFormat}`, "_blank", "noopener,noreferrer");
   };
 
   /* Severity chips (tables, cards) and the matching tint for the icon tile in the detail sheet. */

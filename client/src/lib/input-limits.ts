@@ -14,7 +14,7 @@ export const LIMITS = {
   website: 200,
   chatMessage: 5000,
   communityName: 100,
-  communityDescription: 2000,
+  communityDescription: 1000,
   communityImageUrl: 2048,
   themeName: 60,
   ticketTitle: 200,
@@ -36,4 +36,9 @@ export function tooLongMessage(field: string, max: number): string {
 /** Translated "<field> must be at least <min> characters long". */
 export function tooShortMessage(field: string, min: number): string {
   return i18n.t("server:validation.too_short", { field, min });
+}
+
+/** Translated "<field> is not a valid URL". */
+export function invalidUrlMessage(field: string): string {
+  return i18n.t("server:validation.invalid_url", { field });
 }

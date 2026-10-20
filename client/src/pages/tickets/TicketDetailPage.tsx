@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EXTERNAL_LINK_REL, safeExternalUrl } from "@/lib/safe-url";
+import { LIMITS } from "@/lib/input-limits";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useLocation, useParams } from "wouter";
@@ -243,6 +245,7 @@ export default function TicketDetailPage() {
                     className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent p-5 min-h-[160px] text-base resize-none"
                     placeholder={t("comments.placeholder", "Add a comment...")}
                     value={commentText}
+                    maxLength={LIMITS.ticketComment}
                     onChange={e => setCommentText(e.target.value)}
                   />
                   <div className="border-t border-border px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -315,7 +318,12 @@ export default function TicketDetailPage() {
                   {ticket.relatedUrl && (
                     <div className="flex flex-col gap-1.5">
                       <span className="ov-label">{t("detail.relatedSignal", "Related Signal")}</span>
-                      <a href={ticket.relatedUrl} target="_blank" rel="noreferrer" className="ov-data text-xs text-primary hover:underline underline-offset-4 truncate">{ticket.relatedUrl}</a>
+                      {safeExternalUrl(ticket.relatedUrl) ? (
+                        <a href={safeExternalUrl(ticket.relatedUrl)!} target="_blank" rel={EXTERNAL_LINK_REL} className="ov-data text-xs text-primary hover:underline underline-offset-4 truncate">{ticket.relatedUrl}</a>
+                      ) : (
+                        // Not an http(s) address: shown as text, never as a link
+                        <span className="ov-data text-xs truncate">{ticket.relatedUrl}</span>
+                      )}
                     </div>
                   )}
 

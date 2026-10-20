@@ -34,6 +34,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fadeIn, scaleIn } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { LIMITS, tooLongMessage } from "@/lib/input-limits";
+import { safeExternalUrl } from "@/lib/safe-url";
 
 // Must match PROFILE_IMAGE_MAX_BYTES on the server.
 const MAX_IMAGE_MB = 10;
@@ -80,10 +82,23 @@ export function EditProfileModal({
   const coverInput = useRef<HTMLInputElement>(null);
 
   // Create a form-specific schema that allows boolean for the switch
+  // Length limits as on the server (lib/input-limits.ts); the website must be an http(s) address
+  const maxText = (field: string, max: number) => z.string().max(max, tooLongMessage(field, max)).optional().nullable();
   const formSchema = updateProfileSchema.extend({
     isPrivate: z.boolean().optional(),
     avatarUrl: z.string().optional(),
     coverUrl: z.string().optional(),
+    displayName: maxText(t("server:fields.displayName"), LIMITS.displayName),
+    bio: maxText(t("server:fields.bio"), LIMITS.bio),
+    location: maxText(t("server:fields.location"), LIMITS.location),
+    website: maxText(t("server:fields.website"), LIMITS.website).refine(
+      (value) => {
+        if (!value?.trim()) return true;
+        const url = safeExternalUrl(value, { assumeHttps: true });
+        return !!url && new URL(url).hostname.includes(".");
+      },
+      { message: t("server:validation.invalid_url", { field: t("server:fields.website") }) },
+    ),
   });
 
   const form = useForm<any>({
@@ -129,12 +144,14 @@ export function EditProfileModal({
   };
 
   const handleFormSubmit = (data: any) => {
-    console.log("Submitting Profile Data:", data);
     // Transform boolean back to integer for the backend schema
     const processedData = {
       ...data,
       isPrivate: data.isPrivate ? 1 : 0
     };
+    // The dialog has no username/e-mail fields: never send them back unchanged
+    if (processedData.username === user.username) delete processedData.username;
+    if (processedData.email === user.email) delete processedData.email;
 
     onSubmit(processedData as any);
   };
@@ -192,7 +209,7 @@ export function EditProfileModal({
                                 {t('profile.form.name')}
                               </FormLabel>
                               <FormControl>
-                                <Input placeholder={t("profile.form.name_placeholder", "John Doe")} {...field} className="h-11 px-4" />
+                                <Input placeholder={t("profile.form.name_placeholder", "John Doe")} maxLength={LIMITS.displayName} {...field} className="h-11 px-4" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -209,6 +226,7 @@ export function EditProfileModal({
                               <FormControl>
                                 <Textarea
                                   placeholder={t('profile.form.bio_placeholder')}
+                                  maxLength={LIMITS.bio}
                                   className="resize-none p-4 min-h-[140px] leading-relaxed"
                                   {...field}
                                 />
@@ -233,7 +251,7 @@ export function EditProfileModal({
                                   {t('profile.form.location')}
                                 </FormLabel>
                                 <FormControl>
-                                  <Input placeholder={t("profile.form.location_placeholder", "Berlin, Germany")} {...field} className="h-11 px-4" />
+                                  <Input placeholder={t("profile.form.location_placeholder", "Berlin, Germany")} maxLength={LIMITS.location} {...field} className="h-11 px-4" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -249,7 +267,7 @@ export function EditProfileModal({
                                   {t('profile.form.website')}
                                 </FormLabel>
                                 <FormControl>
-                                  <Input placeholder="example.com" {...field} className="h-11 px-4" />
+                                  <Input placeholder="example.com" maxLength={LIMITS.website} {...field} className="h-11 px-4" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

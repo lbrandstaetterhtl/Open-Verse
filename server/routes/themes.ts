@@ -7,7 +7,18 @@ import { insertThemeSchema } from "@shared/schema";
 import { themeBackgroundUpload, checkFileSignature, sanitizeImage } from "../utils/file-upload";
 
 import { sendValidationError } from "../utils/http-errors";
+import { validateIdParams } from "../utils/params";
+import { isPlainBody } from "../utils/admin-input";
 const router = Router();
+
+validateIdParams(router, ["id"]);
+
+const UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
+/**
+ * Background files carry their owner: theme-bg-u<userId>-<timestamp>-<random>.<ext>. Older files without the
+ * owner part cannot be deleted through the API (nobody can prove they own them).
+ */
+const OWNED_BG = /^theme-bg-u([1-9]\d{0,9})-\d{1,15}-\d{1,12}\.(?:png|jpe?g|gif|webp)$/;
 
 router.get("/", isAuthenticated, async (req, res) => {
     try {
@@ -15,13 +26,13 @@ router.get("/", isAuthenticated, async (req, res) => {
         res.json(themes);
     } catch (error) {
         console.error("Error fetching themes:", error);
-        res.status(500).send("Failed to fetch themes");
+        res.status(500).json({ error: "Failed to fetch themes" });
     }
 });
 
 router.post("/", isAuthenticated, async (req, res) => {
     try {
-        const result = insertThemeSchema.omit({ userId: true }).safeParse(req.body);
+        const result = insertThemeSchema.safeParse(req.body);
         if (!result.success) {
             console.error("[Themes] Validation failed:", result.error.flatten());
             return sendValidationError(res, result.error);
@@ -39,13 +50,13 @@ router.post("/", isAuthenticated, async (req, res) => {
         res.json(theme);
     } catch (error) {
         console.error("Error creating/updating theme:", error);
-        res.status(500).send("Failed to save theme");
+        res.status(500).json({ error: "Failed to save theme" });
     }
 });
 
 router.patch("/:id", isAuthenticated, async (req, res) => {
     try {
-        const themeId = parseInt(req.params.id);
+        const themeId = Number(req.params.id);
         const themes = await storage.getThemes((req.user as any).id);
         const theme = themes.find((t) => t.id === themeId);
 
@@ -53,13 +64,19 @@ router.patch("/:id", isAuthenticated, async (req, res) => {
             return res.status(404).json({ error: "Theme not found or unauthorized" });
         }
 
-        const result = insertThemeSchema.partial().omit({ userId: true }).safeParse(req.body);
+        const result = insertThemeSchema.partial().safeParse(isPlainBody(req.body) ? req.body : null);
         if (!result.success) {
-            console.error("[Themes] PATCH Validation failed:", result.error.flatten());
             return sendValidationError(res, result.error);
         }
+        const update = Object.fromEntries(Object.entries(result.data).filter(([, v]) => v !== undefined));
+        if (Object.keys(update).length === 0) {
+            return res.status(400).json({ error: "No valid fields provided for update" });
+        }
+        if (update.name && themes.some((t) => t.id !== themeId && t.name.trim() === update.name)) {
+            return res.status(409).json({ error: "A theme with this name already exists", code: "THEME_NAME_TAKEN" });
+        }
 
-        const updatedTheme = await storage.updateTheme(themeId, result.data);
+        const updatedTheme = await storage.updateTheme(themeId, update);
         res.json(updatedTheme);
     } catch (error) {
         console.error("Error updating theme:", error);
@@ -69,23 +86,23 @@ router.patch("/:id", isAuthenticated, async (req, res) => {
 
 router.delete("/:id", isAuthenticated, async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
+        const id = Number(req.params.id);
         const themes = await storage.getThemes((req.user as any).id);
         const theme = themes.find((t) => t.id === id);
 
         if (!theme) {
-            return res.status(404).send("Theme not found or unauthorized");
+            return res.status(404).json({ error: "Theme not found or unauthorized" });
         }
 
         if (theme.name === "Default Blue") {
-            return res.status(403).send("Cannot delete the default system theme");
+            return res.status(403).json({ error: "Cannot delete the default system theme" });
         }
 
         await storage.deleteTheme(id);
         res.sendStatus(200);
     } catch (error) {
         console.error("Error deleting theme:", error);
-        res.status(500).send("Failed to delete theme");
+        res.status(500).json({ error: "Failed to delete theme" });
     }
 });
 
@@ -117,9 +134,17 @@ router.post("/background", isAuthenticated, themeBackgroundUpload.single("backgr
             }
         }
 
+        // Record the owner in the file name so only they can delete it later.
+        const ownedName = req.file.filename.replace(/^theme-bg-/, `theme-bg-u${(req.user as any).id}-`);
+        if (!OWNED_BG.test(ownedName)) {
+            fs.unlink(req.file.path, () => { });
+            return res.status(400).json({ error: "No file uploaded or invalid file type" });
+        }
+        await fs.promises.rename(req.file.path, path.join(UPLOADS_DIR, ownedName));
+
         res.json({
-            fileRef: req.file.filename,
-            url: `/uploads/${req.file.filename}`,
+            fileRef: ownedName,
+            url: `/uploads/${ownedName}`,
         });
     } catch (error) {
         console.error("Error uploading theme background:", error);
@@ -132,8 +157,17 @@ router.delete("/background/:fileRef", isAuthenticated, async (req, res) => {
         const { fileRef } = req.params;
         const userId = (req.user as any).id;
 
-        // Safety: only allow deleting theme-bg- prefixed files
-        if (!fileRef.startsWith("theme-bg-")) {
+        // Safety: strict file-name pattern (no "/", "\\" or ".."), the caller must own the file, and the
+        // resolved path must stay inside the uploads folder.
+        const m = typeof fileRef === "string" ? OWNED_BG.exec(fileRef) : null;
+        if (!m) {
+            return res.status(400).json({ error: "Invalid file reference" });
+        }
+        if (Number(m[1]) !== userId) {
+            return res.status(403).json({ error: "You can only delete your own background images", code: "NOT_FILE_OWNER" });
+        }
+        const filePath = path.resolve(UPLOADS_DIR, fileRef);
+        if (path.dirname(filePath) !== UPLOADS_DIR) {
             return res.status(400).json({ error: "Invalid file reference" });
         }
 
@@ -152,10 +186,9 @@ router.delete("/background/:fileRef", isAuthenticated, async (req, res) => {
             return res.status(409).json({ error: "File is still referenced by a theme" });
         }
 
-        const filePath = path.join("./uploads", fileRef);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
+        await fs.promises.unlink(filePath).catch((err) => {
+            if (err?.code !== "ENOENT") throw err;
+        });
 
         res.sendStatus(200);
     } catch (error) {

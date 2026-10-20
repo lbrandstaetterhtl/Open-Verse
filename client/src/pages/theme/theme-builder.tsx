@@ -56,6 +56,7 @@ import {
   normalizeGalaxy,
 } from "@/lib/theme-utils";
 import { useToast } from "@/hooks/use-toast";
+import { LIMITS, requiredMessage } from "@/lib/input-limits";
 import type {
   ThemeColors,
   CustomTheme,
@@ -268,6 +269,8 @@ export default function ThemeBuilderPage() {
   /* THEME-REDESIGN [TB-006]: Undo/Redo System */
   const history = useRef<CustomTheme[]>([]);
   const historyIndex = useRef(-1);
+  // Set synchronously so a fast double click on "Save" sends one request
+  const saving = useRef(false);
 
   const pushToHistory = (theme: CustomTheme) => {
     // Basic history management
@@ -524,9 +527,16 @@ export default function ThemeBuilderPage() {
   };
 
   const handleSave = async () => {
+    const name = themeName.trim();
+    if (!name) {
+      toast({ title: t("theme.save_failed", "The theme could not be saved"), description: requiredMessage(t("server:fields.name")), variant: "destructive" });
+      return;
+    }
+    if (saving.current) return;
+    saving.current = true;
     try {
       importCustomTheme(workingTheme);
-      const saved = await saveThemeAs(themeName, activeThemeId || undefined, workingTheme);
+      const saved = await saveThemeAs(name, activeThemeId || undefined, workingTheme);
       setActiveThemeId(saved.id);
       setActiveThemeInfo(saved.id, saved.name);
       setHasUnsavedChanges(false);
@@ -534,8 +544,14 @@ export default function ThemeBuilderPage() {
         title: t("theme.saved", "Theme saved"),
         description: t("theme.saved_desc", { name: themeName, defaultValue: "\"{{name}}\" has been saved." }),
       });
-    } catch {
-      toast({ title: t("theme.save_failed", "The theme could not be saved"), variant: "destructive" });
+    } catch (error) {
+      toast({
+        title: t("theme.save_failed", "The theme could not be saved"),
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      saving.current = false;
     }
   };
 
@@ -579,16 +595,27 @@ export default function ThemeBuilderPage() {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
+      const importFailed = () =>
+        toast({
+          title: t("common.error"),
+          description: t("theme_builder.import_invalid", "This file is not a valid theme."),
+          variant: "destructive",
+        });
       const reader = new FileReader();
       reader.onload = (event) => {
-        const theme = importTheme(event.target?.result as string);
-        if (theme) {
-          setEditingCopy(true);
-          setWorkingTheme(theme);
-          setHasUnsavedChanges(true);
-          pushToHistory(theme);
+        const text = event.target?.result;
+        const theme = typeof text === "string" ? importTheme(text) : null;
+        if (!theme) {
+          importFailed();
+          return;
         }
+        setEditingCopy(true);
+        setWorkingTheme(theme);
+        setHasUnsavedChanges(true);
+        pushToHistory(theme);
+        toast({ title: t("theme_builder.import_success") });
       };
+      reader.onerror = importFailed;
       reader.readAsText(file);
     };
     input.click();
@@ -703,6 +730,7 @@ export default function ThemeBuilderPage() {
                         <Input
                           id="theme-name"
                           readOnly={locked}
+                          maxLength={LIMITS.themeName}
                           value={locked ? t("theme_builder.standard_name", "Standard") : themeName}
                           onChange={(e) => {
                             setThemeName(e.target.value);

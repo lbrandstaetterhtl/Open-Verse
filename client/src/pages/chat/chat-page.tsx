@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { LIMITS } from "@/lib/input-limits";
 import { useParams } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "react-i18next";
@@ -271,6 +272,7 @@ export default function ChatPage() {
                     <Input
                       placeholder={t("chat.input_placeholder", "Share your thoughts...")}
                       value={messageInput}
+                      maxLength={LIMITS.chatMessage}
                       onChange={(e) => setMessageInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && messageInput.trim()) handleSendMessage();

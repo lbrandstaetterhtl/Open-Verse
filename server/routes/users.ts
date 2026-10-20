@@ -1,42 +1,77 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import multer from "multer";
-import { storage, sanitizeUser } from "../storage";
+import { storage } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
 import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
 import { profileUpload, checkFileSignature, processProfileImage } from "../utils/file-upload";
 import fs from "node:fs";
 import { getPostExtras, DELETED_AUTHOR } from "../utils/post-extras";
+import { toPublicUser, toSelfUser } from "../utils/public-user";
+import { validateIdParams } from "../utils/params";
+import { hiddenCommunityIds } from "../utils/community-access";
+import { sendInternalError } from "../utils/http-errors";
+import type { User } from "@shared/schema";
 
 const router = Router();
 
+// Malformed ids answer 404 before any handler runs (no NaN / int4 overflow reaching the database).
+validateIdParams(router, ["userId"]);
+// Usernames never contain control characters (NUL makes Postgres fail) and are short.
+router.param("username", (_req, res, next, value: string) => {
+    if (typeof value !== "string" || value.length > 100 || /[\u0000-\u001f\u007f]/.test(value)) {
+        return res.status(404).json({ error: "User not found", code: "NOT_FOUND" });
+    }
+    next();
+});
+
+/** Plain JSON error answer (never text/html). */
+const fail = (res: Response, status: number, error: string, code?: string) =>
+    res.status(status).json(code ? { error, code } : { error });
+
+const viewerOf = (req: Request): any => (req.isAuthenticated?.() ? req.user : undefined);
+const isViewerShadowBanned = (req: Request) => (req as any).isShadowBanned === true || !!viewerOf(req)?.isShadowBanned;
+
+/**
+ * "Private account: only members can see your content" — posts, comments and likes of a private
+ * profile are shown to logged-in members (and the owner), not to anonymous visitors.
+ */
+const canSeeContentOf = (req: Request, user: User) => !user.isPrivate || !!viewerOf(req);
+
+/** Like the feed: a shadow-banned user's content is hidden from everyone but themselves (and other shadow-banned users). */
+const hidesShadowBanned = (req: Request, authorId: number, authorShadowBanned: unknown) =>
+    !!authorShadowBanned && viewerOf(req)?.id !== authorId && !isViewerShadowBanned(req);
+
 router.post("/follow/:userId", isAuthenticated, async (req, res) => {
     try {
-        const followingId = parseInt(req.params.userId);
+        const followingId = Number(req.params.userId);
         const followerId = (req.user as any).id;
 
         if (followerId === followingId) {
-            return res.status(400).send("Cannot follow yourself");
+            return fail(res, 400, "Cannot follow yourself");
         }
 
         const targetUser = await storage.getUser(followingId);
         if (!targetUser) {
-            return res.status(404).send("User not found");
+            return fail(res, 404, "User not found");
         }
 
         const isAlreadyFollowing = await storage.isFollowing(followerId, followingId);
         if (isAlreadyFollowing) {
-            return res.status(400).send("Already following this user");
+            return fail(res, 400, "Already following this user");
         }
 
         await storage.followUser(followerId, followingId);
 
-        await notificationService.notify({
-            userId: followingId,
-            actorId: followerId,
-            type: "new_follower",
-            actionUrl: `/profile/${(req.user as any).username}`
-        });
+        // Follow / unfollow / follow again must not flood the target: one open notification per follower.
+        if (!(await storage.getNotificationStore().hasActiveNotification(followingId, followerId, "new_follower"))) {
+            await notificationService.notify({
+                userId: followingId,
+                actorId: followerId,
+                type: "new_follower",
+                actionUrl: `/profile/${(req.user as any).username}`
+            });
+        }
 
         activityLogger.logFromRequest(req, {
             action: 'follow.add',
@@ -50,27 +85,27 @@ router.post("/follow/:userId", isAuthenticated, async (req, res) => {
         res.sendStatus(200);
     } catch (error) {
         console.error("Error following user:", error);
-        res.status(500).send("Failed to follow user");
+        fail(res, 500, "Failed to follow user");
     }
 });
 
 router.delete("/follow/:userId", isAuthenticated, async (req, res) => {
     try {
-        const followingId = parseInt(req.params.userId);
+        const followingId = Number(req.params.userId);
         const followerId = (req.user as any).id;
 
         const targetUser = await storage.getUser(followingId);
         if (!targetUser) {
-            return res.status(404).send("User not found");
+            return fail(res, 404, "User not found");
         }
 
         const isFollowing = await storage.isFollowing(followerId, followingId);
         if (!isFollowing) {
-            return res.status(400).send("Not following this user");
+            return fail(res, 400, "Not following this user");
         }
 
         await storage.unfollowUser(followerId, followingId);
-        
+
         activityLogger.logFromRequest(req, {
             action: 'follow.remove',
             category: 'social',
@@ -79,46 +114,56 @@ router.delete("/follow/:userId", isAuthenticated, async (req, res) => {
             targetId: String(followingId),
             severity: 'info'
         }).catch(err => console.error('[Monitor] follow.remove failed:', err));
-        
+
         res.sendStatus(200);
     } catch (error) {
         console.error("Error unfollowing user:", error);
-        res.status(500).send("Failed to unfollow user");
+        fail(res, 500, "Failed to unfollow user");
     }
 });
 
 router.get("/followers", isAuthenticated, async (req, res) => {
     try {
         const followers = await storage.getFollowers((req.user as any).id);
-        res.json(followers.map(({ password: _password, email: _email, ...u }) => u));
+        res.json(followers.map((u) => toPublicUser(u)));
     } catch (error) {
         console.error("Error getting followers:", error);
-        res.status(500).send("Failed to get followers");
+        fail(res, 500, "Failed to get followers");
     }
 });
 
 router.get("/following", isAuthenticated, async (req, res) => {
     try {
         const following = await storage.getFollowing((req.user as any).id);
-        res.json(following.map(({ password: _password, email: _email, ...u }) => u));
+        res.json(following.map((u) => toPublicUser(u)));
     } catch (error) {
         console.error("Error getting following:", error);
-        res.status(500).send("Failed to get following");
+        fail(res, 500, "Failed to get following");
     }
 });
+
+/** The posts of `user` that the current viewer may see (shadow ban, private communities). */
+async function visiblePostsOf(req: Request, user: User) {
+    if (hidesShadowBanned(req, user.id, user.isShadowBanned)) return [];
+    const [posts, hidden] = await Promise.all([storage.getPostsByUser(user.id), hiddenCommunityIds(viewerOf(req))]);
+    return posts.filter((p) => !p.communityId || !hidden.has(p.communityId));
+}
 
 router.get("/:username/posts", async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
-            return res.status(404).send("User not found");
+            return fail(res, 404, "User not found");
         }
-        const posts = await storage.getPostsByUser(user.id);
-        
+        if (!canSeeContentOf(req, user)) {
+            return fail(res, 403, "This account is private", "PRIVATE_PROFILE");
+        }
+        const posts = await visiblePostsOf(req, user);
+
         // Enrich posts with author and reaction details
         const postIds = posts.map(p => p.id);
         const batchReactions = await storage.getBatchPostReactions(postIds);
-        const currentUserId = (req.user as any)?.id;
+        const currentUserId = viewerOf(req)?.id;
         const extras = await getPostExtras(postIds, currentUserId);
 
         const postsWithDetails = await Promise.all(posts.map(async (post) => {
@@ -145,7 +190,7 @@ router.get("/:username/posts", async (req, res) => {
         res.json(postsWithDetails);
     } catch (error) {
         console.error("Error fetching user posts:", error);
-        res.status(500).send("Failed to fetch user posts");
+        fail(res, 500, "Failed to fetch user posts");
     }
 });
 
@@ -153,13 +198,18 @@ router.get("/:username/comments", async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
-            return res.status(404).send("User not found");
+            return fail(res, 404, "User not found");
         }
-        const comments = await storage.getCommentsByUser(user.id);
+        if (!canSeeContentOf(req, user)) {
+            return fail(res, 403, "This account is private", "PRIVATE_PROFILE");
+        }
+        if (hidesShadowBanned(req, user.id, user.isShadowBanned)) return res.json([]);
+        const [comments, hidden] = await Promise.all([storage.getCommentsByUser(user.id), hiddenCommunityIds(viewerOf(req))]);
 
         const enrichedComments = await Promise.all(
             comments.map(async (comment) => {
                 const post = await storage.getPost(comment.postId);
+                if (post?.communityId && hidden.has(post.communityId)) return null;
                 return {
                     ...comment,
                     post: post ? { id: post.id, title: post.title } : null,
@@ -167,18 +217,23 @@ router.get("/:username/comments", async (req, res) => {
             }),
         );
 
-        res.json(enrichedComments);
+        res.json(enrichedComments.filter(Boolean));
     } catch (error) {
         console.error("Error fetching user comments:", error);
-        res.status(500).send("Failed to fetch user comments");
+        fail(res, 500, "Failed to fetch user comments");
     }
 });
 
 /** Adds author, reactions, saved state and comment count to posts written by various users. */
-async function enrichPosts(posts: Awaited<ReturnType<typeof storage.getLikedPostsByUser>>, currentUserId?: number) {
+async function enrichPosts(req: Request, posts: Awaited<ReturnType<typeof storage.getLikedPostsByUser>>, currentUserId?: number) {
     const authorIds = [...new Set(posts.map(p => p.authorId))];
-    const authors = await storage.getUsersByIds(authorIds);
+    const [authors, hidden] = await Promise.all([storage.getUsersByIds(authorIds), hiddenCommunityIds(viewerOf(req))]);
     const authorsMap = new Map(authors.map(u => [u.id, u]));
+    posts = posts.filter((p) => {
+        if (p.communityId && hidden.has(p.communityId)) return false;
+        const author = authorsMap.get(p.authorId);
+        return !author || !hidesShadowBanned(req, author.id, author.isShadowBanned);
+    });
     const postIds = posts.map(p => p.id);
     const batchReactions = await storage.getBatchPostReactions(postIds);
     const extras = await getPostExtras(postIds, currentUserId);
@@ -205,13 +260,17 @@ router.get("/:username/liked", async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
-            return res.status(404).send("User not found");
+            return fail(res, 404, "User not found");
         }
+        if (!canSeeContentOf(req, user)) {
+            return fail(res, 403, "This account is private", "PRIVATE_PROFILE");
+        }
+        if (hidesShadowBanned(req, user.id, user.isShadowBanned)) return res.json([]);
         const posts = await storage.getLikedPostsByUser(user.id);
-        res.json(await enrichPosts(posts, (req.user as any)?.id));
+        res.json(await enrichPosts(req, posts, viewerOf(req)?.id));
     } catch (error) {
         console.error("Error getting liked posts:", error);
-        res.status(500).send("Failed to get liked posts");
+        fail(res, 500, "Failed to get liked posts");
     }
 });
 
@@ -220,16 +279,16 @@ router.get("/:username/saved", isAuthenticated, async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
-            return res.status(404).send("User not found");
+            return fail(res, 404, "User not found");
         }
         if ((req.user as any).id !== user.id) {
-            return res.status(403).send("Saved posts are private");
+            return fail(res, 403, "Saved posts are private");
         }
         const posts = await storage.getSavedPostsByUser(user.id);
-        res.json(await enrichPosts(posts, user.id));
+        res.json(await enrichPosts(req, posts, user.id));
     } catch (error) {
         console.error("Error getting saved posts:", error);
-        res.status(500).send("Failed to get saved posts");
+        fail(res, 500, "Failed to get saved posts");
     }
 });
 
@@ -239,7 +298,7 @@ router.get("/communities", isAuthenticated, async (req, res) => {
         res.json(communities);
     } catch (error) {
         console.error("Error getting user communities:", error);
-        res.status(500).send("Failed to get user communities");
+        fail(res, 500, "Failed to get user communities");
     }
 });
 
@@ -250,19 +309,19 @@ router.get("/moderated-communities", isAuthenticated, async (req, res) => {
         res.json(communities);
     } catch (error) {
         console.error("Error getting moderated communities:", error);
-        res.status(500).send("Failed to get moderated communities");
+        fail(res, 500, "Failed to get moderated communities");
     }
 });
 
 router.get("/search", isAuthenticated, async (req, res) => {
     try {
-        const query = req.query.q as string;
-        if (!query) return res.json([]);
+        // Only a plain string is a search term (?q[]=a or ?q[$ne]=x are ignored).
+        const query = typeof req.query.q === "string" ? req.query.q : "";
+        if (!query.trim()) return res.json([]);
         const users = await storage.searchUsers(query);
-        res.json(users.map(u => sanitizeUser(u)));
+        res.json(users.map(u => toPublicUser(u)));
     } catch (error) {
-        console.error("Error searching users:", error);
-        res.status(500).send("Failed to search users");
+        sendInternalError(res, error, "Error searching users");
     }
 });
 
@@ -270,38 +329,32 @@ router.get("/:username", async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
-            return res.status(404).send("User not found");
+            return fail(res, 404, "User not found");
         }
 
+        const viewer = viewerOf(req);
+        const isSelf = !!viewer && viewer.id === user.id;
         const [followersCount, followingCount, posts] = await Promise.all([
             storage.getFollowerCount(user.id),
             storage.getFollowingCount(user.id),
-            storage.getPostsByUser(user.id)
+            canSeeContentOf(req, user) ? visiblePostsOf(req, user) : Promise.resolve([]),
         ]);
 
         let isFollowing = false;
         let isFollowingBack = false;
         let mutualFollowers: any[] = [];
 
-        if (req.isAuthenticated()) {
-            const currentUserId = (req.user as any).id;
-            const targetUserId = user.id;
-
-            if (currentUserId !== targetUserId) {
-                [isFollowing, isFollowingBack, mutualFollowers] = await Promise.all([
-                    storage.isFollowing(currentUserId, targetUserId),
-                    storage.isFollowing(targetUserId, currentUserId),
-                    storage.getMutualFollowers(currentUserId, targetUserId)
-                ]);
-            }
+        if (viewer && !isSelf) {
+            [isFollowing, isFollowingBack, mutualFollowers] = await Promise.all([
+                storage.isFollowing(viewer.id, user.id),
+                storage.isFollowing(user.id, viewer.id),
+                storage.getMutualFollowers(viewer.id, user.id)
+            ]);
         }
 
-        const { password: _password, email, ...publicUser } = user;
-        const isSelf = req.isAuthenticated() && (req.user as any).id === user.id;
-
+        // Explicit allow-list: no email (except for the owner), hash, moderation state or admin group.
         res.json({
-            ...publicUser,
-            ...(isSelf ? { email } : {}),
+            ...(isSelf ? toSelfUser(user) : toPublicUser(user)),
             stats: {
                 followers: followersCount,
                 following: followingCount,
@@ -309,11 +362,11 @@ router.get("/:username", async (req, res) => {
             },
             isFollowing,
             isFollowingBack,
-            mutualFollowers: mutualFollowers.slice(0, 3) // Only return first 3 for preview
+            mutualFollowers: mutualFollowers.slice(0, 3).map((u) => toPublicUser(u)) // Only return first 3 for preview
         });
     } catch (error) {
         console.error("Error fetching user profile:", error);
-        res.status(500).send("Failed to fetch user profile");
+        fail(res, 500, "Failed to fetch user profile");
     }
 });
 

@@ -426,7 +426,7 @@ function MembersManager({ communityId }: { communityId: number }) {
     queryKey: ["/api/users/search", inviteSearchQuery],
     queryFn: async () => {
       if (!inviteSearchQuery || inviteSearchQuery.length < 2) return [];
-      const res = await apiRequest("GET", `/api/users/search?q=${inviteSearchQuery}`);
+      const res = await apiRequest("GET", `/api/users/search?q=${encodeURIComponent(inviteSearchQuery)}`);
       return res.json();
     },
     enabled: inviteSearchQuery.length >= 2,
@@ -858,7 +858,7 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
     queryKey: ["/api/users/search", searchQuery],
     queryFn: async () => {
       if (!searchQuery || searchQuery.length < 2) return [];
-      const res = await apiRequest("GET", `/api/users/search?q=${searchQuery}`);
+      const res = await apiRequest("GET", `/api/users/search?q=${encodeURIComponent(searchQuery)}`);
       return res.json();
     },
     enabled: searchQuery.length >= 2,

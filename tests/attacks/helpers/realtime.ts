@@ -17,12 +17,11 @@ export { Client, newUser, BASE_URL };
 export const WS_HOST = BASE_URL.replace(/^https?:\/\//, "");
 export const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
 
-const PORT = (() => {
-  const m = BASE_URL.match(/:(\d+)/);
-  return m ? m[1] : "5086";
-})();
-const DB = process.env.E2E_DB ?? "ovatk_realtime";
-const RUN_DEV = "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/run-dev.sh";
+/**
+ * Shell command that restarts the server under test (e.g. "bash run-dev.sh 5101 mydb"), set by the run script.
+ * Scenarios that may take the server down only run when it is set, so the box can always be left healthy.
+ */
+export const RESTART_CMD = process.env.E2E_RESTART_CMD?.trim() || "";
 
 /** The session cookie header for a logged-in Client (Map -> "k=v; k2=v2"). */
 export function cookieHeader(client: Client): string {
@@ -78,10 +77,11 @@ export async function waitForUp(deadlineMs = 60000): Promise<boolean> {
   return false;
 }
 
-/** Restart the audit server via run-dev.sh and wait for it to come back up. */
+/** Restart the server with E2E_RESTART_CMD (no-op without it) and wait for it to come back up. */
 export async function restartServer(): Promise<void> {
+  if (!RESTART_CMD) return;
   await new Promise<void>((resolve) => {
-    execFile("bash", [RUN_DEV, PORT, DB], { timeout: 90000 }, () => resolve());
+    execFile("bash", ["-c", RESTART_CMD], { timeout: 90000 }, () => resolve());
   });
   await waitForUp();
 }

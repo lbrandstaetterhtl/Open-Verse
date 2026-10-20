@@ -5,6 +5,8 @@ import { count, eq, desc, and, inArray, sql, or, like } from "drizzle-orm";
 import { isOwner, isAdmin, hasPermission } from "../middleware/auth";
 
 import { sendInternalError } from "../utils/http-errors";
+import { parseId } from "../utils/params";
+import { queryInt, queryString } from "../utils/admin-input";
 const router = Router();
 
 // Admin permission for monitoring
@@ -13,21 +15,28 @@ router.use(hasPermission("logs"));
 // GET /api/admin/activity-logs
 router.get("/activity-logs", async (req, res) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const page = queryInt(req.query.page, 1, 1, 100000);
+    const limit = queryInt(req.query.limit, 50, 1, 200);
+    const category = queryString(req.query.category, 100);
+    const severity = queryString(req.query.severity, 50);
+    const status = queryString(req.query.status, 50);
+    const action = queryString(req.query.action, 100);
+    const search = queryString(req.query.search, 200);
+    const userIdRaw = queryString(req.query.userId, 20);
+    const userId = userIdRaw === undefined ? undefined : userIdRaw === false ? null : parseId(userIdRaw);
+    if (page === null || limit === null || userId === null || [category, severity, status, action, search].includes(false)) {
+      return res.status(400).json({ error: "Invalid input", code: "VALIDATION_ERROR" });
+    }
     const offset = (page - 1) * limit;
 
     const conditions = [];
-    if (req.query.category) conditions.push(eq(activityLogs.category, String(req.query.category)));
-    if (req.query.severity) conditions.push(eq(activityLogs.severity, String(req.query.severity)));
-    if (req.query.status) conditions.push(eq(activityLogs.status, String(req.query.status)));
-    if (req.query.action) conditions.push(eq(activityLogs.action, String(req.query.action)));
-    
-    if (req.query.userId) {
-       conditions.push(eq(activityLogs.userId, parseInt(req.query.userId as string)));
-    }
-    if (req.query.search) {
-       const term = `%${req.query.search}%`;
+    if (category) conditions.push(eq(activityLogs.category, category));
+    if (severity) conditions.push(eq(activityLogs.severity, severity));
+    if (status) conditions.push(eq(activityLogs.status, status));
+    if (action) conditions.push(eq(activityLogs.action, action));
+    if (userId) conditions.push(eq(activityLogs.userId, userId));
+    if (search) {
+       const term = `%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
        conditions.push(or(
            like(activityLogs.description, term),
            like(activityLogs.action, term),
@@ -70,7 +79,8 @@ router.get("/activity-logs", async (req, res) => {
 // GET /api/admin/anomalies
 router.get("/anomalies", async (req, res) => {
   try {
-    const status = req.query.status as string;
+    const status = queryString(req.query.status, 50);
+    if (status === false) return res.status(400).json({ error: "Invalid input", code: "VALIDATION_ERROR" });
     const conditions = [];
     if (status) conditions.push(eq(anomalyEvents.status, status));
 

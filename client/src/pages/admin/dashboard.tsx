@@ -173,6 +173,8 @@ export default function AdminDashboard() {
   const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
   const [selectedReports, setSelectedReports] = useState<Set<number>>(new Set());
   const [bulkAction, setBulkAction] = useState<{ type: "users" | "reports", actionId: string } | null>(null);
+  // Permanent deletion is confirmed in a dialog first
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof User; direction: "asc" | "desc" } | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<{
@@ -601,7 +603,7 @@ export default function AdminDashboard() {
 
                                 <div className="my-2 h-px bg-border" />
 
-                                <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => deleteUserMutation.mutate(u.id)}>
+                                <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => setUserToDelete(u)}>
                                   <Trash2 className="h-4 w-4" />
                                   <span className="text-sm font-semibold">{t("admin_dashboard.users.purge_entity", "Purge entity")}</span>
                                 </DropdownMenuItem>
@@ -676,7 +678,7 @@ export default function AdminDashboard() {
                                   <span className="text-sm font-medium">{t("admin_dashboard.users.toggle_restriction", "Toggle restriction")}</span>
                                 </DropdownMenuItem>
                                 <div className="my-2 h-px bg-border" />
-                                <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => deleteUserMutation.mutate(u.id)}>
+                                <DropdownMenuItem className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => setUserToDelete(u)}>
                                   <Trash2 className="h-4 w-4" />
                                   <span className="text-sm font-semibold">{t("admin_dashboard.users.purge_account", "Purge account")}</span>
                                 </DropdownMenuItem>
@@ -824,6 +826,33 @@ export default function AdminDashboard() {
             onAction={(actionId) => setBulkAction({ type: currentTab, actionId })}
             onClear={() => currentTab === "users" ? setSelectedUsers(new Set()) : setSelectedReports(new Set())}
           />
+
+          <AlertDialog open={userToDelete !== null} onOpenChange={(open) => { if (!open) setUserToDelete(null); }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t("admin_dashboard.users.delete_confirm_title", "Delete this account permanently?")}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t("admin_dashboard.users.delete_confirm_desc", {
+                    username: userToDelete?.username ?? "",
+                    defaultValue: "The account of {{username}} will be deleted permanently. This cannot be undone.",
+                  })}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={deleteUserMutation.isPending}
+                  onClick={() => {
+                    if (userToDelete) deleteUserMutation.mutate(userToDelete.id);
+                    setUserToDelete(null);
+                  }}
+                >
+                  {t("common.delete")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <BulkActionModal 
             isOpen={bulkAction !== null}

@@ -51,31 +51,57 @@ export async function checkFileSignature(filepath: string, mimetype: string): Pr
     }
 }
 
-// SEC-003: Image Sanitization & Optimization (Strip EXIF, Convert to WebP)
+/** Largest image (width × height × frames) that is decoded at all; stops decompression bombs (ATK-UPLOAD-3). */
+export const MAX_IMAGE_PIXELS = 50_000_000;
+
+/** Thrown by sanitizeImage: the upload is not a usable image. `code` tells the route which answer to give. */
+export class ImageRejectedError extends Error {
+    constructor(public code: "IMAGE_TOO_LARGE" | "INVALID_IMAGE", message: string) {
+        super(message);
+        this.name = "ImageRejectedError";
+    }
+}
+
+// SEC-003: Image sanitization. Every image is decoded and re-encoded in its own format (so the file name's
+// extension, and with it the served Content-Type, keeps matching the bytes — CONTENT-15 / ATK-UPLOAD-7).
+// Re-encoding drops EXIF/XMP and anything appended to the image data (polyglots, ATK-UPLOAD-6), GIFs included.
+// Throws ImageRejectedError when the file cannot be decoded (CONTENT-14) or is too large in pixels.
 export async function sanitizeImage(filepath: string): Promise<void> {
     const ext = path.extname(filepath).toLowerCase();
-    if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
-        return; // Skip for non-image files or gifs
+    if (!['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)) {
+        return; // not an image (videos are only signature-checked)
     }
+    const animated = ext === '.gif' || ext === '.webp';
+    const tmpPath = `${filepath}.sanitized`;
+
+    let meta: sharp.Metadata;
+    try {
+        meta = await sharp(filepath, { limitInputPixels: false }).metadata();
+    } catch (error) {
+        throw new ImageRejectedError("INVALID_IMAGE", `not a decodable image: ${(error as Error).message}`);
+    }
+    const pixels = (meta.width ?? 0) * (meta.height ?? 0) * (animated ? meta.pages ?? 1 : 1);
+    if (!meta.width || !meta.height) throw new ImageRejectedError("INVALID_IMAGE", "image without dimensions");
+    if (pixels > MAX_IMAGE_PIXELS) throw new ImageRejectedError("IMAGE_TOO_LARGE", `image has ${pixels} pixels`);
 
     try {
-        // Write to a temporary file first: sharp refuses to use the same file as input and
-        // output, which made every .webp upload skip sanitization. The original name is kept
-        // so existing references stay valid.
-        const tmpPath = `${filepath}.sanitized`;
-        await sharp(filepath)
-            .rotate() // Auto-rotate based on EXIF before stripping
-            .webp({
-                quality: 80,
-                effort: 4, // Better compression
-                lossless: false,
-                smartSubsample: true
-            })
-            .toFile(tmpPath);
+        // Write to a temporary file first: sharp refuses to use the same file as input and output.
+        let img = sharp(filepath, { limitInputPixels: MAX_IMAGE_PIXELS, animated, failOn: "error" });
+        if (ext === '.gif') {
+            img = img.gif();
+        } else if (ext === '.webp') {
+            img = img.webp({ quality: 80, effort: 4, smartSubsample: true });
+        } else if (ext === '.png') {
+            img = img.rotate().png({ compressionLevel: 9 });
+        } else {
+            img = img.rotate().jpeg({ quality: 85, mozjpeg: true });
+        }
+        await img.toFile(tmpPath);
         await fs.promises.rename(tmpPath, filepath);
     } catch (error) {
-        await fs.promises.unlink(`${filepath}.sanitized`).catch(() => {});
-        console.error(`[sanitizeImage] Failed to optimize ${filepath}:`, error);
+        await fs.promises.unlink(tmpPath).catch(() => {});
+        console.error(`[sanitizeImage] Failed to process ${filepath}:`, error);
+        throw new ImageRejectedError("INVALID_IMAGE", `image could not be re-encoded: ${(error as Error).message}`);
     }
 }
 
@@ -83,6 +109,17 @@ export async function sanitizeImage(filepath: string): Promise<void> {
 const UPLOADS_DEST = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOADS_DEST)) {
     fs.mkdirSync(UPLOADS_DEST, { recursive: true });
+}
+
+export const POST_MEDIA_TYPES = ["image/jpeg", "image/png", "image/gif", "video/mp4", "video/webm"];
+export const POST_MEDIA_MAX_BYTES = 50 * 1024 * 1024;
+
+/** A file whose MIME type is not accepted by the upload. */
+export class UploadTypeError extends Error {
+    constructor(public mimetype: string) {
+        super(`file type not allowed: ${mimetype}`);
+        this.name = "UploadTypeError";
+    }
 }
 
 // Dedicated multer config for posts
@@ -110,14 +147,16 @@ export const postUpload = multer({
         }
     }),
     fileFilter: (req, file, cb) => {
-        const allowedTypes = ["image/jpeg", "image/png", "image/gif", "video/mp4", "video/webm"];
-        if (allowedTypes.includes(file.mimetype)) {
+        if (POST_MEDIA_TYPES.includes(file.mimetype)) {
             cb(null, true);
         } else {
-            cb(null, false);
+            // Rejected with an error (→ 400 INVALID_TYPE in routes/posts.ts) instead of being dropped silently,
+            // which published the post without its media (CONTENT-16).
+            cb(new UploadTypeError(file.mimetype));
         }
     },
-    limits: { fileSize: 50 * 1024 * 1024 } // Limit to 50MB
+    // One file per post (CONTENT-20); text fields stay small (the post body itself is limited by its schema).
+    limits: { fileSize: POST_MEDIA_MAX_BYTES, files: 1, fields: 20, fieldSize: 256 * 1024 }
 });
 
 // Dedicated multer config for theme background images
@@ -202,7 +241,7 @@ export async function processProfileImage(filepath: string, type: "avatar" | "co
     const { width, height, fit } = PROFILE_IMAGE_SIZE[type];
     const target = filepath.replace(/\.[^./\\]+$/, "") + ".webp";
     try {
-        await sharp(filepath, { limitInputPixels: 100_000_000 })
+        await sharp(filepath, { limitInputPixels: MAX_IMAGE_PIXELS })
             .rotate() // apply EXIF orientation, metadata is dropped on output
             .resize({ width, height, fit, position: "attention", withoutEnlargement: true })
             .webp({ quality: 82, effort: 4, smartSubsample: true })

@@ -2,19 +2,47 @@ import type { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { bans, users } from "@shared/schema";
 import { eq, and, or, gt, sql } from "drizzle-orm";
-import { activityLogger } from "../services/activity-logger";
 import crypto from "node:crypto";
+import { logger } from "../logger";
 
 /**
- * APE-FIX [SEC-010]: Stable Hardware Fingerprinting
- * Extracts OS and Browser Family to prevent fingerprint changes on browser updates.
+ * Device bans need an identifier for one browser. Earlier versions hashed OS + browser family + language
+ * from the request headers, so one "device" ban hit every user with the same setup (e.g. all German Chrome
+ * users on Windows). Each browser now gets a random id in an HttpOnly cookie instead; a hardware ban
+ * targets exactly that browser.
  */
+export const DEVICE_COOKIE = "ov_device";
+const DEVICE_ID = /^[a-f0-9]{32}$/;
+const TWO_YEARS_MS = 2 * 365 * 24 * 3600 * 1000;
+
+function readCookie(req: Request, name: string): string | undefined {
+  const header = req.headers.cookie;
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const eqAt = part.indexOf("=");
+    if (eqAt < 0) continue;
+    if (part.slice(0, eqAt).trim() === name) return decodeURIComponent(part.slice(eqAt + 1).trim());
+  }
+  return undefined;
+}
+
+export function deviceIdFor(req: Request, res: Response): string | undefined {
+  const existing = readCookie(req, DEVICE_COOKIE);
+  if (existing && DEVICE_ID.test(existing)) return existing;
+  // Only API requests get a new id: static files stay cacheable without a Set-Cookie header.
+  if (!req.path.startsWith("/api")) return undefined;
+  const id = crypto.randomBytes(16).toString("hex");
+  res.cookie(DEVICE_COOKIE, id, { httpOnly: true, sameSite: "lax", secure: req.secure, maxAge: TWO_YEARS_MS, path: "/" });
+  return id;
+}
+
 export async function banCheckMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Logging out is always allowed (also for frozen or banned clients).
+  if (req.path === "/api/logout") return next();
+
   const ip = req.ip || req.socket.remoteAddress || "unknown";
-  const userAgent = (req.headers["user-agent"] as string) || "";
   const userId = (req.user as any)?.id;
-  
-  const deviceFingerprint = generateFingerprint(userAgent, req.headers);
+  const deviceId = deviceIdFor(req, res);
 
   try {
     const activeBans = await db.select()
@@ -23,7 +51,7 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
         eq(bans.isActive, 1),
         or(
           eq(bans.ipAddress, ip),
-          eq(bans.deviceFingerprint, deviceFingerprint),
+          deviceId ? eq(bans.deviceFingerprint, deviceId) : sql`1=0`,
           userId ? eq(bans.userId, userId) : sql`1=0`
         ),
         or(
@@ -39,7 +67,7 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
       }
 
       // Hardware Ban
-      if (activeBans.some(b => b.banType === 'hardware' && b.deviceFingerprint === deviceFingerprint)) {
+      if (deviceId && activeBans.some(b => b.banType === 'hardware' && b.deviceFingerprint === deviceId)) {
         return res.status(403).json({ error: "This device is banned", code: "DEVICE_BANNED" });
       }
 
@@ -65,7 +93,7 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
           ? user.frozenUntil.getTime()
           : Number(user.frozenUntil) * 1000;
         if (!user.frozenUntil || frozenUntilMs > Date.now()) {
-          if (req.method !== "GET") {
+          if (req.method !== "GET" && req.method !== "HEAD") {
             return res.status(403).json({
               error: "This account is temporarily frozen",
               code: "ACCOUNT_FROZEN",
@@ -79,29 +107,10 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
       }
     }
 
-    (req as any).deviceFingerprint = deviceFingerprint;
+    (req as any).deviceFingerprint = deviceId;
     next();
   } catch (error) {
-    console.error("[BanCheck] Error:", error);
-    next(); 
+    logger.error('security', "[BanCheck] ban lookup failed", error);
+    next();
   }
-}
-
-function generateFingerprint(userAgent: string, headers: any): string {
-  // Extract stable components
-  const os = /Windows/.test(userAgent) ? 'Win' :
-             /Mac/.test(userAgent) ? 'Mac' :
-             /Linux/.test(userAgent) ? 'Lin' :
-             /Android/.test(userAgent) ? 'And' :
-             /iPhone|iPad/.test(userAgent) ? 'iOS' : 'Unk';
-             
-  const browser = /Firefox/.test(userAgent) ? 'FF' :
-                  /Edg/.test(userAgent) ? 'Edge' :
-                  /Chrome/.test(userAgent) ? 'Chr' :
-                  /Safari/.test(userAgent) ? 'Saf' : 'Oth';
-                  
-  const lang = (headers['accept-language'] || '').split(',')[0].split('-')[0];
-
-  const components = `${os}|${browser}|${lang}`;
-  return crypto.createHash('sha256').update(components).digest('hex').slice(0, 16);
 }

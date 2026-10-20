@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { LIMITS } from "@/lib/input-limits";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
@@ -18,6 +19,8 @@ export default function CreateTicketPage() {
   const [, match] = useLocation();
   const { mutateAsync: createTicket, isPending } = useCreateTicket();
   const { toast } = useToast();
+  // Set synchronously so a fast double click creates one ticket
+  const submitting = useRef(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -29,16 +32,25 @@ export default function CreateTicketPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.title.length < 10) return toast({ title: t("validation.titleTooShort"), variant: "destructive" });
-    if (formData.description.length < 20) return toast({ title: t("validation.descriptionTooShort"), variant: "destructive" });
+    // Same limits as the server (server/routes/tickets.ts)
+    const title = formData.title.trim();
+    if (title.length < 10) return toast({ title: t("validation.titleTooShort"), variant: "destructive" });
+    if (title.length > LIMITS.ticketTitle) return toast({ title: t("validation.titleTooLong"), variant: "destructive" });
+    if (formData.description.trim().length < 50) return toast({ title: t("validation.descriptionTooShort"), variant: "destructive" });
+    const relatedUrl = formData.relatedUrl.trim();
+    if (relatedUrl && !/^https?:\/\/[^\s]+$/i.test(relatedUrl)) return toast({ title: t("validation.invalidUrl"), variant: "destructive" });
+    if (isPending || submitting.current) return;
+    submitting.current = true;
 
     try {
-      const response = await createTicket(formData);
+      const response = await createTicket({ ...formData, title, relatedUrl });
       const ticket = response.ticket;
       toast({ title: t("success.created", { number: ticket.ticketNumber }) });
       match(`/tickets/${ticket.id}`);
     } catch (err: any) {
       toast({ title: t("errors.createFailed"), description: err.message, variant: "destructive" });
+    } finally {
+      submitting.current = false;
     }
   };
 
@@ -106,6 +118,7 @@ export default function CreateTicketPage() {
                   <Textarea
                     required
                     rows={10}
+                    maxLength={LIMITS.ticketDescription}
                     placeholder={t("fields.descriptionPlaceholder")}
                     className="p-4 leading-relaxed"
                     value={formData.description}
@@ -117,6 +130,7 @@ export default function CreateTicketPage() {
                   <label className="ov-label block">{t("fields.relatedUrl")} {t("fields.optional", "(Optional)")}</label>
                   <Input
                     type="url"
+                    maxLength={LIMITS.ticketUrl}
                     placeholder="https://..."
                     className="h-11"
                     value={formData.relatedUrl}

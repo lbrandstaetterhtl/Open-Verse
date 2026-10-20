@@ -215,11 +215,14 @@ export class CommunityStorage {
       };
     }
 
+    // One membership per user and community (unique index community_members_community_user_unique):
+    // a second insert keeps the existing row instead of creating a duplicate.
     const [member] = await db
       .insert(communityMembers)
       .values({ communityId, userId, role })
+      .onConflictDoNothing()
       .returning();
-    return member;
+    return member ?? (await this.getCommunityMember(communityId, userId))!;
   }
 
   async removeCommunityMember(communityId: number, userId: number): Promise<void> {
@@ -420,25 +423,25 @@ export class CommunityStorage {
     await db.insert(communityJoinRequests).values({ communityId, userId, status: 'pending' });
   }
 
-  async updateJoinRequestStatus(communityId: number, userId: number, status: string): Promise<void> {
-    console.log(`[Storage] Updating join request status: cId=${communityId}, uId=${userId}, status=${status}`);
+  /**
+   * Moves a PENDING join request to `status`. Returns false when the user has no pending request
+   * (never asked, already approved or declined), so callers must not act on it.
+   */
+  async updateJoinRequestStatus(communityId: number, userId: number, status: string): Promise<boolean> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      sqlite.prepare("UPDATE community_join_requests SET status = ? WHERE community_id = ? AND user_id = ? AND status = 'pending'").run(status, communityId, userId);
-      return;
+      const res = sqlite.prepare("UPDATE community_join_requests SET status = ? WHERE community_id = ? AND user_id = ? AND status = 'pending'").run(status, communityId, userId);
+      return res.changes > 0;
     }
-    try {
-      await db.update(communityJoinRequests)
-        .set({ status })
-        .where(and(
-          eq(communityJoinRequests.communityId, communityId), 
-          eq(communityJoinRequests.userId, userId), 
-          eq(communityJoinRequests.status, "pending")
-        ));
-    } catch (err) {
-      console.error(`[Storage] Failed to update join request status:`, err);
-      throw err;
-    }
+    const rows = await db.update(communityJoinRequests)
+      .set({ status })
+      .where(and(
+        eq(communityJoinRequests.communityId, communityId),
+        eq(communityJoinRequests.userId, userId),
+        eq(communityJoinRequests.status, "pending")
+      ))
+      .returning({ id: communityJoinRequests.id });
+    return rows.length > 0;
   }
 
   async getJoinRequest(communityId: number, userId: number): Promise<any | undefined> {
@@ -494,8 +497,6 @@ export class CommunityStorage {
         eq(communityJoinRequests.status, "pending")
       ))
       .orderBy(desc(communityJoinRequests.createdAt));
-
-      console.log(`[Storage] Drizzle join request rows:`, result.length);
 
       return result.map(row => ({
         id: row.id,

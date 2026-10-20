@@ -7,9 +7,36 @@ import {
   posts,
   commentLikes,
   savedPosts,
+  reports,
+  users,
 } from "@shared/schema";
 import { db, getSqlite } from "../db";
-import { eq, and, desc, sql, inArray, isNull } from "drizzle-orm";
+import { eq, and, asc, desc, sql, inArray, isNull, or } from "drizzle-orm";
+
+// Namespaces for pg_advisory_xact_lock(namespace, userId): serialise one user's check-then-write sequences
+// (post cooldown, reaction toggles, duplicate reports) so parallel requests cannot race past the check.
+const LOCK_POST_CREATE = 7301;
+const LOCK_POST_REACTION = 7302;
+const LOCK_COMMENT_LIKE = 7303;
+const LOCK_REPORT = 7304;
+
+const lockFor = (tx: any, namespace: number, userId: number) =>
+  tx.execute(sql`select pg_advisory_xact_lock(${namespace}::int, ${userId}::int)`);
+
+const rowToPost = (row: any): Post => ({
+  id: row.id,
+  title: row.title,
+  content: row.content,
+  authorId: row.author_id,
+  category: row.category,
+  karma: row.karma,
+  mediaUrl: row.media_url,
+  mediaType: row.media_type,
+  communityId: row.community_id || null,
+  createdAt: isNaN(Number(row.created_at)) ? new Date(row.created_at) : new Date(Number(row.created_at) * 1000),
+});
+
+export type ReportTarget = { postId?: number | null; commentId?: number | null; discussionId?: number | null };
 
 export class ContentStorage {
   async createPost(post: Omit<Post, "id" | "createdAt" | "karma">): Promise<Post> {
@@ -41,8 +68,54 @@ export class ContentStorage {
     return newPost;
   }
 
+  /**
+   * Creates the post unless the author posted less than `cooldownSeconds` ago. Check and insert run under a
+   * per-user lock, so parallel requests cannot all pass the check (CONTENT-11).
+   */
+  async createPostWithCooldown(
+    post: Omit<Post, "id" | "createdAt" | "karma">,
+    cooldownSeconds: number,
+  ): Promise<{ post: Post } | { remainingSeconds: number }> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      // better-sqlite3 is synchronous: nothing can run between this check and the insert below.
+      const last = sqlite.prepare("SELECT created_at FROM posts WHERE author_id = ? ORDER BY created_at DESC LIMIT 1").get(post.authorId) as any;
+      if (last && cooldownSeconds > 0) {
+        const created = isNaN(Number(last.created_at)) ? new Date(last.created_at).getTime() : Number(last.created_at) * 1000;
+        const age = (Date.now() - created) / 1000;
+        if (age < cooldownSeconds) return { remainingSeconds: Math.ceil(cooldownSeconds - age) };
+      }
+      return { post: await this.createPost(post) };
+    }
+    return db.transaction(async (tx: any) => {
+      await lockFor(tx, LOCK_POST_CREATE, post.authorId);
+      if (cooldownSeconds > 0) {
+        const [row] = await tx
+          .select({ age: sql<number>`extract(epoch from (now() - max(${posts.createdAt})))`.mapWith(Number) })
+          .from(posts)
+          .where(eq(posts.authorId, post.authorId));
+        if (row && row.age !== null && !Number.isNaN(row.age) && row.age < cooldownSeconds) {
+          return { remainingSeconds: Math.max(1, Math.ceil(cooldownSeconds - row.age)) };
+        }
+      }
+      const [created] = await tx.insert(posts).values(post).returning();
+      return { post: created };
+    });
+  }
+
+  async getPostsByIds(ids: number[]): Promise<Post[]> {
+    if (ids.length === 0) return [];
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite.prepare(`SELECT * FROM posts WHERE id IN (${ids.map(() => "?").join(",")})`).all(...ids) as any[];
+      return rows.map(rowToPost);
+    }
+    return db.select().from(posts).where(inArray(posts.id, ids));
+  }
+
   async getPosts(options: { category?: string; communityId?: number; limit?: number; offset?: number } = {}): Promise<Post[]> {
     const { category, communityId, limit = 50, offset = 0 } = options;
+    // Callers check the community's visibility before asking for its posts (routes/posts.ts).
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       let query = "SELECT p.* FROM posts p";
@@ -169,12 +242,24 @@ export class ContentStorage {
       sqlite.prepare("DELETE FROM comment_likes WHERE comment_id IN (SELECT id FROM comments WHERE post_id = ?)").run(postId);
       sqlite.prepare("DELETE FROM comments WHERE post_id = ?").run(postId);
       sqlite.prepare("DELETE FROM post_likes WHERE post_id = ?").run(postId);
+      sqlite.prepare("DELETE FROM saved_posts WHERE post_id = ?").run(postId);
       sqlite.prepare("DELETE FROM posts WHERE id = ?").run(postId);
       return;
     }
-    await db.delete(postLikes).where(eq(postLikes.postId, postId));
-    await db.delete(comments).where(eq(comments.postId, postId));
-    await db.delete(posts).where(eq(posts.id, postId));
+    // Everything that hangs off the post goes with it (CONTENT-21a): likes, bookmarks, its comments with their
+    // likes, and still-open reports about the post or its comments (handled reports stay as moderation history).
+    await db.transaction(async (tx: any) => {
+      const commentIds = (await tx.select({ id: comments.id }).from(comments).where(eq(comments.postId, postId))).map((r: any) => r.id);
+      if (commentIds.length > 0) {
+        await tx.delete(commentLikes).where(inArray(commentLikes.commentId, commentIds));
+        await tx.delete(reports).where(and(eq(reports.status, "pending"), inArray(reports.commentId, commentIds)));
+      }
+      await tx.delete(reports).where(and(eq(reports.status, "pending"), or(eq(reports.postId, postId), eq(reports.discussionId, postId))));
+      await tx.delete(postLikes).where(eq(postLikes.postId, postId));
+      await tx.delete(savedPosts).where(eq(savedPosts.postId, postId));
+      await tx.delete(comments).where(eq(comments.postId, postId));
+      await tx.delete(posts).where(eq(posts.id, postId));
+    });
   }
 
   async createComment(comment: Omit<Comment, "id" | "createdAt" | "karma">): Promise<Comment> {
@@ -199,12 +284,14 @@ export class ContentStorage {
     return newComment;
   }
 
-  async getComments(postId: number): Promise<Comment[]> {
+  /** Comments of a post, oldest first. Paged with limit/offset (default: the first 1000). */
+  async getComments(postId: number, options: { limit?: number; offset?: number } = {}): Promise<Comment[]> {
+    const { limit = 1000, offset = 0 } = options;
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const rows = sqlite
-        .prepare("SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC LIMIT 100")
-        .all(postId);
+        .prepare("SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC, id ASC LIMIT ? OFFSET ?")
+        .all(postId, limit, offset);
       return rows.map((comment: any) => ({
         id: comment.id,
         postId: comment.post_id,
@@ -214,7 +301,13 @@ export class ContentStorage {
         createdAt: new Date(Number(comment.created_at) * 1000),
       }));
     }
-    return db.select().from(comments).where(eq(comments.postId, postId)).limit(100);
+    return db
+      .select()
+      .from(comments)
+      .where(eq(comments.postId, postId))
+      .orderBy(asc(comments.createdAt), asc(comments.id))
+      .limit(limit)
+      .offset(offset);
   }
 
   async updateCommentKarma(id: number, karma: number): Promise<Comment> {
@@ -251,8 +344,11 @@ export class ContentStorage {
       sqlite.prepare("DELETE FROM comments WHERE id = ?").run(id);
       return;
     }
-    await db.delete(commentLikes).where(eq(commentLikes.commentId, id));
-    await db.delete(comments).where(eq(comments.id, id));
+    await db.transaction(async (tx: any) => {
+      await tx.delete(commentLikes).where(eq(commentLikes.commentId, id));
+      await tx.delete(reports).where(and(eq(reports.status, "pending"), eq(reports.commentId, id)));
+      await tx.delete(comments).where(eq(comments.id, id));
+    });
   }
 
   // Reactions
@@ -396,6 +492,152 @@ export class ContentStorage {
       .where(eq(comments.authorId, userId))
       .orderBy(desc(comments.createdAt))
       .limit(100);
+  }
+
+  /**
+   * Sets, switches or removes the user's reaction to a post and applies the matching karma change to the post
+   * author, all in one transaction under a per-user lock: parallel clicks cannot create duplicate rows or
+   * inflate karma (CONTENT-22). Returns what happened and the karma delta that was applied.
+   */
+  async togglePostReaction(
+    userId: number,
+    postId: number,
+    isLike: boolean,
+    authorId: number | null,
+  ): Promise<{ action: "added" | "switched" | "removed"; karmaDelta: number }> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite.prepare("SELECT is_like FROM post_likes WHERE user_id = ? AND post_id = ?").all(userId, postId) as any[];
+      let delta = rows.reduce((d, r) => d + (r.is_like ? -1 : 1), 0);
+      sqlite.prepare("DELETE FROM post_likes WHERE user_id = ? AND post_id = ?").run(userId, postId);
+      const same = rows.length > 0 && !!rows[0].is_like === isLike;
+      if (!same) {
+        sqlite.prepare("INSERT INTO post_likes (user_id, post_id, is_like, created_at) VALUES (?, ?, ?, ?)")
+          .run(userId, postId, isLike ? 1 : 0, Math.floor(Date.now() / 1000));
+        delta += isLike ? 1 : -1;
+      }
+      if (authorId && delta) sqlite.prepare("UPDATE users SET karma = karma + ? WHERE id = ?").run(delta, authorId);
+      return { action: same ? "removed" : rows.length ? "switched" : "added", karmaDelta: authorId ? delta : 0 };
+    }
+    return db.transaction(async (tx: any) => {
+      await lockFor(tx, LOCK_POST_REACTION, userId);
+      const removed = await tx
+        .delete(postLikes)
+        .where(and(eq(postLikes.userId, userId), eq(postLikes.postId, postId)))
+        .returning({ isLike: postLikes.isLike });
+      // Undo the karma of every removed row (older data may hold duplicates).
+      let delta = removed.reduce((d: number, r: any) => d + (r.isLike ? -1 : 1), 0);
+      const same = removed.length > 0 && !!removed[0].isLike === isLike;
+      if (!same) {
+        await tx.insert(postLikes).values({ userId, postId, isLike: isLike ? 1 : 0 }).onConflictDoNothing();
+        delta += isLike ? 1 : -1;
+      }
+      if (authorId && delta) await tx.update(users).set({ karma: sql`karma + ${delta}` }).where(eq(users.id, authorId));
+      return { action: same ? "removed" : removed.length ? "switched" : "added", karmaDelta: authorId ? delta : 0 };
+    });
+  }
+
+  /** Likes or unlikes a comment and applies ±1 karma to its author, atomically (see togglePostReaction). */
+  async toggleCommentLike(userId: number, commentId: number, authorId: number | null): Promise<{ liked: boolean; karmaDelta: number }> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const removed = sqlite.prepare("DELETE FROM comment_likes WHERE user_id = ? AND comment_id = ?").run(userId, commentId).changes;
+      let delta = -removed;
+      if (!removed) {
+        sqlite.prepare("INSERT INTO comment_likes (user_id, comment_id, created_at) VALUES (?, ?, ?)").run(userId, commentId, Math.floor(Date.now() / 1000));
+        delta = 1;
+      }
+      if (authorId && delta) sqlite.prepare("UPDATE users SET karma = karma + ? WHERE id = ?").run(delta, authorId);
+      return { liked: !removed, karmaDelta: authorId ? delta : 0 };
+    }
+    return db.transaction(async (tx: any) => {
+      await lockFor(tx, LOCK_COMMENT_LIKE, userId);
+      const removed = await tx
+        .delete(commentLikes)
+        .where(and(eq(commentLikes.userId, userId), eq(commentLikes.commentId, commentId)))
+        .returning({ id: commentLikes.id });
+      let delta = -removed.length;
+      if (removed.length === 0) {
+        await tx.insert(commentLikes).values({ userId, commentId }).onConflictDoNothing();
+        delta = 1;
+      }
+      if (authorId && delta) await tx.update(users).set({ karma: sql`karma + ${delta}` }).where(eq(users.id, authorId));
+      return { liked: removed.length === 0, karmaDelta: authorId ? delta : 0 };
+    });
+  }
+
+  /** Like counts for several comments at once. */
+  async getBatchCommentLikes(commentIds: number[]): Promise<Map<number, number>> {
+    const counts = new Map<number, number>();
+    if (commentIds.length === 0) return counts;
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite
+        .prepare(`SELECT comment_id, COUNT(*) AS n FROM comment_likes WHERE comment_id IN (${commentIds.map(() => "?").join(",")}) GROUP BY comment_id`)
+        .all(...commentIds) as any[];
+      rows.forEach((r) => counts.set(r.comment_id, Number(r.n)));
+      return counts;
+    }
+    const rows = await db
+      .select({ commentId: commentLikes.commentId, n: sql<number>`count(*)`.mapWith(Number) })
+      .from(commentLikes)
+      .where(inArray(commentLikes.commentId, commentIds))
+      .groupBy(commentLikes.commentId);
+    rows.forEach((r: any) => counts.set(r.commentId, Number(r.n)));
+    return counts;
+  }
+
+  /** Which of the given comments the user has liked. */
+  async getUserCommentLikeIds(userId: number, commentIds: number[]): Promise<Set<number>> {
+    if (commentIds.length === 0) return new Set();
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const rows = sqlite
+        .prepare(`SELECT comment_id FROM comment_likes WHERE user_id = ? AND comment_id IN (${commentIds.map(() => "?").join(",")})`)
+        .all(userId, ...commentIds) as any[];
+      return new Set(rows.map((r) => r.comment_id));
+    }
+    const rows = await db
+      .select({ commentId: commentLikes.commentId })
+      .from(commentLikes)
+      .where(and(eq(commentLikes.userId, userId), inArray(commentLikes.commentId, commentIds)));
+    return new Set(rows.map((r: any) => r.commentId));
+  }
+
+  /**
+   * Creates a report unless the reporter already has a pending report on the same target (UI-14). Check and
+   * insert run under a per-reporter lock.
+   */
+  async createReportOnce(
+    report: { reason: string; reporterId: number; ipAddress: string | null } & ReportTarget,
+  ): Promise<{ report: any } | { duplicate: true }> {
+    const target = { postId: report.postId ?? null, commentId: report.commentId ?? null, discussionId: report.discussionId ?? null };
+    const sameTarget = and(
+      eq(reports.reporterId, report.reporterId),
+      eq(reports.status, "pending"),
+      target.postId ? eq(reports.postId, target.postId) : isNull(reports.postId),
+      target.commentId ? eq(reports.commentId, target.commentId) : isNull(reports.commentId),
+      target.discussionId ? eq(reports.discussionId, target.discussionId) : isNull(reports.discussionId),
+    );
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const existing = sqlite
+        .prepare("SELECT id FROM reports WHERE reporter_id = ? AND status = 'pending' AND IFNULL(post_id,0) = ? AND IFNULL(comment_id,0) = ? AND IFNULL(discussion_id,0) = ?")
+        .get(report.reporterId, target.postId ?? 0, target.commentId ?? 0, target.discussionId ?? 0);
+      if (existing) return { duplicate: true };
+      const { storage } = await import("../storage");
+      return { report: await storage.createReport({ ...report, ...target } as any) };
+    }
+    return db.transaction(async (tx: any) => {
+      await lockFor(tx, LOCK_REPORT, report.reporterId);
+      const [existing] = await tx.select({ id: reports.id }).from(reports).where(sameTarget).limit(1);
+      if (existing) return { duplicate: true as const };
+      const [created] = await tx
+        .insert(reports)
+        .values({ reason: report.reason, reporterId: report.reporterId, ipAddress: report.ipAddress, ...target })
+        .returning();
+      return { report: created };
+    });
   }
 
   // --- Bookmarks ("Merken") ---

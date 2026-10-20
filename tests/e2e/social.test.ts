@@ -1040,6 +1040,8 @@ describe("communities: roles and moderation", () => {
   test("community moderators do not see reporter IP addresses", async () => {
     const poster = await socialUser("rp");
     const reporter = await socialUser("rr");
+    // Only members may post into a community (see "non-members cannot post into a private community")
+    await expectStatus(await poster.client.post(`/api/communities/${cid}/join`), 200);
     const post = await poster.client.post("/api/posts", { content: `report me ${RUN_ID}`, category: "discussion", communityId: String(cid) });
     await expectStatus(post, 201);
     const postId = (await post.json()).id;

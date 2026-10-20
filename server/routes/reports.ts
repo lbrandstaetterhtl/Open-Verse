@@ -2,64 +2,80 @@ import { Router } from "express";
 import { storage } from "../storage";
 import { isAuthenticated, isAdmin, hasPermission } from "../middleware/auth";
 import { insertReportSchema } from "@shared/schema";
-import { broadcastMessage, connections } from "../services/websocket";
-import { WebSocket } from 'ws';
+import { connections, sendToUser } from "../services/websocket";
 import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
 
-import { sendValidationError } from "../utils/http-errors";
+import { sendValidationError, sendInternalError } from "../utils/http-errors";
+import { parseId, validateIdParams } from "../utils/params";
+import { canViewPost } from "../utils/community-access";
+
 const router = Router();
+validateIdParams(router, ["id"]);
 
 router.get("/", hasPermission("reports"), async (req, res) => {
-    const reports = await storage.getReports();
-    res.json(reports);
+    try {
+        res.json(await storage.getReports());
+    } catch (error) {
+        sendInternalError(res, error, "GET /api/reports");
+    }
 });
+
+// A report as the reporter and the admin socket see it: without the stored IP address.
+const withoutIp = ({ ipAddress: _ip, ...report }: any) => report;
 
 router.post("/", isAuthenticated, async (req, res) => {
     try {
-        console.log("[Report] Incoming Request Body:", req.body);
         const result = insertReportSchema.safeParse(req.body);
-        if (!result.success) {
-            console.error("[Report] Validation Failed:", result.error.format());
-            return sendValidationError(res, result.error);
+        if (!result.success) return sendValidationError(res, result.error);
+        const user = req.user as any;
+        const { reason, postId, commentId, discussionId } = result.data;
+
+        // The target must exist and be visible to the reporter; nobody reports their own content (CONTENT-7).
+        let authorId: number;
+        if (commentId) {
+            const comment = await storage.getComment(commentId);
+            const post = comment ? await storage.getPost(comment.postId) : undefined;
+            if (!comment || !post || !(await canViewPost(req, post))) {
+                return res.status(404).json({ error: "Comment not found", code: "NOT_FOUND" });
+            }
+            authorId = comment.authorId;
+        } else {
+            const post = await storage.getPost((postId ?? discussionId)!);
+            if (!post || !(await canViewPost(req, post))) {
+                return res.status(404).json({ error: "Post not found", code: "NOT_FOUND" });
+            }
+            authorId = post.authorId;
+        }
+        if (authorId === user.id) {
+            return res.status(400).json({ error: "You cannot report your own content", code: "OWN_CONTENT" });
         }
 
-        console.log("[Report] Validation Passed, building storage object...");
-        const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "unknown";
-
-        const reportData = {
-            reason: result.data.reason,
-            postId: result.data.postId ?? null,
-            commentId: result.data.commentId ?? null,
-            discussionId: result.data.discussionId ?? null,
-            reporterId: (req.user as any).id,
-            ipAddress: ipAddress,
-        };
-        
-        console.log("[Report] Sending to storage.createReport:", reportData);
-        const report = await storage.createReport(reportData);
-        console.log("[Report] Successfully created in DB with ID:", report.id);
+        // req.ip honours TRUST_PROXY; the raw X-Forwarded-For header can be set by anyone (CONTENT-21b)
+        const created = await storage.getContentStore().createReportOnce({
+            reason,
+            postId: postId ?? null,
+            commentId: commentId ?? null,
+            discussionId: discussionId ?? null,
+            reporterId: user.id,
+            ipAddress: req.ip || req.socket.remoteAddress || null,
+        });
+        if ("duplicate" in created) {
+            // One open report per user and target (UI-14)
+            return res.status(409).json({ error: "You have already reported this content", code: "ALREADY_REPORTED" });
+        }
+        const report = created.report;
 
         // Notify admins (non-blocking)
         try {
             const message = JSON.stringify({
                 type: "new_report",
-                data: {
-                    ...report,
-                    reporter: { username: (req.user as any).username },
-                },
+                data: { ...withoutIp(report), reporter: { username: user.username } },
             });
-
-            connections.forEach(async (ws, userId) => {
-                try {
-                    const user = await storage.getUser(userId);
-                    if (user && (user.role === 'admin' || user.role === 'owner') && ws.readyState === WebSocket.OPEN) {
-                        ws.send(message);
-                    }
-                } catch (wsErr) {
-                    console.error("[Report] Failed to notify admin via WS:", userId, wsErr);
-                }
-            });
+            const admins = await storage.getUsersByIds(Array.from(connections.keys()));
+            for (const admin of admins) {
+                if (admin.role === 'admin' || admin.role === 'owner') sendToUser(admin.id, message);
+            }
         } catch (notifErr) {
             console.error("[Report] Error in admin notification loop:", notifErr);
         }
@@ -68,34 +84,31 @@ router.post("/", isAuthenticated, async (req, res) => {
         activityLogger.logFromRequest(req, {
             action: 'report.submit',
             category: 'moderation',
-            description: `Teilt mit: ${result.data.reason.slice(0, 50)}`,
+            description: `Teilt mit: ${reason.slice(0, 50)}`,
             targetType: 'Report',
             targetId: String(report.id),
             severity: 'warning'
         }).catch(err => console.error('[Monitor] report.submit activity log failed:', err));
 
-        return res.status(201).json(report);
-    } catch (error: any) {
-        console.error("[Report] CRITICAL ERROR IN ROUTE:", error);
-        res.status(500).json({ 
-            message: "Failed to create report", 
-            error: error.message || String(error) 
-        });
+        return res.status(201).json(withoutIp(report));
+    } catch (error) {
+        // Never the database message: it contains the SQL (INPUT-5)
+        sendInternalError(res, error, "POST /api/reports");
     }
 });
 
 router.patch("/:id", hasPermission("reports"), async (req, res) => {
     try {
-        const reportId = parseInt(req.params.id);
-        const { status } = req.body;
+        const reportId = parseId(req.params.id)!;
+        const status = req.body?.status;
 
-        if (!["pending", "resolved", "rejected"].includes(status)) {
-            return res.status(400).send("Invalid report status");
+        if (typeof status !== "string" || !["pending", "resolved", "rejected"].includes(status)) {
+            return res.status(400).json({ error: "Invalid report status", code: "VALIDATION_ERROR" });
         }
 
         const report = await storage.getReport(reportId);
         if (!report) {
-            return res.status(404).send("Report not found");
+            return res.status(404).json({ error: "Report not found", code: "NOT_FOUND" });
         }
 
         if (status === "resolved") {
@@ -128,8 +141,7 @@ router.patch("/:id", hasPermission("reports"), async (req, res) => {
 
                 res.json(updatedReport);
             } catch (error) {
-                console.error("Error resolving report:", error);
-                res.status(500).send("Failed to resolve report");
+                return sendInternalError(res, error, "PATCH /api/reports/:id (resolve)");
             }
         } else {
             const updatedReport = await storage.updateReportStatus(reportId, status);
@@ -161,8 +173,7 @@ router.patch("/:id", hasPermission("reports"), async (req, res) => {
         }
         
     } catch (error) {
-        console.error("Error updating report:", error);
-        res.status(500).send("Failed to update report status");
+        sendInternalError(res, error, "PATCH /api/reports/:id");
     }
 });
 

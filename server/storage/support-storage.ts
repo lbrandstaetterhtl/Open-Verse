@@ -29,6 +29,23 @@ export class SupportStorage {
     return newTicket;
   }
 
+  /** Highest ticket number with this prefix over ALL tickets, soft-deleted ones included (numbers stay unique). */
+  async getHighestTicketNumber(prefix: string): Promise<string | null> {
+    const pattern = `${prefix.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const row = sqlite.prepare(
+        "SELECT ticket_number FROM tickets WHERE ticket_number LIKE ? ESCAPE '\\' ORDER BY length(ticket_number) DESC, ticket_number DESC LIMIT 1",
+      ).get(pattern) as any;
+      return row?.ticket_number ?? null;
+    }
+    const [row] = await db.select({ ticketNumber: tickets.ticketNumber }).from(tickets)
+      .where(sql`${tickets.ticketNumber} LIKE ${pattern}`)
+      .orderBy(sql`length(${tickets.ticketNumber}) DESC`, desc(tickets.ticketNumber))
+      .limit(1);
+    return row?.ticketNumber ?? null;
+  }
+
   async getTicket(id: number): Promise<Ticket | undefined> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
@@ -250,30 +267,54 @@ export class SupportStorage {
     }));
   }
 
-  async updateComment(id: number, content: string): Promise<boolean> {
+  /** A single (not deleted) comment, for access checks. */
+  async getComment(id: number): Promise<{ id: number; ticketId: number; authorId: number; isSystem: boolean; isInternal: boolean } | undefined> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      const res = sqlite.prepare(`UPDATE ticket_comments SET content = ?, updated_at = ? WHERE id = ? AND is_system = 0`).run(content, Math.floor(Date.now() / 1000), id);
+      const row = sqlite.prepare("SELECT * FROM ticket_comments WHERE id = ? AND deleted_at IS NULL").get(id) as any;
+      if (!row) return undefined;
+      return { id: row.id, ticketId: row.ticket_id, authorId: row.author_id, isSystem: Boolean(row.is_system), isInternal: Boolean(row.is_internal) };
+    }
+    const { ticketComments: t } = await import("@shared/schema");
+    const [row] = await db.select().from(t).where(and(eq(t.id, id), sql`${t.deletedAt} IS NULL`)).limit(1);
+    if (!row) return undefined;
+    return { id: row.id, ticketId: row.ticketId, authorId: row.authorId, isSystem: Boolean(row.isSystem), isInternal: Boolean(row.isInternal) };
+  }
+
+  async updateComment(id: number, content: string, ticketId: number): Promise<boolean> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const res = sqlite.prepare(`UPDATE ticket_comments SET content = ?, updated_at = ? WHERE id = ? AND ticket_id = ? AND is_system = 0 AND deleted_at IS NULL`).run(content, Math.floor(Date.now() / 1000), id, ticketId);
       return res.changes > 0;
     }
     const { ticketComments: ticketCommentsTable } = await import("@shared/schema");
     const [updated] = await db.update(ticketCommentsTable)
       .set({ content, updatedAt: new Date() })
-      .where(and(eq(ticketCommentsTable.id, id), eq(ticketCommentsTable.isSystem, 0)))
+      .where(and(
+        eq(ticketCommentsTable.id, id),
+        eq(ticketCommentsTable.ticketId, ticketId),
+        eq(ticketCommentsTable.isSystem, 0),
+        sql`${ticketCommentsTable.deletedAt} IS NULL`,
+      ))
       .returning();
     return !!updated;
   }
 
-  async deleteComment(id: number): Promise<boolean> {
+  async deleteComment(id: number, ticketId: number): Promise<boolean> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      const res = sqlite.prepare(`UPDATE ticket_comments SET deleted_at = ? WHERE id = ? AND is_system = 0`).run(Math.floor(Date.now() / 1000), id);
+      const res = sqlite.prepare(`UPDATE ticket_comments SET deleted_at = ? WHERE id = ? AND ticket_id = ? AND is_system = 0 AND deleted_at IS NULL`).run(Math.floor(Date.now() / 1000), id, ticketId);
       return res.changes > 0;
     }
     const { ticketComments: ticketCommentsTable } = await import("@shared/schema");
     const [deleted] = await db.update(ticketCommentsTable)
       .set({ deletedAt: new Date() })
-      .where(and(eq(ticketCommentsTable.id, id), eq(ticketCommentsTable.isSystem, 0)))
+      .where(and(
+        eq(ticketCommentsTable.id, id),
+        eq(ticketCommentsTable.ticketId, ticketId),
+        eq(ticketCommentsTable.isSystem, 0),
+        sql`${ticketCommentsTable.deletedAt} IS NULL`,
+      ))
       .returning();
     return !!deleted;
   }

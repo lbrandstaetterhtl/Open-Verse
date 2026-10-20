@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, timestamp, boolean, unique, index, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { isCommonPassword } from "./common-passwords";
 
 // APE-FIX [SCHEMA-001]: Universal Schema (Postgres-Native with SQLite Compatibility)
 // Using native timestamp types for Postgres compatibility while keeping integer/boolean logic for SQLite.
@@ -522,56 +523,159 @@ export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snap
 
 // Zod schemas
 // Public registration may only set these fields; role, karma, verification etc. stay at their defaults.
+// Account field rules, shared by registration and the profile edit
+export const usernameField = z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, '.', '_' and '-' are allowed");
+export const emailField = z.string().trim().max(254).email();
+export const newPasswordField = z.string().min(8).max(128)
+  .refine((p) => !isCommonPassword(p), "This password is too common. Please choose another one.");
 export const insertUserSchema = z.object({
-  username: z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, '.', '_' and '-' are allowed"),
-  email: z.string().trim().email(),
-  password: z.string().min(8).max(128),
+  username: usernameField,
+  email: emailField,
+  password: newPasswordField,
 });
-export const insertAdminGroupSchema = createInsertSchema(adminGroups);
-export const insertCommunitySchema = createInsertSchema(communities).extend({
+// Admin/ticket/theme request schemas: only client-editable fields, trimmed text with length limits, no NUL
+// characters (Postgres rejects them), 0/1 flags only (int columns).
+const reqText = (max: number, min = 0) =>
+  z.string().trim().min(min).max(max).refine((s) => !s.includes("\u0000"), { message: "Invalid characters" });
+const reqFlag = z.union([z.boolean(), z.literal(0), z.literal(1)]).transform((v) => (v === true || v === 1 ? 1 : 0));
+const reqInt = (min: number, max: number) => z.number().int().min(min).max(max);
+
+/** Admin group create; `permissions` is validated against the known permission names in the route. */
+export const insertAdminGroupSchema = z.object({
+  name: reqText(50, 1),
+  description: z.union([reqText(500), z.null()]).optional(),
+  permissions: z.union([z.string().max(2000), z.array(z.string().max(50)).max(50)]),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Invalid color").optional(),
+});
+// Community creation: only these fields are accepted (id, createdAt etc. are dropped); creatorId and slug are set by the server.
+const noNul = (s: string) => !s.includes("\u0000");
+const HAS_LETTER_OR_DIGIT = new RegExp("[\\p{L}\\p{N}]", "u"); // any script, not only ASCII
+// Comma list of post categories (same names as POST_CATEGORIES in server/routes/posts.ts)
+const COMMUNITY_CATEGORIES = /^(news|entertainment|discussion|general)(,(news|entertainment|discussion|general)){0,3}$/;
+export const insertCommunitySchema = z.object({
+  name: z.string().trim().min(3).max(100)
+    .refine(noNul, "Invalid characters")
+    .refine((s) => HAS_LETTER_OR_DIGIT.test(s), "The name must contain letters or digits"),
+  description: z.string().trim().max(1000).refine(noNul, "Invalid characters").nullable().optional(),
+  imageUrl: z.union([
+    z.literal(""),
+    z.string().trim().max(2048).url().refine((u) => /^https?:\/\//i.test(u), "Only http(s) image URLs are allowed"),
+    z.string().regex(/^\/uploads\/[\w.-]+$/).refine((u) => !u.includes(".."), "Invalid image URL"),
+  ]).nullable().optional(),
+  allowedCategories: z.union([z.literal(""), z.string().regex(COMMUNITY_CATEGORIES)]).optional(),
+  isPrivate: z.boolean().optional().default(false),
   creatorId: z.number().nullable().optional(),
   slug: z.string().nullable().optional(),
-  isPrivate: z.boolean().optional().default(false),
 });
-export const insertThemeSchema = createInsertSchema(themes).extend({
-  userId: z.number().optional(),
+// Themes: the owner comes from the session; id/createdAt are never taken from the request.
+export const insertThemeSchema = z.object({
+  name: reqText(60, 1),
+  // JSON object with the theme tokens (see client/src/lib/theme-utils.ts)
+  colors: reqText(20000, 1).refine((s) => {
+    try {
+      const v = JSON.parse(s);
+      return !!v && typeof v === "object" && !Array.isArray(v);
+    } catch {
+      return false;
+    }
+  }, { message: "Invalid format" }),
 });
-export const insertAutoPunishmentRuleSchema = createInsertSchema(autoPunishmentRules);
+export const AUTO_PUNISHMENT_ACTIONS = ["warn", "freeze", "shadow_ban", "temp_ban", "permanent_ban", "ip_ban", "hardware_ban"] as const;
+export const insertAutoPunishmentRuleSchema = z.object({
+  name: reqText(100, 1),
+  description: z.union([reqText(1000), z.null()]).optional(),
+  isActive: reqFlag.optional(),
+  anomalyType: reqText(100, 1),
+  severityThreshold: z.enum(["low", "medium", "high", "critical"]).optional(),
+  action: z.enum(AUTO_PUNISHMENT_ACTIONS),
+  actionDurationHours: z.union([reqInt(1, 87600), z.null()]).optional(),
+  actionReason: reqText(500, 1),
+  escalateAfterCount: reqInt(1, 1000).optional(),
+  escalationWindowHours: reqInt(1, 8760).optional(),
+  cooldownHours: reqInt(0, 8760).optional(),
+});
 // Helper: accept boolean OR number for SQLite-style integer-boolean columns
 const boolOrInt = z.union([z.boolean(), z.number()])
   .transform(v => (typeof v === "boolean" ? (v ? 1 : 0) : v))
   .optional();
 
-export const adminUpdateUserSchema = createInsertSchema(users).omit({ id: true, password: true }).partial().extend({
-  verified:      boolOrInt,
-  emailVerified: boolOrInt,
-  isAdmin:       boolOrInt,
-  isPrivate:     boolOrInt,
-  isFrozen:      boolOrInt,
-  isShadowBanned: boolOrInt,
+// Fields an admin may edit on a user. Who may change role/isAdmin/adminGroupId or touch owners is decided
+// in server/routes/admin.ts. id, password and createdAt are never accepted.
+const reqOptionalText = (max: number) => z.union([reqText(max), z.null()]).optional().transform((v) => (v === "" ? null : v));
+export const adminUpdateUserSchema = z.object({
+  username: z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, '.', '_' and '-' are allowed").optional(),
+  email: z.string().trim().max(254).email().optional(),
+  displayName: reqOptionalText(50),
+  bio: reqOptionalText(500),
+  location: reqOptionalText(100),
+  website: reqOptionalText(200),
+  avatarUrl: reqOptionalText(2048),
+  profilePictureUrl: reqOptionalText(2048),
+  coverUrl: reqOptionalText(2048),
+  karma: reqInt(-1_000_000, 1_000_000).optional(),
+  role: z.enum(["user", "admin", "owner"]).optional(),
+  isAdmin: reqFlag.optional(),
+  verified: reqFlag.optional(),
+  emailVerified: reqFlag.optional(),
+  isPrivate: reqFlag.optional(),
+  isFrozen: reqFlag.optional(),
+  isShadowBanned: reqFlag.optional(),
+  frozenUntil: z
+    .union([z.string().max(40), z.null()])
+    .optional()
+    .transform((v, ctx) => {
+      if (v === undefined || v === null || v === "") return v === "" ? null : v;
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime()) || d.getUTCFullYear() < 1970 || d.getUTCFullYear() > 9999) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
+        return z.NEVER;
+      }
+      return d;
+    }),
+  freezeReason: reqOptionalText(500),
+  adminGroupId: z.union([reqInt(1, 2_147_483_647), z.null()]).optional(),
 });
-export const adminUpdateReportSchema = createInsertSchema(reports).partial();
+export const REPORT_STATUSES = ["pending", "resolved", "rejected"] as const;
+export const adminUpdateReportSchema = z.object({ status: z.enum(REPORT_STATUSES) });
 // Self-service profile edits are limited to cosmetic fields so users cannot change their own role or karma.
-export const updateProfileSchema = createInsertSchema(users)
-  .pick({
-    username: true,
-    email: true,
-    displayName: true,
-    bio: true,
-    location: true,
-    website: true,
-    avatarUrl: true,
-    coverUrl: true,
-    profilePictureUrl: true,
-  })
-  .extend({ isPrivate: boolOrInt })
-  .partial();
-export const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(128),
+const profileText = (max: number) =>
+  z.string().trim().max(max).refine((v) => !v.includes("\u0000"), "Invalid characters").nullable().optional();
+// Website: empty, or an http(s) URL; a bare domain ("example.com") gets https:// in front.
+const websiteField = z.string().trim().max(200)
+  .transform((v) => (v === "" || /^[a-z][a-z0-9+.-]*:/i.test(v) ? v : `https://${v}`))
+  .refine((v) => {
+    if (v === "") return true;
+    if (/[\s<>"\u0000]/.test(v)) return false;
+    try {
+      const u = new URL(v);
+      return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.includes(".");
+    } catch {
+      return false;
+    }
+  }, "Website must be an http(s) URL")
+  .nullable()
+  .optional();
+export const updateProfileSchema = z.object({
+  username: usernameField.optional(),
+  email: emailField.optional(),
+  displayName: profileText(100),
+  bio: profileText(500),
+  location: profileText(100),
+  website: websiteField,
+  avatarUrl: profileText(500),
+  coverUrl: profileText(500),
+  profilePictureUrl: profileText(500),
+  // 0/1 or true/false only (any other number used to be stored as is)
+  isPrivate: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform((v) => (v === true || v === 1 ? 1 : 0)).optional(),
 });
-export const messageSchema = createInsertSchema(messages).extend({
-  senderId: z.number().optional(),
+export const updatePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(1024),
+  newPassword: newPasswordField,
+});
+// Direct messages: the sender is the logged-in user; other body fields (senderId, read, id) are dropped.
+export const messageSchema = z.object({
+  receiverId: z.number().int().positive().max(2147483647),
+  content: z.string().trim().min(1).max(5000).refine((s) => !s.includes("\u0000"), "Invalid characters"),
 });
 export const loginSchema = z.object({ username: z.string().min(1), password: z.string().min(1) });
 
@@ -588,16 +692,23 @@ export const insertDiscussionPostSchema = createInsertSchema(posts).extend({
 });
 
 export const insertCommentSchema = z.object({
-  content: z.string().trim().min(1).max(10000),
-  postId: z.number().int().positive(),
+  content: z.string().trim().min(1).max(10000).refine((s) => !s.includes("\u0000"), "Invalid characters"),
+  postId: z.number().int().positive().max(2147483647),
 });
 
-export const insertReportSchema = z.object({
-  reason: z.string().min(1),
-  postId: z.number().optional().nullable(),
-  commentId: z.number().optional().nullable(),
-  discussionId: z.number().optional().nullable(),
-});
+const reportTargetId = z.number().int().positive().max(2147483647).optional().nullable();
+export const insertReportSchema = z
+  .object({
+    reason: z.string().trim().min(1).max(1000).refine((s) => !s.includes("\u0000"), "Invalid characters"),
+    postId: reportTargetId,
+    commentId: reportTargetId,
+    discussionId: reportTargetId,
+  })
+  // Exactly one target: a report about nothing, or about two things at once, cannot be handled (CONTENT-7)
+  .refine((r) => [r.postId, r.commentId, r.discussionId].filter((v) => v != null).length === 1, {
+    message: "Exactly one of postId, commentId or discussionId is required",
+    path: ["postId"],
+  });
 
 // Types
 export type User = typeof users.$inferSelect;

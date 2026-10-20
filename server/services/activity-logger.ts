@@ -87,6 +87,11 @@ class ActivityLoggerService {
           category: entry.category,
           subcategory: entry.subcategory,
           description: entry.description,
+          targetType: entry.targetType,
+          targetId: entry.targetId,
+          targetLabel: entry.targetLabel,
+          oldValue: this.serializeValue(entry.oldValue),
+          newValue: this.serializeValue(entry.newValue),
           metadata: JSON.stringify(entry.metadata ?? {}),
           ipAddress: entry.req?.ip || entry.req?.socket?.remoteAddress,
           userAgent: entry.req?.headers['user-agent'],
@@ -121,6 +126,18 @@ class ActivityLoggerService {
         totalFailed: this.stats.failed,
       });
     }
+  }
+
+  /** old/new values are stored as text: strings as they are, everything else as JSON (capped at 10 000 chars). */
+  private serializeValue(value: unknown): string | null {
+    if (value === undefined || value === null) return null;
+    let s: string;
+    try {
+      s = typeof value === "string" ? value : JSON.stringify(value);
+    } catch {
+      s = String(value);
+    }
+    return s.length > 10_000 ? s.slice(0, 10_000) : s;
   }
 
   private async runAnomalyDetection(entry: any): Promise<void> {
