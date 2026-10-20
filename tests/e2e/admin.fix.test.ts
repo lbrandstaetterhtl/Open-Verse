@@ -228,6 +228,34 @@ describe("bans and bulk actions (ADMIN-3, ADMIN-11, ADMIN-13)", () => {
     assert.equal((await owner.patch("/api/admin/bans/999999999/revoke", {})).status, 404);
     assert.equal((await owner.patch("/api/admin/bans/abc/revoke", {})).status, 404);
   });
+
+  test("the user list's restrict/unrestrict needs the users permission; the bans registry stays with security", async () => {
+    const victim = await uniqueUser("abusr");
+    cleanup.users.add(victim.id);
+    const usersAdmin = await makeAdmin(owner, cleanup, "abusra", ["users"]);
+    const secAdmin = await makeAdmin(owner, cleanup, "abusrs", ["security"]);
+
+    // a users admin restricts and unrestricts from the user list, but cannot use the registry
+    assert.equal((await usersAdmin.client.post("/api/admin/bans", { ban_type: "account", user_id: victim.id, reason: "x" })).status, 403);
+    assert.equal((await usersAdmin.client.get("/api/admin/bans")).status, 403);
+    assert.equal((await usersAdmin.client.post(`/api/admin/users/${victim.id}/ban`, {})).status, 400);
+    const ban = await usersAdmin.client.post(`/api/admin/users/${victim.id}/ban`, { reason: `e2e ${RUN_ID}` });
+    await expectStatus(ban, 200);
+    cleanup.bans.add((await ban.json()).id);
+    assert.equal((await getUserRow(owner, victim.id)).isBanned, true);
+    assert.ok([401, 403].includes((await victim.client.get("/api/user")).status), "the account ban is enforced");
+    await expectStatus(await usersAdmin.client.post(`/api/admin/users/${victim.id}/unban`, {}), 200);
+    assert.equal((await activeBansOf(victim.id)).length, 0);
+    assert.equal((await getUserRow(owner, victim.id)).isBanned, false);
+
+    // owners and the caller stay protected; a security-only admin has no access to the user list's actions
+    const ownerB = await makeOwner(owner, cleanup, "abusro");
+    assert.equal((await usersAdmin.client.post(`/api/admin/users/${ownerB.id}/ban`, { reason: "x" })).status, 403);
+    assert.equal((await usersAdmin.client.post(`/api/admin/users/${usersAdmin.id}/ban`, { reason: "x" })).status, 403);
+    assert.equal((await usersAdmin.client.post("/api/admin/users/999999999/ban", { reason: "x" })).status, 404);
+    assert.equal((await secAdmin.client.post(`/api/admin/users/${victim.id}/ban`, { reason: "x" })).status, 403);
+    assert.equal((await secAdmin.client.post(`/api/admin/users/${victim.id}/unban`, {})).status, 403);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------

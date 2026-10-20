@@ -1,6 +1,6 @@
 import { db } from './db';
-import { users } from '@shared/schema';
-import { eq, lte } from 'drizzle-orm';
+import { users, bans, adminSettings } from '@shared/schema';
+import { and, eq, inArray, lte } from 'drizzle-orm';
 import { logger } from './logger';
 import { sql } from 'drizzle-orm';
 import fs from 'node:fs';
@@ -8,6 +8,7 @@ import path from 'node:path';
 import { storage } from './storage';
 import { hashPassword, verifyPassword } from './utils/password-hash';
 import { randomBytes } from 'node:crypto';
+import { activeBanCondition } from './services/bulk-action-service';
 
 /**
  * Run all pending Drizzle migrations.
@@ -99,19 +100,108 @@ export async function runMigrations() {
 export async function bootstrapAccounts() {
   await disableLegacyTestAdmin();
   await resetLegacyBanKarma();
+  await deactivateLegacyDeviceBans();
   await seedInitialOwner();
 }
 
-// Earlier versions marked account bans by setting karma to -9999 (and treated any negative karma as banned).
-// Bans now live only in the bans table and karma is plain reputation, so that marker is reset to 0 once.
-// Idempotent: afterwards no account has karma <= -9999.
-async function resetLegacyBanKarma() {
+// Device ("hardware") bans used to store a 16-character hash of request headers; devices are now identified
+// by the random 32-character ov_device cookie id (middleware/ban-check.ts), which never equals such a hash.
+// Those bans can no longer match anyone, so they are marked inactive with a note. Idempotent: only active
+// bans are touched.
+const DEVICE_ID_FORMAT = /^[a-f0-9]{32}$/;
+const LEGACY_DEVICE_BAN_NOTE = 'Deactivated automatically: old device ID format, which no longer matches any browser after the device ban update';
+export async function deactivateLegacyDeviceBans() {
   try {
-    const reset = await db.update(users).set({ karma: 0 }).where(lte(users.karma, -9999)).returning({ id: users.id });
-    if (reset.length > 0) logger.info('db', `Reset the legacy ban karma (-9999) of ${reset.length} account(s) to 0`);
+    const active = await db.select({ id: bans.id, deviceFingerprint: bans.deviceFingerprint, reason: bans.reason })
+      .from(bans).where(and(eq(bans.banType, 'hardware'), eq(bans.isActive, 1)));
+    const legacy = active.filter((b: { deviceFingerprint: string | null }) => !b.deviceFingerprint || !DEVICE_ID_FORMAT.test(b.deviceFingerprint));
+    if (legacy.length === 0) return;
+    const now = new Date();
+    for (const ban of legacy) {
+      await db.update(bans).set({
+        isActive: 0,
+        reason: `${ban.reason} [${LEGACY_DEVICE_BAN_NOTE}]`,
+        revokedAt: now,
+        revokeReason: LEGACY_DEVICE_BAN_NOTE,
+        updatedAt: now,
+      }).where(eq(bans.id, ban.id));
+    }
+    logger.warn('db', `Deactivated ${legacy.length} device ban(s) with the old device ID format; ban those devices again if needed`);
   } catch (err) {
-    logger.error('db', 'Failed to reset legacy ban karma', err);
+    logger.error('db', 'Failed to deactivate legacy device bans', err);
   }
+}
+
+/**
+ * One-time data migrations: `fn` runs until it completes once, then a marker row (admin_settings, category
+ * "system", read-only and not shown in the settings UI) keeps it from running again. Works in PostgreSQL and
+ * SQLite mode.
+ */
+const MIGRATION_MARKER_CATEGORY = 'system';
+async function runOnce(name: string, fn: () => Promise<void>) {
+  const key = `migration.${name}`;
+  const done = await db.select({ id: adminSettings.id }).from(adminSettings)
+    .where(and(eq(adminSettings.category, MIGRATION_MARKER_CATEGORY), eq(adminSettings.key, key))).limit(1);
+  if (done.length > 0) return;
+  await fn();
+  await db.insert(adminSettings).values({
+    category: MIGRATION_MARKER_CATEGORY,
+    key,
+    label: `Migration ${name}`,
+    description: 'Marks a one-time data migration as done (do not edit).',
+    value: new Date().toISOString(),
+    valueType: 'string',
+    isSensitive: 0,
+    isReadonly: 1,
+    updatedAt: new Date(),
+  });
+}
+
+// Earlier versions marked account bans by setting karma to -9999 (and treated any negative karma as banned);
+// the old dashboard's "restrict" only set that karma, without a bans row. Bans now live only in the bans
+// table and karma is plain reputation, so each such account first gets a permanent account ban (unless it
+// already has an active one) and then its karma is reset to 0.
+// Runs once (runOnce): karma is now plain reputation, so a later very negative karma must not ban anyone.
+// If creating the bans fails, nothing is marked done and karma is left as it is, so the next start tries again
+// instead of silently lifting the restriction. Re-running it never creates a second ban.
+export async function resetLegacyBanKarma() {
+  try {
+    await runOnce('legacy_ban_karma', migrateLegacyBanKarma);
+  } catch (err) {
+    logger.error('db', 'Failed to migrate legacy ban karma', err);
+  }
+}
+
+async function migrateLegacyBanKarma() {
+  const legacy = await db.select({ id: users.id }).from(users).where(lte(users.karma, -9999));
+  if (legacy.length === 0) return;
+  const ids: number[] = legacy.map((u: { id: number }) => u.id);
+  const alreadyBanned = new Set(
+    (await db.select({ userId: bans.userId }).from(bans)
+      .where(and(inArray(bans.userId, ids), eq(bans.banType, 'account'), activeBanCondition())))
+      .map((b: { userId: number | null }) => b.userId),
+  );
+  const now = new Date();
+  const missing = ids.filter((id) => !alreadyBanned.has(id));
+  if (missing.length > 0) {
+    await db.insert(bans).values(missing.map((userId) => ({
+      banType: 'account',
+      userId,
+      reason: 'Restricted before the ban system update',
+      severity: 'permanent',
+      isPermanent: 1,
+      expiresAt: null,
+      isShadow: 0,
+      createdBy: null,
+      createdByType: 'migration',
+      createdAt: now,
+      updatedAt: now,
+    })));
+    logger.info('db', `Created permanent account bans for ${missing.length} account(s) restricted via the legacy karma marker (-9999)`);
+  }
+  const reset = await db.update(users).set({ karma: 0 })
+    .where(and(inArray(users.id, ids), lte(users.karma, -9999))).returning({ id: users.id });
+  if (reset.length > 0) logger.info('db', `Reset the legacy ban karma (-9999) of ${reset.length} account(s) to 0`);
 }
 
 // Earlier versions created "testadmin" with a password that is public in this repository.

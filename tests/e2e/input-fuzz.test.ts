@@ -335,6 +335,16 @@ const BODY_SPECS: BodySpec[] = [
     base: () => ({ reason: "fuzz" }), fields: () => ({ reason: FIELD_VALUES }),
   },
   {
+    key: "POST /api/admin/users/:id/ban", url: () => `/api/admin/users/${ctx.banVictim.id}/ban`, actor: asOwner,
+    base: () => ({ reason: "fuzz", duration_hours: 1 }),
+    fields: () => ({ reason: FIELD_VALUES, duration_hours: [...WRONG_TYPES, "abc"] }),
+    onAnswer: (r) => ok(r) && typeof json(r)?.id === "number" && createdBans.push(json(r).id),
+  },
+  {
+    key: "POST /api/admin/users/:id/unban", url: () => `/api/admin/users/${ctx.banVictim.id}/unban`, actor: asOwner,
+    base: () => ({ reason: "fuzz" }), fields: () => ({ reason: FIELD_VALUES }),
+  },
+  {
     key: "POST /api/admin/auto-punishments/rules", url: () => "/api/admin/auto-punishments/rules", actor: asOwner,
     base: () => ({ name: `fz rule ${RUN_ID}`, anomalyType: `fz_never_${RUN_ID}`, action: "warn", actionReason: "fuzz", isActive: 0 }),
     fields: () => ({

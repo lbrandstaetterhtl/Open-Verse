@@ -1,4 +1,5 @@
-import { pgTable, text, serial, integer, timestamp, boolean, unique, index, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, unique, index, uniqueIndex, real } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { isCommonPassword } from "./common-passwords";
@@ -30,7 +31,12 @@ export const users = pgTable("users", {
   freezeReason: text("freeze_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(), 
   adminGroupId: integer("admin_group_id"),
-});
+}, (table) => ({
+  // Case-insensitive uniqueness, created by server/migrations/user_case_uniqueness.ts (declared here so
+  // `drizzle-kit push` keeps them)
+  usernameLowerUnique: uniqueIndex("users_username_lower_unique").on(sql`lower(${table.username})`),
+  emailLowerUnique: uniqueIndex("users_email_lower_unique").on(sql`lower(${table.email})`),
+}));
 
 export const sessions = pgTable("session", {
   sid: text("sid").primaryKey(),
@@ -135,7 +141,10 @@ export const postLikes = pgTable("post_likes", {
   postId: integer("post_id").notNull(),
   isLike: integer("is_like").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // One reaction per user and post (migrations/0003_unique_reactions.sql)
+  userPostUnique: uniqueIndex("post_likes_user_post_unique").on(table.userId, table.postId),
+}));
 
 // Bookmarks ("Merken"); unique per user and post (migrations/0002_saved_posts.sql).
 export const savedPosts = pgTable("saved_posts", {
@@ -143,14 +152,19 @@ export const savedPosts = pgTable("saved_posts", {
   userId: integer("user_id").notNull(),
   postId: integer("post_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  userPostUnique: uniqueIndex("saved_posts_user_post_unique").on(table.userId, table.postId),
+}));
 
 export const commentLikes = pgTable("comment_likes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   commentId: integer("comment_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // One like per user and comment (migrations/0003_unique_reactions.sql)
+  userCommentUnique: uniqueIndex("comment_likes_user_comment_unique").on(table.userId, table.commentId),
+}));
 
 export const communities = pgTable("communities", {
   id: serial("id").primaryKey(),
@@ -170,7 +184,10 @@ export const communityMembers = pgTable("community_members", {
   userId: integer("user_id").notNull(),
   role: text("role").notNull().default('member'),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // One membership row per user and community (migrations/0003_community_members_unique.sql)
+  communityUserUnique: uniqueIndex("community_members_community_user_unique").on(table.communityId, table.userId),
+}));
 
 export const communityBans = pgTable("community_bans", {
   id: serial("id").primaryKey(),
@@ -545,7 +562,10 @@ export const insertAdminGroupSchema = z.object({
   name: reqText(50, 1),
   description: z.union([reqText(500), z.null()]).optional(),
   permissions: z.union([z.string().max(2000), z.array(z.string().max(50)).max(50)]),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Invalid color").optional(),
+  // #rgb or #rrggbb, stored as #rrggbb (the UI appends alpha digits, e.g. `${color}20`)
+  color: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "Invalid color")
+    .transform((c) => (c.length === 4 ? `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}` : c))
+    .optional(),
 });
 // Community creation: only these fields are accepted (id, createdAt etc. are dropped); creatorId and slug are set by the server.
 const noNul = (s: string) => !s.includes("\u0000");
@@ -605,7 +625,7 @@ const reqOptionalText = (max: number) => z.union([reqText(max), z.null()]).optio
 export const adminUpdateUserSchema = z.object({
   username: z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, '.', '_' and '-' are allowed").optional(),
   email: z.string().trim().max(254).email().optional(),
-  displayName: reqOptionalText(50),
+  displayName: reqOptionalText(100), // same limit as the profile edit (updateProfileSchema)
   bio: reqOptionalText(500),
   location: reqOptionalText(100),
   website: reqOptionalText(200),

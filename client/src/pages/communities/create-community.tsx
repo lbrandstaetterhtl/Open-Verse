@@ -48,6 +48,9 @@ export default function CreateCommunityPage() {
     imageUrl: z.string().trim().max(LIMITS.communityImageUrl, tooLongMessage(imageField, LIMITS.communityImageUrl))
       .refine((v) => !v || safeExternalUrl(v) !== null || /^\/uploads\/[\w.-]+$/.test(v), invalidUrlMessage(imageField))
       .optional().nullable(),
+    // At least one feed; an empty value would silently mean "all three" on the server
+    allowedCategories: z.string()
+      .refine((v) => v.split(",").some((c) => c.trim()), t("community.create.categories_required", "Select at least one category.")),
   });
 
   const form = useForm<InsertCommunity>({
@@ -83,6 +86,13 @@ export default function CreateCommunityPage() {
       });
     },
   });
+
+  // Comma list without empty entries or duplicates (unticking all and ticking one must give "news", not ",news")
+  const toggleCategory = (category: string, checked: boolean) => {
+    const current = (form.getValues("allowedCategories") ?? "").split(",").map((c) => c.trim()).filter(Boolean);
+    const next = checked ? Array.from(new Set([...current, category])) : current.filter((c) => c !== category);
+    form.setValue("allowedCategories", next.join(","), { shouldValidate: true });
+  };
 
   if (!user) return null;
 
@@ -188,20 +198,7 @@ export default function CreateCommunityPage() {
                         value="news"
                         defaultChecked
                         className="h-4 w-4 cursor-pointer accent-primary"
-                        onChange={(e) => {
-                          const current = form.getValues("allowedCategories")?.split(",") || [
-                            "news",
-                            "entertainment",
-                            "discussion",
-                          ];
-                          let newCats;
-                          if (e.target.checked) {
-                            newCats = [...current, "news"];
-                          } else {
-                            newCats = current.filter((c) => c !== "news");
-                          }
-                          form.setValue("allowedCategories", newCats.join(","));
-                        }}
+                        onChange={(e) => toggleCategory("news", e.target.checked)}
                       />
                       <Label htmlFor="cat-news" className="cursor-pointer text-muted-foreground transition-colors group-hover:text-foreground">
                         {t("feed.news")}
@@ -214,20 +211,7 @@ export default function CreateCommunityPage() {
                         value="entertainment"
                         defaultChecked
                         className="h-4 w-4 cursor-pointer accent-primary"
-                        onChange={(e) => {
-                          const current = form.getValues("allowedCategories")?.split(",") || [
-                            "news",
-                            "entertainment",
-                            "discussion",
-                          ];
-                          let newCats;
-                          if (e.target.checked) {
-                            newCats = [...current, "entertainment"];
-                          } else {
-                            newCats = current.filter((c) => c !== "entertainment");
-                          }
-                          form.setValue("allowedCategories", newCats.join(","));
-                        }}
+                        onChange={(e) => toggleCategory("entertainment", e.target.checked)}
                       />
                       <Label htmlFor="cat-entertainment" className="cursor-pointer text-muted-foreground transition-colors group-hover:text-foreground">
                         {t("feed.entertainment")}
@@ -240,20 +224,7 @@ export default function CreateCommunityPage() {
                         value="discussion"
                         defaultChecked
                         className="h-4 w-4 cursor-pointer accent-primary"
-                        onChange={(e) => {
-                          const current = form.getValues("allowedCategories")?.split(",") || [
-                            "news",
-                            "entertainment",
-                            "discussion",
-                          ];
-                          let newCats;
-                          if (e.target.checked) {
-                            newCats = [...current, "discussion"];
-                          } else {
-                            newCats = current.filter((c) => c !== "discussion");
-                          }
-                          form.setValue("allowedCategories", newCats.join(","));
-                        }}
+                        onChange={(e) => toggleCategory("discussion", e.target.checked)}
                       />
                       <Label htmlFor="cat-discussion" className="cursor-pointer text-muted-foreground transition-colors group-hover:text-foreground">
                         {t("community.page.tabs.discussion")}
@@ -261,6 +232,9 @@ export default function CreateCommunityPage() {
                     </div>
                   </div>
                   <p className="text-xs leading-relaxed text-muted-foreground">{t("community.create.feed_hint")}</p>
+                  {form.formState.errors.allowedCategories && (
+                    <p className="text-xs font-medium text-destructive">{form.formState.errors.allowedCategories.message}</p>
+                  )}
                 </div>
 
                 <div className="ov-panel space-y-2 p-5">

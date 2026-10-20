@@ -306,10 +306,11 @@ export default function AdminDashboard() {
   };
 
   // Account bans live in the bans table (karma is reputation only): ban = new account ban, unban = revoke the
-  // user's active account bans. A new ban asks for the reason first (userToBan dialog).
+  // user's active account bans. A new ban asks for the reason first (userToBan dialog). Both need the "users"
+  // permission like this list (the bans registry under /api/admin/bans needs "security").
   const banMutation = useMutation({
     mutationFn: async ({ userId, reason }: { userId: number; reason: string }) => {
-      const res = await apiRequest("POST", "/api/admin/bans", { ban_type: "account", user_id: userId, reason });
+      const res = await apiRequest("POST", `/api/admin/users/${userId}/ban`, { reason });
       return res.json();
     },
     onSuccess: () => {
@@ -325,13 +326,7 @@ export default function AdminDashboard() {
 
   const unbanMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const res = await apiRequest("GET", "/api/admin/bans");
-      const all: any[] = await res.json();
-      const now = Date.now();
-      const active = all.filter((b) =>
-        b.userId === userId && b.banType === "account" && !!b.isActive && !b.revokedAt &&
-        (b.isPermanent || !b.expiresAt || new Date(b.expiresAt).getTime() > now));
-      for (const ban of active) await apiRequest("PATCH", `/api/admin/bans/${ban.id}/revoke`, {});
+      await apiRequest("POST", `/api/admin/users/${userId}/unban`, {});
     },
     onSuccess: () => {
       invalidateBanState();

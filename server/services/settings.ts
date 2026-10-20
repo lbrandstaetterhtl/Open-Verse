@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { adminSettings } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { activityLogger } from "./activity-logger";
 import { type Request } from "express";
 import { logger } from "../logger";
@@ -107,7 +107,7 @@ export class SettingsService {
       { category: "content", key: "profanity_filter_enabled", label: "Enable Profanity Filter", value: "true", valueType: "boolean", description: "Automatically censor known profanity and slurs in posts and comments." },
       
       // Security
-      { category: "security", key: "session_timeout_minutes", label: "Session Timeout", value: "60", valueType: "integer", description: "Minutes of inactivity after which a session ends (minimum 5, 0 = off; sessions end after 24 hours in any case)." },
+      { category: "security", key: "session_timeout_minutes", label: "Session Timeout", value: "0", valueType: "integer", description: "Minutes of inactivity after which a session ends (minimum 5, 0 = off; sessions end after 24 hours in any case)." },
       { category: "security", key: "max_login_attempts", label: "Max Login Attempts", value: "5", valueType: "integer", description: "Not enforced: an account is locked for 15 minutes after 20 failed logins (a low value would let anyone lock other users out)." },
       { category: "security", key: "admin_ip_allowlist", label: "Admin IP Allowlist", value: "", valueType: "text", description: "Comma-separated list of IP addresses allowed to access the admin dashboard. Leave blank to disable." },
       
@@ -145,6 +145,34 @@ export class SettingsService {
           updatedAt: new Date(),
         });
       }
+    }
+
+    await this.disableUnchangedSessionTimeout();
+  }
+
+  /**
+   * The idle timeout used to be seeded with "60" but was never enforced (sessions lasted 24 hours). Now that it
+   * is enforced, the default is "0" (off); installations that still have the untouched seed value get "0" as
+   * well, so nobody is suddenly logged out after an hour. An admin's own value is kept: SettingsService.set
+   * always records updatedBy, the seed never does. Idempotent.
+   */
+  private static async disableUnchangedSessionTimeout() {
+    try {
+      const changed = await db.update(adminSettings)
+        .set({ value: "0" })
+        .where(and(
+          eq(adminSettings.category, "security"),
+          eq(adminSettings.key, "session_timeout_minutes"),
+          eq(adminSettings.value, "60"),
+          isNull(adminSettings.updatedBy),
+        ))
+        .returning({ id: adminSettings.id });
+      if (changed.length > 0) {
+        this.cache.delete("security:session_timeout_minutes");
+        logger.info('system', 'Idle session timeout: the unchanged default of 60 minutes was replaced by 0 (off)');
+      }
+    } catch (error) {
+      logger.error('system', 'Failed to migrate the session timeout default', error);
     }
   }
 }

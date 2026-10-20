@@ -184,6 +184,134 @@ describe("account bans expire", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
+// Start-up migrations, run against E2E_DATABASE_URL in a child process (as on a server start)
+const ROOT = new URL("../..", import.meta.url).pathname;
+async function runStartupStep(code: string): Promise<void> {
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const script = `${code}\nprocess.exit(0);`;
+  await promisify(execFile)(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
+    cwd: ROOT,
+    env: { ...process.env, DATABASE_URL, USE_SQLITE: "false", NODE_ENV: "production" },
+    timeout: 60_000,
+  });
+}
+const migrations = `${ROOT}server/db-migrations.ts`;
+
+async function withDb<T>(fn: (db: any) => Promise<T>): Promise<T> {
+  const pg = (await import("pg")).default;
+  const db = new pg.Client({ connectionString: DATABASE_URL });
+  await db.connect();
+  try {
+    return await fn(db);
+  } finally {
+    await db.end();
+  }
+}
+
+describe("start-up migrations", { skip: DATABASE_URL ? false : "E2E_DATABASE_URL not set" }, () => {
+  test("an account restricted by the old dashboard (karma -9999, no bans row) stays banned", async () => {
+    const owner = await ownerSession();
+    const u = await makeUser("legacyban");
+    // The migration runs once (marker row); forget the marker so it runs again, as on the first start after
+    // the update. Run twice without the marker: the second run must not add a second ban.
+    const forgetMarker = () => withDb((db) => db.query("delete from admin_settings where category = 'system' and key = 'migration.legacy_ban_karma'"));
+    await withDb((db) => db.query("update users set karma = -9999 where id = $1", [u.id]));
+    await forgetMarker();
+    await runStartupStep(`const m = await import(${JSON.stringify(migrations)}); await m.resetLegacyBanKarma();`);
+    await withDb((db) => db.query("update users set karma = -9999 where id = $1", [u.id]));
+    await forgetMarker();
+    await runStartupStep(`const m = await import(${JSON.stringify(migrations)}); await m.resetLegacyBanKarma();`);
+    const marker = await withDb(async (db) => (await db.query("select is_readonly from admin_settings where category = 'system' and key = 'migration.legacy_ban_karma'")).rows);
+    assert.equal(marker.length, 1, "the migration is marked as done");
+    const rows = await withDb(async (db) => (await db.query(
+      "select id, is_permanent, created_by_type, reason from bans where user_id = $1 and ban_type = 'account' and is_active = 1", [u.id])).rows);
+    try {
+      assert.equal(rows.length, 1, "exactly one active account ban");
+      assert.equal(rows[0].is_permanent, 1);
+      assert.equal(rows[0].created_by_type, "migration");
+      assert.equal(rows[0].reason, "Restricted before the ban system update");
+      const users = (await (await owner.get("/api/admin/users")).json()) as any[];
+      const row = users.find((x) => x.id === u.id);
+      assert.equal(row.karma, 0, "legacy karma marker reset");
+      assert.equal(row.isBanned, true);
+      assert.equal((await freshClient().login(u.username, u.password)).status, 401, "the legacy-restricted user can log in");
+
+      // Afterwards karma is reputation only: a very negative karma set later bans nobody
+      const later = await makeUser("negkarma");
+      await withDb((db) => db.query("update users set karma = -20000 where id = $1", [later.id]));
+      await runStartupStep(`const m = await import(${JSON.stringify(migrations)}); await m.resetLegacyBanKarma();`);
+      const laterBans = await withDb(async (db) => (await db.query("select id from bans where user_id = $1", [later.id])).rows);
+      assert.equal(laterBans.length, 0, "no ban for karma set after the migration");
+      await expectStatus(await later.client.get("/api/user"), 200);
+    } finally {
+      for (const r of rows) await owner.patch(`/api/admin/bans/${r.id}/revoke`, { reason: "core fix test" });
+    }
+  });
+
+  test("device bans with the old 16-character header hash are deactivated with a note", async () => {
+    const id = await withDb(async (db) => (await db.query(
+      "insert into bans (ban_type, device_fingerprint, reason, is_permanent, is_active, created_at, updated_at) values ('hardware', 'abcdef0123456789', 'old device ban', 1, 1, now(), now()) returning id")).rows[0].id);
+    const current = await withDb(async (db) => (await db.query(
+      "insert into bans (ban_type, device_fingerprint, reason, is_permanent, is_active, created_at, updated_at) values ('hardware', $1, 'new device ban', 1, 1, now(), now()) returning id",
+      ["0123456789abcdef0123456789abcdef"])).rows[0].id);
+    try {
+      await runStartupStep(`const m = await import(${JSON.stringify(migrations)}); await m.deactivateLegacyDeviceBans(); await m.deactivateLegacyDeviceBans();`);
+      const rows = await withDb(async (db) => (await db.query("select id, is_active, reason, revoke_reason from bans where id = any($1) order by id", [[id, current]])).rows);
+      assert.equal(rows[0].is_active, 0, "old-format device ban is inactive");
+      assert.match(rows[0].reason, /^old device ban \[Deactivated automatically: old device ID format/);
+      assert.ok(rows[0].revoke_reason, "revoke reason is set");
+      assert.equal((rows[0].reason.match(/Deactivated automatically/g) ?? []).length, 1, "the note is added once");
+      assert.equal(rows[1].is_active, 1, "a current device ban stays active");
+    } finally {
+      await withDb((db) => db.query("delete from bans where id = any($1)", [[id, current]]));
+    }
+  });
+
+  test("the untouched idle-timeout default of 60 minutes becomes 0 (off); an admin's own 60 is kept", async () => {
+    const owner = await ownerSession();
+    const settings = `${ROOT}server/services/settings.ts`;
+    const seed = `const { SettingsService } = await import(${JSON.stringify(settings)}); await SettingsService.seed();`;
+    const read = () => withDb(async (db) => (await db.query(
+      "select value, updated_by from admin_settings where category = 'security' and key = 'session_timeout_minutes'")).rows[0]);
+    const before = await read();
+    try {
+      await withDb((db) => db.query("update admin_settings set value = '60', updated_by = null where category = 'security' and key = 'session_timeout_minutes'"));
+      await runStartupStep(seed);
+      assert.equal((await read()).value, "0", "the untouched seed value is switched off");
+      const row = await setting(owner, "session_timeout_minutes");
+      await setSetting(owner, row.id, "60"); // an admin chooses 60 deliberately
+      await runStartupStep(seed);
+      assert.equal((await read()).value, "60", "the admin's value is kept");
+    } finally {
+      await withDb((db) => db.query("update admin_settings set value = $1, updated_by = $2 where category = 'security' and key = 'session_timeout_minutes'", [before.value, before.updated_by]));
+      await owner.post("/api/admin/settings/clear-cache");
+    }
+  });
+});
+
+describe("a database error during the ban check", { skip: DATABASE_URL ? false : "E2E_DATABASE_URL not set" }, () => {
+  test("fails the request (500) instead of ending the session; a login fails closed", async () => {
+    const u = await makeUser("bandberr");
+    await expectStatus(await u.client.get("/api/user"), 200);
+    // The bans table is briefly unavailable: every ban lookup fails
+    await withDb((db) => db.query("alter table bans rename to bans_unavailable"));
+    let during = 0;
+    let login = 0;
+    try {
+      during = (await u.client.get("/api/user")).status;
+      login = (await freshClient().login(u.username, u.password)).status;
+    } finally {
+      await withDb((db) => db.query("alter table bans_unavailable rename to bans"));
+    }
+    assert.equal(during, 500, "a failed ban check answers 500");
+    assert.equal(login, 500, "a login with a failed ban check must not succeed");
+    // The session survived the hiccup
+    await expectStatus(await u.client.get("/api/user"), 200);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
 describe("admin settings that are enforced", () => {
   let owner: Client;
   before(async () => {

@@ -535,7 +535,8 @@ const bulkPostsSchema = z.object({
 });
 const performer = (req: any) => ({ id: req.user.id as number, role: req.user.role as string });
 
-router.post("/bulk/users", hasPermission("security"), async (req, res) => {
+// The bulk toolbar of the user list: account/shadow bans of the selected users ("users", like the list).
+router.post("/bulk/users", hasPermission("users"), async (req, res) => {
     try {
         const parsed = bulkUsersSchema.safeParse(req.body);
         if (!parsed.success) return sendValidationError(res, parsed.error);
@@ -619,56 +620,60 @@ router.post("/bans", hasPermission("security"), async (req, res) => {
     try {
         const parsed = createBanSchema.safeParse(req.body);
         if (!parsed.success) return sendValidationError(res, parsed.error);
-        const body = parsed.data;
-        const caller = req.user as any;
-
-        let target: any = null;
-        if (body.user_id) {
-            [target] = await db.select().from(users).where(eq(users.id, body.user_id));
-            if (!target) return res.status(404).json({ error: "User not found" });
-            if (target.id === caller.id) return forbidden(res, "You cannot ban yourself", "SELF_BAN");
-            if (target.role === "owner") return forbidden(res, "Owners cannot be banned", "OWNER_PROTECTED");
-        }
-
-        const now = new Date();
-        const expiresAt = body.duration_hours ? new Date(now.getTime() + body.duration_hours * 3600 * 1000) : null;
-        const [newBan] = await db.insert(bans).values({
-            banType: body.ban_type,
-            userId: body.user_id ?? null,
-            ipAddress: body.ip_address ?? null,
-            deviceFingerprint: body.device_fingerprint ?? null,
-            reason: body.reason,
-            severity: body.severity || "medium",
-            isPermanent: body.duration_hours ? 0 : 1,
-            expiresAt,
-            isShadow: body.ban_type === "shadow" ? 1 : 0,
-            createdBy: caller.id,
-            createdByType: "admin",
-            createdAt: now,
-            updatedAt: now,
-        }).returning();
-
-        // Account bans live in the bans table only (enforced by ban-check and the login); karma is untouched.
-        if (target && body.ban_type === "shadow") {
-            await db.update(users).set({ isShadowBanned: 1 }).where(eq(users.id, target.id));
-        }
-
-        activityLogger.logFromRequest(req, {
-            action: "user.ban",
-            category: "security",
-            targetType: target ? "User" : "Ban",
-            targetId: String(target ? target.id : newBan.id),
-            targetLabel: target?.username ?? body.ip_address ?? undefined,
-            description: `Admin created a ${body.ban_type} ban`,
-            newValue: { banType: body.ban_type, durationHours: body.duration_hours ?? null },
-            severity: "warning",
-        }).catch(err => console.error('[Monitor] ban create log failed:', err));
-
-        res.json(newBan);
+        await createBan(req, res, parsed.data);
     } catch (e: any) {
         sendInternalError(res, e, "admin ban create failed");
     }
 });
+
+/** Creates a validated ban (POST /bans, POST /users/:id/ban) and answers the request. */
+async function createBan(req: any, res: any, body: z.infer<typeof createBanSchema>) {
+    const caller = req.user as any;
+
+    let target: any = null;
+    if (body.user_id) {
+        [target] = await db.select().from(users).where(eq(users.id, body.user_id));
+        if (!target) return res.status(404).json({ error: "User not found" });
+        if (target.id === caller.id) return forbidden(res, "You cannot ban yourself", "SELF_BAN");
+        if (target.role === "owner") return forbidden(res, "Owners cannot be banned", "OWNER_PROTECTED");
+    }
+
+    const now = new Date();
+    const expiresAt = body.duration_hours ? new Date(now.getTime() + body.duration_hours * 3600 * 1000) : null;
+    const [newBan] = await db.insert(bans).values({
+        banType: body.ban_type,
+        userId: body.user_id ?? null,
+        ipAddress: body.ip_address ?? null,
+        deviceFingerprint: body.device_fingerprint ?? null,
+        reason: body.reason,
+        severity: body.severity || "medium",
+        isPermanent: body.duration_hours ? 0 : 1,
+        expiresAt,
+        isShadow: body.ban_type === "shadow" ? 1 : 0,
+        createdBy: caller.id,
+        createdByType: "admin",
+        createdAt: now,
+        updatedAt: now,
+    }).returning();
+
+    // Account bans live in the bans table only (enforced by ban-check and the login); karma is untouched.
+    if (target && body.ban_type === "shadow") {
+        await db.update(users).set({ isShadowBanned: 1 }).where(eq(users.id, target.id));
+    }
+
+    activityLogger.logFromRequest(req, {
+        action: "user.ban",
+        category: "security",
+        targetType: target ? "User" : "Ban",
+        targetId: String(target ? target.id : newBan.id),
+        targetLabel: target?.username ?? body.ip_address ?? undefined,
+        description: `Admin created a ${body.ban_type} ban`,
+        newValue: { banType: body.ban_type, durationHours: body.duration_hours ?? null },
+        severity: "warning",
+    }).catch(err => console.error('[Monitor] ban create log failed:', err));
+
+    res.json(newBan);
+}
 
 const revokeSchema = z.object({ reason: z.union([text(500), z.null()]).optional() });
 
@@ -691,6 +696,58 @@ router.patch("/bans/:id/revoke", hasPermission("security"), async (req, res) => 
         res.json(updated);
     } catch (e: any) {
         sendInternalError(res, e, "admin ban revoke failed");
+    }
+});
+
+// Restricting a single account from the user list is user moderation, like freezing or shadow-banning it
+// via PATCH /users/:id, so it needs the "users" permission. The bans registry itself (all bans, IP and
+// device bans, revoking any ban) stays with "security".
+const userBanSchema = z.object({
+    reason: text(500, 1),
+    // 0 / null / missing = permanent
+    duration_hours: z.union([z.number().int().min(0).max(87600), z.null()]).optional(),
+});
+
+router.post("/users/:id/ban", hasPermission("users"), async (req, res) => {
+    try {
+        const parsed = userBanSchema.safeParse(req.body);
+        if (!parsed.success) return sendValidationError(res, parsed.error);
+        await createBan(req, res, { ban_type: "account", user_id: Number(req.params.id), ...parsed.data });
+    } catch (e: any) {
+        sendInternalError(res, e, "admin user ban failed");
+    }
+});
+
+/** Lifts the user's active account bans (shadow bans are toggled separately via PATCH /users/:id). */
+router.post("/users/:id/unban", hasPermission("users"), async (req, res) => {
+    try {
+        const parsed = revokeSchema.safeParse(isPlainBody(req.body) ? req.body : {});
+        if (!parsed.success) return sendValidationError(res, parsed.error);
+        const userId = Number(req.params.id);
+        const [target] = await db.select({ id: users.id, username: users.username }).from(users).where(eq(users.id, userId));
+        if (!target) return res.status(404).json({ error: "User not found" });
+        const now = new Date();
+        const revoked = await db.update(bans).set({
+            isActive: 0,
+            revokedBy: (req.user as any).id,
+            revokedAt: now,
+            revokeReason: parsed.data.reason ?? null,
+            updatedAt: now,
+        }).where(and(eq(bans.userId, userId), eq(bans.banType, "account"), eq(bans.isActive, 1))).returning({ id: bans.id });
+
+        activityLogger.logFromRequest(req, {
+            action: "user.unban",
+            category: "security",
+            targetType: "User",
+            targetId: String(target.id),
+            targetLabel: target.username,
+            description: `Admin lifted ${revoked.length} account ban(s)`,
+            severity: "warning",
+        }).catch(err => console.error('[Monitor] unban log failed:', err));
+
+        res.json({ success: true, revoked: revoked.length });
+    } catch (e: any) {
+        sendInternalError(res, e, "admin user unban failed");
     }
 });
 

@@ -51,8 +51,14 @@ export async function checkFileSignature(filepath: string, mimetype: string): Pr
     }
 }
 
-/** Largest image (width × height × frames) that is decoded at all; stops decompression bombs (ATK-UPLOAD-3). */
+/** Largest image or animation frame (width × height) that is decoded at all; stops decompression bombs (ATK-UPLOAD-3). */
 export const MAX_IMAGE_PIXELS = 50_000_000;
+/**
+ * Largest animated GIF/WebP in total (width × height × frames). Frames are decoded one after another, so this
+ * bounds the decoding work, not the memory; e.g. 1920×1080 with 700 frames still fits, a "bomb" of thousands
+ * of huge frames does not.
+ */
+export const MAX_ANIMATION_PIXELS = 1_500_000_000;
 
 /** Thrown by sanitizeImage: the upload is not a usable image. `code` tells the route which answer to give. */
 export class ImageRejectedError extends Error {
@@ -80,13 +86,19 @@ export async function sanitizeImage(filepath: string): Promise<void> {
     } catch (error) {
         throw new ImageRejectedError("INVALID_IMAGE", `not a decodable image: ${(error as Error).message}`);
     }
-    const pixels = (meta.width ?? 0) * (meta.height ?? 0) * (animated ? meta.pages ?? 1 : 1);
     if (!meta.width || !meta.height) throw new ImageRejectedError("INVALID_IMAGE", "image without dimensions");
-    if (pixels > MAX_IMAGE_PIXELS) throw new ImageRejectedError("IMAGE_TOO_LARGE", `image has ${pixels} pixels`);
+    // metadata() reports one frame: height is the page height (pageHeight, when present, is the same)
+    const framePixels = meta.width * (meta.pageHeight ?? meta.height);
+    const frames = animated ? Math.max(meta.pages ?? 1, 1) : 1;
+    const totalPixels = framePixels * frames;
+    if (framePixels > MAX_IMAGE_PIXELS) throw new ImageRejectedError("IMAGE_TOO_LARGE", `image has ${framePixels} pixels per frame`);
+    if (totalPixels > MAX_ANIMATION_PIXELS) throw new ImageRejectedError("IMAGE_TOO_LARGE", `animation has ${totalPixels} pixels`);
 
     try {
         // Write to a temporary file first: sharp refuses to use the same file as input and output.
-        let img = sharp(filepath, { limitInputPixels: MAX_IMAGE_PIXELS, animated, failOn: "error" });
+        // An animation is decoded as one tall image of all frames, so sharp's own limit is the total here
+        // (each frame was checked against MAX_IMAGE_PIXELS above).
+        let img = sharp(filepath, { limitInputPixels: animated ? MAX_ANIMATION_PIXELS : MAX_IMAGE_PIXELS, animated, failOn: "error" });
         if (ext === '.gif') {
             img = img.gif();
         } else if (ext === '.webp') {

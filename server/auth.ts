@@ -133,6 +133,8 @@ function uniqueViolationField(err: any): "username" | "email" | null {
 /**
  * Whether the account is banned: an active account ban in the bans table (not revoked, permanent or not yet
  * expired). Karma is reputation only (one dislike can make it negative); it no longer decides about bans.
+ * A database error is thrown, not answered: callers fail that one request (login → 500, session → 500)
+ * instead of treating the user as banned, which would end their session on a brief database hiccup.
  */
 export async function isAccountBanned(user: { id: number }): Promise<boolean> {
   try {
@@ -142,7 +144,7 @@ export async function isAccountBanned(user: { id: number }): Promise<boolean> {
     return rows.length > 0;
   } catch (err) {
     logger.error("auth", "Ban check failed", err, { userId: user.id });
-    return true;
+    throw err;
   }
 }
 

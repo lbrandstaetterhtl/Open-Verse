@@ -54,9 +54,9 @@ interface EditProfileModalProps {
   initialTab?: EditProfileTab;
 }
 
+// Only the fields this dialog shows. Username and e-mail are not part of it: their stricter current rules
+// must not block saving the profile of an older account (e.g. "owner@localhost").
 const formValuesFor = (user: User) => ({
-  username: user.username,
-  email: user.email,
   displayName: user.displayName || "",
   bio: user.bio || "",
   location: user.location || "",
@@ -86,6 +86,10 @@ export function EditProfileModal({
   // Length limits as on the server (lib/input-limits.ts); the website must be an http(s) address
   const maxText = (field: string, max: number) => z.string().max(max, tooLongMessage(field, max)).optional().nullable();
   const formSchema = updateProfileSchema.extend({
+    // Not shown in the dialog, never validated or sent
+    username: z.any().optional(),
+    email: z.any().optional(),
+    profilePictureUrl: z.any().optional(),
     isPrivate: z.boolean().optional(),
     avatarUrl: z.string().optional(),
     coverUrl: z.string().optional(),
@@ -150,11 +154,30 @@ export function EditProfileModal({
       ...data,
       isPrivate: data.isPrivate ? 1 : 0
     };
-    // The dialog has no username/e-mail fields: never send them back unchanged
-    if (processedData.username === user.username) delete processedData.username;
-    if (processedData.email === user.email) delete processedData.email;
+    // The dialog has no username/e-mail fields: never send them
+    delete processedData.username;
+    delete processedData.email;
+    delete processedData.profilePictureUrl;
 
     onSubmit(processedData as any);
+  };
+
+  // A validation error must never block Save silently (e.g. on a field of another tab): show the field's
+  // tab and say what is wrong.
+  const FIELD_TABS: Record<string, EditProfileTab> = {
+    displayName: "general", bio: "general", location: "general", website: "general",
+    avatarUrl: "appearance", coverUrl: "appearance", isPrivate: "privacy",
+  };
+  const handleInvalid = (errors: Record<string, any>) => {
+    const [field, error] = Object.entries(errors)[0] ?? [];
+    if (field && FIELD_TABS[field]) setTab(FIELD_TABS[field]);
+    toast({
+      title: t("profile.form.invalid", "The profile could not be saved"),
+      description: typeof error?.message === "string" && error.message
+        ? error.message
+        : t("profile.form.invalid_hint", "Please check your entries."),
+      variant: "destructive",
+    });
   };
 
   return (
@@ -176,7 +199,7 @@ export function EditProfileModal({
 
         <div className="p-0 max-h-[80vh] overflow-hidden">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+            <form onSubmit={form.handleSubmit(handleFormSubmit, handleInvalid)}>
               <Tabs value={tab} onValueChange={(v) => setTab(v as EditProfileTab)} className="w-full">
                 <div className="ov-rule px-6 md:px-8">
                   <TabsList className="h-12 w-full justify-start gap-1 rounded-none bg-transparent p-0 shadow-none">
@@ -237,7 +260,7 @@ export function EditProfileModal({
                                 />
                               </FormControl>
                               <FormDescription className="text-xs">
-                                {t('profile.form.bio_description')}
+                                {t("profile.form.bio_description", { defaultValue: "Displayed on your profile. Max. {{max}} characters.", max: LIMITS.bio })}
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
