@@ -46,7 +46,7 @@ router.post("/", isAuthenticated, async (req, res) => {
             return res.json(updatedTheme);
         }
 
-        const theme = await storage.createTheme((req.user as any).id, result.data);
+        const theme = await storage.createTheme((req.user as any).id, { ...result.data, userId: (req.user as any).id });
         res.json(theme);
     } catch (error) {
         console.error("Error creating/updating theme:", error);

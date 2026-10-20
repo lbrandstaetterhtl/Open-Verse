@@ -15,6 +15,7 @@ import { closeSessionSockets, closeUserSockets } from "./services/websocket";
 import { logger } from "./logger";
 import { hashPassword, verifyPassword, burnPasswordCheck, passwordStamp } from "./utils/password-hash";
 import { toSelfUser } from "./utils/public-user";
+import { BANNED_KARMA, previousKarmaOf } from "./services/bulk-action-service";
 
 import { sendValidationError, sendInternalError } from "./utils/http-errors";
 declare global {
@@ -138,7 +139,7 @@ async function isKarmaBanned(user: { id: number; karma: number }): Promise<boole
   if (user.karma >= 0) return false;
   try {
     const rows = await db.select().from(bans).where(and(eq(bans.userId, user.id), eq(bans.banType, "account")));
-    if (rows.length === 0 || user.karma !== -9999) return true;
+    if (rows.length === 0 || user.karma > BANNED_KARMA) return true;
     const now = Date.now();
     const active = rows.some((b: any) => {
       if (!b.isActive) return false;
@@ -148,7 +149,11 @@ async function isKarmaBanned(user: { id: number; karma: number }): Promise<boole
       return ms > now;
     });
     if (active) return true;
-    await db.update(users).set({ karma: 0 }).where(eq(users.id, user.id));
+    // Restore the karma from before the (latest) ban, like revoking it does
+    const latest = rows.reduce((a: any, b: any) => (Number(b.id) > Number(a.id) ? b : a));
+    const karma = previousKarmaOf(latest.notes) ?? 0;
+    await db.update(users).set({ karma }).where(eq(users.id, user.id));
+    user.karma = karma;
     logger.info("auth", "Expired account ban lifted", { userId: user.id });
     return false;
   } catch (err) {

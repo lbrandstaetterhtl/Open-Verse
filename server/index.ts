@@ -160,6 +160,10 @@ if (!process.env.SENDGRID_API_KEY) {
     const { ensurePostgresColumns } = await import("./migrations/ensure_postgres_columns");
     await ensurePostgresColumns();
 
+    // Usernames and emails are unique regardless of case (indexes on lower(...))
+    const { ensureCaseInsensitiveUserUniqueness } = await import("./migrations/user_case_uniqueness");
+    await ensureCaseInsensitiveUserUniqueness();
+
     // Owner bootstrap from INITIAL_OWNER_* (needs the final users table)
     const { bootstrapAccounts } = await import("./db-migrations");
     await bootstrapAccounts();

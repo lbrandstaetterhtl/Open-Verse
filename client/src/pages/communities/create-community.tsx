@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { LIMITS, invalidUrlMessage, requiredMessage, tooLongMessage, tooShortMessage } from "@/lib/input-limits";
 import { safeExternalUrl } from "@/lib/safe-url";
+import { translateServerMessage } from "@/lib/server-messages";
 
 export default function CreateCommunityPage() {
   const { t } = useTranslation();
@@ -37,7 +38,9 @@ export default function CreateCommunityPage() {
     name: z.string().trim()
       .min(1, requiredMessage(nameField))
       .min(3, tooShortMessage(nameField, 3))
-      .max(LIMITS.communityName, tooLongMessage(nameField, LIMITS.communityName)),
+      .max(LIMITS.communityName, tooLongMessage(nameField, LIMITS.communityName))
+      // Same rule and (server-translated) text as the server schema
+      .refine((v) => new RegExp("[\\p{L}\\p{N}]", "u").test(v), translateServerMessage("The name must contain letters or digits")),
     description: z.string()
       .max(LIMITS.communityDescription, tooLongMessage(descriptionField, LIMITS.communityDescription))
       .optional().nullable(),

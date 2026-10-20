@@ -620,9 +620,11 @@ if (!ONLY.length || ONLY.includes("profile")) {
     focus = page;
     await open();
     await dlg().getByLabel("Website").fill("das ist keine url");
+    const before = patches().length;
     await save();
     await page.waitForTimeout(1800);
-    const last = patches().at(-1);
+    // only a request sent by THIS save counts (the previous tests saved successfully)
+    const last = patches().slice(before).at(-1);
     const msgs = [...(await visibleErrorText(page)), ...(await s.toasts())].filter((t) => /Website|URL/i.test(t));
     assert.ok(msgs.length > 0 && (last === undefined || last.status >= 400), `saved with status ${last?.status}; messages ${JSON.stringify(msgs)}`);
     await page.keyboard.press("Escape");

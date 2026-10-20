@@ -9,7 +9,7 @@ import { sendValidationError } from "../utils/http-errors";
 const generateSchema = z.object({
     topic: text(500, 1),
     // Interpolated into the system prompt: a language name only (e.g. "english", "Deutsch", "pt-BR").
-    language: z.string().trim().regex(/^[\p{L} -]{2,30}$/u, "Invalid format").optional(),
+    language: z.string().trim().regex(/^[A-Za-z\u00C0-\u024F -]{2,30}$/, "Invalid format").optional(),
     imageContext: z.union([z.string().max(15_000_000), z.null()]).optional(),
 });
 

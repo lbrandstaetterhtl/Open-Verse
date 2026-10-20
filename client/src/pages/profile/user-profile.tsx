@@ -8,6 +8,8 @@ import { ProfileCover } from "@/components/profile/ProfileCover";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { ProfileTabContent } from "@/components/profile/ProfileTabContent";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Lock } from "lucide-react";
 import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,10 +28,13 @@ export default function UserProfilePage() {
     enabled: !!username,
   });
 
-  const { data: tabData = [], isLoading: isTabLoading } = useQuery<any[]>({
+  const { data: tabData = [], isLoading: isTabLoading, error: tabError } = useQuery<any[]>({
     queryKey: [`/api/users/${username}/${activeTab}`],
     enabled: !!username,
+    // 403: a private account's content is only shown to logged-in members; retrying does not help
+    retry: (count, error) => (error as { status?: number })?.status !== 403 && count < 1,
   });
+  const tabForbidden = (tabError as { status?: number } | null)?.status === 403;
 
   const followMutation = useMutation({
     mutationFn: async () => {
@@ -103,11 +108,21 @@ export default function UserProfilePage() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <ProfileTabContent
-                  type={activeTab as any}
-                  data={tabData}
-                  isLoading={isTabLoading}
-                />
+                {tabForbidden ? (
+                  <div className="pt-12">
+                    <EmptyState
+                      title={t("profile.private_account_title", "This account is private")}
+                      description={t("profile.private_account_desc", "Log in to see the posts, comments and likes of this account.")}
+                      icon={<Lock className="h-10 w-10 text-muted-foreground" />}
+                    />
+                  </div>
+                ) : (
+                  <ProfileTabContent
+                    type={activeTab as any}
+                    data={tabData}
+                    isLoading={isTabLoading}
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
           </div>

@@ -174,15 +174,14 @@ class BulkActionService {
   /** Permanently deletes posts. There is no "hidden" state for posts, so no "hide" action is offered. */
   async bulkDeletePosts(params: { postIds: number[]; performedBy: Performer; reason?: string }): Promise<BulkResult> {
     const results: BulkResult = { success: 0, failed: 0, errors: [] };
-    const found = params.postIds.length
+    const found: Array<{ id: number; authorId: number }> = params.postIds.length
       ? await db.select({ id: posts.id, authorId: posts.authorId }).from(posts).where(inArray(posts.id, params.postIds))
       : [];
-    const authorIds = Array.from(new Set(found.map((p) => p.authorId)));
-    const owners = new Set(
-      authorIds.length
-        ? (await db.select({ id: users.id }).from(users).where(and(inArray(users.id, authorIds), eq(users.role, "owner")))).map((u) => u.id)
-        : [],
-    );
+    const authorIds: number[] = Array.from(new Set(found.map((p) => p.authorId)));
+    const ownerRows: Array<{ id: number }> = authorIds.length
+      ? await db.select({ id: users.id }).from(users).where(and(inArray(users.id, authorIds), eq(users.role, "owner")))
+      : [];
+    const owners = new Set(ownerRows.map((u) => u.id));
     const byId = new Map(found.map((p) => [p.id, p]));
 
     for (const postId of params.postIds) {
