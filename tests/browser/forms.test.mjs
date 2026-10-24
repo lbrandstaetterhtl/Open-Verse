@@ -588,18 +588,18 @@ if (!ONLY.length || ONLY.includes("profile")) {
     assert.equal(await viewer.page.evaluate(() => window.__xss), undefined, "clicking the website link ran script");
   });
 
-  await test("profile", "bio longer than the stated 160 characters is limited or rejected", async () => {
+  await test("profile", "bio longer than the stated 500 characters is limited or rejected", async () => {
     focus = page;
     await open();
     const bio = dlg().getByLabel("Bio");
-    await bio.fill("B".repeat(500));
+    await bio.fill("B".repeat(700));
     const kept = (await bio.inputValue()).length;
     await save();
     await page.waitForTimeout(1800);
     const last = patches().at(-1);
     const msgs = [...(await visibleErrorText(page)), ...(await s.toasts())].filter((t) => /Bio|Zeichen/.test(t));
-    assert.ok(kept <= 160 || (last?.status >= 400 && msgs.length > 0) || (last === undefined && msgs.length > 0),
-      `the dialog says "Max. 160 Zeichen" but kept ${kept} chars and the server answered ${last?.status}; messages ${JSON.stringify(msgs)}`);
+    assert.ok(kept <= 500 || (last?.status >= 400 && msgs.length > 0) || (last === undefined && msgs.length > 0),
+      `the dialog says "Max. 500 Zeichen" but kept ${kept} chars and the server answered ${last?.status}; messages ${JSON.stringify(msgs)}`);
     await page.keyboard.press("Escape");
   });
 

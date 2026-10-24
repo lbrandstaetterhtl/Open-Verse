@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import multer from "multer";
 import path from "node:path";
-import sharp from "sharp";
+import sharp, { type Metadata } from "sharp";
 import { logSecurityEvent } from "./logger";
 
 // SEC-002: File Signature Verification Helper
@@ -80,7 +80,7 @@ export async function sanitizeImage(filepath: string): Promise<void> {
     const animated = ext === '.gif' || ext === '.webp';
     const tmpPath = `${filepath}.sanitized`;
 
-    let meta: sharp.Metadata;
+    let meta: Metadata;
     try {
         meta = await sharp(filepath, { limitInputPixels: false }).metadata();
     } catch (error) {
