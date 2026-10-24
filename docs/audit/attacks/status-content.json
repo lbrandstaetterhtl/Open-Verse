@@ -1,0 +1,170 @@
+{
+ "CONTENT-2": {
+  "status": "fixed",
+  "note": "canViewPost/filterVisiblePosts/filterVisibleComments (server/utils/community-access.ts) applied to GET /api/posts/:id (404), GET /api/posts?communityId (empty list), GET /api/posts/:postId/comments, save/react/comment/like/report. Profile lists in users.ts use the social agent's filtering; all content.test private-community tests pass."
+ },
+ "CONTENT-3": {
+  "status": "fixed",
+  "note": "Writes check canInteractWithPost (visible + not community-banned) for comments, reactions, saves, comment likes; post creation requires membership and no community ban (staff bypass). 404 for invisible targets, 403 COMMUNITY_BANNED."
+ },
+ "CONTENT-4": {
+  "status": "fixed",
+  "note": "Post detail author is toPublicUser(author); feed authors no longer carry isShadowBanned. Search routes (users.ts/index.ts) were fixed by their owners; tests pass."
+ },
+ "CONTENT-5": {
+  "status": "fixed",
+  "note": "POST /api/posts with communityId: 404 if missing/invisible, 403 COMMUNITY_BANNED if banned, 403 NOT_A_MEMBER if not joined, then the category rule."
+ },
+ "CONTENT-6": {
+  "status": "fixed",
+  "note": "POST /api/comments loads the post first: 404 for missing/deleted/invisible posts. No FK added (schema change avoided); deletePost removes comments in one transaction."
+ },
+ "CONTENT-7": {
+  "status": "fixed",
+  "note": "insertReportSchema: reason trim 1..1000 without NUL, ids int 1..int4, exactly one target (refine). Route: 404 for missing/invisible target, 400 OWN_CONTENT, 409 ALREADY_REPORTED (createReportOnce under an advisory lock)."
+ },
+ "CONTENT-8": {
+  "status": "fixed",
+  "note": "Comments endpoint and post detail use filterShadowHidden; feed uses filterVisiblePosts; profile post list filtered in users.ts (social agent). Staff and shadow-banned viewers still see shadow content."
+ },
+ "CONTENT-9": {
+  "status": "fixed",
+  "note": "zod createPostSchema in posts.ts: title string<=300, content string<=20000 without NUL, category enum news|entertainment|discussion|general, communityId strict id; content must be non-blank unless a file is attached (req.files length)."
+ },
+ "CONTENT-10": {
+  "status": "fixed",
+  "note": "validateIdParams on posts (id, postId), comments (id), reports (id); communityId parsed with parseId (400 otherwise); non-string query values 400; unknown categories match nothing; offset capped at 1e6; NUL rejected in post/comment/report bodies; errors via sendInternalError."
+ },
+ "CONTENT-11": {
+  "status": "fixed",
+  "note": "ContentStorage.createPostWithCooldown: cooldown check + insert in one transaction under pg_advisory_xact_lock(7301, userId) using DB time."
+ },
+ "CONTENT-12": {
+  "status": "fixed",
+  "note": "Filter matches word starts on a normalised text (skills/Essex/Sussex allowed, killer/sexy blocked) with a small allowlist (Dickens, sextant, Mordor ...)."
+ },
+ "CONTENT-13": {
+  "status": "fixed",
+  "note": "receivePostMedia wraps multer: LIMIT_FILE_SIZE -> 413 FILE_TOO_LARGE, other multer/busboy errors -> 400 INVALID_UPLOAD, wrong type -> 400 INVALID_TYPE; files of a failed request are deleted."
+ },
+ "CONTENT-14": {
+  "status": "fixed",
+  "note": "sanitizeImage throws ImageRejectedError when metadata/decoding fails; route answers 400 INVALID_IMAGE and deletes the file."
+ },
+ "CONTENT-15": {
+  "status": "fixed",
+  "note": "Images are re-encoded in their own format (JPEG->JPEG, PNG->PNG, GIF->GIF, WebP->WebP), so extension, Content-Type and bytes match; file names unchanged."
+ },
+ "CONTENT-16": {
+  "status": "fixed",
+  "note": "postUpload fileFilter rejects with UploadTypeError -> 400 INVALID_TYPE instead of dropping the file."
+ },
+ "CONTENT-17": {
+  "status": "fixed",
+  "note": "mediaType is always derived from the verified MIME type; body field ignored."
+ },
+ "CONTENT-18": {
+  "status": "fixed",
+  "note": "getComments ordered by created_at,id with limit/offset (default/max 1000); /api/posts/:postId/comments accepts ?limit&offset."
+ },
+ "CONTENT-20": {
+  "status": "fixed",
+  "note": "postUpload limits files:1 (more -> 400 INVALID_UPLOAD), fields/fieldSize limits; every non-201 path of POST /api/posts unlinks req.files in a finally block."
+ },
+ "CONTENT-21": {
+  "status": "fixed",
+  "note": "(a) deletePost deletes post_likes, saved_posts, comment_likes, comments and still-pending reports in one transaction (handled reports kept as history); deleteComment also drops its pending reports. (b) reports store req.ip and the IP is not returned/broadcast. (e) feed authors lose isShadowBanned. (c) per-user comment rate limit NOT added (accepted: global limiter exists; a tight limit would break bulk-comment tests/fuzz) . (d) n/a, no nested replies."
+ },
+ "CONTENT-22": {
+  "status": "fixed",
+  "note": "togglePostReaction/toggleCommentLike: delete+insert+karma delta in one transaction under a per-user advisory lock; migration migrations/0003_unique_reactions.sql dedupes and adds unique indexes post_likes(user_id,post_id), comment_likes(user_id,comment_id); inserts use ON CONFLICT DO NOTHING."
+ },
+ "UI-4": {
+  "status": "fixed",
+  "note": "Server rejects empty multipart posts (content blank and no file) with 400 'Content or media is required'. Client-side min(1) on the form (insertMediaPostSchema) left to the client agent."
+ },
+ "UI-14": {
+  "status": "fixed",
+  "note": "Duplicate open report by the same user on the same target -> 409 ALREADY_REPORTED ('You have already reported this content'); a new report is possible once the old one was handled."
+ },
+ "INPUT-2": {
+  "status": "open",
+  "note": "Karma side cannot be clamped here: tests/e2e/content.test.ts expects karma -1 after a dislike. Needs auth.ts (core): login (auth.ts:184) and deserializeUser (auth.ts:222) must stop treating karma<0 as banned and check the bans table / a ban flag instead; admin.ts:535 sets karma -9999 as ban and admin.ts:26 counts karma<0 as banned users."
+ },
+ "INPUT-5": {
+  "status": "fixed",
+  "note": "POST /api/reports uses sendInternalError (no SQL in body); ids int 1..int4; reason without NUL."
+ },
+ "INPUT-8": {
+  "status": "fixed",
+  "note": "Posts, comments and reports reject \\u0000 in their text fields (400). Remaining routes / a global middleware belong to core."
+ },
+ "INPUT-9": {
+  "status": "fixed",
+  "note": "Content parts fixed: comments postId max int4, posts communityId strict id (body and query), GET /api/posts offset capped. Not mine and still open: GET /api/feed/communities?offset=99999999999999999999 -> 500 (server/utils/pagination.ts needs an offset cap), tickets/communities routes."
+ },
+ "SOCIAL-3": {
+  "status": "fixed",
+  "note": "Same fix as CONTENT-2 (feed filter + detail 404)."
+ },
+ "SOCIAL-4": {
+  "status": "fixed",
+  "note": "Same fix as CONTENT-3/5 (membership + community ban on post creation, ban check on comments)."
+ },
+ "SOCIAL-12": {
+  "status": "fixed",
+  "note": "new_comment carries only {postId, commentId} and is sent via broadcastAboutPost: everyone for public posts, members/staff only for private communities (also new_post)."
+ },
+ "AUTHZ-12": {
+  "status": "fixed",
+  "note": "validateIdParams rejects '169.5' etc. with 404 on posts/comments/reports routers."
+ },
+ "AUTHZ-14": {
+  "status": "fixed",
+  "note": "DELETE /api/posts/:id uses canDeleteContent(user, post.authorId, author.role)."
+ },
+ "ATK-UPLOAD-3": {
+  "status": "fixed",
+  "note": "sanitizeImage reads metadata first and rejects width*height*frames > 50 MP (MAX_IMAGE_PIXELS) before decoding (400 IMAGE_TOO_LARGE for posts; themes route already maps the throw to 400); decoding also uses limitInputPixels; processProfileImage lowered from 100 MP to 50 MP."
+ },
+ "ATK-UPLOAD-4": {
+  "status": "fixed",
+  "note": "finally block in POST /api/posts unlinks uploaded files on every rejection (validation, community, moderation, cooldown, file checks)."
+ },
+ "ATK-UPLOAD-5": {
+  "status": "accepted",
+  "note": "Post uploads: one file per post, 50 MB cap, post cooldown applies to uploads and rejected uploads no longer leave files, so disk use per account is bounded by the cooldown. No per-user quota added. Theme background rate limit belongs to themes.ts (not my file)."
+ },
+ "ATK-UPLOAD-6": {
+  "status": "fixed",
+  "note": "GIFs (and WebP theme backgrounds) are decoded and re-encoded with sharp; the GIF polyglot is rejected as undecodable, valid GIFs lose trailing payloads/metadata."
+ },
+ "ATK-UPLOAD-7": {
+  "status": "fixed",
+  "note": "Same as CONTENT-15: real format kept on re-encode."
+ },
+ "ATK-RT-2": {
+  "status": "fixed",
+  "note": "Same as SOCIAL-12: no comment content over /ws, scoped to viewers."
+ },
+ "ATK-INJECT-2": {
+  "status": "fixed",
+  "note": "GET /api/posts rejects non-string query values with 400; deep/huge-index qs variants become objects and get 400."
+ },
+ "ATK-INJECT-8": {
+  "status": "fixed",
+  "note": "normalizeForModeration: NFKC, invisible/zero-width chars stripped, accents removed, Cyrillic/Greek homoglyphs folded before matching."
+ },
+ "ATK-AUTHZ-3": {
+  "status": "fixed",
+  "note": "Same as CONTENT-2. Note: tests/attacks/authz.attack.test.ts setup currently fails before reaching these tests because POST /api/communities (social agent's schema) rejects allowedCategories 'general'; posts accept 'general' (the default post category), so COMMUNITY_CATEGORIES in shared/schema.ts should include general."
+ },
+ "ATK-AUTHZ-4": {
+  "status": "fixed",
+  "note": "Same as CONTENT-8 for the comments endpoint."
+ },
+ "ATK-AUTHZ-13": {
+  "status": "fixed",
+  "note": "Same as AUTHZ-14."
+ }
+}

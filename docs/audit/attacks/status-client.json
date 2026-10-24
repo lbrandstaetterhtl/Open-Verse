@@ -1,0 +1,50 @@
+{
+ "UI-3": {
+  "status": "fixed",
+  "note": "discussions.tsx: client form schema (title/content trimmed, required, max 300/20000, translated server:validation.* texts) and onError toast with the translated ApiError (POST_COOLDOWN 'Bitte warte N Sekunden...'); maxLength on inputs."
+ },
+ "UI-5": {
+  "status": "fixed",
+  "note": "post-view.tsx: comment box is controlled, maxLength 10000, cleared only in onSuccess, onError toast, ref guard against double Enter/click."
+ },
+ "UI-6": {
+  "status": "fixed",
+  "note": "importTheme rejects non-object light/dark; theme-builder shows a destructive toast (common.error + new key theme_builder.import_invalid) on invalid file / reader error and theme_builder.import_success on success. Also: blank theme name blocked client-side, double-click guard on save, save error shows the server reason, maxLength 60."
+ },
+ "UI-7": {
+  "status": "fixed",
+  "note": "admin dashboard: both 'Vollstaendig loeschen' menu items open an AlertDialog naming the user; DELETE only after confirmation (new keys admin_dashboard.users.delete_confirm_title/_desc)."
+ },
+ "UI-9": {
+  "status": "fixed",
+  "note": "client/src/lib/input-limits.ts LIMITS + maxLength on post title/content (news/entertainment/discussion), comment, display name 50, bio 160, location 100, website 200, onboarding bio, chat 5000, community name 3..100/description 1000/image URL, theme name 60, ticket description 10000/URL 2048/comment 5000, admin group name 50/description 500; client zod messages use server:validation.* translations. Server limits come from the other agents (see report for mismatches). Bio stays client 160 / server 500 as agreed."
+ },
+ "UI-13": {
+  "status": "fixed",
+  "note": "mod-panel.tsx: both /api/users/search calls use encodeURIComponent."
+ },
+ "UI-16": {
+  "status": "fixed",
+  "note": "CreateTicketPage: description >= 50 (trimmed), title 10..200 with tickets:validation.titleTooLong, related URL must be http(s) (validation.invalidUrl), double-submit guard. No maxLength on the title on purpose: the browser test expects an over-long title to be rejected with the 200-char message."
+ },
+ "ATK-XSS-2": {
+  "status": "fixed",
+  "note": "lib/safe-url.ts: user links rendered only for http(s) (bare domain -> https), otherwise as text; target=_blank links get rel=noopener noreferrer (ProfileHeader website, ticket related URL; window.open in activity-logs gets noopener). Profile form validates the website. Server-side scheme validation is AUTH-10/UI-12 (core) - xss.attack.test.ts website cases pass on 5125. tests/attacks/xss.browser.attack.mjs ticket relatedUrl test now accepts a 4xx refusal and has a second test that writes a javascript: URL into an existing ticket via E2E_DATABASE_URL (old data) and checks no dangerous link is rendered: 9/9 pass."
+ },
+ "ATK-XSS-3": {
+  "status": "fixed",
+  "note": "theme-utils.ts: isSafeGradient (only (repeating-)linear/radial/conic-gradient + color functions, no url()/quotes/;/escapes, balanced parens), safeBackgroundImageUrl (http(s) or same-origin '/' paths, normalized href), safe fileRef/dataRef names, sanitizeBackground (default gradient fallback, image dropped, tint/overlay sanitized), palette limited to known keys with plain color values. Applied in migrateTheme/importTheme, applyTheme (CSS vars) and ThemeBackground (render; url(\"...\") quoted). Unit tests tests/unit/client.fix.test.ts."
+ },
+ "UI-15": {
+  "status": "fixed",
+  "note": "PasswordChangeForm in a new 'Security' tab of the profile dialog: current + new + repeat, client rules (8..128, match), PATCH /api/profile/password; translated server message on error (wrong current password, too common, 429), success toast says the other sessions were signed out; cached CSRF token reset because the server rotates the session. Browser-checked (wrong password, success, later save works, login with new password); forms.test profile 7/7."
+ },
+ "UI-17": {
+  "status": "fixed",
+  "note": "auth-page RegisterForm: submit is locked synchronously (ref + busy state) from the click, before the async zod validation, released on validation failure or when the request settles; forms.test 'register: fast double click' passes."
+ },
+ "follow-ups": {
+  "status": "fixed",
+  "note": "Social: deleteAllNotifications -> DELETE /api/notifications; create-community name errors translated (min 3, letters/digits via server text); private profile tabs show 'This account is private' on 403; mod panel reports typed without ipAddress/reporterId, 403 on members/reports shown as ErrorState. Admin: dashboard bans via POST /api/admin/bans (reason dialog) and PATCH /api/admin/bans/:id/revoke for the user's active account bans, isBanned from /api/admin/users (filter + labels), role menu only for owners, bulk 'delete' removed, bulk errors shown; GroupsManagement error toasts (409 GROUP_NAME_TAKEN, 403 PERMISSION_ESCALATION), trimmed name, maxLength 50/500, robust permissions parsing (old rows crashed the page); StressTestPage uses apiRequest (CSRF) and shows 409 STRESS_TEST_RUNNING; activity-logs no longer crashes on non-JSON old/new values. All browser-checked as owner/admin."
+ }
+}

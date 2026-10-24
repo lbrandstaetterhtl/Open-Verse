@@ -1,0 +1,174 @@
+{
+ "CONTENT-19": {
+  "status": "fixed",
+  "note": "user-storage searchUsers escapes % _ \\ (ESCAPE '\\'), strips control chars, caps at 50 chars; route ignores non-string q (?q[]=, ?q[$ne]=)."
+ },
+ "AUTH-2": {
+  "status": "fixed",
+  "note": "getUserByUsername/getUserByEmail compare lower() (exact match preferred if old case variants exist; SQLite COLLATE NOCASE), so register/login/PATCH /api/profile in auth.ts reject case variants without changes there. Defense-in-depth unique indexes on lower(username)/lower(email): server/migrations/user_case_uniqueness.ts ensureCaseInsensitiveUserUniqueness() - must be called at startup (core: server/index.ts after ensurePostgresColumns). It skips (and logs) a column while duplicates exist: the ovroutes test DB has 6 username and 6 email case-duplicates (test accounts, e.g. 315:Casemvc18e6lc/316:casemvc18e6lc); nothing is deleted or renamed. Email is not lower-cased on write (display kept)."
+ },
+ "AUTH-6": {
+  "status": "fixed",
+  "note": "GET /api/users/:username uses toPublicUser (toSelfUser for the owner), search uses toPublicUser, mutualFollowers mapped too (they leaked full rows incl. hash). The /api/user part (auth.ts:463, shadow ban visible to the user) belongs to core: return toSelfUser(req.user) there."
+ },
+ "AUTH-9": {
+  "status": "fixed",
+  "note": "Private profile: /:username/posts|comments|liked answer 403 {code PRIVATE_PROFILE} to anonymous visitors (UI text 'Only members can see your content' = logged-in members); owner and logged-in users see them; stats.posts is 0 for anonymous viewers of a private profile."
+ },
+ "UI-10": {
+  "status": "fixed",
+  "note": "Shared insertCommunitySchema: name trim min 3 max 100, must contain a letter/digit (any script); the client's zodResolver now blocks the empty form (message is zod English; client agent may add translated messages). Server never creates an empty slug."
+ },
+ "INPUT-1": {
+  "status": "fixed",
+  "note": "getNotifications selects only actor id, username, displayName, avatarUrl, profilePictureUrl."
+ },
+ "INPUT-3": {
+  "status": "fixed",
+  "note": "PATCH /api/notifications/preferences validated by zod: only the 12 flag keys (boolean or 0/1); storage writes only those keys, never id/userId/updatedAt."
+ },
+ "INPUT-4": {
+  "status": "fixed",
+  "note": "booleans map to 0/1; other types -> 400 VALIDATION_ERROR."
+ },
+ "SOCIAL-1": {
+  "status": "fixed",
+  "note": "see INPUT-1."
+ },
+ "SOCIAL-5": {
+  "status": "fixed",
+  "note": "markNotificationAsReadForUser / archiveNotificationForUser scope the UPDATE to user_id; 404 'Notification not found' when nothing matched."
+ },
+ "SOCIAL-6": {
+  "status": "fixed",
+  "note": "see INPUT-3/4."
+ },
+ "SOCIAL-7": {
+  "status": "fixed",
+  "note": "approve requires a pending request (updateJoinRequestStatus now returns whether a pending row changed; 404 NO_PENDING_REQUEST otherwise); decline likewise. addCommunityMember uses ON CONFLICT DO NOTHING; migrations/0003_community_members_unique.sql removes duplicate memberships (keeps highest role, then oldest; 16 duplicate pairs in ovroutes) and adds unique index (community_id,user_id)."
+ },
+ "SOCIAL-8": {
+  "status": "fixed",
+  "note": "invite, moderators and approve answer 409 USER_BANNED_FROM_COMMUNITY for a banned target."
+ },
+ "SOCIAL-9": {
+  "status": "fixed",
+  "note": "no 'details' in error bodies; ids validated by validateIdParams (404)."
+ },
+ "SOCIAL-10": {
+  "status": "fixed",
+  "note": "GET /:id/members: 404 for unknown community, 403 (code PRIVATE_COMMUNITY) via canViewCommunity for private ones."
+ },
+ "SOCIAL-11": {
+  "status": "fixed",
+  "note": "community reports drop ipAddress and reporterId unless the viewer is global admin/owner."
+ },
+ "SOCIAL-13": {
+  "status": "fixed",
+  "note": "see AUTH-9."
+ },
+ "SOCIAL-14": {
+  "status": "fixed",
+  "note": "followers/following mapped with toPublicUser."
+ },
+ "SOCIAL-17": {
+  "status": "fixed",
+  "note": "messageSchema: receiverId int 1..2^31-1, content trim min 1 max 5000, no NUL."
+ },
+ "SOCIAL-18": {
+  "status": "fixed",
+  "note": "GET /api/messages/:userId marks received messages of that conversation read (markConversationAsRead)."
+ },
+ "SOCIAL-19": {
+  "status": "fixed",
+  "note": "getConversation returns the newest 100 (oldest first); ?before=<messageId> pages back."
+ },
+ "SOCIAL-20": {
+  "status": "fixed",
+  "note": "POST /api/messages uses notificationService.notify({actorId: sender, type new_message, preview, actionUrl /chat/<sender>})."
+ },
+ "SOCIAL-21": {
+  "status": "fixed",
+  "note": "updateNotificationPreferences creates the row first; returns the saved row."
+ },
+ "SOCIAL-22": {
+  "status": "fixed",
+  "note": "validateIdParams on users (userId), messages (userId), notifications (id), communities (id,userId,reportId); body ids via parseId; notifications paging via parsePagination; reason strips control chars."
+ },
+ "SOCIAL-23": {
+  "status": "fixed",
+  "note": "insertCommunitySchema is an explicit z.object (id/createdAt dropped), name max 100, description max 1000, imageUrl only '' / http(s) URL / /uploads/<file>, allowedCategories enum list (news, entertainment, discussion, general)."
+ },
+ "SOCIAL-24": {
+  "status": "fixed",
+  "note": "names need a letter/digit (400 otherwise); names with letters but no ASCII letters/digits (e.g. Greek) get a random slug c-<hex>."
+ },
+ "SOCIAL-25": {
+  "status": "fixed",
+  "note": "follow only notifies when the target has no unarchived new_follower notification from the same actor."
+ },
+ "SOCIAL-26": {
+  "status": "fixed",
+  "note": "all error answers in users/communities/notifications/messages are JSON {error, code?}."
+ },
+ "AUTHZ-4": {
+  "status": "fixed",
+  "note": "see INPUT-1."
+ },
+ "AUTHZ-5": {
+  "status": "fixed",
+  "note": "see SOCIAL-5."
+ },
+ "AUTHZ-10": {
+  "status": "fixed",
+  "note": "community join-request routes fixed (no details, id validation). The DELETE /api/admin/users/:id part is in admin.ts (admin agent)."
+ },
+ "AUTHZ-13": {
+  "status": "fixed",
+  "note": "see SOCIAL-10."
+ },
+ "ATK-AUTH-11": {
+  "status": "fixed",
+  "note": "see AUTH-6."
+ },
+ "ATK-AUTH-12": {
+  "status": "fixed",
+  "note": "see AUTH-6."
+ },
+ "ATK-AUTH-13": {
+  "status": "fixed",
+  "note": "see AUTH-2."
+ },
+ "ATK-INJECT-1": {
+  "status": "fixed",
+  "note": "notification query params only used when plain strings; type list trimmed/limited."
+ },
+ "ATK-INJECT-4": {
+  "status": "fixed",
+  "note": "messages/communities routers use validateIdParams; usernames with control chars or >100 chars answer 404 (router.param + storage guard). tickets/admin-performance parts belong to other agents."
+ },
+ "ATK-INJECT-5": {
+  "status": "fixed",
+  "note": "parsePagination clamps offset >= 0 (and to 1e9)."
+ },
+ "ATK-INJECT-7": {
+  "status": "fixed",
+  "note": "see INPUT-4."
+ },
+ "ATK-AUTHZ-5": {
+  "status": "fixed",
+  "note": "profile posts/comments/liked hide a shadow-banned author's content from others (author and shadow-banned viewers still see it, like the feed); profile lists also hide posts of private communities the viewer cannot see."
+ },
+ "ATK-AUTHZ-9": {
+  "status": "fixed",
+  "note": "see INPUT-1."
+ },
+ "ATK-AUTHZ-10": {
+  "status": "fixed",
+  "note": "see SOCIAL-5."
+ },
+ "ATK-AUTHZ-11": {
+  "status": "fixed",
+  "note": "see SOCIAL-10."
+ }
+}
