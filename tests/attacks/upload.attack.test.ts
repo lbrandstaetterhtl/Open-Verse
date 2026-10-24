@@ -8,7 +8,7 @@
 //   GET    /uploads/*                               express.static hardening    (server/index.ts:69)
 //
 // Each test asserts the SAFE outcome. A test that currently fails documents a live finding
-// (see scratchpad/audit2/findings-upload.json) that must pass once fixed.
+// (see docs/audit/attacks/findings-upload.json) that must pass once fixed.
 
 import { describe, it, after, before } from "node:test";
 import assert from "node:assert/strict";

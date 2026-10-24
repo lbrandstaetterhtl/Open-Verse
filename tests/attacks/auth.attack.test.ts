@@ -21,7 +21,7 @@ import {
 import { ADMIN_USER, ADMIN_PASSWORD } from "../e2e/client";
 
 // Every test asserts the SAFE behaviour. A failing test documents a reproduced vulnerability
-// (see scratchpad/audit2/findings-auth.json) that must pass once the app is fixed.
+// (see docs/audit/attacks/findings-auth.json) that must pass once the app is fixed.
 
 const STRONG = "Str0ng-Attack-Pw!9";
 

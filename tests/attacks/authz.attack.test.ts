@@ -5,7 +5,7 @@
 // their remit) and chains the steps. Every test asserts the SAFE outcome, so a test that currently
 // FAILS documents a live vulnerability that must pass once fixed.
 //
-// Run: E2E_BASE_URL=http://127.0.0.1:5082 E2E_ADMIN_USER=routeowner E2E_ADMIN_PASSWORD='Route-Owner-2026!' \
+// Run: E2E_BASE_URL=http://127.0.0.1:5082 E2E_ADMIN_USER=routeowner E2E_ADMIN_PASSWORD='…' \
 //      npx tsx --test --test-reporter=spec tests/attacks/authz.attack.test.ts
 import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";

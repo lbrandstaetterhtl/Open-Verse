@@ -7,7 +7,7 @@
 //   - pull secrets / source / internals over HTTP.
 //
 // Each test asserts the SAFE outcome; a failing test documents a live finding (see
-// scratchpad/audit2/findings-realtime.json) that must pass once fixed.
+// docs/audit/attacks/findings-realtime.json) that must pass once fixed.
 //
 // NOTE: the "server stays up" scenario can take the process down (that is the finding). It runs
 // last and restarts the server in `after` so the box is left healthy and the suite re-runnable.
