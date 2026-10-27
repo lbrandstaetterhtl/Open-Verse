@@ -180,6 +180,11 @@ Die App führt die Migrationen dann mit `DATABASE_URL` aus und nutzt für alle A
 (`DATABASE_URL`-Benutzer braucht `CREATEROLE`). Migrationen lassen sich auch separat ausführen:
 `npm run db:migrate`.
 
+Externe Datenbank (anderer Server, Managed Postgres): die Verbindung verschlüsseln und das Zertifikat prüfen,
+z. B. `DATABASE_URL=postgres://user:pw@host:5432/db?sslmode=verify-full` (bei eigener CA zusätzlich
+`&sslrootcert=/pfad/ca.pem`). Im Compose-Setup ist die DB nur im internen Docker-Netz erreichbar (kein Port
+nach außen), dort ist das nicht nötig.
+
 ### Passwörter ändern
 
 - **`POSTGRES_PASSWORD`**: wird nur beim allerersten Start (leeres Volume) gesetzt. Später zuerst in der
