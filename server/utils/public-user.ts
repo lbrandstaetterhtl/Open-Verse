@@ -1,10 +1,11 @@
 /**
  * What other people may see about a user. Everything not listed here (email, password hash, moderation
- * state like shadow ban / freeze, admin group, email verification) stays on the server or in admin views.
+ * state like shadow ban / freeze, admin group, email verification, the legacy isAdmin flag) stays on the
+ * server or in admin views. "role" stays: the UI shows the owner badge and decides who may delete content.
  */
 const PUBLIC_FIELDS = [
   "id", "username", "displayName", "bio", "avatarUrl", "profilePictureUrl", "coverUrl", "location", "website",
-  "role", "isAdmin", "verified", "karma", "isPrivate", "createdAt",
+  "role", "verified", "karma", "isPrivate", "createdAt",
 ] as const;
 
 export type PublicUser = Partial<Record<(typeof PUBLIC_FIELDS)[number], unknown>>;

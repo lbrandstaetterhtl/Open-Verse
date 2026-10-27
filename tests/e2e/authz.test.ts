@@ -57,6 +57,20 @@ async function call(c: Client, method: string, path: string, body?: unknown, opt
   return { status: res.status, text: await res.text(), headers: res.headers };
 }
 
+const isStaffRoute = (r: ClassifiedRoute) => r.access.kind === "admin" || r.access.kind === "owner";
+
+/**
+ * Staff routes are invisible to everybody who is not staff: refused with exactly the answer of an API path
+ * that does not exist (same status, same body), so the caller cannot tell that the route exists.
+ */
+async function assertLooksLikeUnknownRoute(c: Client, method: string, res: Res) {
+  const unknown = await call(c, method, `/api/no-such-route-${RUN_ID}`);
+  assert.equal(unknown.status, 404, `unknown route answered ${unknown.status}`);
+  assert.equal(res.status, unknown.status, `got ${res.status}: ${res.text.slice(0, 150)}`);
+  assert.equal(res.text, unknown.text, "the body differs from the unknown-route answer");
+  assert.equal(res.headers.get("content-type"), unknown.headers.get("content-type"));
+}
+
 async function mkUser(prefix: string): Promise<TestUser> {
   const u = await newUser(prefix);
   createdUsers.push(u);
@@ -186,7 +200,8 @@ after(async () => {
 
 describe("route inventory", () => {
   test("the inventory finds the API routes", () => {
-    assert.ok(ROUTES.length >= 150, `only ${ROUTES.length} routes found`);
+    // 144 since the /:username routes only exist under /api/users (they were counted under /api and /api/user too)
+    assert.ok(ROUTES.length >= 140, `only ${ROUTES.length} routes found`);
   });
 
   test("every admin-area route has a role or permission guard (route or router level)", () => {
@@ -207,6 +222,7 @@ describe("anonymous callers", () => {
       const anon = new Client();
       await anon.refreshCsrf(); // so a 403 is about the missing login, not the missing token
       const res = await call(anon, r.method, fillPath(r.path, (p) => existing(r, p)));
+      if (isStaffRoute(r)) return assertLooksLikeUnknownRoute(anon, r.method, res);
       assert.ok([401, 403].includes(res.status), `got ${res.status}: ${res.text.slice(0, 150)}`);
     });
   }
@@ -214,9 +230,9 @@ describe("anonymous callers", () => {
 
 describe("regular users", () => {
   for (const r of ROUTES.filter((r) => r.access.kind === "admin" || r.access.kind === "owner")) {
-    test(`${r.key} is forbidden for a regular user`, async () => {
+    test(`${r.key} is invisible to a regular user (answered like an unknown route)`, async () => {
       const res = await call(user.client, r.method, fillPath(r.path, (p) => existing(r, p)));
-      assert.equal(res.status, 403, res.text.slice(0, 150));
+      await assertLooksLikeUnknownRoute(user.client, r.method, res);
     });
   }
 });

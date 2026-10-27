@@ -1,25 +1,88 @@
+import { randomInt } from "node:crypto";
 import { storage } from "../storage";
 import { notificationService } from "./notification-service";
 import { logger } from "../logger";
 
+// Ticket references without 0/O/1/I/L (easy to read out and type)
+const TICKET_REF_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+const TICKET_REF_LENGTH = 6;
+
+/** The name staff appear under for people who are not staff (no account name, no id). */
+const SUPPORT_NAME = "Support";
+const isStaffRole = (role: unknown) => role === "admin" || role === "owner";
+
+/** Ticket columns a ticket's creator (not staff) gets: no assignee id, no internal timing metrics. */
+function ticketForCreator(ticket: any) {
+  if (!ticket) return ticket;
+  const {
+    assignedTo, responseTimeSeconds: _r, resolutionTimeSeconds: _s, firstResponseAt: _f, deletedAt: _d,
+    ...rest
+  } = ticket;
+  return { ...rest, assignedTo: assignedTo ? true : null, assigned: !!assignedTo };
+}
+
+/** A ticket comment as the creator sees it: staff replies under the support name, no staff ids or names. */
+function commentForCreator(comment: any, viewerId: number) {
+  const own = comment.authorId === viewerId;
+  const staff = !own && (isStaffRole(comment.authorRole) || isStaffRole(comment.author_role));
+  const out: any = { ...comment };
+  delete out.author_username; delete out.author_role; delete out.author_verified;
+  if (comment.isSystem) {
+    out.authorId = null;
+    out.authorUsername = SUPPORT_NAME;
+    out.authorRole = "staff";
+    if (comment.changeType === "assignment_change") {
+      // "Assigned to: <staff account>" → "Assigned to: Support" / "Assignment removed"
+      const unassigned = !comment.changeTo || comment.changeTo === "Unassigned";
+      out.changeType = unassigned ? "unassigned" : "assignment_change";
+      out.changeFrom = null;
+      out.changeTo = unassigned ? null : SUPPORT_NAME;
+      out.content = unassigned ? "Assignment removed" : `Assigned to: ${SUPPORT_NAME}`;
+    }
+  } else if (staff || !own) {
+    out.authorId = null;
+    out.authorUsername = SUPPORT_NAME;
+    out.authorRole = "staff";
+    out.authorVerified = null;
+  }
+  return out;
+}
+
+/** Status history as the creator sees it: who changed it only when it was the creator themselves. */
+function historyForCreator(entry: any, viewerId: number) {
+  const own = entry.changedBy === viewerId;
+  const { changed_by_username: _u, ...rest } = entry;
+  return { ...rest, changedBy: own ? entry.changedBy : null, changedByUsername: own ? entry.changedByUsername : SUPPORT_NAME };
+}
+
 export const TicketService = {
   /**
-   * GENERATE TICKET NUMBER — the next number after the highest one of the year, counting soft-deleted
-   * tickets too (they keep their unique ticket_number). `offset` skips numbers taken by a concurrent create.
+   * GENERATE TICKET NUMBER — TKT-<year>-<6 random characters>. Not a counter: the reference must not tell
+   * how many tickets there are. Existing sequential numbers stay as they are. Collisions (unique column)
+   * are retried by createTicket.
    */
-  async generateTicketNumber(offset = 0): Promise<string> {
+  async generateTicketNumber(_attempt = 0): Promise<string> {
     const year = new Date().getFullYear();
-    const prefix = `TKT-${year}-`;
+    let ref = "";
+    for (let i = 0; i < TICKET_REF_LENGTH; i++) ref += TICKET_REF_ALPHABET[randomInt(TICKET_REF_ALPHABET.length)];
+    return `TKT-${year}-${ref}`;
+  },
 
-    const supportStore = await storage.getSupportStore();
-    const last = await supportStore.getHighestTicketNumber(prefix);
-
-    let nextNumber = 1;
-    if (last && last.startsWith(prefix)) {
-      const lastNum = parseInt(last.slice(prefix.length), 10);
-      if (!isNaN(lastNum)) nextNumber = lastNum + 1;
-    }
-    return `${prefix}${String(nextNumber + offset).padStart(4, "0")}`;
+  /**
+   * What a viewer gets of a ticket answer ({ ticket, comments, history }) or a list of tickets: staff
+   * (owner / "tickets" permission) everything, the creator no staff identities or internal metrics.
+   */
+  viewFor<T>(data: T, canSeeAll: boolean, viewerId: number): T {
+    if (canSeeAll || !data) return data;
+    const d: any = data;
+    if (Array.isArray(d)) return d.map((t: any) => ticketForCreator(t)) as any;
+    if (Array.isArray(d.tickets) && !d.ticket) return { ...d, tickets: d.tickets.map((t: any) => ticketForCreator(t)) };
+    return {
+      ...d,
+      ticket: ticketForCreator(d.ticket),
+      comments: Array.isArray(d.comments) ? d.comments.map((c: any) => commentForCreator(c, viewerId)) : d.comments,
+      history: Array.isArray(d.history) ? d.history.map((h: any) => historyForCreator(h, viewerId)) : d.history,
+    };
   },
 
   /** GET TICKETS — `canSeeAll` (owner or the "tickets" permission) lists every ticket, everyone else only their own. */
@@ -31,6 +94,8 @@ export const TicketService = {
     const storeFilters = { ...filters };
     if (!canSeeAll) {
       storeFilters.createdBy = userId;
+      // Filtering by assignee would tell which staff account handles a ticket
+      delete storeFilters.assignedTo;
     }
     const limit = filters.limit || 20;
     const page = filters.page || 1;
@@ -40,12 +105,12 @@ export const TicketService = {
     const supportStore = await storage.getSupportStore();
     const { tickets, total } = await supportStore.getTickets(storeFilters);
 
-    return {
+    return this.viewFor({
       tickets,
       total,
       page,
       totalPages: Math.ceil(total / limit)
-    };
+    }, canSeeAll, userId);
   },
 
   /** GET STATS */
@@ -106,7 +171,7 @@ export const TicketService = {
     const comments = await supportStore.getComments(id, userRole);
     const history = await supportStore.getHistory(id);
 
-    return { ticket, comments, history };
+    return this.viewFor({ ticket, comments, history }, canSeeAll, userId);
   },
 
   /** CREATE TICKET — `data` holds only validated, client-editable fields (see routes/tickets.ts). */
@@ -141,7 +206,8 @@ export const TicketService = {
 
     await this.createSystemComment(ticket.id, userId, 'created', null, 'open');
 
-    return this.getTicketById(ticket.id, "owner", userId);
+    // The creator's view (createTicket is only called for the caller's own new ticket)
+    return this.getTicketById(ticket.id, "user", userId, false);
   },
 
   /** UPDATE TICKET */
@@ -210,8 +276,8 @@ export const TicketService = {
     });
 
     const ticket = await supportStore.getTicket(ticketId);
-    if (ticket && !ticket.resolvedAt && authorId !== ticket.createdBy) {
-        // Simple mod check
+    // First response time: the first visible staff reply to someone else's ticket (internal notes don't count)
+    if (ticket && !ticket.resolvedAt && !isInternal && authorId !== ticket.createdBy && ticket.responseTimeSeconds == null) {
         const author = await storage.getUser(authorId);
         if (author && (author.role === 'admin' || author.role === 'owner')) {
              if (ticket.createdAt) {
@@ -222,11 +288,10 @@ export const TicketService = {
         }
     }
 
-    // Notify ticket creator
+    // Notify ticket creator (a system notification: it does not name the staff member)
     if (ticket && ticket.createdBy !== authorId && !isInternal) {
       notificationService.notify({
         userId: ticket.createdBy,
-        actorId: authorId,
         type: "system_announcement",
         title: "New Ticket Reply",
         message: `There is a new reply on your ticket: ${ticket.ticketNumber} - ${ticket.title}`,

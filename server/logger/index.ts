@@ -4,6 +4,12 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { redact, sanitizeText, serializeError } from './redact';
+
+// Log files may contain IPs, user agents and usernames: owner read/write, group read, nobody else.
+const LOG_FILE_MODE = 0o640;
+const LOG_DIR_MODE = 0o750;
+const MAX_USER_AGENT = 256;
 
 // ────────────────────────────────────────────────────────
 // TYPEN
@@ -98,14 +104,17 @@ class LogFileWriter {
 
   private ensureLogDir() {
     if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir, { recursive: true });
+      fs.mkdirSync(this.logDir, { recursive: true, mode: LOG_DIR_MODE });
     }
+    try { fs.chmodSync(this.logDir, LOG_DIR_MODE); } catch { /* not the owner (e.g. a mounted volume) */ }
   }
 
   private getStream(filename: string): fs.WriteStream {
     if (!this.streams.has(filename)) {
       const filepath = path.join(this.logDir, filename);
-      const stream = fs.createWriteStream(filepath, { flags: 'a', encoding: 'utf8' });
+      const stream = fs.createWriteStream(filepath, { flags: 'a', encoding: 'utf8', mode: LOG_FILE_MODE });
+      // Files created by older versions were world-readable (0644)
+      try { if (fs.existsSync(filepath)) fs.chmodSync(filepath, LOG_FILE_MODE); } catch { /* ignore */ }
 
       stream.on('error', (err) => {
         // Fehler beim Schreiben: Fallback zu console.error
@@ -298,7 +307,7 @@ ${'═'.repeat(60)}
       timestamp,
       level:    entry.level.toUpperCase(),
       category: entry.category,
-      message:  entry.message,
+      message:  sanitizeText(entry.message),
     };
 
     // Optionale Felder nur wenn vorhanden
@@ -310,22 +319,12 @@ ${'═'.repeat(60)}
     if (entry.path      != null) obj.path      = entry.path;
     if (entry.statusCode != null) obj.statusCode = entry.statusCode;
     if (entry.duration  != null) obj.duration  = entry.duration;
-    if (entry.data      != null) obj.data      = entry.data;
+    // Secrets, bodies and emails are removed; query parameters never reach a log
+    if (entry.data      != null) obj.data      = redact(entry.data);
 
-    // Error Details
+    // Error Details (stack only in development or for critical errors)
     if (entry.error) {
-      if (entry.error instanceof Error) {
-        obj.error = {
-          name:    entry.error.name,
-          message: entry.error.message,
-          // Stack nur in Development oder bei Critical
-          ...(this.isDev || entry.level === 'critical'
-            ? { stack: entry.error.stack }
-            : {}),
-        };
-      } else {
-        obj.error = String(entry.error);
-      }
+      obj.error = serializeError(entry.error, this.isDev || entry.level === 'critical');
     }
 
     return JSON.stringify(obj);
@@ -344,7 +343,7 @@ ${'═'.repeat(60)}
       COLORS.dim + time + COLORS.reset,
       levelColor + COLORS.bright + level + COLORS.reset,
       catColor + cat + COLORS.reset,
-      entry.message,
+      sanitizeText(entry.message),
     ].join(' ');
 
     // Kontextinfos anhängen
@@ -366,16 +365,17 @@ ${'═'.repeat(60)}
 
     // Error anhängen
     if (entry.error instanceof Error) {
-      line += '\n' + COLORS.error + '  Error: ' + entry.error.message + COLORS.reset;
-      if (this.isDev && entry.error.stack) {
-        const stackLines = entry.error.stack.split('\n').slice(1, 4);
+      const err = serializeError(entry.error, this.isDev) as Record<string, unknown>;
+      line += '\n' + COLORS.error + '  Error: ' + err.message + (err.code ? ` (${err.code})` : '') + COLORS.reset;
+      if (typeof err.stack === 'string') {
+        const stackLines = err.stack.split('\n').filter(l => /^\s+at\s/.test(l)).slice(0, 3);
         line += '\n' + COLORS.dim + stackLines.map(l => '    ' + l.trim()).join('\n') + COLORS.reset;
       }
     }
 
     // Extra Data in Development
     if (entry.data && this.isDev && entry.level !== 'trace') {
-      const dataStr = JSON.stringify(entry.data, null, 2);
+      const dataStr = JSON.stringify(redact(entry.data), null, 2);
       const indented = dataStr.split('\n').map(l => '  ' + l).join('\n');
       line += '\n' + COLORS.dim + indented + COLORS.reset;
     }
@@ -437,7 +437,7 @@ ${'═'.repeat(60)}
       userId:     data.userId,
       ip:         data.ip,
       requestId:  data.requestId,
-      data:       data.userAgent ? { userAgent: data.userAgent } : undefined,
+      data:       data.userAgent ? { userAgent: data.userAgent.slice(0, MAX_USER_AGENT) } : undefined,
     });
   }
 
@@ -570,6 +570,29 @@ ${'═'.repeat(60)}
     this.info('system', 'Logger shutting down');
     this.fileWriter.close();
   }
+}
+
+// ── console.* (stdout = `docker compose logs`) ───────────
+// Many call sites still print errors with console.error(msg, err). An Error from a failed query carries the
+// bound parameters in its message/stack, so every console call gets the same sanitising as the logger.
+function sanitizeConsoleArg(arg: unknown): unknown {
+  if (arg instanceof Error) {
+    const e = serializeError(arg, true) as Record<string, unknown>;
+    const head = `${e.name}: ${e.message}${e.code ? ` (code ${e.code})` : ''}${e.cause ? ` [${e.cause}]` : ''}`;
+    const frames = typeof e.stack === 'string' ? e.stack.split('\n').filter(l => /^\s+at\s/.test(l)).join('\n') : '';
+    return frames ? `${head}\n${frames}` : head;
+  }
+  if (typeof arg === 'string') return arg.includes('\nparams:') ? sanitizeText(arg) : arg;
+  if (arg && typeof arg === 'object') return redact(arg);
+  return arg;
+}
+const CONSOLE_PATCHED = Symbol.for('openverse.console.sanitized');
+if (!(console as any)[CONSOLE_PATCHED]) {
+  for (const method of ['log', 'info', 'warn', 'error', 'debug'] as const) {
+    const original = console[method].bind(console);
+    console[method] = (...args: unknown[]) => original(...args.map(sanitizeConsoleArg));
+  }
+  (console as any)[CONSOLE_PATCHED] = true;
 }
 
 // ── Singleton Export ─────────────────────────────────────

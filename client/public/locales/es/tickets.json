@@ -183,8 +183,7 @@
     "statusPhase": "Fase del estado",
     "priorityLevel": "Nivel de prioridad",
     "relatedSignal": "Señal relacionada",
-    "assignedPersonnel": "Personal asignado",
-    "selectStaff": "Seleccionar personal"
+    "assignedPersonnel": "Personal asignado"
   },
   "assignment": {
     "unassigned": "Esperando piloto",

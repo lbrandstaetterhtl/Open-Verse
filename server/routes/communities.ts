@@ -540,6 +540,18 @@ router.get("/:id/bans", isAuthenticated, async (req, res) => {
     }
 });
 
+/**
+ * A report as the community's mod panel gets it. The reporter's IP address is never part of it; community
+ * moderators are regular users and also do not learn who reported or which staff member handled it.
+ */
+function communityReportView(viewer: any, report: any) {
+    if (!report) return report;
+    const { ipAddress: _ip, ...rest } = report;
+    if (isGlobalStaff(viewer)) return rest;
+    const { reporterId: _reporter, resolvedBy: _by, resolutionTimeSeconds: _t, ...publicPart } = rest;
+    return publicPart;
+}
+
 router.get("/:id/reports", isAuthenticated, async (req, res) => {
     try {
         const communityId = Number(req.params.id);
@@ -551,10 +563,7 @@ router.get("/:id/reports", isAuthenticated, async (req, res) => {
         }
 
         const reports = await storage.getCommunityReports(communityId);
-        // Community moderators are regular users: they never get the reporter's IP address or identity.
-        res.json(isGlobalStaff(req.user)
-            ? reports
-            : reports.map(({ ipAddress: _ip, reporterId: _reporter, ...r }) => r));
+        res.json(reports.map((r: any) => communityReportView(req.user, r)));
     } catch (error) {
         console.error("Error fetching community reports:", error);
         fail(res, 500, "Failed to fetch community reports");
@@ -583,7 +592,7 @@ router.patch("/:id/reports/:reportId", isAuthenticated, async (req, res) => {
         }
 
         const updated = await storage.updateReportStatus(reportId, status, userId);
-        res.json(updated);
+        res.json(communityReportView(req.user, updated));
     } catch (error) {
         console.error("Error updating community report:", error);
         fail(res, 500, "Failed to update community report");

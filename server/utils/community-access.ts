@@ -56,6 +56,17 @@ export function viewerIsShadowBanned(req: Request): boolean {
   return (req as any).isShadowBanned === true || !!(req.user as any)?.isShadowBanned;
 }
 
+/**
+ * Which accounts counts (comments, likes, followers) and follower lists include for this viewer: everyone
+ * for site staff and shadow-banned viewers (they see shadow-banned content anyway), otherwise everyone but
+ * shadow-banned accounts — except the viewer themselves.
+ */
+export type ShadowScope = { includeShadowBanned: boolean; viewerId?: number };
+export function shadowCountScope(req: Request): ShadowScope {
+  const viewerId = req.isAuthenticated?.() ? (req.user as any)?.id : undefined;
+  return { includeShadowBanned: viewerIsShadowBanned(req) || isStaff(req.isAuthenticated?.() ? req.user : undefined), viewerId };
+}
+
 /** Author ids among `authorIds` whose content is hidden from this viewer by a shadow ban. */
 async function shadowHiddenAuthors(req: Request, authorIds: number[]): Promise<Set<number>> {
   if (viewerIsShadowBanned(req) || isStaff(req.user)) return new Set();
@@ -117,9 +128,15 @@ export async function filterVisibleComments<T extends CommentLike>(req: Request,
  * communities, members and site staff for private ones. The event itself must carry ids only, never content —
  * clients fetch the content through the authorised HTTP routes.
  */
-export async function broadcastAboutPost(post: PostLike, message: string): Promise<void> {
+export async function broadcastAboutPost(post: PostLike, message: string, actorId: number = post.authorId): Promise<void> {
   const community = post.communityId ? await storage.getCommunity(post.communityId) : undefined;
-  if (!community?.isPrivate) {
+  // Content of a shadow-banned author (a post, or a comment by `actorId`): only the author themselves, staff
+  // and other shadow-banned users hear about it — like they are the only ones who can load it.
+  const ids = Array.from(new Set([post.authorId, actorId].filter(Boolean)));
+  const shadowAuthors = new Set(
+    ids.length ? (await storage.getUsersByIds(ids)).filter((u: any) => !!u.isShadowBanned).map((u: any) => u.id) : [],
+  );
+  if (!community?.isPrivate && shadowAuthors.size === 0) {
     broadcastMessage(message);
     return;
   }
@@ -129,7 +146,8 @@ export async function broadcastAboutPost(post: PostLike, message: string): Promi
   for (const userId of userIds) {
     const user = users.get(userId);
     if (!user) continue;
-    if (!isStaff(user) && !(await storage.getCommunityMember(community.id, userId))) continue;
+    if (shadowAuthors.size > 0 && !isStaff(user) && !user.isShadowBanned && !shadowAuthors.has(userId)) continue;
+    if (community?.isPrivate && !isStaff(user) && !(await storage.getCommunityMember(community.id, userId))) continue;
     sendToUser(userId, message);
   }
 }

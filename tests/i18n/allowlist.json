@@ -33,7 +33,7 @@
   },
   "sameAsEnglish": {
     "es": [
-      "translation:stress_test.log_error",
+      "staff:stress_test.log_error",
       "modPerf:points_plus"
     ],
     "fr": [
@@ -41,7 +41,7 @@
       "modPerf:points_plus"
     ],
     "it": [
-      "translation:nav.stress_test"
+      "staff:nav.stress_test"
     ],
     "de": [
       "translation:auth.version_label"

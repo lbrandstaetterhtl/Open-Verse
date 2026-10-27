@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertMediaPostSchema } from "@shared/schema";
+import { insertMediaPostSchema } from "@shared/validation";
 import {
   Form,
   FormControl,

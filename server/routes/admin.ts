@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "../db";
 import { users, posts, reports, comments, activityLogs, adminSettings } from "@shared/schema";
 import { adminUpdateUserSchema, adminUpdateReportSchema } from "@shared/schema";
-import { eq, desc, count, sql, and, or, inArray, like } from "drizzle-orm";
+import { eq, desc, count, sql, and, or, inArray, like, getTableColumns } from "drizzle-orm";
 import { activityLogger } from "../services/activity-logger";
 import rateLimit from "express-rate-limit";
 import { SettingsService } from "../services/settings";
@@ -18,6 +18,7 @@ import { userHasPermission } from "../utils/permissions";
 import { dbId, text, isPlainBody, queryString } from "../utils/admin-input";
 import { checkGroupAssignment } from "./admin-groups";
 import { logger } from "../logger";
+import { maskIp, toAdminLogRow } from "../utils/redact";
 
 import { sendValidationError, sendInternalError, isZodError } from "../utils/http-errors";
 const router = Router();
@@ -68,13 +69,41 @@ router.get("/stats", hasPermission("dashboard"), async (req, res) => {
     }
 });
 
+/**
+ * Admin lists are paged: ?limit= (default and maximum 500) and ?offset=; the total number of rows matching
+ * the filters is in the X-Total-Count header. The answer stays a plain array.
+ */
+const adminPage = (req: any) => parsePagination(req.query, { defaultLimit: 500, maxLimit: 500 });
+const sendPage = (res: any, total: number, rows: unknown[]) => {
+    res.setHeader("X-Total-Count", String(total));
+    res.json(rows);
+};
+// Every users column except the password hash
+const { password: _passwordColumn, ...userColumns } = getTableColumns(users);
+
+// GET /api/admin/users?limit=&offset=&role=staff|admin|owner|user&q=<username part>
 router.get("/users", hasPermission("users"), async (req, res) => {
     try {
-        const allUsers = await db.select().from(users).orderBy(desc(users.id));
+        const { limit, offset } = adminPage(req);
+        const role = queryString(req.query.role, 20);
+        const q = queryString(req.query.q, 100);
+        if (role === false || q === false || (role && !["staff", "admin", "owner", "user"].includes(role))) return badQuery(res);
+        const conditions = [];
+        if (role === "staff") conditions.push(inArray(users.role, ["admin", "owner"]));
+        else if (role) conditions.push(eq(users.role, role));
+        if (q && q.trim()) {
+            const pattern = `%${q.trim().toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+            conditions.push(sql`lower(${users.username}) LIKE ${pattern} ESCAPE '\\'`);
+        }
+        const where = conditions.length ? and(...conditions) : undefined;
+        const [allUsers, [{ total }]] = await Promise.all([
+            db.select(userColumns).from(users).where(where).orderBy(desc(users.id)).limit(limit).offset(offset),
+            db.select({ total: count() }).from(users).where(where),
+        ]);
         const banned = await bannedUserIds();
         // Normalize: SQLite stores timestamps as Unix seconds integers.
         // If createdAt is null or 0, provide a fallback ISO string.
-        const normalized = allUsers.map(({ password: _password, ...u }: any) => ({
+        const normalized = allUsers.map((u: any) => ({
             ...u,
             isBanned: banned.has(u.id),
             createdAt: u.createdAt
@@ -83,7 +112,7 @@ router.get("/users", hasPermission("users"), async (req, res) => {
                     : u.createdAt)
                 : new Date().toISOString(),
         }));
-        res.json(normalized);
+        sendPage(res, Number(total), normalized);
     } catch (error) {
         console.error("Failed to fetch users:", error);
         // SECURITY FIX [VULN-006]: Return generic error, don't leak internals
@@ -91,9 +120,17 @@ router.get("/users", hasPermission("users"), async (req, res) => {
     }
 });
 
+// GET /api/admin/reports?limit=&offset=&status=pending|resolved|rejected
 router.get("/reports", hasPermission("reports"), async (req, res) => {
     try {
-        const allReports = await db.select().from(reports).orderBy(desc(reports.createdAt));
+        const { limit, offset } = adminPage(req);
+        const status = queryString(req.query.status, 20);
+        if (status === false || (status && !["pending", "resolved", "rejected"].includes(status))) return badQuery(res);
+        const where = status ? eq(reports.status, status) : undefined;
+        const [allReports, [{ total }]] = await Promise.all([
+            db.select().from(reports).where(where).orderBy(desc(reports.createdAt), desc(reports.id)).limit(limit).offset(offset),
+            db.select({ total: count() }).from(reports).where(where),
+        ]);
 
         // PERF-FIX [N+1-001]: Batch fetch all users and content to prevent N+1 queries
         const reporterIds = [...new Set(allReports.map(r => r.reporterId))];
@@ -101,7 +138,7 @@ router.get("/reports", hasPermission("reports"), async (req, res) => {
         const commentIds = [...new Set(allReports.filter(r => r.commentId).map(r => r.commentId))];
 
         const [reportersData, postsData, commentsData] = await Promise.all([
-            reporterIds.length > 0 ? db.select().from(users).where(inArray(users.id, reporterIds)) : [],
+            reporterIds.length > 0 ? db.select({ id: users.id, username: users.username }).from(users).where(inArray(users.id, reporterIds)) : [],
             postIds.length > 0 ? db.select().from(posts).where(inArray(posts.id, postIds)) : [],
             commentIds.length > 0 ? db.select().from(comments).where(inArray(comments.id, commentIds)) : []
         ]);
@@ -112,7 +149,7 @@ router.get("/reports", hasPermission("reports"), async (req, res) => {
             ...commentsData.map(c => c.authorId)
         ])];
         const authorsData = authorIds.length > 0
-            ? await db.select().from(users).where(inArray(users.id, authorIds))
+            ? await db.select({ id: users.id, username: users.username }).from(users).where(inArray(users.id, authorIds))
             : [];
 
         // Create maps for O(1) lookups
@@ -140,14 +177,18 @@ router.get("/reports", hasPermission("reports"), async (req, res) => {
                 }
             }
 
+            // The reporter's address only masked (network, not device): enough to spot a report wave
+            // from one network, not to identify or track the reporter.
+            const { ipAddress, ...rest } = report;
             return {
-                ...report,
+                ...rest,
+                ipAddress: maskIp(ipAddress),
                 reporter: reporter ? { username: reporter.username } : undefined,
                 content
             };
         });
 
-        res.json(extendedReports);
+        sendPage(res, Number(total), extendedReports);
     } catch (error) {
         console.error("Failed to fetch reports:", error);
         res.status(500).send("Internal Server Error");
@@ -369,7 +410,8 @@ router.patch("/reports/:id", hasPermission("reports"), async (req, res) => {
             newValue: { status }
         }).catch(err => console.error('[Monitor] report.resolve failed:', err));
 
-        res.json(updatedReport);
+        const { ipAddress: _ip, ...withoutIp } = updatedReport as any;
+        res.json(withoutIp);
     } catch (error) {
         sendInternalError(res, error, "admin report update failed");
     }
@@ -399,7 +441,6 @@ router.get("/logs", hasPermission("logs"), async (req, res) => {
             conditions.push(or(
                 like(activityLogs.description, pattern),
                 like(activityLogs.targetLabel, pattern),
-                like(activityLogs.userEmail, pattern),
                 like(activityLogs.userUsername, pattern),
             ));
         }
@@ -410,7 +451,8 @@ router.get("/logs", hasPermission("logs"), async (req, res) => {
             .orderBy(desc(activityLogs.createdAt))
             .limit(100);
 
-        res.json(logs);
+        // Only the displayed columns: masked IP, no user agent, no email, no session/fingerprint ids
+        res.json(logs.map(toAdminLogRow));
     } catch (error) {
         sendInternalError(res, error, "admin logs failed");
     }
@@ -420,6 +462,8 @@ router.get("/logs", hasPermission("logs"), async (req, res) => {
 router.use(rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 200,
+    standardHeaders: false,
+    legacyHeaders: false,
     message: { error: "Admin request limit reached. Please wait 15 minutes." }
 }));
 
@@ -447,7 +491,7 @@ router.get("/logs/export", hasPermission("logs"), async (req, res) => {
         if (format === "csv") {
             const header = "ID,Timestamp,Admin,Action,Category,Target,Description,Severity,Status\n";
             const rows = pagedLogs.map((l: any) => [
-                l.id, l.createdAt, l.userUsername || l.userEmail || (l.userId ? `#${l.userId}` : ""), l.action, l.category,
+                l.id, l.createdAt, l.userUsername || (l.userId ? `#${l.userId}` : ""), l.action, l.category,
                 [l.targetType, l.targetLabel || l.targetId].filter(Boolean).join(" "), l.description, l.severity, l.status,
             ].map(csvField).join(",")).join("\n");
             res.setHeader("Content-Type", "text/csv; charset=utf-8");
@@ -455,7 +499,7 @@ router.get("/logs/export", hasPermission("logs"), async (req, res) => {
             return res.send(header + rows);
         }
 
-        res.json(pagedLogs);
+        res.json(pagedLogs.map(toAdminLogRow));
     } catch (error) {
         sendInternalError(res, error, "admin log export failed");
     }
@@ -588,10 +632,17 @@ router.post("/bulk/posts", hasPermission("reports"), async (req, res) => {
 });
 
 // BAN MANAGEMENT
+// GET /api/admin/bans?limit=&offset=&active=1. The bans registry is the "security" screen whose purpose is
+// the ban targets, so IP/device bans keep their full address there.
 router.get("/bans", hasPermission("security"), async (req, res) => {
     try {
-        const allBans = await db.select().from(bans).orderBy(desc(bans.createdAt));
-        res.json(allBans);
+        const { limit, offset } = adminPage(req);
+        const where = req.query.active === "1" || req.query.active === "true" ? and(eq(bans.isActive, 1), activeBanCondition()) : undefined;
+        const [allBans, [{ total }]] = await Promise.all([
+            db.select().from(bans).where(where).orderBy(desc(bans.createdAt), desc(bans.id)).limit(limit).offset(offset),
+            db.select({ total: count() }).from(bans).where(where),
+        ]);
+        sendPage(res, Number(total), allBans);
     } catch (e: any) {
         sendInternalError(res, e, "admin bans list failed");
     }
@@ -756,7 +807,14 @@ router.get("/auto-punishments", hasPermission("auto_punishment"), async (req, re
     try {
         const rules = await db.select().from(autoPunishmentRules).orderBy(desc(autoPunishmentRules.id));
         const executions = await db.select().from(autoPunishmentExecutions).orderBy(desc(autoPunishmentExecutions.createdAt)).limit(50);
-        res.json({ rules, executions });
+        // Failures carry a fixed code; older rows may still hold a raw exception text, which stays in the log.
+        res.json({
+            rules,
+            executions: executions.map((e: any) => ({
+                ...e,
+                errorMessage: e.errorMessage ? (/^[A-Z_]+$/.test(e.errorMessage) ? e.errorMessage : "ACTION_FAILED") : null,
+            })),
+        });
     } catch (e: any) {
         sendInternalError(res, e, "auto-punishment list failed");
     }

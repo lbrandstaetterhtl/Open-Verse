@@ -25,7 +25,14 @@ function localesVersion(): string {
   return hash.digest("hex").slice(0, 12);
 }
 
-export default defineConfig({
+// Staff-only code (admin/owner area) lives in client/src/staff. Every chunk with a module from there is named
+// assets/staff-<hash>.js, so the server can refuse those files to everyone but staff (server/staff-assets.ts).
+// Rollup groups modules by the entry points that reach them, and public code reaches client/src/staff only
+// through one dynamic import (client/src/lib/staff.tsx), so a staff chunk never holds code public pages need.
+const STAFF_SRC = path.resolve(__dirname, "client", "src", "staff") + path.sep;
+const isStaffModule = (id: string) => path.resolve(id.split("?")[0]).startsWith(STAFF_SRC);
+
+export default defineConfig(({ command }) => ({
   define: {
     __LOCALES_VERSION__: JSON.stringify(localesVersion()),
   },
@@ -40,13 +47,27 @@ export default defineConfig({
     },
   },
   root: path.resolve(__dirname, "client"),
+  // Production bundle: no console.log/debug/info output (console.warn/error stay), no debugger statements,
+  // no license banners with library versions (the licenses are in node_modules and package-lock.json).
+  esbuild: command === "build"
+    ? { pure: ["console.log", "console.debug", "console.info"], drop: ["debugger"], legalComments: "none" }
+    : undefined,
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        chunkFileNames: (chunk) =>
+          chunk.moduleIds.some(isStaffModule) ? "assets/staff-[hash].js" : "assets/[name]-[hash].js",
+        assetFileNames: (asset) =>
+          (asset.originalFileNames ?? []).some(isStaffModule) ? "assets/staff-[hash][extname]" : "assets/[name]-[hash][extname]",
+      },
+    },
   },
   server: {
     hmr: {
       overlay: false
     }
   },
-});
+}));

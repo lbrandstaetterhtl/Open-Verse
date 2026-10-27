@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { EXTERNAL_LINK_REL, safeExternalUrl } from "@/lib/safe-url";
 import { LIMITS } from "@/lib/input-limits";
 import { motion } from "framer-motion";
@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useParams } from "wouter";
 import { useTicket, useAddComment, useUpdateTicket, useDeleteTicket } from "@/hooks/use-tickets";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +21,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { cn } from "@/lib/utils";
+import { TicketAssignSelect } from "@/lib/staff";
 
 import { useDateLocale } from "@/lib/date-locale";
 export default function TicketDetailPage() {
@@ -49,13 +49,6 @@ export default function TicketDetailPage() {
   const [isInternal, setIsInternal] = useState(false);
 
   const isOwner = user?.role === "owner";
-
-  const { data: usersData } = useQuery<any[]>({
-    queryKey: ["/api/admin/users"],
-    enabled: isOwner,
-  });
-
-  const staffUsers = usersData?.filter(u => u.role === "admin" || u.role === "owner") || [];
 
   const validId = Number.isInteger(ticketId) && ticketId > 0;
 
@@ -330,19 +323,9 @@ export default function TicketDetailPage() {
                   <div className="flex flex-col gap-2 pt-4 border-t border-border">
                     <span className="ov-label">{t("detail.assignedPersonnel", "Assigned Personnel")}</span>
                     {isOwner ? (
-                      <Select value={ticket.assignedTo ? String(ticket.assignedTo) : "unassigned"} onValueChange={(v) => handleUpdateAssignment(v === "unassigned" ? null : parseInt(v))} disabled={isUpdating}>
-                        <SelectTrigger className="h-10">
-                          <SelectValue placeholder={t("detail.selectStaff", "Select staff")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unassigned">{t("assignment.unassigned", "Awaiting Pilot")}</SelectItem>
-                          {staffUsers.map(admin => (
-                            <SelectItem key={admin.id} value={String(admin.id)}>
-                              {admin.username}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Suspense fallback={<div className="h-10" />}>
+                        <TicketAssignSelect assignedTo={ticket.assignedTo} disabled={isUpdating} onChange={handleUpdateAssignment} />
+                      </Suspense>
                     ) : (
                       <div className="flex items-center gap-3">
                         <div className={cn("ov-chip", ticket.assignedTo ? "ov-chip-primary" : "ov-chip-star")}>

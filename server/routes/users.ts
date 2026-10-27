@@ -9,16 +9,25 @@ import fs from "node:fs";
 import { getPostExtras, DELETED_AUTHOR } from "../utils/post-extras";
 import { toPublicUser, toSelfUser } from "../utils/public-user";
 import { validateIdParams } from "../utils/params";
-import { hiddenCommunityIds } from "../utils/community-access";
+import { hiddenCommunityIds, shadowCountScope } from "../utils/community-access";
 import { sendInternalError } from "../utils/http-errors";
 import type { User } from "@shared/schema";
 
 const router = Router();
 
+/**
+ * This router is also mounted at /api (legacy short paths like /api/follow/:id, /api/search) and /api/user.
+ * Its /:username routes only exist under /api/users: elsewhere an unknown path like /api/nope would
+ * otherwise be answered as a username ("User not found") instead of the generic API 404.
+ */
+const onUsersMount = (req: Request) => req.baseUrl === "/api/users";
+const usersMountOnly = (req: Request, _res: Response, next: NextFunction) => (onUsersMount(req) ? next() : next("route"));
+
 // Malformed ids answer 404 before any handler runs (no NaN / int4 overflow reaching the database).
 validateIdParams(router, ["userId"]);
 // Usernames never contain control characters (NUL makes Postgres fail) and are short.
-router.param("username", (_req, res, next, value: string) => {
+router.param("username", (req, res, next, value: string) => {
+    if (!onUsersMount(req)) return next();
     if (typeof value !== "string" || value.length > 100 || /[\u0000-\u001f\u007f]/.test(value)) {
         return res.status(404).json({ error: "User not found", code: "NOT_FOUND" });
     }
@@ -124,7 +133,8 @@ router.delete("/follow/:userId", isAuthenticated, async (req, res) => {
 
 router.get("/followers", isAuthenticated, async (req, res) => {
     try {
-        const followers = await storage.getFollowers((req.user as any).id);
+        // Shadow-banned followers are not listed (the shadow-banned user's own lists stay complete)
+        const followers = await storage.getUserStore().getFollowers((req.user as any).id, shadowCountScope(req));
         res.json(followers.map((u) => toPublicUser(u)));
     } catch (error) {
         console.error("Error getting followers:", error);
@@ -134,7 +144,7 @@ router.get("/followers", isAuthenticated, async (req, res) => {
 
 router.get("/following", isAuthenticated, async (req, res) => {
     try {
-        const following = await storage.getFollowing((req.user as any).id);
+        const following = await storage.getUserStore().getFollowing((req.user as any).id, shadowCountScope(req));
         res.json(following.map((u) => toPublicUser(u)));
     } catch (error) {
         console.error("Error getting following:", error);
@@ -149,7 +159,7 @@ async function visiblePostsOf(req: Request, user: User) {
     return posts.filter((p) => !p.communityId || !hidden.has(p.communityId));
 }
 
-router.get("/:username/posts", async (req, res) => {
+router.get("/:username/posts", usersMountOnly, async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
@@ -162,9 +172,10 @@ router.get("/:username/posts", async (req, res) => {
 
         // Enrich posts with author and reaction details
         const postIds = posts.map(p => p.id);
-        const batchReactions = await storage.getBatchPostReactions(postIds);
+        const scope = shadowCountScope(req);
+        const batchReactions = await storage.getContentStore().getBatchPostReactions(postIds, scope);
         const currentUserId = viewerOf(req)?.id;
-        const extras = await getPostExtras(postIds, currentUserId);
+        const extras = await getPostExtras(postIds, currentUserId, scope);
 
         const postsWithDetails = await Promise.all(posts.map(async (post) => {
             const isFollowing = currentUserId ? await storage.isFollowing(currentUserId, post.authorId) : false;
@@ -194,7 +205,7 @@ router.get("/:username/posts", async (req, res) => {
     }
 });
 
-router.get("/:username/comments", async (req, res) => {
+router.get("/:username/comments", usersMountOnly, async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
@@ -235,8 +246,9 @@ async function enrichPosts(req: Request, posts: Awaited<ReturnType<typeof storag
         return !author || !hidesShadowBanned(req, author.id, author.isShadowBanned);
     });
     const postIds = posts.map(p => p.id);
-    const batchReactions = await storage.getBatchPostReactions(postIds);
-    const extras = await getPostExtras(postIds, currentUserId);
+    const scope = shadowCountScope(req);
+    const batchReactions = await storage.getContentStore().getBatchPostReactions(postIds, scope);
+    const extras = await getPostExtras(postIds, currentUserId, scope);
 
     return Promise.all(posts.map(async (post) => {
         const author = authorsMap.get(post.authorId);
@@ -256,7 +268,7 @@ async function enrichPosts(req: Request, posts: Awaited<ReturnType<typeof storag
     }));
 }
 
-router.get("/:username/liked", async (req, res) => {
+router.get("/:username/liked", usersMountOnly, async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
@@ -275,7 +287,7 @@ router.get("/:username/liked", async (req, res) => {
 });
 
 // Saved posts ("Merken") are private: only the user themselves can list them.
-router.get("/:username/saved", isAuthenticated, async (req, res) => {
+router.get("/:username/saved", usersMountOnly, isAuthenticated, async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
@@ -325,7 +337,7 @@ router.get("/search", isAuthenticated, async (req, res) => {
     }
 });
 
-router.get("/:username", async (req, res) => {
+router.get("/:username", usersMountOnly, async (req, res) => {
     try {
         const user = await storage.getUserByUsername(req.params.username);
         if (!user) {
@@ -334,9 +346,11 @@ router.get("/:username", async (req, res) => {
 
         const viewer = viewerOf(req);
         const isSelf = !!viewer && viewer.id === user.id;
+        // Counts leave out shadow-banned accounts, like the lists (unless the viewer may see them)
+        const scope = shadowCountScope(req);
         const [followersCount, followingCount, posts] = await Promise.all([
-            storage.getFollowerCount(user.id),
-            storage.getFollowingCount(user.id),
+            storage.getUserStore().getFollowerCount(user.id, scope),
+            storage.getUserStore().getFollowingCount(user.id, scope),
             canSeeContentOf(req, user) ? visiblePostsOf(req, user) : Promise.resolve([]),
         ]);
 
@@ -348,7 +362,7 @@ router.get("/:username", async (req, res) => {
             [isFollowing, isFollowingBack, mutualFollowers] = await Promise.all([
                 storage.isFollowing(viewer.id, user.id),
                 storage.isFollowing(user.id, viewer.id),
-                storage.getMutualFollowers(viewer.id, user.id)
+                storage.getUserStore().getMutualFollowers(viewer.id, user.id, scope)
             ]);
         }
 

@@ -40,6 +40,8 @@ function routesIn(file: string, prefixes: string[], receiver: RegExp): Route[] {
       const sub = (n.arguments[0] as ts.StringLiteral).text;
       const middleware = n.arguments.slice(1, -1).map((a) => a.getText().replace(/\s+/g, ""));
       for (const prefix of prefixes) {
+        // users.ts: the /:username routes only answer under /api/users (usersMountOnly), not under /api or /api/user
+        if (middleware.includes("usersMountOnly") && prefix !== "/api/users") continue;
         const p = (prefix + (sub === "/" ? "" : sub)).replace(/\/+$/, "") || "/";
         out.push({ method: n.expression.name.text as Route["method"], path: p, file, line: sf.getLineAndCharacterOfPosition(n.getStart()).line + 1, middleware });
       }

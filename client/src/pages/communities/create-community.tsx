@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import type { InsertCommunity } from "@shared/schema";
-import { insertCommunitySchema } from "@shared/schema";
+import { insertCommunitySchema } from "@shared/validation";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";

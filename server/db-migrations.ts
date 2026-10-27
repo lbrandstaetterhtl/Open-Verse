@@ -2,92 +2,27 @@ import { db } from './db';
 import { users, bans, adminSettings } from '@shared/schema';
 import { and, eq, inArray, lte } from 'drizzle-orm';
 import { logger } from './logger';
-import { sql } from 'drizzle-orm';
-import fs from 'node:fs';
-import path from 'node:path';
 import { storage } from './storage';
+import { runSchemaMigrations } from './db-maintenance/schema';
+import { startDataRetention } from './db-maintenance/retention';
 import { hashPassword, verifyPassword } from './utils/password-hash';
 import { randomBytes } from 'node:crypto';
 import { activeBanCondition } from './services/bulk-action-service';
 
 /**
- * Run all pending Drizzle migrations.
- * This executes SQL migration files from the migrations/ directory.
+ * Applies the pending migrations/*.sql files (journal table openverse_schema_migrations, one transaction per
+ * file, see db-maintenance/sql-migrations.ts) and, with DB_APP_PASSWORD, creates/updates the least-privilege
+ * role openverse_app. When the app itself runs as that role (docker-compose `migrate` service did the DDL),
+ * it only checks that nothing is pending.
  */
 export async function runMigrations() {
   if (process.env.USE_SQLITE === "true") {
-    console.log("[MIGRATIONS] SQLite mode detected, skipping migrations");
-    return; // SQLite handles schema creation in db.ts
+    logger.info('db', "SQLite mode: schema is created in db.ts, no SQL migrations");
+    return;
   }
-
-  console.log("[MIGRATIONS] Starting PostgreSQL migration runner...");
-  logger.info('db', "Running PostgreSQL migrations...");
-
   try {
-    const migrationsDir = path.join(process.cwd(), 'migrations');
-    console.log("[MIGRATIONS] Looking for migrations in:", migrationsDir);
-
-    if (!fs.existsSync(migrationsDir)) {
-      console.log("[MIGRATIONS] Directory not found at:", migrationsDir);
-      logger.warn('db', "Migrations directory not found - skipping migrations");
-      return;
-    }
-
-    console.log("[MIGRATIONS] Found migrations directory");
-
-    // Read all .sql files from migrations directory
-    const files = fs.readdirSync(migrationsDir)
-      .filter(f => f.endsWith('.sql'))
-      .sort();
-
-    console.log(`[MIGRATIONS] Found ${files.length} SQL files:`, files);
-
-    if (files.length === 0) {
-      console.log("[MIGRATIONS] No SQL files found!");
-      logger.warn('db', "No SQL migration files found");
-      return;
-    }
-
-    for (const file of files) {
-      const filePath = path.join(migrationsDir, file);
-      const sqlContent = fs.readFileSync(filePath, 'utf-8');
-
-      try {
-        console.log(`[MIGRATIONS] Running: ${file}`);
-        logger.info('db', `Executing migration: ${file}`);
-        // Split by semicolon to handle multiple statements
-        const statements = sqlContent
-          .split(';')
-          .map(s => s.trim())
-          .filter(s => s.length > 0);
-
-        console.log(`[MIGRATIONS] File has ${statements.length} SQL statements`);
-
-        for (const statement of statements) {
-          await db.execute(sql.raw(statement));
-        }
-        console.log(`[MIGRATIONS] ✓ Completed: ${file}`);
-        logger.info('db', `Completed migration: ${file}`);
-      } catch (err: any) {
-        // Some migrations may fail if tables already exist - that's OK
-        const errorCode = err.code || err.cause?.code;
-        const errorMessage = err.message || err.cause?.message || '';
-
-        if (errorMessage.includes('already exists') || errorCode === '42P07') {
-          console.log(`[MIGRATIONS] Already applied: ${file}`);
-          logger.info('db', `Migration ${file} already applied (skipped)`);
-        } else {
-          console.error(`[MIGRATIONS] ✗ ERROR in ${file}:`, errorMessage);
-          logger.error('db', `Failed to execute migration ${file}`, err);
-          throw err;
-        }
-      }
-    }
-
-    console.log("[MIGRATIONS] ✓ All migrations completed successfully!");
-    logger.info('db', "All migrations completed successfully");
+    await runSchemaMigrations();
   } catch (err) {
-    console.error("[MIGRATIONS] ✗ CRITICAL ERROR:", err);
     logger.critical('db', "Failed to run migrations", err);
     throw err;
   }
@@ -102,6 +37,9 @@ export async function bootstrapAccounts() {
   await resetLegacyBanKarma();
   await deactivateLegacyDeviceBans();
   await seedInitialOwner();
+  // Daily deletion of old activity logs / anomaly events and expired sessions & tokens (idempotent start;
+  // runs here because this is the last startup step that needs the final schema)
+  startDataRetention();
 }
 
 // Device ("hardware") bans used to store a 16-character hash of request headers; devices are now identified
@@ -204,16 +142,23 @@ async function migrateLegacyBanKarma() {
   if (reset.length > 0) logger.info('db', `Reset the legacy ban karma (-9999) of ${reset.length} account(s) to 0`);
 }
 
-// Earlier versions created "testadmin" with a password that is public in this repository.
-// If that account still uses it, replace the password with a random one so it can't be used to log in.
+// Earlier versions created "testadmin" (on every start) and "owner" (scripts/recover_owner.ts) with passwords
+// that are public in this repository. If such an account still uses it, replace the password with a random
+// one so it can't be used to log in.
+const LEGACY_PUBLIC_PASSWORDS: Array<[username: string, password: string]> = [
+  ["testadmin", "TestPassword123!"],
+  ["owner", "OwnerPassword123!"],
+];
 async function disableLegacyTestAdmin() {
-  try {
-    const legacy = await storage.getUserByUsername("testadmin");
-    if (!legacy?.password || !(await verifyPassword("TestPassword123!", legacy.password)).isValid) return;
-    await storage.updateUserPassword(legacy.id, await hashPassword(randomBytes(32).toString("hex")));
-    logger.critical('db', 'Disabled legacy "testadmin" account that used the publicly known default password. Use INITIAL_OWNER_USERNAME / INITIAL_OWNER_PASSWORD to create your own owner.');
-  } catch (err) {
-    logger.error('db', 'Failed to check legacy testadmin account', err);
+  for (const [username, publicPassword] of LEGACY_PUBLIC_PASSWORDS) {
+    try {
+      const legacy = await storage.getUserByUsername(username);
+      if (!legacy?.password || !(await verifyPassword(publicPassword, legacy.password)).isValid) continue;
+      await storage.updateUserPassword(legacy.id, await hashPassword(randomBytes(32).toString("hex")));
+      logger.critical('db', `Disabled legacy "${username}" account that used the publicly known default password. Use INITIAL_OWNER_USERNAME / INITIAL_OWNER_PASSWORD (INITIAL_OWNER_RESET_PASSWORD=true for an existing account) to set your own password.`);
+    } catch (err) {
+      logger.error('db', `Failed to check legacy ${username} account`, err);
+    }
   }
 }
 

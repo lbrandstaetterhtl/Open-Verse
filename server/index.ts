@@ -86,11 +86,7 @@ app.use(
   (req, res, next) => {
     const fullPath = path.join(uploadsDir, req.path);
     const exists = fs.existsSync(fullPath);
-    logger.info('system', `Upload request: ${req.method} ${req.path}`, { 
-      exists, 
-      fullPath,
-      ip: req.ip 
-    });
+    logger.debug(`Upload request: ${req.method} ${req.path.slice(0, 200)}`, { exists });
 
     // Uploaded files are never documents that run code
     res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self' data: blob:; media-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'; sandbox");
@@ -109,8 +105,9 @@ app.use(
 
 
 // DOCKER [HEALTH-001]: Health check endpoint for Docker/load-balancer probes
+// Only "ok": uptime, versions or timings would tell anyone when the service was (re)started.
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", uptime: process.uptime() });
+  res.json({ status: "ok" });
 });
 
 
@@ -241,7 +238,9 @@ if (!process.env.SENDGRID_API_KEY) {
     // SECURITY-FIX [SEC-002]: Professional Global Error Handler
     app.use(globalErrorHandler);
 
-    if (app.get("env") === "development") {
+    // The Vite dev server (raw sources, no CSP for scripts) only with an explicit NODE_ENV=development;
+    // an unset NODE_ENV serves the built client like production.
+    if (process.env.NODE_ENV === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);

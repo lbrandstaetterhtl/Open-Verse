@@ -16,6 +16,8 @@ import { logger } from "./logger";
 import { hashPassword, verifyPassword, burnPasswordCheck, passwordStamp } from "./utils/password-hash";
 import { toSelfUser } from "./utils/public-user";
 import { activeBanCondition } from "./services/bulk-action-service";
+import { issueDeviceId } from "./middleware/ban-check";
+import { createHash } from "node:crypto";
 
 import { sendValidationError, sendInternalError } from "./utils/http-errors";
 declare global {
@@ -43,6 +45,9 @@ async function createVerificationToken(userId: number): Promise<string> {
 
   return token;
 }
+
+/** A new random CSRF token (stored in the session by GET /api/csrf-token and at login/registration). */
+export const createCsrfToken = () => randomBytes(32).toString("hex");
 
 export const validateCsrf = (req: any, res: any, next: any) => {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
@@ -109,6 +114,14 @@ class FailureCounter {
 const loginFailures = new FailureCounter(20, 15 * 60 * 1000);
 // 5 wrong current passwords per account and hour on PATCH /api/profile/password
 const passwordFailures = new FailureCounter(5, 60 * 60 * 1000);
+// 5 attempts per account and hour to change the email to one that is already registered: the answer says
+// that it is taken, so it must not become a way to test many addresses.
+const emailConflicts = new FailureCounter(5, 60 * 60 * 1000);
+
+/** What logs keep instead of a login name that matches no account (it is often a password typed into the wrong field). */
+const UNKNOWN_ACCOUNT = "[unknown account]";
+/** A short, non-reversible tag for a typed login name, so repeated attempts can still be correlated in the logs. */
+const nameTag = (name: string) => createHash("sha256").update(name).digest("hex").slice(0, 12);
 
 const accountKey = (username: unknown) =>
   typeof username === "string" && username.trim() ? username.trim().toLowerCase().slice(0, 64) : undefined;
@@ -154,7 +167,7 @@ function startSession(req: Request, user: { id: number; password: string }, cb: 
     if (err) return cb(err);
     const s = req.session as any;
     s.passport = { user: user.id };
-    s.csrfToken = randomBytes(32).toString("hex");
+    s.csrfToken = createCsrfToken();
     s.authStamp = passwordStamp(user.password);
     s.lastSeen = Date.now();
     req.session.save(cb);
@@ -165,10 +178,13 @@ function startSession(req: Request, user: { id: number; password: string }, cb: 
  * Session, passport and the per-session CSRF token. Must run before the ban check, maintenance mode and CSRF
  * validation, which in turn run before the auth routes (registerAuthRoutes).
  */
-export function setupSession(app: Express, sessionParser: any) {
-  app.use(sessionParser);
+export function setupSession(app: Express, sessionParser: any, needsSession: (req: Request) => boolean = () => true) {
+  const passportSession = passport.session();
+  const onlyWithSession = (mw: any) => (req: Request, res: Response, next: NextFunction) => (needsSession(req) ? mw(req, res, next) : next());
+  // Requests that never need a session (public static files, the app's HTML) do not touch the session store.
+  app.use(onlyWithSession(sessionParser));
   app.use(passport.initialize());
-  app.use(passport.session());
+  app.use(onlyWithSession(passportSession));
 
   // Idle timeout (setting security.session_timeout_minutes, 0 = off)
   app.use(async (req, _res, next) => {
@@ -189,13 +205,8 @@ export function setupSession(app: Express, sessionParser: any) {
     next();
   });
 
-  // CSRF Token Initialization
-  app.use((req, _res, next) => {
-    if (req.session && !(req.session as any).csrfToken) {
-      (req.session as any).csrfToken = randomBytes(32).toString("hex");
-    }
-    next();
-  });
+  // The CSRF token is created lazily by GET /api/csrf-token (and at login/registration), not here: a
+  // token in every new session would store a session row and set a cookie for every cookieless request.
 
   passport.use(
     new LocalStrategy({ passReqToCallback: true }, async (req, username, password, done) => {
@@ -204,9 +215,10 @@ export function setupSession(app: Express, sessionParser: any) {
         if (!user) {
           // Same bcrypt cost as for an existing account, so the answer time does not reveal the username.
           await burnPasswordCheck(password);
+          // The typed name is not stored: it is often a password typed into the wrong field.
           logger.authEvent({
             event: 'login_failed',
-            username,
+            username: UNKNOWN_ACCOUNT,
             reason: "User not found",
           });
           activityLogger.log({
@@ -215,7 +227,7 @@ export function setupSession(app: Express, sessionParser: any) {
             description: `Fehlgeschlagener Login-Versuch (User not found)`,
             severity: 'warning',
             status: 'failure',
-            metadata: { username: String(username).slice(0, 100) },
+            metadata: { username: UNKNOWN_ACCOUNT },
             req,
           });
           return done(null, false, { message: "Invalid username or password" });
@@ -236,7 +248,7 @@ export function setupSession(app: Express, sessionParser: any) {
             description: `Fehlgeschlagener Login-Versuch für ${user.username}`,
             severity: 'warning',
             status: 'failure',
-            metadata: { username },
+            metadata: { username: user.username },
             req,
           });
           return done(null, false, { message: "Invalid username or password" });
@@ -269,7 +281,7 @@ export function setupSession(app: Express, sessionParser: any) {
 
         return done(null, user);
       } catch (err) {
-        logger.error('auth', "Login error", err, { username });
+        logger.error('auth', "Login error", err);
         return done(err);
       }
     }),
@@ -328,6 +340,8 @@ export function registerAuthRoutes(app: Express) {
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 20, // Limit each IP to 20 login attempts per window
+    standardHeaders: false,
+    legacyHeaders: false,
     message: "Too many login attempts, please try again later",
   });
 
@@ -335,12 +349,16 @@ export function registerAuthRoutes(app: Express) {
   const passwordChangeLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 5, // Max 5 password change attempts per hour
+    standardHeaders: false,
+    legacyHeaders: false,
     message: "Too many password change attempts, please try again later",
   });
 
   const strictAuthLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 5, // Max 5 registration attempts per IP per hour
+    standardHeaders: false,
+    legacyHeaders: false,
     message: "Too many registration attempts, please try again later",
   });
 
@@ -466,6 +484,7 @@ export function registerAuthRoutes(app: Express) {
       const created = user;
       startSession(req, created, (err) => {
         if (err) return sendInternalError(res, err, "auth session failed");
+        issueDeviceId(req, res);
         logger.authEvent({
           event: 'register',
           userId: created.id,
@@ -496,7 +515,7 @@ export function registerAuthRoutes(app: Express) {
         type: "ACCOUNT_LOCKED",
         ip: req.ip || req.socket.remoteAddress,
         severity: "high",
-        details: { username: key },
+        details: { usernameTag: nameTag(key) },
       });
       return res.status(429).send("Too many login attempts, please try again later");
     }
@@ -511,6 +530,7 @@ export function registerAuthRoutes(app: Express) {
 
       startSession(req, user, (err) => {
         if (err) return next(err);
+        issueDeviceId(req, res);
         logger.authEvent({
           event: 'login',
           userId: user.id,
@@ -521,10 +541,10 @@ export function registerAuthRoutes(app: Express) {
           userId: user.id,
           action: 'auth.login',
           category: 'auth',
-          description: `User ${user.email} hat sich eingeloggt`,
+          description: `User ${user.username} hat sich eingeloggt`,
           targetType: 'User',
           targetId: String(user.id),
-          targetLabel: user.email,
+          targetLabel: user.username,
           severity: 'info',
           status: 'success',
           metadata: { method: 'password' },
@@ -594,8 +614,13 @@ export function registerAuthRoutes(app: Express) {
       }
 
       if (typeof update.email === "string") {
+        const emailKey = String(req.user!.id);
+        if (emailConflicts.isLocked(emailKey)) {
+          return res.status(429).send("Too many attempts, please try again later");
+        }
         const existingEmail = await storage.getUserByEmail(update.email);
         if (existingEmail && existingEmail.id !== req.user!.id) {
+          emailConflicts.fail(emailKey);
           return res.status(400).send("Email already registered");
         }
       }

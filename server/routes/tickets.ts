@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { isAuthenticated, hasPermission } from "../middleware/auth";
+import { isAuthenticated, hasPermission, isOwner } from "../middleware/auth";
 import { TicketService } from "../services/ticket-service";
 import { activityLogger } from "../services/activity-logger";
 import { storage } from "../storage";
@@ -56,13 +56,8 @@ function sendError(res: any, err: any) {
 
 const notFound = (res: any) => res.status(404).json({ error: "Ticket not found or forbidden" });
 
-const checkOwner = (req: any, res: any, next: any) => {
-  const user = req.user as any;
-  if (!user || user.role !== 'owner') {
-    return res.status(403).json({ error: "Forbidden" });
-  }
-  next();
-};
+// Deleting and restoring tickets is for owners; for everybody who is not staff these routes do not exist (404).
+const checkOwner = isOwner;
 
 /** Owner, or an admin whose group has the "tickets" permission: sees and moderates every ticket. */
 const isTicketStaff = (user: any) => userHasPermission(user, "tickets");
@@ -73,7 +68,7 @@ async function loadTicket(req: any) {
 }
 
 // GET /api/tickets/stats
-router.get("/stats", isAuthenticated, hasPermission("tickets"), async (req, res) => {
+router.get("/stats", hasPermission("tickets"), async (req, res) => {
   try {
     const stats = await TicketService.getStats();
     res.json(stats);
@@ -202,7 +197,7 @@ router.patch("/:id", isAuthenticated, async (req, res) => {
 });
 
 // DELETE /api/tickets/:id
-router.delete("/:id", isAuthenticated, checkOwner, async (req, res) => {
+router.delete("/:id", checkOwner, async (req, res) => {
   try {
     const success = await TicketService.deleteTicket(Number(req.params.id));
     if (success) {
@@ -300,7 +295,7 @@ router.delete("/:id/comments/:cId", isAuthenticated, async (req, res) => {
 });
 
 // POST /api/tickets/:id/restore
-router.post("/:id/restore", isAuthenticated, checkOwner, async (req, res) => {
+router.post("/:id/restore", checkOwner, async (req, res) => {
   try {
     const success = await TicketService.restoreTicket(Number(req.params.id));
     if (success) {

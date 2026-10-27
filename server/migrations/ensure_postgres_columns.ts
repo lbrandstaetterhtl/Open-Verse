@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { getMigrationDb } from '../db';
 import { sql } from 'drizzle-orm';
 import { logger } from '../logger';
 
@@ -11,6 +11,10 @@ export async function ensurePostgresColumns() {
   if (process.env.USE_SQLITE === "true") {
     return; // SQLite is handled in db.ts
   }
+  // Schema changes need the owner credentials; the app running as the least-privilege role skips them
+  // (the migrate service has run them).
+  const db = getMigrationDb();
+  if (!db) return;
 
   logger.info('db', "Ensuring Postgres schema consistency...");
 

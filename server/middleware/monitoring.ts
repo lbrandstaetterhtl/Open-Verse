@@ -12,36 +12,41 @@ export function monitoringMiddleware(req: Request, res: Response, next: NextFunc
 
     if (req.path.startsWith('/api/') && req.path !== '/api/health') {
       metricsService.record('api_response_time', duration, {
-        endpoint: req.path,
+        endpoint: req.path.slice(0, 200),
         method: req.method,
         status: String(statusCode)
       });
 
       if (statusCode >= 400 && statusCode !== 401 && statusCode !== 403) {
         metricsService.record('api_error', 1, {
-          endpoint: req.path,
+          endpoint: req.path.slice(0, 200),
           status: String(statusCode)
         });
       }
 
-      if (statusCode === 401) {
+      // Only signed-in callers get an activity_logs row for a refused request. Anonymous 401/403 answers
+      // (every page load asks GET /api/user; CSRF failures; banned addresses) are routine and unbounded:
+      // they only show up in the api_response_time metric above (with their status) instead of writing a row
+      // and running the anomaly checks each time.
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        // nothing more to record
+      } else if (statusCode === 401) {
         activityLogger.log({
-          userId: (req as any).user?.id,
+          userId,
           action: 'security.suspicious_request',
           category: 'security',
-          description: `Unauthorized request to ${req.method} ${req.path}`,
+          description: `Unauthorized request to ${req.method} ${req.path.slice(0, 200)}`,
           severity: 'warning',
           status: 'blocked',
           req,
         });
-      }
-
-      if (statusCode === 403) {
+      } else if (statusCode === 403) {
         activityLogger.log({
-          userId: (req as any).user?.id,
+          userId,
           action: 'security.auth_bypass_attempt',
           category: 'security',
-          description: `Forbidden request to ${req.method} ${req.path}`,
+          description: `Forbidden request to ${req.method} ${req.path.slice(0, 200)}`,
           severity: 'warning',
           status: 'blocked',
           req,

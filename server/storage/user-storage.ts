@@ -16,6 +16,17 @@ const isLookupValue = (value: unknown): value is string =>
 /** Escapes LIKE wildcards so a search for "%" or "_" matches those characters literally. */
 const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
 
+/** Which accounts follower lists/counts include (see shadowCountScope in utils/community-access.ts). */
+type ShadowScope = { includeShadowBanned: boolean; viewerId?: number };
+const countsAll = (scope?: ShadowScope) => !scope || scope.includeShadowBanned;
+const viewerParam = (scope?: ShadowScope) => (scope?.viewerId && Number.isInteger(scope.viewerId) ? scope.viewerId : -1);
+/** Postgres: the account in `column` is not shadow-banned, or is the viewer. */
+const visibleAccount = (column: any, scope?: ShadowScope) =>
+  sql`(${column} = ${viewerParam(scope)} OR NOT EXISTS (SELECT 1 FROM users su WHERE su.id = ${column} AND su.is_shadow_banned = 1))`;
+/** SQLite: the same, `column` is trusted SQL text, one bound parameter (the viewer id). */
+const visibleAccountSqlite = (column: string) =>
+  `(${column} = ? OR NOT EXISTS (SELECT 1 FROM users su WHERE su.id = ${column} AND su.is_shadow_banned = 1))`;
+
 export class UserStorage {
   async getUser(id: number): Promise<User | undefined> {
     const sqlite = getSqlite();
@@ -405,14 +416,15 @@ export class UserStorage {
       );
   }
 
-  async getFollowers(userId: number): Promise<User[]> {
+  async getFollowers(userId: number, scope?: ShadowScope): Promise<User[]> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
+      const shadow = countsAll(scope) ? "" : ` AND ${visibleAccountSqlite("f.follower_id")}`;
       const rows = sqlite
         .prepare(
-          "SELECT u.* FROM users u INNER JOIN followers f ON f.follower_id = u.id WHERE f.following_id = ?",
+          `SELECT u.* FROM users u INNER JOIN followers f ON f.follower_id = u.id WHERE f.following_id = ?${shadow}`,
         )
-        .all(userId) as any[];
+        .all(userId, ...(shadow ? [viewerParam(scope)] : [])) as any[];
       return rows.map((user: any) => ({
         ...user,
         emailVerified: Boolean(user.email_verified),
@@ -426,18 +438,19 @@ export class UserStorage {
       .select({ user: users })
       .from(followers)
       .innerJoin(users, eq(followers.followerId, users.id))
-      .where(eq(followers.followingId, userId));
+      .where(countsAll(scope) ? eq(followers.followingId, userId) : and(eq(followers.followingId, userId), visibleAccount(followers.followerId, scope)));
     return result.map((r: { user: User }) => r.user);
   }
 
-  async getFollowing(userId: number): Promise<User[]> {
+  async getFollowing(userId: number, scope?: ShadowScope): Promise<User[]> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
+      const shadow = countsAll(scope) ? "" : ` AND ${visibleAccountSqlite("f.following_id")}`;
       const rows = sqlite
         .prepare(
-          "SELECT u.* FROM users u INNER JOIN followers f ON f.following_id = u.id WHERE f.follower_id = ?",
+          `SELECT u.* FROM users u INNER JOIN followers f ON f.following_id = u.id WHERE f.follower_id = ?${shadow}`,
         )
-        .all(userId) as any[];
+        .all(userId, ...(shadow ? [viewerParam(scope)] : [])) as any[];
       return rows.map((user: any) => ({
         ...user,
         emailVerified: Boolean(user.email_verified),
@@ -451,41 +464,47 @@ export class UserStorage {
       .select({ user: users })
       .from(followers)
       .innerJoin(users, eq(followers.followingId, users.id))
-      .where(eq(followers.followerId, userId));
+      .where(countsAll(scope) ? eq(followers.followerId, userId) : and(eq(followers.followerId, userId), visibleAccount(followers.followingId, scope)));
     return result.map((r: any) => r.user);
   }
 
-  async getFollowerCount(userId: number): Promise<number> {
+  async getFollowerCount(userId: number, scope?: ShadowScope): Promise<number> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
+      const shadow = countsAll(scope) ? "" : ` AND ${visibleAccountSqlite("followers.follower_id")}`;
       const row = sqlite
-        .prepare("SELECT COUNT(*) as count FROM followers WHERE following_id = ?")
-        .get(userId) as { count: number };
+        .prepare(`SELECT COUNT(*) as count FROM followers WHERE following_id = ?${shadow}`)
+        .get(userId, ...(shadow ? [viewerParam(scope)] : [])) as { count: number };
       return row.count;
     }
     const result = await db
       .select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(followers)
-      .where(eq(followers.followingId, userId));
+      .where(countsAll(scope) ? eq(followers.followingId, userId) : and(eq(followers.followingId, userId), visibleAccount(followers.followerId, scope)));
     return Number(result[0].count);
   }
 
-  async getFollowingCount(userId: number): Promise<number> {
+  async getFollowingCount(userId: number, scope?: ShadowScope): Promise<number> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
+      const shadow = countsAll(scope) ? "" : ` AND ${visibleAccountSqlite("followers.following_id")}`;
       const row = sqlite
-        .prepare("SELECT COUNT(*) as count FROM followers WHERE follower_id = ?")
-        .get(userId) as { count: number };
+        .prepare(`SELECT COUNT(*) as count FROM followers WHERE follower_id = ?${shadow}`)
+        .get(userId, ...(shadow ? [viewerParam(scope)] : [])) as { count: number };
       return row.count;
     }
     const result = await db
       .select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(followers)
-      .where(eq(followers.followerId, userId));
+      .where(countsAll(scope) ? eq(followers.followerId, userId) : and(eq(followers.followerId, userId), visibleAccount(followers.followingId, scope)));
     return Number(result[0].count);
   }
 
-  async getMutualFollowers(userId1: number, userId2: number): Promise<User[]> {
+  async getMutualFollowers(userId1: number, userId2: number, scope?: ShadowScope): Promise<User[]> {
+    if (!countsAll(scope)) {
+      const all = await this.getMutualFollowers(userId1, userId2);
+      return all.filter((u: any) => !u.isShadowBanned && !u.is_shadow_banned || u.id === scope!.viewerId);
+    }
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       // Find following of userId1 that are followers of userId2

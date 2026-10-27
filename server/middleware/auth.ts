@@ -5,72 +5,74 @@ import { storage } from "../storage";
 // Standard Express Request with User type is handled by global declaration in auth.ts or similar
 // assuming req.user is populated by passport
 
+/** Site staff: role admin or owner. */
+export const isStaffUser = (user: any): boolean => !!user && (user.role === "admin" || user.role === "owner");
+
+/**
+ * The answer for an API path that does not exist. Staff-only routes give exactly this answer to anonymous
+ * visitors and to users who are not staff, so nobody outside the staff can tell which staff routes exist.
+ */
+export const sendApiNotFound = (res: Response) => res.status(404).json({ error: "Not found" });
+
+const callerIsStaff = (req: Request) => !!req.isAuthenticated?.() && isStaffUser(req.user);
+
+/** Only admins and owners get past; everybody else gets the unknown-route answer (404). */
+export const staffOnly = (req: Request, res: Response, next: NextFunction) => {
+    if (callerIsStaff(req)) return next();
+    if (req.isAuthenticated?.()) {
+        logSecurityEvent({ type: 'AUTH_FAILURE', userId: (req.user as any)?.id, details: { reason: 'Staff route requested by non-staff', path: req.path } });
+    }
+    return sendApiNotFound(res);
+};
+
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
-    console.log(`[AUTH-DEBUG] isAdmin middleware hit. Path: ${req.path}, Method: ${req.method}`);
-
-    if (!req.isAuthenticated()) {
-        console.log('[AUTH-DEBUG] isAdmin failed: User not authenticated');
-        logSecurityEvent({ type: 'AUTH_FAILURE', details: { reason: 'Unauthenticated admin access attempt', path: req.path } });
-        return res.status(401).send("Unauthorized");
-    }
-
-    // Check if req.user exists (TypeScript might complain if not guarded, though isAuthenticated checks it)
-    const user = req.user as any;
-
-    if (user.role !== 'admin' && user.role !== 'owner') {
-        console.log(`[AUTH-DEBUG] isAdmin failed: Role mismatch. User role: ${user.role}`);
-        logSecurityEvent({ type: 'AUTH_FAILURE', userId: user.id, details: { reason: 'Admin role required', role: user.role } });
-        return res.status(403).send("Forbidden");
-    }
-    logSecurityEvent({ type: 'ADMIN_ACCESS', userId: user.id, resource: req.path });
+    if (!callerIsStaff(req)) return staffOnly(req, res, next);
+    logSecurityEvent({ type: 'ADMIN_ACCESS', userId: (req.user as any).id, resource: req.path });
     next();
 };
 
+/** Owners only. Non-staff get the unknown-route answer (404), admins a 403. */
 export const isOwner = (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-
+    if (!callerIsStaff(req)) return staffOnly(req, res, next);
     const user = req.user as any;
-
-    if (user.role !== 'owner') return res.status(403).send("Forbidden");
+    if (user.role !== 'owner') return res.status(403).json({ error: "Forbidden", code: "FORBIDDEN" });
     next();
 };
 
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
     if (req.isAuthenticated()) return next();
-    logSecurityEvent({ type: 'AUTH_FAILURE', details: { reason: 'Unauthorized access attempt', path: req.path, ip: req.ip } });
     res.status(401).send("Unauthorized");
 };
 
+/**
+ * A staff route that needs one admin-group permission. Non-staff (and anonymous visitors) get the
+ * unknown-route answer (404); staff without the permission get 403.
+ */
 export const hasPermission = (permission: string) => async (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!callerIsStaff(req)) return staffOnly(req, res, next);
     const user = req.user as any;
-    
+
     // Owners always have all permissions
     if (user.role === 'owner') return next();
-    
-    // If not admin/staff, no access
-    if (user.role !== 'admin' && user.role !== 'owner') return res.status(403).send("Forbidden");
-    
+
     // Check group permissions
     if (user.adminGroupId) {
-        const group = await storage.getAdminGroup(user.adminGroupId);
-        if (group) {
-            try {
+        try {
+            const group = await storage.getAdminGroup(user.adminGroupId);
+            if (group) {
                 // Handle both stringified JSON and direct array if storage handles it
                 const perms = typeof group.permissions === 'string' ? JSON.parse(group.permissions) : group.permissions;
                 if (Array.isArray(perms) && perms.includes(permission)) return next();
-            } catch (e) {
-                console.error("[AUTH] Failed to parse permissions for group:", group.id);
             }
+        } catch (e) {
+            console.error("[AUTH] Failed to read permissions for group:", user.adminGroupId);
         }
     }
-    
-    // Fallback: If no group assigned but is admin, maybe we want to allow basic dashboard view?
-    // For now, be strict: No group + No owner = No special permission access
-    console.log(`[AUTH] Permission '${permission}' denied for user ${user.username}`);
-    res.status(403).json({ 
+
+    // No group + No owner = No special permission access
+    res.status(403).json({
         message: `Required permission missing: ${permission}`,
         code: 'PERMISSION_DENIED',
-        permission 
+        permission
     });
 };

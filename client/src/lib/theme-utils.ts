@@ -655,9 +655,13 @@ const FONT_WEIGHTS = "400;500;600;700";
 
 // One stylesheet per family. Families that lack one of the weights make Google reject the whole request,
 // so a failed load retries with the family's default weight only.
+// The default fonts are self-hosted (client/src/fonts/fonts.css): no request to Google for them. Only fonts
+// a user picks in the theme builder are loaded from Google Fonts, on demand.
+const SELF_HOSTED_FONTS = new Set([defaultFonts.display, defaultFonts.body, defaultFonts.data]);
+
 function loadFontFamily(family: string): void {
   const name = safeFontName(family, "");
-  if (!name) return;
+  if (!name || SELF_HOSTED_FONTS.has(name)) return;
   const existing = document.querySelector(`link[data-ov-font="${name}"]`);
   if (existing) return;
   const link = document.createElement("link");

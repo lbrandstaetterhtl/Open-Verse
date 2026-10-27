@@ -1,5 +1,4 @@
 import { EventEmitter } from 'node:events';
-import * as os from 'node:os';
 import type { StressTest } from './stress-tests/base';
 import { ApiEndpointStressTest } from './stress-tests/api-endpoint-stress';
 import { DatabaseStressTest } from './stress-tests/database-stress';
@@ -40,7 +39,6 @@ export class StressTestRunner extends EventEmitter {
 
     logger.log(`🚀 Starting Stress Test: ${testName.toUpperCase()}`);
     logger.log(`📊 Parameters: Intensity=${config.intensity}, Duration=${config.duration}s`);
-    logger.log(`💻 Node: ${process.version} | OS: ${os.type()} ${os.release()} | CPUs: ${os.cpus().length}`);
     logger.log('─'.repeat(50));
 
     const result = await test.run(config, logger);

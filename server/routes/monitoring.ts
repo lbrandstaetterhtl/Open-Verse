@@ -7,6 +7,7 @@ import { isOwner, isAdmin, hasPermission } from "../middleware/auth";
 import { sendInternalError } from "../utils/http-errors";
 import { parseId } from "../utils/params";
 import { queryInt, queryString } from "../utils/admin-input";
+import { toAdminLogRow, redactText, redactJsonText, maskIp } from "../utils/redact";
 const router = Router();
 
 // Admin permission for monitoring
@@ -49,7 +50,6 @@ router.get("/activity-logs", async (req, res) => {
       user: {
         id: users.id,
         username: users.username,
-        email: users.email
       }
     })
     .from(activityLogs)
@@ -70,7 +70,8 @@ router.get("/activity-logs", async (req, res) => {
       ? await countQuery.where(and(...conditions))
       : await countQuery;
 
-    res.json({ logs: items, total: totalResult?.total ?? 0, page });
+    // Only the displayed columns: masked IP, no user agent, no email, no session/fingerprint ids
+    res.json({ logs: items.map((i: any) => ({ log: toAdminLogRow(i.log), user: i.user })), total: totalResult?.total ?? 0, page });
   } catch (error: any) {
     sendInternalError(res, error, "monitoring.ts request failed");
   }
@@ -95,7 +96,18 @@ router.get("/anomalies", async (req, res) => {
       .limit(100)
       .execute();
 
-    res.json({ anomalies: items });
+    // Addresses in anomaly descriptions/evidence only masked
+    res.json({
+      anomalies: items.map((i: any) => ({
+        ...i,
+        anomaly: i.anomaly && {
+          ...i.anomaly,
+          ...("ipAddress" in i.anomaly ? { ipAddress: maskIp(i.anomaly.ipAddress) } : {}),
+          description: redactText(i.anomaly.description),
+          evidence: redactJsonText(i.anomaly.evidence),
+        },
+      })),
+    });
   } catch (error: any) {
     sendInternalError(res, error, "monitoring.ts request failed");
   }

@@ -8,6 +8,7 @@ import { useNotificationCounts } from "@/hooks/use-notifications";
 import { AppSidebar } from "./AppSidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { SkeletonFeed } from "./skeleton-loaders";
+import { isStaffUser } from "@/lib/staff";
 
 /**
  * APP-LAYOUT [UI-L-002]: Claude.ai-style Responsive Layout
@@ -22,10 +23,9 @@ import { SkeletonFeed } from "./skeleton-loaders";
  */
 
 /** Phone header: menu, brand and one context action. The page title lives in each page's own header. */
-function MobileHeader({ onOpenDrawer, location }: { onOpenDrawer: () => void; location: string }) {
+function MobileHeader({ onOpenDrawer, isAdminArea }: { onOpenDrawer: () => void; isAdminArea: boolean }) {
   const { t } = useTranslation();
   const { data: counts } = useNotificationCounts();
-  const isAdminArea = location.startsWith("/admin");
   const unread = counts?.unread ?? 0;
   const iconButton = "relative flex h-10 w-10 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -63,7 +63,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { user } = useAuth();
 
-  const isAdminArea = location.startsWith("/admin");
+  // Staff only: everyone else is sent away from /admin by StaffArea and keeps the normal navigation
+  const isAdminArea = location.startsWith("/admin") && isStaffUser(user);
   const isAuthPage = location === "/auth";
 
   // Sidebar collapse state (desktop only), persisted
@@ -159,7 +160,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {/* Mobile Header (hidden on lg+) */}
         <MobileHeader
           onOpenDrawer={() => setDrawerOpen(true)}
-          location={location}
+          isAdminArea={isAdminArea}
         />
 
         {/* Scrollable content */}

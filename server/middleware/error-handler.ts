@@ -50,12 +50,11 @@ export function globalErrorHandler(
     });
   }
 
-  const isDev = process.env.NODE_ENV !== 'production';
-
-  res.status(err.status || err.statusCode || 500).json({
-    error:     isDev ? err.message : 'Internal server error',
+  // Never the message or the stack trace, whatever NODE_ENV says: they are in the server log (requestId).
+  const status = Number(err?.status || err?.statusCode);
+  res.status(status >= 500 && status < 600 ? status : 500).json({
+    error:     'Internal server error',
     requestId: req.requestId,
-    ...(isDev && { stack: err.stack }),
   });
 }
 

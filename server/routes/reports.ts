@@ -9,20 +9,21 @@ import { activityLogger } from "../services/activity-logger";
 import { sendValidationError, sendInternalError } from "../utils/http-errors";
 import { parseId, validateIdParams } from "../utils/params";
 import { canViewPost } from "../utils/community-access";
+import { userHasPermission } from "../utils/permissions";
 
 const router = Router();
 validateIdParams(router, ["id"]);
 
+// A report as API answers carry it: never the stored IP address of the reporter.
+const withoutIp = ({ ipAddress: _ip, ...report }: any) => report;
+
 router.get("/", hasPermission("reports"), async (req, res) => {
     try {
-        res.json(await storage.getReports());
+        res.json((await storage.getReports()).map(withoutIp));
     } catch (error) {
         sendInternalError(res, error, "GET /api/reports");
     }
 });
-
-// A report as the reporter and the admin socket see it: without the stored IP address.
-const withoutIp = ({ ipAddress: _ip, ...report }: any) => report;
 
 router.post("/", isAuthenticated, async (req, res) => {
     try {
@@ -66,15 +67,15 @@ router.post("/", isAuthenticated, async (req, res) => {
         }
         const report = created.report;
 
-        // Notify admins (non-blocking)
+        // Tell the staff who handle reports (owners, admins with the "reports" permission) that there is a new
+        // one. Ids only: the dashboard loads the report itself through the authorised admin route.
         try {
-            const message = JSON.stringify({
-                type: "new_report",
-                data: { ...withoutIp(report), reporter: { username: user.username } },
-            });
-            const admins = await storage.getUsersByIds(Array.from(connections.keys()));
-            for (const admin of admins) {
-                if (admin.role === 'admin' || admin.role === 'owner') sendToUser(admin.id, message);
+            const message = JSON.stringify({ type: "new_report", data: { id: report.id } });
+            const online = await storage.getUsersByIds(Array.from(connections.keys()));
+            for (const admin of online) {
+                if ((admin.role === 'admin' || admin.role === 'owner') && (await userHasPermission(admin, "reports"))) {
+                    sendToUser(admin.id, message);
+                }
             }
         } catch (notifErr) {
             console.error("[Report] Error in admin notification loop:", notifErr);
@@ -128,10 +129,10 @@ router.patch("/:id", hasPermission("reports"), async (req, res) => {
                     console.error("[Report] Error during content deletion:", deleteError);
                 }
 
+                // A system notification: the reporter is not told which staff member handled the report
                 try {
                     await notificationService.notify({
                         userId: report.reporterId,
-                        actorId: (req.user as any).id,
                         type: "report_resolved",
                         actionUrl: "/notifications"
                     });
@@ -139,7 +140,7 @@ router.patch("/:id", hasPermission("reports"), async (req, res) => {
                     console.error("[NotificationService] Error notifying reporter:", notifError);
                 }
 
-                res.json(updatedReport);
+                res.json(withoutIp(updatedReport));
             } catch (error) {
                 return sendInternalError(res, error, "PATCH /api/reports/:id (resolve)");
             }
@@ -149,13 +150,12 @@ router.patch("/:id", hasPermission("reports"), async (req, res) => {
                 try {
                     await notificationService.notify({
                         userId: report.reporterId,
-                        actorId: (req.user as any).id,
                         type: "report_rejected",
                         actionUrl: "/notifications"
                     });
                 } catch (notifError) { console.error("[NotificationService] Error notifying reporter:", notifError); }
             }
-            res.json(updatedReport);
+            res.json(withoutIp(updatedReport));
         }
         
         // Ensure log is recorded for any report patch

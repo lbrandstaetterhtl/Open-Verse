@@ -30,6 +30,7 @@ import {
     filterVisiblePosts,
     filterShadowHidden,
     broadcastAboutPost,
+    shadowCountScope,
 } from "../utils/community-access";
 
 const router = Router();
@@ -239,10 +240,11 @@ router.get("/:id", async (req, res) => {
         if (!post || !(await canViewPost(req, post))) return notFound(res);
 
         const currentUserId = (req.user as any)?.id;
+        const scope = shadowCountScope(req);
         const [author, allComments, reactions] = await Promise.all([
             storage.getUser(post.authorId),
             storage.getComments(post.id),
-            storage.getPostReactions(post.id)
+            storage.getContentStore().getPostReactions(post.id, scope)
         ]);
 
         const comments = await filterShadowHidden(req, allComments);
@@ -250,7 +252,7 @@ router.get("/:id", async (req, res) => {
         const commentAuthors = await storage.getUsersByIds(Array.from(new Set(comments.map(c => c.authorId))));
         const authorsMap = new Map(commentAuthors.map(u => [u.id, u]));
         const [likeCounts, likedIds] = await Promise.all([
-            storage.getContentStore().getBatchCommentLikes(commentIds),
+            storage.getContentStore().getBatchCommentLikes(commentIds, scope),
             currentUserId ? storage.getContentStore().getUserCommentLikeIds(currentUserId, commentIds) : Promise.resolve(new Set<number>()),
         ]);
 
@@ -322,9 +324,10 @@ router.get("/", async (req, res) => {
 
         // PERF-FIX [OPT-002]: Batch fetch reactions (Prevents N+1)
         const postIds = filteredPosts.map(p => p.id);
-        const batchReactions = await storage.getBatchPostReactions(postIds);
+        const scope = shadowCountScope(req);
+        const batchReactions = await storage.getContentStore().getBatchPostReactions(postIds, scope);
         const currentUserId = (req.user as any)?.id;
-        const extras = await getPostExtras(postIds, currentUserId);
+        const extras = await getPostExtras(postIds, currentUserId, scope);
 
         const postsWithDetails = await Promise.all(filteredPosts.map(async (post) => {
             const author = authorsMap.get(post.authorId);
@@ -453,7 +456,7 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
             }
         }
 
-        const reactions = await storage.getPostReactions(postId);
+        const reactions = await storage.getContentStore().getPostReactions(postId, shadowCountScope(req));
         const userReaction = await storage.getUserPostReaction(userId, postId);
 
         res.json({ ...post, reactions, userReaction });

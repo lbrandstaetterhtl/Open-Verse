@@ -7,7 +7,7 @@ import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
 import { parseId, validateIdParams } from "../utils/params";
 import { sendValidationError, sendInternalError } from "../utils/http-errors";
-import { canViewPost, canInteractWithPost, broadcastAboutPost } from "../utils/community-access";
+import { canViewPost, canInteractWithPost, broadcastAboutPost, shadowCountScope } from "../utils/community-access";
 
 const router = Router();
 // Malformed ids answer 404 before any handler runs (CONTENT-10, AUTHZ-12).
@@ -58,7 +58,8 @@ router.post("/", isAuthenticated, async (req, res) => {
 
         // Ids only, and only to users who may see the post: clients refetch through the authorised routes
         // (SOCIAL-12, ATK-RT-2).
-        broadcastAboutPost(post, JSON.stringify({ type: 'new_comment', postId: post.id, commentId: comment.id })).catch((err) =>
+        // A shadow-banned commenter's comment is only announced to the commenter and staff.
+        broadcastAboutPost(post, JSON.stringify({ type: 'new_comment', postId: post.id, commentId: comment.id }), comment.authorId).catch((err) =>
             console.error("[WS] new_comment broadcast failed:", err),
         );
 
@@ -120,7 +121,7 @@ router.post("/:id/like", isAuthenticated, async (req, res) => {
             metadata: { postId: comment.postId, authorId: comment.authorId }
         }).catch(err => console.error('[Monitor] comment.react failed:', err));
 
-        const likesCount = await storage.getCommentLikes(commentId);
+        const likesCount = await storage.getContentStore().getCommentLikes(commentId, shadowCountScope(req));
         res.json({ likes: likesCount, isLiked: liked });
     } catch (error) {
         sendInternalError(res, error, "POST /api/comments/:id/like");

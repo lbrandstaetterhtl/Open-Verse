@@ -20,6 +20,20 @@ const LOCK_POST_REACTION = 7302;
 const LOCK_COMMENT_LIKE = 7303;
 const LOCK_REPORT = 7304;
 
+/**
+ * Which accounts a count includes (see shadowCountScope in utils/community-access.ts). Without a scope
+ * everything is counted (internal callers: karma, moderation).
+ */
+export type ShadowScope = { includeShadowBanned: boolean; viewerId?: number };
+const countsAll = (scope?: ShadowScope) => !scope || scope.includeShadowBanned;
+const viewerParam = (scope?: ShadowScope) => (scope?.viewerId && Number.isInteger(scope.viewerId) ? scope.viewerId : -1);
+/** Postgres condition: the account in `column` is not shadow-banned, or is the viewer. */
+const visibleAccount = (column: any, scope?: ShadowScope) =>
+  sql`(${column} = ${viewerParam(scope)} OR NOT EXISTS (SELECT 1 FROM users su WHERE su.id = ${column} AND su.is_shadow_banned = 1))`;
+/** The same for SQLite (`column` is trusted SQL text; one bound parameter: the viewer id). */
+const visibleAccountSqlite = (column: string) =>
+  `(${column} = ? OR NOT EXISTS (SELECT 1 FROM users su WHERE su.id = ${column} AND su.is_shadow_banned = 1))`;
+
 const lockFor = (tx: any, namespace: number, userId: number) =>
   tx.execute(sql`select pg_advisory_xact_lock(${namespace}::int, ${userId}::int)`);
 
@@ -385,31 +399,24 @@ export class ContentStorage {
     return reaction ? { isLike: !!reaction.isLike } : null;
   }
 
-  async getPostReactions(postId: number): Promise<{ likes: number; dislikes: number }> {
-    const sqlite = getSqlite();
-    if (process.env.USE_SQLITE === "true" && sqlite) {
-      const likes = sqlite.prepare("SELECT COUNT(*) as count FROM post_likes WHERE post_id = ? AND is_like = 1").get(postId) as { count: number };
-      const dislikes = sqlite.prepare("SELECT COUNT(*) as count FROM post_likes WHERE post_id = ? AND is_like = 0").get(postId) as { count: number };
-      return { likes: likes.count, dislikes: dislikes.count };
-    }
-    const likes = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.isLike, 1)));
-    const dislikes = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.isLike, 0)));
-    return { likes: likes[0].count, dislikes: dislikes[0].count };
+  async getPostReactions(postId: number, scope?: ShadowScope): Promise<{ likes: number; dislikes: number }> {
+    return (await this.getBatchPostReactions([postId], scope)).get(postId) ?? { likes: 0, dislikes: 0 };
   }
 
-  async getBatchPostReactions(postIds: number[]): Promise<Map<number, { likes: number; dislikes: number }>> {
+  async getBatchPostReactions(postIds: number[], scope?: ShadowScope): Promise<Map<number, { likes: number; dislikes: number }>> {
     const results = new Map<number, { likes: number; dislikes: number }>();
     if (postIds.length === 0) return results;
 
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const placeholders = postIds.map(() => "?").join(",");
+      const shadow = countsAll(scope) ? "" : ` AND ${visibleAccountSqlite("post_likes.user_id")}`;
       const rows = sqlite.prepare(`
         SELECT post_id, is_like, COUNT(*) as count 
         FROM post_likes 
-        WHERE post_id IN (${placeholders}) 
+        WHERE post_id IN (${placeholders})${shadow}
         GROUP BY post_id, is_like
-      `).all(...postIds);
+      `).all(...postIds, ...(shadow ? [viewerParam(scope)] : []));
 
       postIds.forEach(id => results.set(id, { likes: 0, dislikes: 0 }));
       rows.forEach((row: any) => {
@@ -421,7 +428,8 @@ export class ContentStorage {
       return results;
     }
 
-    const rows = await db.select({ postId: postLikes.postId, isLike: postLikes.isLike, count: sql<number>`count(*)`.mapWith(Number) }).from(postLikes).where(inArray(postLikes.postId, postIds)).groupBy(postLikes.postId, postLikes.isLike);
+    const where = countsAll(scope) ? inArray(postLikes.postId, postIds) : and(inArray(postLikes.postId, postIds), visibleAccount(postLikes.userId, scope));
+    const rows = await db.select({ postId: postLikes.postId, isLike: postLikes.isLike, count: sql<number>`count(*)`.mapWith(Number) }).from(postLikes).where(where).groupBy(postLikes.postId, postLikes.isLike);
     postIds.forEach(id => results.set(id, { likes: 0, dislikes: 0 }));
     rows.forEach((row: { postId: number; isLike: boolean; count: number }) => {
       const stats = results.get(row.postId) || { likes: 0, dislikes: 0 };
@@ -461,7 +469,8 @@ export class ContentStorage {
     return !!like;
   }
 
-  async getCommentLikes(commentId: number): Promise<number> {
+  async getCommentLikes(commentId: number, scope?: ShadowScope): Promise<number> {
+    if (!countsAll(scope)) return (await this.getBatchCommentLikes([commentId], scope)).get(commentId) ?? 0;
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const result = sqlite.prepare("SELECT COUNT(*) as count FROM comment_likes WHERE comment_id = ?").get(commentId) as { count: number };
@@ -567,21 +576,22 @@ export class ContentStorage {
   }
 
   /** Like counts for several comments at once. */
-  async getBatchCommentLikes(commentIds: number[]): Promise<Map<number, number>> {
+  async getBatchCommentLikes(commentIds: number[], scope?: ShadowScope): Promise<Map<number, number>> {
     const counts = new Map<number, number>();
     if (commentIds.length === 0) return counts;
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
+      const shadow = countsAll(scope) ? "" : ` AND ${visibleAccountSqlite("comment_likes.user_id")}`;
       const rows = sqlite
-        .prepare(`SELECT comment_id, COUNT(*) AS n FROM comment_likes WHERE comment_id IN (${commentIds.map(() => "?").join(",")}) GROUP BY comment_id`)
-        .all(...commentIds) as any[];
+        .prepare(`SELECT comment_id, COUNT(*) AS n FROM comment_likes WHERE comment_id IN (${commentIds.map(() => "?").join(",")})${shadow} GROUP BY comment_id`)
+        .all(...commentIds, ...(shadow ? [viewerParam(scope)] : [])) as any[];
       rows.forEach((r) => counts.set(r.comment_id, Number(r.n)));
       return counts;
     }
     const rows = await db
       .select({ commentId: commentLikes.commentId, n: sql<number>`count(*)`.mapWith(Number) })
       .from(commentLikes)
-      .where(inArray(commentLikes.commentId, commentIds))
+      .where(countsAll(scope) ? inArray(commentLikes.commentId, commentIds) : and(inArray(commentLikes.commentId, commentIds), visibleAccount(commentLikes.userId, scope)))
       .groupBy(commentLikes.commentId);
     rows.forEach((r: any) => counts.set(r.commentId, Number(r.n)));
     return counts;
@@ -697,21 +707,22 @@ export class ContentStorage {
   }
 
   /** Number of comments per post, for the feed cards. */
-  async getBatchCommentCounts(postIds: number[]): Promise<Map<number, number>> {
+  async getBatchCommentCounts(postIds: number[], scope?: ShadowScope): Promise<Map<number, number>> {
     const counts = new Map<number, number>();
     if (postIds.length === 0) return counts;
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
+      const shadow = countsAll(scope) ? "" : ` AND ${visibleAccountSqlite("comments.author_id")}`;
       const rows = sqlite
-        .prepare(`SELECT post_id, COUNT(*) AS n FROM comments WHERE post_id IN (${postIds.map(() => "?").join(",")}) GROUP BY post_id`)
-        .all(...postIds) as { post_id: number; n: number }[];
+        .prepare(`SELECT post_id, COUNT(*) AS n FROM comments WHERE post_id IN (${postIds.map(() => "?").join(",")})${shadow} GROUP BY post_id`)
+        .all(...postIds, ...(shadow ? [viewerParam(scope)] : [])) as { post_id: number; n: number }[];
       rows.forEach((r) => counts.set(r.post_id, Number(r.n)));
       return counts;
     }
     const rows = await db
       .select({ postId: comments.postId, n: sql<number>`count(*)`.mapWith(Number) })
       .from(comments)
-      .where(inArray(comments.postId, postIds))
+      .where(countsAll(scope) ? inArray(comments.postId, postIds) : and(inArray(comments.postId, postIds), visibleAccount(comments.authorId, scope)))
       .groupBy(comments.postId);
     rows.forEach((r: { postId: number; n: number }) => counts.set(r.postId, Number(r.n)));
     return counts;

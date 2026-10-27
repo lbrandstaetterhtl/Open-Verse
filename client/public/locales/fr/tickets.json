@@ -183,8 +183,7 @@
     "statusPhase": "Phase du statut",
     "priorityLevel": "Niveau de priorité",
     "relatedSignal": "Signal associé",
-    "assignedPersonnel": "Personnel attribué",
-    "selectStaff": "Choisir un membre de l'équipe"
+    "assignedPersonnel": "Personnel attribué"
   },
   "assignment": {
     "unassigned": "En attente d'un pilote",

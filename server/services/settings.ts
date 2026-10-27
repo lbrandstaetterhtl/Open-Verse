@@ -1,9 +1,16 @@
 import { db } from "../db";
 import { adminSettings } from "@shared/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, not, like, ne } from "drizzle-orm";
 import { activityLogger } from "./activity-logger";
 import { type Request } from "express";
 import { logger } from "../logger";
+import { decryptSecret, encryptSecret, isEncryptedSecret } from "../db-maintenance/secret-box";
+
+/** What GET /api/admin/settings shows instead of a secret value; saving it back keeps the stored value. */
+export const MASKED_SECRET = "********";
+
+const SMTP_PASSWORD_DESCRIPTION = "Password or API key for the SMTP server. Stored encrypted (key derived from SESSION_SECRET) and never shown again; changing SESSION_SECRET requires entering it again. Currently not used: email is sent via SENDGRID_API_KEY.";
+const OLD_SMTP_PASSWORD_DESCRIPTION = "Password or API Key for the SMTP server. This value is encrypted and hidden.";
 
 /* FEATURE [AS-003]: Admin Settings – Implementation of the central settings service. */
 export class SettingsService {
@@ -31,7 +38,12 @@ export class SettingsService {
 
       if (!setting) return defaultValue ?? null;
 
-      let parsedValue: any = setting.value;
+      // Secret settings are stored encrypted (legacy clear text is read as is)
+      const rawValue = setting.isSensitive ? decryptSecret(setting.value) : setting.value;
+      if (setting.isSensitive && setting.value && rawValue === null) {
+        logger.warn('system', `Setting ${cacheKey} cannot be decrypted (SESSION_SECRET changed?); enter it again`);
+      }
+      let parsedValue: any = rawValue;
       if (setting.valueType === "boolean") parsedValue = setting.value === "true";
       else if (setting.valueType === "integer") parsedValue = parseInt(setting.value || "0");
       else if (setting.valueType === "json") {
@@ -50,9 +62,18 @@ export class SettingsService {
     const user = req.user as any;
     const adminId = user?.id;
 
+    const [current] = await db
+      .select({ isSensitive: adminSettings.isSensitive })
+      .from(adminSettings)
+      .where(and(eq(adminSettings.category, category), eq(adminSettings.key, key)));
+    const sensitive = !!current?.isSensitive;
+    // The settings page shows secrets masked; saving the mask unchanged must not overwrite the secret
+    if (sensitive && value === MASKED_SECRET) return;
+
     // Get current value for logging
-    const oldValue = await this.get(category, key);
-    const stringValue = typeof value === "string" ? value : JSON.stringify(value);
+    const oldValue = sensitive ? null : await this.get(category, key);
+    const plainValue = typeof value === "string" ? value : JSON.stringify(value);
+    const stringValue = sensitive ? encryptSecret(plainValue) : plainValue;
 
     await db
       .update(adminSettings)
@@ -79,8 +100,8 @@ export class SettingsService {
       targetId: key,
       targetLabel: `${category}.${key}`,
       description: `Updated setting ${category}.${key}`,
-      oldValue: setting?.isSensitive ? "********" : oldValue,
-      newValue: setting?.isSensitive ? "********" : value,
+      oldValue: setting?.isSensitive ? MASKED_SECRET : oldValue,
+      newValue: setting?.isSensitive ? MASKED_SECRET : value,
       severity: "warning",
       status: "success",
     }).catch(err => logger.error('system', 'admin.settings_change activity log failed', err));
@@ -110,12 +131,13 @@ export class SettingsService {
       { category: "security", key: "session_timeout_minutes", label: "Session Timeout", value: "0", valueType: "integer", description: "Minutes of inactivity after which a session ends (minimum 5, 0 = off; sessions end after 24 hours in any case)." },
       { category: "security", key: "max_login_attempts", label: "Max Login Attempts", value: "5", valueType: "integer", description: "Not enforced: an account is locked for 15 minutes after 20 failed logins (a low value would let anyone lock other users out)." },
       { category: "security", key: "admin_ip_allowlist", label: "Admin IP Allowlist", value: "", valueType: "text", description: "Comma-separated list of IP addresses allowed to access the admin dashboard. Leave blank to disable." },
+      { category: "security", key: "data_retention_days", label: "Activity Log Retention (Days)", value: "90", valueType: "integer", description: "Activity logs and anomaly events (with IP addresses and user agents) older than this are deleted once a day. 0 = keep forever." },
       
       // Email
       { category: "email", key: "smtp_host", label: "SMTP Host", value: "smtp.sendgrid.net", valueType: "string", description: "Hostname of the outgoing mail server used for system notifications." },
       { category: "email", key: "smtp_port", label: "SMTP Port", value: "587", valueType: "integer", description: "Port number for the SMTP server (usually 587 for TLS or 465 for SSL)." },
       { category: "email", key: "smtp_user", label: "SMTP User", value: "apikey", valueType: "string", description: "Username used to authenticate with the SMTP server." },
-      { category: "email", key: "smtp_password", label: "SMTP Password", value: "", valueType: "string", description: "Password or API Key for the SMTP server. This value is encrypted and hidden." },
+      { category: "email", key: "smtp_password", label: "SMTP Password", value: "", valueType: "string", description: SMTP_PASSWORD_DESCRIPTION },
       
       // Appearance
       { category: "appearance", key: "theme", label: "Default Site Theme", value: "dark", valueType: "string", description: "The default visual theme applied for guests and new registrations." },
@@ -148,6 +170,31 @@ export class SettingsService {
     }
 
     await this.disableUnchangedSessionTimeout();
+    await this.encryptStoredSecrets();
+  }
+
+  /**
+   * Secret settings used to be stored in clear text: encrypt any such value (idempotent, only values without
+   * the "enc:v1:" prefix) and correct the old description that claimed it was encrypted.
+   */
+  private static async encryptStoredSecrets() {
+    try {
+      const plain = await db
+        .select({ id: adminSettings.id, category: adminSettings.category, key: adminSettings.key, value: adminSettings.value })
+        .from(adminSettings)
+        .where(and(eq(adminSettings.isSensitive, 1), ne(adminSettings.value, ""), not(like(adminSettings.value, "enc:v1:%"))));
+      for (const row of plain) {
+        if (!row.value || isEncryptedSecret(row.value)) continue;
+        await db.update(adminSettings).set({ value: encryptSecret(row.value) }).where(eq(adminSettings.id, row.id));
+        this.cache.delete(`${row.category}:${row.key}`);
+        logger.info('system', `Setting ${row.category}.${row.key} is now stored encrypted`);
+      }
+      await db.update(adminSettings)
+        .set({ description: SMTP_PASSWORD_DESCRIPTION })
+        .where(and(eq(adminSettings.category, "email"), eq(adminSettings.key, "smtp_password"), eq(adminSettings.description, OLD_SMTP_PASSWORD_DESCRIPTION)));
+    } catch (error) {
+      logger.error('system', 'Failed to encrypt stored secret settings', error);
+    }
   }
 
   /**

@@ -9,15 +9,30 @@ import i18n from "./i18n";
 let reverse: Map<string, string> | null = null;
 let reverseSource: unknown = null;
 
+let staffReverse: Map<string, string> | null = null;
+let staffReverseSource: unknown = null;
+
+const reverseMap = (bundle: Record<string, unknown>) =>
+  new Map(Object.entries(bundle).filter(([, v]) => typeof v === "string").map(([key, value]) => [value as string, key]));
+
 export function translateServerMessage(text: string): string {
   const english = i18n.getResourceBundle("en", "server") as Record<string, string> | undefined;
   if (!english) return text;
   if (reverseSource !== english) {
-    reverse = new Map(Object.entries(english).filter(([, v]) => typeof v === "string").map(([key, value]) => [value, key]));
+    reverse = reverseMap(english);
     reverseSource = english;
   }
   const key = reverse!.get(text.trim());
-  return key ? i18n.t(`server:${key}`, { defaultValue: text }) : text;
+  if (key) return i18n.t(`server:${key}`, { defaultValue: text });
+  // Texts only the admin API sends: "staffServer" namespace, loaded for staff only (lib/staff.tsx)
+  const staffEnglish = i18n.getResourceBundle("en", "staffServer") as Record<string, string> | undefined;
+  if (!staffEnglish) return text;
+  if (staffReverseSource !== staffEnglish) {
+    staffReverse = reverseMap(staffEnglish);
+    staffReverseSource = staffEnglish;
+  }
+  const staffKey = staffReverse!.get(text.trim());
+  return staffKey ? i18n.t(`staffServer:${staffKey}`, { defaultValue: text }) : text;
 }
 
 /** Error thrown for non-2xx API responses: readable, translated message plus the HTTP status. */

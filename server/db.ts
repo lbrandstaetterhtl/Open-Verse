@@ -10,15 +10,106 @@ import * as schema from "@shared/schema";
 import path from "path";
 import fs from "fs";
 import { logger } from "./logger";
-import { dbLogger } from "./logger/service-loggers";
+import { warnAboutWeakSecrets } from "./db-maintenance/secrets-check";
 
 
 const useSqlite = process.env.USE_SQLITE === "true";
 logger.info('db', "Initializing database connection", { useSqlite });
+warnAboutWeakSecrets();
 
 let pool: NeonPool | pg.Pool | null = null;
 let db: any;
 let sqlite: any = null;
+
+/**
+ * Which credentials the process uses (PostgreSQL only):
+ * - "single":   DATABASE_URL for everything (default, unchanged behaviour).
+ * - "split":    DB_APP_PASSWORD is set: migrations/DDL use DATABASE_URL (owner/superuser), all queries of the
+ *               running app use the least-privilege role openverse_app (DML only), created by the migrations.
+ * - "app-only": DB_APP_USER is set without DB_APP_PASSWORD (docker-compose with DB_APP_PASSWORD: the app
+ *               container only gets the app role's credentials, the one-shot `migrate` service runs the DDL).
+ *               The app performs no DDL at all.
+ */
+export type DbRoleMode = "single" | "split" | "app-only";
+export const DEFAULT_APP_ROLE = "openverse_app";
+const appPassword = process.env.DB_APP_PASSWORD?.trim() || undefined;
+const appUserEnv = process.env.DB_APP_USER?.trim() || undefined;
+export const appRoleName = appUserEnv || DEFAULT_APP_ROLE;
+export const dbRoleMode: DbRoleMode = appPassword ? "split" : appUserEnv ? "app-only" : "single";
+if (!/^[a-z_][a-z0-9_]{0,62}$/.test(appRoleName)) {
+  throw new Error("DB_APP_USER must be a lower-case PostgreSQL identifier (letters, digits, underscore)");
+}
+
+function intEnv(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim();
+  if (!raw) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+}
+
+/** Connection limits and server-side timeouts (0 disables a timeout). */
+export const dbTimeouts = {
+  statementTimeoutMs: intEnv("DB_STATEMENT_TIMEOUT_MS", 15_000),
+  idleInTransactionTimeoutMs: intEnv("DB_IDLE_IN_TRANSACTION_TIMEOUT_MS", 30_000),
+  connectionTimeoutMs: intEnv("DB_CONNECTION_TIMEOUT_MS", 10_000),
+  poolMax: intEnv("DB_POOL_MAX", 10) || 10,
+};
+
+/** DATABASE_URL with other credentials (keeps host, port, database and parameters such as sslmode). */
+function withCredentials(url: string, user: string, password?: string): string {
+  const u = new URL(url);
+  u.username = encodeURIComponent(user);
+  if (password !== undefined) u.password = encodeURIComponent(password);
+  return u.toString();
+}
+
+function poolOptions(connectionString: string, opts: { runtime: boolean }) {
+  return {
+    connectionString,
+    max: opts.runtime ? dbTimeouts.poolMax : 2,
+    connectionTimeoutMillis: dbTimeouts.connectionTimeoutMs,
+    idleTimeoutMillis: opts.runtime ? 30_000 : 5_000,
+    keepAlive: true,
+    application_name: opts.runtime ? "open-verse" : "open-verse-migrate",
+    // Migrations (index builds on big tables) must not be cut off by the runtime limits
+    ...(opts.runtime && dbTimeouts.statementTimeoutMs ? { statement_timeout: dbTimeouts.statementTimeoutMs } : {}),
+    ...(dbTimeouts.idleInTransactionTimeoutMs ? { idle_in_transaction_session_timeout: dbTimeouts.idleInTransactionTimeoutMs } : {}),
+  };
+}
+
+/**
+ * Without an 'error' listener, an idle pooled connection that the server closes (Postgres restart, failover,
+ * pg_terminate_backend, idle-connection killer) is an uncaught exception. The pool drops that connection
+ * and opens a new one on the next query, so logging is all that is needed.
+ */
+function attachPoolErrorHandler(p: NeonPool | pg.Pool, label: string) {
+  let lastLog = 0;
+  let suppressed = 0;
+  (p as any).on("error", (err: unknown) => {
+    const now = Date.now();
+    if (now - lastLog < 5_000) { suppressed++; return; }
+    logger.error('db', `Idle ${label} connection lost (the pool reconnects on the next query)${suppressed ? `; ${suppressed} similar message(s) suppressed` : ''}`, err);
+    lastLog = now;
+    suppressed = 0;
+  });
+}
+
+function createPgPool(connectionString: string, opts: { runtime: boolean }): NeonPool | pg.Pool {
+  const options = poolOptions(connectionString, opts);
+  let p: NeonPool | pg.Pool;
+  if (connectionString.includes("neon.tech")) {
+    neonConfig.webSocketConstructor = ws;
+    p = new NeonPool(options as any);
+  } else {
+    p = new pg.Pool(options);
+  }
+  attachPoolErrorHandler(p, opts.runtime ? "database" : "migration");
+  return p;
+}
+
+function drizzleFor(p: NeonPool | pg.Pool) {
+  return p instanceof pg.Pool ? drizzlePg(p, { schema }) : drizzleNeon({ client: p as NeonPool, schema });
+}
 
 if (useSqlite) {
   logger.info('db', "Using SQLite database for local development");
@@ -37,8 +128,10 @@ if (useSqlite) {
   }
 
   logger.info('db', "SQLite DB Path", { path: dbPath });
+  prepareSqliteFile(dbPath);
 
   sqlite = new Database(dbPath);
+  restrictSqliteFiles(dbPath);
 
   /* PERF-FIX [OPT-001]: SQLite PRAGMA Optimizations (WAL-mode, Cache, Optimize) */
   sqlite.pragma('journal_mode = WAL');
@@ -659,6 +752,30 @@ if (useSqlite) {
   } catch {
     // Ignore if from_user_id doesn't exist
   }
+
+  // Hot-lookup indexes (same as migrations/0004_hot_indexes.sql for PostgreSQL)
+  for (const ddl of [
+    "CREATE INDEX IF NOT EXISTS posts_author_created_idx ON posts(author_id, created_at)",
+    "CREATE INDEX IF NOT EXISTS posts_community_created_idx ON posts(community_id, created_at)",
+    "CREATE INDEX IF NOT EXISTS posts_created_idx ON posts(created_at)",
+    "CREATE INDEX IF NOT EXISTS comments_post_created_idx ON comments(post_id, created_at)",
+    "CREATE INDEX IF NOT EXISTS comments_author_idx ON comments(author_id)",
+    "CREATE INDEX IF NOT EXISTS post_likes_post_idx ON post_likes(post_id)",
+    "CREATE INDEX IF NOT EXISTS comment_likes_comment_idx ON comment_likes(comment_id)",
+    "CREATE INDEX IF NOT EXISTS notifications_user_created_idx ON notifications(user_id, created_at)",
+    "CREATE INDEX IF NOT EXISTS messages_sender_receiver_created_idx ON messages(sender_id, receiver_id, created_at)",
+    "CREATE INDEX IF NOT EXISTS followers_follower_following_idx ON followers(follower_id, following_id)",
+    "CREATE INDEX IF NOT EXISTS followers_following_idx ON followers(following_id)",
+    "CREATE INDEX IF NOT EXISTS community_members_user_idx ON community_members(user_id)",
+    "CREATE INDEX IF NOT EXISTS reports_reporter_idx ON reports(reporter_id)",
+    "CREATE INDEX IF NOT EXISTS verification_tokens_user_idx ON verification_tokens(user_id)",
+    "CREATE INDEX IF NOT EXISTS anomaly_events_user_type_created_idx ON anomaly_events(user_id, anomaly_type, created_at)",
+    "CREATE INDEX IF NOT EXISTS activity_logs_ip_created_idx ON activity_logs(ip_address, created_at)",
+    "CREATE INDEX IF NOT EXISTS activity_logs_action_created_idx ON activity_logs(action, created_at)",
+  ]) {
+    try { sqlite.exec(ddl); } catch (err) { logger.warn('db', `SQLite index not created: ${ddl}`, { error: String(err) }); }
+  }
+  restrictSqliteFiles(dbPath);
 } else {
   if (!process.env.DATABASE_URL) {
     if (process.env.NODE_ENV === "production") {
@@ -677,15 +794,70 @@ if (useSqlite) {
       db = null;
     }
   } else {
-    if (process.env.DATABASE_URL.includes("neon.tech")) {
-      logger.info('db', "Using Neon PostgreSQL database");
-      neonConfig.webSocketConstructor = ws;
-      pool = new NeonPool({ connectionString: process.env.DATABASE_URL });
-      db = drizzleNeon({ client: pool, schema });
-    } else {
-      logger.info('db', "Using standard PostgreSQL database");
-      pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-      db = drizzlePg(pool, { schema });
+    const baseUrl = process.env.DATABASE_URL;
+    const runtimeUrl = dbRoleMode === "split" ? withCredentials(baseUrl, appRoleName, appPassword)
+      : dbRoleMode === "app-only" ? withCredentials(baseUrl, appRoleName)
+      : baseUrl;
+    logger.info('db', `Using ${baseUrl.includes("neon.tech") ? "Neon" : "standard"} PostgreSQL database`, {
+      role: dbRoleMode === "single" ? "DATABASE_URL user" : appRoleName,
+      mode: dbRoleMode,
+      statementTimeoutMs: dbTimeouts.statementTimeoutMs,
+      poolMax: dbTimeouts.poolMax,
+    });
+    pool = createPgPool(runtimeUrl, { runtime: true });
+    db = drizzleFor(pool);
+  }
+}
+
+// ── Migration connection ────────────────────────────────────────────────
+// Schema changes run on their own small pool without the runtime statement timeout, with the DATABASE_URL
+// credentials (owner/superuser). In "app-only" mode there are no such credentials: getMigrationPool() is null
+// and the app performs no DDL (the migrate service has done it).
+let migrationPool: NeonPool | pg.Pool | null = null;
+let migrationDb: any = null;
+
+export function getMigrationPool(): NeonPool | pg.Pool | null {
+  if (useSqlite || dbRoleMode === "app-only" || !process.env.DATABASE_URL) return null;
+  if (!migrationPool) {
+    migrationPool = createPgPool(process.env.DATABASE_URL, { runtime: false });
+    migrationDb = drizzleFor(migrationPool);
+  }
+  return migrationPool;
+}
+
+export function getMigrationDb(): any {
+  return getMigrationPool() ? migrationDb : null;
+}
+
+export async function closeMigrationDb() {
+  const p = migrationPool;
+  migrationPool = null;
+  migrationDb = null;
+  if (p) await p.end().catch(() => undefined);
+}
+
+// ── SQLite file protection ──────────────────────────────────────────────
+// The database (password hashes, sessions) must never be inside the publicly served uploads folder, and only
+// the app's own user may read it.
+function prepareSqliteFile(dbPath: string) {
+  const uploadsDir = path.resolve(process.cwd(), "uploads");
+  const real = (p: string) => { try { return fs.realpathSync(p); } catch { return path.resolve(p); } };
+  const dir = path.dirname(dbPath);
+  const rel = path.relative(real(uploadsDir), path.join(real(dir), path.basename(dbPath)));
+  if (rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel))) {
+    const msg = `SQLITE_PATH (${dbPath}) is inside the public uploads folder, where anyone could download the database. Move the file outside "uploads" (e.g. data/local.db) and set SQLITE_PATH accordingly.`;
+    logger.critical('db', msg);
+    throw new Error(msg);
+  }
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  if (!fs.existsSync(dbPath)) fs.closeSync(fs.openSync(dbPath, "a", 0o600));
+}
+
+function restrictSqliteFiles(dbPath: string) {
+  // SQLite creates -wal/-shm with the permissions of the database file
+  for (const file of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`, `${dbPath}-journal`]) {
+    try { if (fs.existsSync(file)) fs.chmodSync(file, 0o600); } catch (err) {
+      logger.warn('db', `Could not restrict the permissions of ${path.basename(file)} to 0600`, { error: String(err) });
     }
   }
 }
@@ -699,6 +871,7 @@ export async function closeDb() {
     logger.info('db', "Closing SQLite database...");
     sqlite.close();
   }
+  await closeMigrationDb();
   if (pool) {
     logger.info('db', "Closing Postgres pool...");
     await pool.end();

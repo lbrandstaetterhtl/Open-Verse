@@ -26,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import type { UpdateProfile, User } from "@shared/schema";
-import { updateProfileSchema } from "@shared/schema";
+import { updateProfileSchema } from "@shared/validation";
 import { useTranslation } from "react-i18next";
 import { Loader2, Globe, MapPin, AtSign, User as UserIcon, Lock, Camera, Palette, Shield, Info, Image as ImageIcon, KeyRound } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

@@ -3,6 +3,7 @@ import { activityLogs } from "@shared/schema";
 import { anomalyDetector } from "./anomaly-detector";
 import type { Request } from "express";
 import { logger } from "../logger";
+import { truncateUserAgent } from "../utils/redact";
 
 export interface LogEntry {
   userId?: number;
@@ -77,7 +78,7 @@ class ActivityLoggerService {
 
     try {
       const recordsToInsert = batch.map(entry => {
-        const deviceInfo = this.parseUserAgent(entry.req?.headers['user-agent']);
+        const deviceInfo = this.parseUserAgent(truncateUserAgent(entry.req?.headers['user-agent']));
         return {
           userId: entry.userId,
           userEmail: entry.userEmail,
@@ -94,7 +95,7 @@ class ActivityLoggerService {
           newValue: this.serializeValue(entry.newValue),
           metadata: JSON.stringify(entry.metadata ?? {}),
           ipAddress: entry.req?.ip || entry.req?.socket?.remoteAddress,
-          userAgent: entry.req?.headers['user-agent'],
+          userAgent: truncateUserAgent(entry.req?.headers['user-agent']),
           deviceType: deviceInfo.type,
           deviceOs: deviceInfo.os,
           deviceBrowser: deviceInfo.browser,

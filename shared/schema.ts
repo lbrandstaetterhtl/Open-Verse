@@ -1,8 +1,7 @@
 import { pgTable, text, serial, integer, timestamp, boolean, unique, index, uniqueIndex, real } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { isCommonPassword } from "./common-passwords";
+import { reqText, reqFlag, reqInt } from "./validation";
 
 // APE-FIX [SCHEMA-001]: Universal Schema (Postgres-Native with SQLite Compatibility)
 // Using native timestamp types for Postgres compatibility while keeping integer/boolean logic for SQLite.
@@ -52,7 +51,11 @@ export const verificationTokens = pgTable("verification_tokens", {
   userId: integer("user_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userIdx: index("verification_tokens_user_idx").on(table.userId),
+  expiresIdx: index("verification_tokens_expires_idx").on(table.expiresAt),
+}));
 
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
@@ -65,7 +68,12 @@ export const posts = pgTable("posts", {
   mediaType: text("media_type"),
   communityId: integer("community_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  authorCreatedIdx: index("posts_author_created_idx").on(table.authorId, table.createdAt),
+  communityCreatedIdx: index("posts_community_created_idx").on(table.communityId, table.createdAt),
+  createdIdx: index("posts_created_idx").on(table.createdAt),
+}));
 
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
@@ -74,7 +82,11 @@ export const comments = pgTable("comments", {
   postId: integer("post_id").notNull(),
   karma: integer("karma").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  postCreatedIdx: index("comments_post_created_idx").on(table.postId, table.createdAt),
+  authorIdx: index("comments_author_idx").on(table.authorId),
+}));
 
 export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
@@ -89,14 +101,22 @@ export const reports = pgTable("reports", {
   resolvedBy: integer("resolved_by"),
   resolvedAt: timestamp("resolved_at"),
   resolutionTimeSeconds: integer("resolution_time_seconds"),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  reporterIdx: index("reports_reporter_idx").on(table.reporterId),
+  statusCreatedIdx: index("reports_status_created_idx").on(table.status, table.createdAt),
+}));
 
 export const followers = pgTable("followers", {
   id: serial("id").primaryKey(),
   followerId: integer("follower_id").notNull(),
   followingId: integer("following_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  followerFollowingIdx: index("followers_follower_following_idx").on(table.followerId, table.followingId),
+  followingIdx: index("followers_following_idx").on(table.followingId),
+}));
 
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
@@ -115,7 +135,10 @@ export const notifications = pgTable("notifications", {
   archived: integer("archived").notNull().default(0),
   groupKey: text("group_key"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userCreatedIdx: index("notifications_user_created_idx").on(table.userId, table.createdAt),
+}));
 
 export const adminGroups = pgTable("admin_groups", {
   id: serial("id").primaryKey(),
@@ -133,7 +156,11 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   read: integer("read").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  senderReceiverCreatedIdx: index("messages_sender_receiver_created_idx").on(table.senderId, table.receiverId, table.createdAt),
+  receiverReadIdx: index("messages_receiver_read_idx").on(table.receiverId, table.read),
+}));
 
 export const postLikes = pgTable("post_likes", {
   id: serial("id").primaryKey(),
@@ -144,6 +171,8 @@ export const postLikes = pgTable("post_likes", {
 }, (table) => ({
   // One reaction per user and post (migrations/0003_unique_reactions.sql)
   userPostUnique: uniqueIndex("post_likes_user_post_unique").on(table.userId, table.postId),
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  postIdx: index("post_likes_post_idx").on(table.postId),
 }));
 
 // Bookmarks ("Merken"); unique per user and post (migrations/0002_saved_posts.sql).
@@ -164,6 +193,8 @@ export const commentLikes = pgTable("comment_likes", {
 }, (table) => ({
   // One like per user and comment (migrations/0003_unique_reactions.sql)
   userCommentUnique: uniqueIndex("comment_likes_user_comment_unique").on(table.userId, table.commentId),
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  commentIdx: index("comment_likes_comment_idx").on(table.commentId),
 }));
 
 export const communities = pgTable("communities", {
@@ -187,6 +218,8 @@ export const communityMembers = pgTable("community_members", {
 }, (table) => ({
   // One membership row per user and community (migrations/0003_community_members_unique.sql)
   communityUserUnique: uniqueIndex("community_members_community_user_unique").on(table.communityId, table.userId),
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userIdx: index("community_members_user_idx").on(table.userId),
 }));
 
 export const communityBans = pgTable("community_bans", {
@@ -236,7 +269,15 @@ export const activityLogs = pgTable("activity_logs", {
   anomalyType: text("anomaly_type"),
   anomalyScore: real("anomaly_score"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userCreatedIdx: index("activity_logs_user_created_idx").on(table.userId, table.createdAt),
+  userActionCreatedIdx: index("activity_logs_user_action_created_idx").on(table.userId, table.action, table.createdAt),
+  ipCreatedIdx: index("activity_logs_ip_created_idx").on(table.ipAddress, table.createdAt),
+  actionCreatedIdx: index("activity_logs_action_created_idx").on(table.action, table.createdAt),
+  categoryCreatedIdx: index("activity_logs_category_created_idx").on(table.category, table.createdAt),
+  createdIdx: index("activity_logs_created_idx").on(table.createdAt),
+}));
 
 export const anomalyEvents = pgTable("anomaly_events", {
   id: serial("id").primaryKey(),
@@ -255,7 +296,11 @@ export const anomalyEvents = pgTable("anomaly_events", {
   autoAction: text("auto_action"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userTypeCreatedIdx: index("anomaly_events_user_type_created_idx").on(table.userId, table.anomalyType, table.createdAt),
+  createdIdx: index("anomaly_events_created_idx").on(table.createdAt),
+}));
 
 export const bans = pgTable("bans", {
   id: serial("id").primaryKey(),
@@ -278,7 +323,12 @@ export const bans = pgTable("bans", {
   revokeReason: text("revoke_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userIdx: index("bans_user_idx").on(table.userId),
+  ipIdx: index("bans_ip_idx").on(table.ipAddress),
+  deviceIdx: index("bans_device_idx").on(table.deviceFingerprint),
+}));
 
 export const autoPunishmentRules = pgTable("auto_punishment_rules", {
   id: serial("id").primaryKey(),
@@ -334,7 +384,11 @@ export const tickets = pgTable("tickets", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  createdByIdx: index("tickets_created_by_idx").on(table.createdBy),
+  assignedToIdx: index("tickets_assigned_to_idx").on(table.assignedTo),
+}));
 
 export const ticketComments = pgTable("ticket_comments", {
   id: serial("id").primaryKey(),
@@ -371,7 +425,10 @@ export const systemMetrics = pgTable("system_metrics", {
   periodEnd: timestamp("period_end").notNull(),
   granularity: text("granularity").default("minute"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  namePeriodIdx: index("system_metrics_name_period_idx").on(table.metricName, table.periodStart),
+}));
 
 export const alertRules = pgTable("alert_rules", {
   id: serial("id").primaryKey(),
@@ -538,25 +595,11 @@ export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snap
     .on(table.moderatorId, table.snapshotDate, table.period),
 }));
 
-// Zod schemas
-// Public registration may only set these fields; role, karma, verification etc. stay at their defaults.
-// Account field rules, shared by registration and the profile edit
-export const usernameField = z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, '.', '_' and '-' are allowed");
-export const emailField = z.string().trim().max(254).email();
-export const newPasswordField = z.string().min(8).max(128)
-  .refine((p) => !isCommonPassword(p), "This password is too common. Please choose another one.");
-export const insertUserSchema = z.object({
-  username: usernameField,
-  email: emailField,
-  password: newPasswordField,
-});
-// Admin/ticket/theme request schemas: only client-editable fields, trimmed text with length limits, no NUL
-// characters (Postgres rejects them), 0/1 flags only (int columns).
-const reqText = (max: number, min = 0) =>
-  z.string().trim().min(min).max(max).refine((s) => !s.includes("\u0000"), { message: "Invalid characters" });
-const reqFlag = z.union([z.boolean(), z.literal(0), z.literal(1)]).transform((v) => (v === true || v === 1 ? 1 : 0));
-const reqInt = (min: number, max: number) => z.number().int().min(min).max(max);
+// Zod request schemas live in ./validation (no drizzle there, the browser imports it); re-exported here for the server.
+export * from "./validation";
 
+// Admin API request schemas: server only. They stay out of ./validation because the browser bundles that module
+// in full (zod schema objects cannot be tree-shaken), and these would describe the admin API to every visitor.
 /** Admin group create; `permissions` is validated against the known permission names in the route. */
 export const insertAdminGroupSchema = z.object({
   name: reqText(50, 1),
@@ -566,39 +609,6 @@ export const insertAdminGroupSchema = z.object({
   color: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "Invalid color")
     .transform((c) => (c.length === 4 ? `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}` : c))
     .optional(),
-});
-// Community creation: only these fields are accepted (id, createdAt etc. are dropped); creatorId and slug are set by the server.
-const noNul = (s: string) => !s.includes("\u0000");
-const HAS_LETTER_OR_DIGIT = new RegExp("[\\p{L}\\p{N}]", "u"); // any script, not only ASCII
-// Comma list of post categories (same names as POST_CATEGORIES in server/routes/posts.ts)
-const COMMUNITY_CATEGORIES = /^(news|entertainment|discussion|general)(,(news|entertainment|discussion|general)){0,3}$/;
-export const insertCommunitySchema = z.object({
-  name: z.string().trim().min(3).max(100)
-    .refine(noNul, "Invalid characters")
-    .refine((s) => HAS_LETTER_OR_DIGIT.test(s), "The name must contain letters or digits"),
-  description: z.string().trim().max(1000).refine(noNul, "Invalid characters").nullable().optional(),
-  imageUrl: z.union([
-    z.literal(""),
-    z.string().trim().max(2048).url().refine((u) => /^https?:\/\//i.test(u), "Only http(s) image URLs are allowed"),
-    z.string().regex(/^\/uploads\/[\w.-]+$/).refine((u) => !u.includes(".."), "Invalid image URL"),
-  ]).nullable().optional(),
-  allowedCategories: z.union([z.literal(""), z.string().regex(COMMUNITY_CATEGORIES)]).optional(),
-  isPrivate: z.boolean().optional().default(false),
-  creatorId: z.number().nullable().optional(),
-  slug: z.string().nullable().optional(),
-});
-// Themes: the owner comes from the session; id/createdAt are never taken from the request.
-export const insertThemeSchema = z.object({
-  name: reqText(60, 1),
-  // JSON object with the theme tokens (see client/src/lib/theme-utils.ts)
-  colors: reqText(20000, 1).refine((s) => {
-    try {
-      const v = JSON.parse(s);
-      return !!v && typeof v === "object" && !Array.isArray(v);
-    } catch {
-      return false;
-    }
-  }, { message: "Invalid format" }),
 });
 export const AUTO_PUNISHMENT_ACTIONS = ["warn", "freeze", "shadow_ban", "temp_ban", "permanent_ban", "ip_ban", "hardware_ban"] as const;
 export const insertAutoPunishmentRuleSchema = z.object({
@@ -657,84 +667,10 @@ export const adminUpdateUserSchema = z.object({
 });
 export const REPORT_STATUSES = ["pending", "resolved", "rejected"] as const;
 export const adminUpdateReportSchema = z.object({ status: z.enum(REPORT_STATUSES) });
-// Self-service profile edits are limited to cosmetic fields so users cannot change their own role or karma.
-const profileText = (max: number) =>
-  z.string().trim().max(max).refine((v) => !v.includes("\u0000"), "Invalid characters").nullable().optional();
-// Website: empty, or an http(s) URL; a bare domain ("example.com") gets https:// in front.
-const websiteField = z.string().trim().max(200)
-  .transform((v) => (v === "" || /^[a-z][a-z0-9+.-]*:/i.test(v) ? v : `https://${v}`))
-  .refine((v) => {
-    if (v === "") return true;
-    if (/[\s<>"\u0000]/.test(v)) return false;
-    try {
-      const u = new URL(v);
-      return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.includes(".");
-    } catch {
-      return false;
-    }
-  }, "Website must be an http(s) URL")
-  .nullable()
-  .optional();
-export const updateProfileSchema = z.object({
-  username: usernameField.optional(),
-  email: emailField.optional(),
-  displayName: profileText(100),
-  bio: profileText(500),
-  location: profileText(100),
-  website: websiteField,
-  avatarUrl: profileText(500),
-  coverUrl: profileText(500),
-  profilePictureUrl: profileText(500),
-  // 0/1 or true/false only (any other number used to be stored as is)
-  isPrivate: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform((v) => (v === true || v === 1 ? 1 : 0)).optional(),
-});
-export const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(1).max(1024),
-  newPassword: newPasswordField,
-});
-// Direct messages: the sender is the logged-in user; other body fields (senderId, read, id) are dropped.
-export const messageSchema = z.object({
-  receiverId: z.number().int().positive().max(2147483647),
-  content: z.string().trim().min(1).max(5000).refine((s) => !s.includes("\u0000"), "Invalid characters"),
-});
-export const loginSchema = z.object({ username: z.string().min(1), password: z.string().min(1) });
-
-// Specialized Post Schemas for the Frontend
-export const insertMediaPostSchema = createInsertSchema(posts).extend({
-  mediaFile: z.any().optional(),
-  authorId: z.number().optional(),
-  category: z.string().optional(),
-});
-
-export const insertDiscussionPostSchema = createInsertSchema(posts).extend({
-  authorId: z.number().optional(),
-  category: z.string().optional(),
-});
-
-export const insertCommentSchema = z.object({
-  content: z.string().trim().min(1).max(10000).refine((s) => !s.includes("\u0000"), "Invalid characters"),
-  postId: z.number().int().positive().max(2147483647),
-});
-
-const reportTargetId = z.number().int().positive().max(2147483647).optional().nullable();
-export const insertReportSchema = z
-  .object({
-    reason: z.string().trim().min(1).max(1000).refine((s) => !s.includes("\u0000"), "Invalid characters"),
-    postId: reportTargetId,
-    commentId: reportTargetId,
-    discussionId: reportTargetId,
-  })
-  // Exactly one target: a report about nothing, or about two things at once, cannot be handled (CONTENT-7)
-  .refine((r) => [r.postId, r.commentId, r.discussionId].filter((v) => v != null).length === 1, {
-    message: "Exactly one of postId, commentId or discussionId is required",
-    path: ["postId"],
-  });
 
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-export type UpdateProfile = z.infer<typeof updateProfileSchema>;
-export type LoginCredentials = z.infer<typeof loginSchema>;
 export type Post = typeof posts.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Message = typeof messages.$inferSelect;

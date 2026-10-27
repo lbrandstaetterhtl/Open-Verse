@@ -273,7 +273,7 @@ export class CommunityStorage {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const rows = sqlite.prepare(`
-        SELECT cm.*, u.username, u.created_at, u.email_verified, u.is_admin, u.verified, u.karma, u.bio
+        SELECT cm.*, u.username, u.bio, u.profile_picture_url
         FROM community_members cm
         JOIN users u ON cm.user_id = u.id
         WHERE cm.community_id = ?
@@ -285,16 +285,13 @@ export class CommunityStorage {
         userId: row.user_id,
         role: row.role,
         joinedAt: new Date(Number(row.joined_at) * 1000),
+        // Same public fields as the Postgres branch (no email status / admin flag)
         user: {
           id: row.user_id,
           username: row.username,
-          createdAt: new Date(Number(row.created_at) * 1000),
-          emailVerified: Boolean(row.email_verified),
-          isAdmin: Boolean(row.is_admin),
-          verified: Boolean(row.verified),
-          karma: row.karma,
           bio: row.bio,
-        },
+          profilePictureUrl: row.profile_picture_url,
+        } as any,
       }));
     }
 

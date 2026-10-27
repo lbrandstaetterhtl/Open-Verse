@@ -18,6 +18,24 @@ const fail = (res: Response, status: number, error: string, code?: string) =>
 /** Query values are only used when they are plain strings (?type[]=a, ?type[a]=b or repeated keys are ignored). */
 const queryString = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
 
+/** Report outcomes are system notifications: older rows still name the staff member, which is not shown. */
+const SYSTEM_TYPES = new Set(["report_resolved", "report_rejected"]);
+
+/**
+ * Stored notifications as the recipient sees them: without the actor of system notifications, and without
+ * notifications caused by an account that is shadow-banned now (unless the recipient may see its content).
+ */
+async function forRecipient(user: any, list: any[]) {
+    const mayseeShadow = !!user?.isShadowBanned || user?.role === "admin" || user?.role === "owner";
+    const actorIds = Array.from(new Set(list.map((n) => n.actorId).filter((id: any) => typeof id === "number" && id > 0)));
+    const shadow = mayseeShadow || actorIds.length === 0
+        ? new Set<number>()
+        : new Set((await storage.getUsersByIds(actorIds)).filter((u: any) => !!u.isShadowBanned).map((u: any) => u.id));
+    return list
+        .filter((n) => !(n.actorId && shadow.has(n.actorId)))
+        .map((n) => (SYSTEM_TYPES.has(n.type) ? { ...n, actorId: null, actor: null } : n));
+}
+
 /**
  * Get notifications with filters and pagination
  */
@@ -41,7 +59,7 @@ router.get("/", isAuthenticated, async (req, res) => {
             unreadOnly,
             type: type && type.length > 0 ? type : undefined,
         });
-        res.json(notifications);
+        res.json(await forRecipient(req.user as any, notifications));
     } catch (error) {
         console.error("Error getting notifications:", error);
         fail(res, 500, "Failed to get notifications");

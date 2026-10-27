@@ -13,7 +13,8 @@ import { logger } from "../logger";
  */
 export const DEVICE_COOKIE = "ov_device";
 const DEVICE_ID = /^[a-f0-9]{32}$/;
-const TWO_YEARS_MS = 2 * 365 * 24 * 3600 * 1000;
+// Long enough to keep a device ban useful, short enough not to be a long-term tracking id.
+const DEVICE_COOKIE_MAX_AGE_MS = 180 * 24 * 3600 * 1000;
 
 function readCookie(req: Request, name: string): string | undefined {
   const header = req.headers.cookie;
@@ -21,18 +22,30 @@ function readCookie(req: Request, name: string): string | undefined {
   for (const part of header.split(";")) {
     const eqAt = part.indexOf("=");
     if (eqAt < 0) continue;
-    if (part.slice(0, eqAt).trim() === name) return decodeURIComponent(part.slice(eqAt + 1).trim());
+    if (part.slice(0, eqAt).trim() === name) {
+      try {
+        return decodeURIComponent(part.slice(eqAt + 1).trim());
+      } catch {
+        return undefined;
+      }
+    }
   }
   return undefined;
 }
 
-export function deviceIdFor(req: Request, res: Response): string | undefined {
+/** The browser's device id, if it has one. Anonymous browsing never creates one. */
+export function deviceIdFor(req: Request): string | undefined {
   const existing = readCookie(req, DEVICE_COOKIE);
-  if (existing && DEVICE_ID.test(existing)) return existing;
-  // Only API requests get a new id: static files stay cacheable without a Set-Cookie header.
-  if (!req.path.startsWith("/api")) return undefined;
-  const id = crypto.randomBytes(16).toString("hex");
-  res.cookie(DEVICE_COOKIE, id, { httpOnly: true, sameSite: "lax", secure: req.secure, maxAge: TWO_YEARS_MS, path: "/" });
+  return existing && DEVICE_ID.test(existing) ? existing : undefined;
+}
+
+/**
+ * Gives the browser a device id (or renews the existing one) when an account signs in or registers, which
+ * is where device bans matter. Visitors who only browse never get this cookie.
+ */
+export function issueDeviceId(req: Request, res: Response): string {
+  const id = deviceIdFor(req) ?? crypto.randomBytes(16).toString("hex");
+  res.cookie(DEVICE_COOKIE, id, { httpOnly: true, sameSite: "lax", secure: req.secure, maxAge: DEVICE_COOKIE_MAX_AGE_MS, path: "/" });
   return id;
 }
 
@@ -42,7 +55,7 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
 
   const ip = req.ip || req.socket.remoteAddress || "unknown";
   const userId = (req.user as any)?.id;
-  const deviceId = deviceIdFor(req, res);
+  const deviceId = deviceIdFor(req);
 
   try {
     const activeBans = await db.select()

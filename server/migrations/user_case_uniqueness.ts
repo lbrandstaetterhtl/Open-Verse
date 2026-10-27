@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { getMigrationDb } from '../db';
 import { sql } from 'drizzle-orm';
 import { logger } from '../logger';
 
@@ -13,6 +13,10 @@ import { logger } from '../logger';
  */
 export async function ensureCaseInsensitiveUserUniqueness() {
   if (process.env.USE_SQLITE === "true") return;
+  // Schema changes need the owner credentials; the app running as the least-privilege role skips them
+  // (the migrate service has run them).
+  const db = getMigrationDb();
+  if (!db) return;
 
   for (const column of ['username', 'email'] as const) {
     const indexName = `users_${column}_lower_unique`;
