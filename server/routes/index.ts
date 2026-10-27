@@ -6,7 +6,7 @@ import { WebSocketServer } from 'ws';
 
 import { setupSession, registerAuthRoutes, validateCsrf, isAccountBanned, createCsrfToken } from "../auth";
 import { staffOnly, sendApiNotFound } from "../middleware/auth";
-import { staffAssetGuard, isStaffAssetPath } from "../middleware/staff-assets-mount";
+import { staffAssetGuard, isStaffAssetPath } from "../staff-assets";
 import { storage } from "../storage";
 import { addConnection, removeConnection } from "../services/websocket";
 import { passwordStamp } from "../utils/password-hash";

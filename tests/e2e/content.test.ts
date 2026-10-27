@@ -779,10 +779,11 @@ describe("content: reports", () => {
     const u = await freshUser("rpls");
     const anon = new Client();
     await anon.refreshCsrf();
-    assert.equal((await anon.get("/api/reports")).status, 401);
-    assert.equal((await u.client.get("/api/reports")).status, 403);
-    assert.equal((await u.client.patch("/api/reports/1", { status: "rejected" })).status, 403);
-    assert.equal((await anon.patch("/api/reports/1", { status: "rejected" })).status, 401);
+    // Staff-only routes answer non-staff exactly like an unknown route (404), see EXP-BUNDLE-14
+    assert.equal((await anon.get("/api/reports")).status, 404);
+    assert.equal((await u.client.get("/api/reports")).status, 404);
+    assert.equal((await u.client.patch("/api/reports/1", { status: "rejected" })).status, 404);
+    assert.equal((await anon.patch("/api/reports/1", { status: "rejected" })).status, 404);
     const list = await admin.get("/api/reports");
     await expectStatus(list, 200);
     assert.ok(Array.isArray(await list.json()));

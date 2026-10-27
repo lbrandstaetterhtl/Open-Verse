@@ -47,6 +47,11 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "blob:"],
       mediaSrc: ["'self'", "data:", "blob:"],
+      // The app's own fonts are self-hosted (client/src/fonts). Google Fonts stay allowed only because the
+      // theme builder lets a user pick optional fonts that are loaded from there (client/src/lib/theme-utils.ts);
+      // narrower than helmet's default "https:".
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
       // Vite's dev server needs inline/eval; production bundles do not
       scriptSrc: isDevelopment ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"] : ["'self'"],
       // WebSockets only to this host (ws:/wss: alone would allow any host)

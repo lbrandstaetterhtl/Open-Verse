@@ -46,13 +46,18 @@ COPY shared ./shared
 COPY migrations ./migrations
 
 # Create required runtime dirs and set permissions
-RUN mkdir -p /app/uploads /app/logs \
-    && chown appuser:appgroup /app/uploads /app/logs \
+# /app/data: only for SQLite mode (SQLITE_PATH=/app/data/local.db plus a volume), never served publicly.
+# /app/logs: owner + group only (the log files contain IPs and user agents).
+RUN mkdir -p /app/uploads /app/logs /app/data \
+    && chown appuser:appgroup /app/uploads /app/logs /app/data \
+    && chmod 750 /app/logs \
+    && chmod 700 /app/data \
     && chown -R appuser:appgroup /app/dist
 
 USER appuser
 
-# The app listens on this port
+# The app listens on this port (the image also contains the migration entrypoint
+# dist/db-maintenance/migrate.js, used by the docker-compose service "migrate")
 EXPOSE 5000
 
 # Health check

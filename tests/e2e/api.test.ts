@@ -199,13 +199,16 @@ describe("authorization", () => {
   ];
 
   for (const [method, path, body] of adminOnly) {
-    test(`${method} ${path} is forbidden for anonymous and regular users`, async () => {
+    // Staff routes are invisible to non-staff: the answer of an unknown route, 404 {"error":"Not found"} (EXP-BUNDLE-14)
+    test(`${method} ${path} is refused for anonymous and regular users (answered like an unknown route)`, async () => {
       const anon = new Client();
       await anon.refreshCsrf();
       const anonRes = await anon.request(method, path, body === undefined ? {} : { json: body });
-      assert.ok([401, 403].includes(anonRes.status), `anonymous got ${anonRes.status}`);
+      assert.equal(anonRes.status, 404, `anonymous got ${anonRes.status}`);
+      assert.deepEqual(await anonRes.json(), { error: "Not found" });
       const userRes = await alice.client.request(method, path, body === undefined ? {} : { json: body });
-      assert.ok([401, 403].includes(userRes.status), `regular user got ${userRes.status}`);
+      assert.equal(userRes.status, 404, `regular user got ${userRes.status}`);
+      assert.deepEqual(await userRes.json(), { error: "Not found" });
     });
   }
 
@@ -490,7 +493,8 @@ describe("social", () => {
       assert.ok(!/select|failed query/i.test(await res.text()), "response must not contain SQL");
     }
     assert.equal((await alice.client.get("/api/tickets/99999999")).status, 404);
-    assert.equal((await alice.client.get("/api/tickets/stats")).status, 403, "ticket statistics are staff-only");
+    // staff-only routes answer non-staff like an unknown route (EXP-BUNDLE-14)
+    assert.equal((await alice.client.get("/api/tickets/stats")).status, 404, "ticket statistics are staff-only");
   });
 
   test("follower lists do not leak password hashes", async () => {
@@ -914,11 +918,11 @@ describe("error responses", () => {
     assert.equal(body.name, undefined, "no raw ZodError");
   });
 
-  test("unknown API routes answer with a code, without echoing the URL", async () => {
+  test("unknown API routes answer one generic JSON 404, without echoing the URL", async () => {
     const res = await alice.client.get("/api/does-not-exist/<script>");
     assert.equal(res.status, 404);
     const body = await res.json();
-    assert.equal(body.code, "API_NOT_FOUND");
+    assert.deepEqual(body, { error: "Not found" });
     assert.ok(!JSON.stringify(body).includes("<script>"));
   });
 

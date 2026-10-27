@@ -1,3 +1,10 @@
+# Logs of every service: rotated by docker (json-file, max. 5 x 10 MB per container)
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   # -------------------------------------------------------
   # PostgreSQL Database
@@ -17,6 +24,33 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
+    networks:
+      - open-verse-net
+
+  # -------------------------------------------------------
+  # Database migrations (one-shot, runs before every app start)
+  # Applies the schema changes with the owner credentials (POSTGRES_USER). With DB_APP_PASSWORD set it also
+  # creates the least-privilege role openverse_app, and the app container then gets ONLY that role's
+  # credentials (see DEPLOYMENT.md, "Datenbank-Rollen").
+  # -------------------------------------------------------
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["node", "dist/db-maintenance/migrate.js"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      USE_SQLITE: "false"
+      DATABASE_URL: postgres://${POSTGRES_USER:-openverse}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-openverse}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:-}
+    healthcheck:
+      disable: true
+    logging: *default-logging
     networks:
       - open-verse-net
 
@@ -33,13 +67,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: production
       PORT: 5000
       HOST: 0.0.0.0
       # PostgreSQL mode
       USE_SQLITE: "false"
-      DATABASE_URL: postgres://${POSTGRES_USER:-openverse}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-openverse}
+      # Without DB_APP_PASSWORD: the POSTGRES_USER credentials (as before).
+      # With DB_APP_PASSWORD: user openverse_app with that password; the app has no DDL rights and never
+      # sees POSTGRES_PASSWORD.
+      DATABASE_URL: postgres://${POSTGRES_USER:-openverse}:${DB_APP_PASSWORD:-${POSTGRES_PASSWORD}}@db:5432/${POSTGRES_DB:-openverse}
+      DB_APP_USER: ${DB_APP_PASSWORD:+openverse_app}
+      # Optional database limits (milliseconds / connections; defaults 15000 / 30000 / 10000 / 10)
+      DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-}
+      DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: ${DB_IDLE_IN_TRANSACTION_TIMEOUT_MS:-}
+      DB_CONNECTION_TIMEOUT_MS: ${DB_CONNECTION_TIMEOUT_MS:-}
+      DB_POOL_MAX: ${DB_POOL_MAX:-}
       # Security
       SESSION_SECRET: ${SESSION_SECRET}
       TRUST_PROXY: ${TRUST_PROXY:-true}
@@ -61,6 +106,7 @@ services:
       - uploads_data:/app/uploads
     ports:
       - "5000:5000"
+    logging: *default-logging
     networks:
       - open-verse-net
 

@@ -192,15 +192,16 @@ describe("Angriff: expensive/admin endpoints reachable by non-privileged users",
   test("stress-test runner is not reachable by a normal user", async () => {
     await getCsrf(user.client);
     const r = await user.client.post("/api/security/stress-test/cpu-intensive", { duration: 1, intensity: "low" });
-    assert.ok(r.status === 401 || r.status === 403,
-      `non-admin must not start a stress test, got ${r.status}`);
+    // staff routes answer non-staff like an unknown route (EXP-BUNDLE-14)
+    assert.equal(r.status, 404, `non-admin must not start a stress test, got ${r.status}`);
+    assert.deepEqual(await r.json(), { error: "Not found" });
     assert.ok(await serverUp(), "server must stay up");
   });
 
   test("admin monitoring metrics are not readable by a normal user", async () => {
     const r = await user.client.get("/api/admin/monitoring/metrics/overview");
-    assert.ok(r.status === 401 || r.status === 403,
-      `non-admin must not read monitoring internals, got ${r.status}`);
+    assert.equal(r.status, 404, `non-admin must not read monitoring internals, got ${r.status}`);
+    assert.deepEqual(await r.json(), { error: "Not found" });
   });
 });
 
@@ -229,7 +230,8 @@ describe("Angriff: information disclosure over HTTP", () => {
     const res = await fetch(BASE_URL + "/api/health");
     const body = await res.json();
     const keys = Object.keys(body).sort();
-    assert.deepEqual(keys, ["status", "uptime"], `health must expose only status/uptime, saw ${keys.join(",")}`);
+    // EXP-API-5: no uptime (it reveals restart/deploy times)
+    assert.deepEqual(keys, ["status"], `health must expose only status, saw ${keys.join(",")}`);
   });
 
   test("the AI provider key never reaches the client", async () => {

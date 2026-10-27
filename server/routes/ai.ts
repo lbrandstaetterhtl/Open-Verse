@@ -19,6 +19,8 @@ const router = Router();
 const aiLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
     max: 50, // 50 requests per minute
+    standardHeaders: false,
+    legacyHeaders: false,
     message: { error: "AI Generation rate limit exceeded. Please wait a moment." }
 });
 

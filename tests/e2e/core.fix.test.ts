@@ -143,8 +143,12 @@ describe("device bans (random device id instead of a header fingerprint)", () =>
   test("a hardware ban blocks exactly that browser, not everyone with the same browser and language", async () => {
     const owner = await ownerSession();
     const headers = { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36", "accept-language": "de-DE,de;q=0.9" };
+    // The device id cookie is issued at login/registration (anonymous browsing gets none)
+    const bannedUser = await makeUser("devban");
     const banned = freshClient();
     await banned.get("/api/csrf-token", { headers });
+    assert.equal(banned.cookies.get("ov_device"), undefined, "anonymous visitors get no device id");
+    await expectStatus(await banned.login(bannedUser.username, bannedUser.password), 200);
     const deviceId = banned.cookies.get("ov_device");
     assert.match(deviceId ?? "", /^[a-f0-9]{32}$/, "the browser gets a random device id cookie");
     const ban = await owner.post("/api/admin/bans", { ban_type: "hardware", device_fingerprint: deviceId, reason: "core fix test", severity: "low" });

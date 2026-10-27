@@ -81,12 +81,15 @@ describe("Angriff: normaler Nutzer greift Admin-Gruppen-Verwaltung an", () => {
     const res = await alice.client.post("/api/admin/groups", {
       name: `atk_evil_${RUN_ID}`, description: "x", permissions: JSON.stringify([...ALL_PERMISSIONS]),
     });
-    assert.ok(res.status === 401 || res.status === 403, `ordinary user created a group: HTTP ${res.status}`);
+    // staff routes answer non-staff like an unknown route: 404 {"error":"Not found"} (EXP-BUNDLE-14)
+    assert.equal(res.status, 404, `ordinary user created a group: HTTP ${res.status}`);
+    assert.deepEqual(await res.json(), { error: "Not found" });
   });
 
   test("an ordinary user cannot assign themselves to an admin group", async () => {
     const res = await alice.client.post("/api/admin/groups/assign", { userId: alice.id, groupId: groupAll });
-    assert.ok(res.status === 401 || res.status === 403, `ordinary user assigned a group: HTTP ${res.status}`);
+    assert.equal(res.status, 404, `ordinary user assigned a group: HTTP ${res.status}`);
+    assert.deepEqual(await res.json(), { error: "Not found" });
     const view = await adminUserView(owner, alice.id);
     assert.notEqual(view.adminGroupId, groupAll, "ordinary user ended up in the all-permissions group");
   });
@@ -377,7 +380,8 @@ describe("Angriff: Nutzer greift auf fremde private Objekte zu (positive control
 
   test("saved posts of another user are private", async () => {
     await bob.client.post(`/api/posts/${bobPostId}/save`);
-    const res = await alice.client.get(`/api/${bob.username}/saved`);
+    // the profile routes live under /api/users (/api/<name> is no longer read as a username)
+    const res = await alice.client.get(`/api/users/${bob.username}/saved`);
     assert.equal(res.status, 403, `read foreign saved posts: HTTP ${res.status}`);
   });
 });
@@ -448,7 +452,8 @@ describe("Angriff: Shadowban-Umgehung – fremde Nutzer sehen verborgene Inhalte
   });
 
   test("a shadow-banned user's posts must not surface on their public profile", async () => {
-    const res = await viewer.client.get(`/api/${shadow.username}/posts`);
+    const res = await viewer.client.get(`/api/users/${shadow.username}/posts`);
+    assert.equal(res.status, 200);
     const posts = await res.json();
     const seen = Array.isArray(posts) && posts.some((p: any) => p.id === postId);
     assert.ok(!seen, "GET /api/:username/posts leaked a shadow-banned user's post");

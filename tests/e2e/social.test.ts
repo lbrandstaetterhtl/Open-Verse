@@ -128,9 +128,16 @@ describe("follows", () => {
       duration_hours: 1,
     });
     await expectStatus(ban, 200);
-    const text = await (await target.client.get("/api/followers")).text();
-    const [entry] = JSON.parse(text);
-    assert.equal(entry.id, watcher.id);
+    // EXP-API-3: other users no longer see the shadow-banned follower at all ...
+    const plain = JSON.parse(await (await target.client.get("/api/followers")).text());
+    assert.ok(!plain.some((f: any) => f.id === watcher.id), "shadow-banned follower listed for a regular user");
+    // ... staff still do (they see shadow-banned accounts): the entry must not carry moderation state
+    const adminId = (await (await admin.get("/api/user")).json()).id;
+    await expectStatus(await watcher.client.post(`/api/follow/${adminId}`), 200);
+    const text = await (await admin.get("/api/followers")).text();
+    await watcher.client.delete(`/api/follow/${adminId}`);
+    const entry = JSON.parse(text).find((f: any) => f.id === watcher.id);
+    assert.ok(entry, "staff do not see the shadow-banned follower");
     assert.ok(!text.includes("$2b$"), "password hash exposed");
     assert.ok(!text.includes("@e2e.test"), "email exposed");
     for (const field of ["isShadowBanned", "isFrozen", "frozenUntil", "freezeReason", "adminGroupId"]) {

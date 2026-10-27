@@ -175,9 +175,10 @@ describe("sessions and cookies of anonymous visitors", () => {
 describe("database writes by anonymous traffic", () => {
   test("anonymous 401s (GET /api/user on every page load) write no activity_logs rows", { skip: needsDb }, async () => {
     const ip = freshIp();
+    const [{ t0 }] = await sql("select now() as t0");
     for (let i = 0; i < 5; i++) await fetch(BASE_URL + "/api/user", { headers: { "x-forwarded-for": ip } });
     await sleep(2500); // activity log batches are flushed every 2 s
-    const rows = await sql("select count(*)::int as n from activity_logs where ip_address = $1", [ip]);
+    const rows = await sql("select count(*)::int as n from activity_logs where ip_address = $1 and created_at >= $2", [ip, t0]);
     assert.equal(rows[0].n, 0);
   });
 
@@ -226,6 +227,8 @@ describe("reports: reporter identity and IP", () => {
     modUser = await mkUser("cmod");
     reporter = await mkUser("rep");
     const author = await mkUser("rau");
+    // creating a community needs reputation
+    await expectStatus(await owner.patch(`/api/admin/users/${modUser.id}`, { karma: 500 }), 200);
     const comm = await modUser.client.post("/api/communities", { name: `xa comm ${RUN_ID}`, description: "exposure" });
     await expectStatus(comm, 201);
     communityId = (await comm.json()).id;
@@ -253,7 +256,8 @@ describe("reports: reporter identity and IP", () => {
     assert.equal(patched.ipAddress, undefined);
     const all = await (await owner.get("/api/reports")).json();
     assert.ok(all.every((r: any) => r.ipAddress === undefined));
-    const community = await (await owner.get(`/api/communities/${communityId}/reports`)).json();
+    const community = await (await modUser.client.get(`/api/communities/${communityId}/reports`)).json();
+    assert.ok(Array.isArray(community) && community.length > 0);
     assert.ok(community.every((r: any) => r.ipAddress === undefined));
   });
 

@@ -82,7 +82,7 @@ export function redact(value: unknown, depth = 0, seen: WeakSet<object> = new We
   const out: Record<string, unknown> = {};
   for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
     if (BODY_KEY.test(key)) { out[key] = "[omitted]"; continue; }
-    if (SECRET_KEY.test(key) && v != null && v !== "") { out[key] = "[redacted]"; continue; }
+    if (SECRET_KEY.test(key) && v != null && v !== "" && typeof v !== "number" && typeof v !== "boolean") { out[key] = "[redacted]"; continue; }
     out[key] = redact(v, depth + 1, seen);
   }
   return out;

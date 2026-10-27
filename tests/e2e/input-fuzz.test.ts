@@ -681,7 +681,8 @@ describe("prototype pollution has no lasting effect", () => {
       assert.equal(me?.role, "user");
       assert.ok(!me?.isAdmin);
       assert.equal(me?.karma, 0);
-      assert.equal((await send(c, "GET", "/api/admin/stats")).status, 403);
+      // still not staff: the admin API does not exist for them (404, like an unknown route)
+      assert.equal((await send(c, "GET", "/api/admin/stats")).status, 404);
     }
   });
 
@@ -690,10 +691,11 @@ describe("prototype pollution has no lasting effect", () => {
     const me = await (await fresh.client.get("/api/user")).json();
     assert.equal(me.role, "user");
     assert.ok(!me.isAdmin);
-    assert.equal((await fresh.client.get("/api/admin/users")).status, 403);
-    assert.equal((await fresh.client.get("/api/tickets/stats")).status, 403);
+    // staff-only routes answer non-staff like an unknown route (404)
+    assert.equal((await fresh.client.get("/api/admin/users")).status, 404);
+    assert.equal((await fresh.client.get("/api/tickets/stats")).status, 404);
     const posts = await (await fresh.client.get("/api/posts?limit=5")).json();
     assert.ok(Array.isArray(posts) && posts.every((p: any) => p.isAdmin === undefined && p.role === undefined));
-    assert.equal((await new Client().get("/api/admin/stats")).status, 401);
+    assert.equal((await new Client().get("/api/admin/stats")).status, 404);
   });
 });
