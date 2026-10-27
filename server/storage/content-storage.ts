@@ -619,7 +619,7 @@ export class ContentStorage {
    * insert run under a per-reporter lock.
    */
   async createReportOnce(
-    report: { reason: string; reporterId: number; ipAddress: string | null } & ReportTarget,
+    report: { reason: string; reporterId: number } & ReportTarget,
   ): Promise<{ report: any } | { duplicate: true }> {
     const target = { postId: report.postId ?? null, commentId: report.commentId ?? null, discussionId: report.discussionId ?? null };
     const sameTarget = and(
@@ -636,7 +636,7 @@ export class ContentStorage {
         .get(report.reporterId, target.postId ?? 0, target.commentId ?? 0, target.discussionId ?? 0);
       if (existing) return { duplicate: true };
       const { storage } = await import("../storage");
-      return { report: await storage.createReport({ ...report, ...target } as any) };
+      return { report: await storage.createReport({ ...report, ...target, ipAddress: null } as any) };
     }
     return db.transaction(async (tx: any) => {
       await lockFor(tx, LOCK_REPORT, report.reporterId);
@@ -644,7 +644,8 @@ export class ContentStorage {
       if (existing) return { duplicate: true as const };
       const [created] = await tx
         .insert(reports)
-        .values({ reason: report.reason, reporterId: report.reporterId, ipAddress: report.ipAddress, ...target })
+        // reports.ip_address is no longer written (the column stays for old databases; migration 0005 nulls it)
+        .values({ reason: report.reason, reporterId: report.reporterId, ipAddress: null, ...target })
         .returning();
       return { report: created };
     });

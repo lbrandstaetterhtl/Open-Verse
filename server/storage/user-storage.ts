@@ -8,6 +8,8 @@ import {
 } from "@shared/schema";
 import { db, getSqlite } from "../db";
 import { eq, and, sql, inArray } from "drizzle-orm";
+import { hashToken } from "../db-maintenance/token-hash";
+import { purgeAccountData } from "../db-maintenance/account-data";
 
 /** Names/emails with control characters (e.g. NUL, which Postgres rejects) or absurd lengths can't exist. */
 const isLookupValue = (value: unknown): value is string =>
@@ -288,10 +290,15 @@ export class UserStorage {
         .run();
       return;
     }
-    await db.delete(users).where(eq(users.id, id));
+    // Same clean-up as the admin delete: personal data of the account goes with it
+    await db.transaction(async (tx: any) => {
+      await purgeAccountData(tx, id);
+      await tx.delete(users).where(eq(users.id, id));
+    });
   }
 
-  // Verification Tokens
+  // Verification Tokens (stored as SHA-256 hashes, server/db-maintenance/token-hash.ts: a database dump
+  // holds no usable token; the clear token only exists in the email link)
   async createVerificationToken(token: {
     token: string;
     userId: number;
@@ -303,10 +310,10 @@ export class UserStorage {
         .prepare(
           "INSERT INTO verification_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
         )
-        .run(token.token, token.userId, token.expiresAt.toISOString());
+        .run(hashToken(token.token), token.userId, token.expiresAt.toISOString());
       return;
     }
-    await db.insert(verificationTokens).values(token);
+    await db.insert(verificationTokens).values({ ...token, token: hashToken(token.token) });
   }
 
   async getVerificationToken(token: string): Promise<
@@ -321,7 +328,7 @@ export class UserStorage {
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const data = sqlite
         .prepare("SELECT * FROM verification_tokens WHERE token = ?")
-        .get(token);
+        .get(hashToken(token));
       if (!data) return undefined;
       return {
         token: data.token,
@@ -332,17 +339,17 @@ export class UserStorage {
     const [data] = await db
       .select()
       .from(verificationTokens)
-      .where(eq(verificationTokens.token, token));
+      .where(eq(verificationTokens.token, hashToken(token)));
     return data;
   }
 
   async deleteVerificationToken(token: string): Promise<void> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      sqlite.prepare("DELETE FROM verification_tokens WHERE token = ?").run(token);
+      sqlite.prepare("DELETE FROM verification_tokens WHERE token = ?").run(hashToken(token));
       return;
     }
-    await db.delete(verificationTokens).where(eq(verificationTokens.token, token));
+    await db.delete(verificationTokens).where(eq(verificationTokens.token, hashToken(token)));
   }
 
   async verifyUserEmail(userId: number): Promise<void> {

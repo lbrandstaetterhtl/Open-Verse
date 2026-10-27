@@ -19,6 +19,7 @@ import { dbId, text, isPlainBody, queryString } from "../utils/admin-input";
 import { checkGroupAssignment } from "./admin-groups";
 import { logger } from "../logger";
 import { maskIp, toAdminLogRow } from "../utils/redact";
+import { purgeAccountData } from "../db-maintenance/account-data";
 
 import { sendValidationError, sendInternalError, isZodError } from "../utils/http-errors";
 const router = Router();
@@ -340,7 +341,11 @@ router.delete("/users/:id", hasPermission("users"), async (req, res) => {
             // 6. Delete reports made by user
             await tx.delete(reports).where(eq(reports.reporterId, userId));
 
-            // 7. Finally delete the user
+            // 7. Personal data in logs, anomalies, bans, tokens, sessions, saved posts, themes, ...
+            // (server/db-maintenance/account-data.ts)
+            await purgeAccountData(tx, userId);
+
+            // 8. Finally delete the user
             await tx.delete(users).where(eq(users.id, userId));
         });
 

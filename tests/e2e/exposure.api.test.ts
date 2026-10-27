@@ -15,6 +15,13 @@ const WebSocket = require("ws");
 const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
 const DATABASE_URL = process.env.E2E_DATABASE_URL ?? "";
 const needsDb = DATABASE_URL ? false : "E2E_DATABASE_URL not set";
+// Server modules imported by the storage-level test read DATABASE_URL on first import
+if (DATABASE_URL) {
+  process.env.DATABASE_URL = DATABASE_URL;
+  process.env.USE_SQLITE = "false";
+  process.env.SESSION_SECRET ??= "exposure-api-test-secret-0123456789abcdef";
+  process.env.DATA_RETENTION_DISABLED = "true";
+}
 
 type TestUser = Awaited<ReturnType<typeof newUser>>;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -44,7 +51,9 @@ before(async () => {
 after(async () => {
   for (const u of created) await owner.delete(`/api/admin/users/${u.id}`);
   await pg?.end();
+  if (dbImported) await (await import("../../server/db")).closeDb().catch(() => undefined);
 });
+let dbImported = false;
 
 async function text(res: Response) {
   return { status: res.status, body: await res.text(), type: res.headers.get("content-type") };
@@ -238,6 +247,12 @@ describe("reports: reporter identity and IP", () => {
     const rep = await reporter.client.post("/api/reports", { reason: "exposure test report", postId: (await post.json()).id });
     await expectStatus(rep, 201);
     reportId = (await rep.json()).id;
+  });
+
+  test("the report row stores no reporter IP", { skip: needsDb }, async () => {
+    const [row] = await sql("select ip_address from reports where id = $1", [reportId]);
+    assert.ok(row, "report row missing");
+    assert.equal(row.ip_address, null);
   });
 
   test("a community moderator's PATCH answer has no IP, reporter or staff id", async () => {
@@ -474,5 +489,49 @@ describe("errors", () => {
     assert.equal(raw.status, 400);
     const t = await raw.text();
     assert.ok(!/stack|at \/|node_modules/i.test(t), t);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+describe("account deletion and stored tokens", { skip: needsDb }, () => {
+  test("deleting an account (admin) leaves no personal rows behind", async () => {
+    const u = await newUser("xadel");
+    const other = await mkUser("xadp");
+    const post = await other.client.post("/api/posts", { category: "discussion", content: `xa del post ${RUN_ID}` });
+    await expectStatus(post, 201);
+    const postId = (await post.json()).id;
+    await expectStatus(await u.client.post(`/api/posts/${postId}/save`), 200);
+    await expectStatus(await u.client.patch("/api/profile", { bio: "to be deleted" }), 200);
+    await expectStatus(await u.client.post("/api/reports", { reason: "xa delete test", postId }), 201);
+    await sleep(2500);
+    assert.ok((await sql("select count(*)::int as n from activity_logs where user_id = $1", [u.id]))[0].n > 0, "precondition: activity rows");
+    await expectStatus(await owner.delete(`/api/admin/users/${u.id}`), 200);
+    const left: string[] = [];
+    for (const [table, col] of [["users", "id"], ["activity_logs", "user_id"], ["saved_posts", "user_id"], ["themes", "user_id"],
+      ["reports", "reporter_id"], ["notification_preferences", "user_id"], ["verification_tokens", "user_id"], ["anomaly_events", "user_id"]] as const) {
+      const [{ n }] = await sql(`select count(*)::int as n from ${table} where ${col} = $1`, [u.id]);
+      if (n) left.push(`${table}: ${n}`);
+    }
+    const [{ n: sessions }] = await sql(`select count(*)::int as n from session where (sess::jsonb -> 'passport' ->> 'user') = $1`, [String(u.id)]);
+    if (sessions) left.push(`session: ${sessions}`);
+    assert.deepEqual(left, []);
+    // the deleted account's session no longer works
+    assert.equal((await u.client.get("/api/user")).status, 401);
+  });
+
+  test("verification tokens are stored as hashes and still found by the clear token", async () => {
+    dbImported = true;
+    const { UserStorage } = await import("../../server/storage/user-storage");
+    const { hashToken } = await import("../../server/db-maintenance/token-hash");
+    const store = new UserStorage();
+    const u = await mkUser("xatok");
+    const token = `${RUN_ID}`.padEnd(64, "a");
+    await store.createVerificationToken({ token, userId: u.id, expiresAt: new Date(Date.now() + 3600_000) });
+    const rows = await sql("select token from verification_tokens where user_id = $1", [u.id]);
+    assert.deepEqual(rows.map((r: any) => r.token), [hashToken(token)], "the clear token is in the database");
+    assert.equal((await store.getVerificationToken(token))?.userId, u.id);
+    assert.equal(await store.getVerificationToken(hashToken(token)), undefined, "the stored hash works as a token");
+    await store.deleteVerificationToken(token);
+    assert.equal((await sql("select count(*)::int as n from verification_tokens where user_id = $1", [u.id]))[0].n, 0);
   });
 });

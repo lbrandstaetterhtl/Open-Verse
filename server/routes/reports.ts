@@ -52,14 +52,13 @@ router.post("/", isAuthenticated, async (req, res) => {
             return res.status(400).json({ error: "You cannot report your own content", code: "OWN_CONTENT" });
         }
 
-        // req.ip honours TRUST_PROXY; the raw X-Forwarded-For header can be set by anyone (CONTENT-21b)
+        // The reporter's IP address is not stored: nothing uses it, and it would identify the reporter.
         const created = await storage.getContentStore().createReportOnce({
             reason,
             postId: postId ?? null,
             commentId: commentId ?? null,
             discussionId: discussionId ?? null,
             reporterId: user.id,
-            ipAddress: req.ip || req.socket.remoteAddress || null,
         });
         if ("duplicate" in created) {
             // One open report per user and target (UI-14)
