@@ -183,7 +183,8 @@
     "statusPhase": "Fase di stato",
     "priorityLevel": "Livello di priorità",
     "relatedSignal": "Segnale correlato",
-    "assignedPersonnel": "Personale assegnato"
+    "assignedPersonnel": "Personale assegnato",
+    "support": "Assistenza"
   },
   "assignment": {
     "unassigned": "In attesa di un pilota",

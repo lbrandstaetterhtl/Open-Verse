@@ -322,7 +322,15 @@
     },
     "eyebrow": "账户 / 通知",
     "someone": "某人",
-    "privacy_note": "“你的隐私是我们的首要任务。我们只会针对你选择关注的操作发送通知。”"
+    "privacy_note": "“你的隐私是我们的首要任务。我们只会针对你选择关注的操作发送通知。”",
+    "system": {
+      "account_warning": "账户警告",
+      "ticket_reply_title": "你的工单有新回复",
+      "ticket_reply_message": "你的工单 {{ticket}} 有一条新回复。",
+      "join_approved_generic": "你加入社区的申请已通过",
+      "kicked_generic": "你已被移出一个社区",
+      "generic": "系统通知"
+    }
   },
   "ai_generator": {
     "title": "AI 帖子生成器",

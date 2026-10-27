@@ -322,7 +322,15 @@
     },
     "eyebrow": "Compte / Notifications",
     "someone": "Quelqu'un",
-    "privacy_note": "« Ta vie privée est notre priorité. Nous t'envoyons uniquement des notifications pour les actions que tu choisis de suivre. »"
+    "privacy_note": "« Ta vie privée est notre priorité. Nous t'envoyons uniquement des notifications pour les actions que tu choisis de suivre. »",
+    "system": {
+      "account_warning": "Avertissement concernant ton compte",
+      "ticket_reply_title": "Nouvelle réponse à ton ticket",
+      "ticket_reply_message": "Il y a une nouvelle réponse à ton ticket {{ticket}}.",
+      "join_approved_generic": "Ta demande pour rejoindre une communauté a été acceptée",
+      "kicked_generic": "Tu as été retiré d'une communauté",
+      "generic": "Notification système"
+    }
   },
   "ai_generator": {
     "title": "Générateur de publications IA",

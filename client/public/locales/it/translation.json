@@ -322,7 +322,15 @@
     },
     "eyebrow": "Account / Notifiche",
     "someone": "Qualcuno",
-    "privacy_note": "\"La tua privacy è la nostra priorità. Ti inviamo notifiche solo per le azioni che scegli di seguire.\""
+    "privacy_note": "\"La tua privacy è la nostra priorità. Ti inviamo notifiche solo per le azioni che scegli di seguire.\"",
+    "system": {
+      "account_warning": "Avviso sul tuo account",
+      "ticket_reply_title": "Nuova risposta al tuo ticket",
+      "ticket_reply_message": "C'è una nuova risposta al tuo ticket {{ticket}}.",
+      "join_approved_generic": "La tua richiesta di unirti a una community è stata approvata",
+      "kicked_generic": "Sei stato rimosso da una community",
+      "generic": "Notifica di sistema"
+    }
   },
   "ai_generator": {
     "title": "Generatore di post IA",

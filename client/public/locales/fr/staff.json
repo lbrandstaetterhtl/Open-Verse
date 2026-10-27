@@ -672,5 +672,8 @@
     "detail": {
       "selectStaff": "Choisir un membre de l'équipe"
     }
+  },
+  "admin_paging": {
+    "range": "{{from}}–{{to}} sur {{total}}"
   }
 }

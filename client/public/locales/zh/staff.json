@@ -672,5 +672,8 @@
     "detail": {
       "selectStaff": "选择工作人员"
     }
+  },
+  "admin_paging": {
+    "range": "第 {{from}}–{{to}} 条，共 {{total}} 条"
   }
 }

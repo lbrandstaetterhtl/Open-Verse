@@ -255,5 +255,6 @@
   "only_http_s_image_urls_are_allowed": "Sono consentiti solo URL di immagini http(s)",
   "registration_is_currently_disabled": "La registrazione è attualmente disattivata",
   "this_password_is_too_common_please_choose_another_one": "Questa password è troppo comune. Scegline un'altra.",
-  "website_must_be_an_http_s_url": "Il sito web deve essere un URL http(s)"
+  "website_must_be_an_http_s_url": "Il sito web deve essere un URL http(s)",
+  "too_many_attempts_please_try_again_later": "Troppi tentativi, riprova più tardi"
 }

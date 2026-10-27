@@ -255,5 +255,6 @@
   "only_http_s_image_urls_are_allowed": "Nur http(s)-Bild-URLs sind erlaubt",
   "registration_is_currently_disabled": "Die Registrierung ist derzeit deaktiviert",
   "this_password_is_too_common_please_choose_another_one": "Dieses Passwort ist zu verbreitet. Bitte wähle ein anderes.",
-  "website_must_be_an_http_s_url": "Die Website muss eine http(s)-URL sein"
+  "website_must_be_an_http_s_url": "Die Website muss eine http(s)-URL sein",
+  "too_many_attempts_please_try_again_later": "Zu viele Versuche, bitte versuche es später erneut"
 }

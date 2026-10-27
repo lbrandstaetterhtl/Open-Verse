@@ -255,5 +255,6 @@
   "only_http_s_image_urls_are_allowed": "只允许 http(s) 图片链接",
   "registration_is_currently_disabled": "注册功能当前已关闭",
   "this_password_is_too_common_please_choose_another_one": "此密码过于常见，请换一个。",
-  "website_must_be_an_http_s_url": "网站必须是 http(s) 链接"
+  "website_must_be_an_http_s_url": "网站必须是 http(s) 链接",
+  "too_many_attempts_please_try_again_later": "尝试次数过多，请稍后再试"
 }

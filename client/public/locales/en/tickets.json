@@ -183,7 +183,8 @@
     "statusPhase": "Status Phase",
     "priorityLevel": "Priority Level",
     "relatedSignal": "Related Signal",
-    "assignedPersonnel": "Assigned Personnel"
+    "assignedPersonnel": "Assigned Personnel",
+    "support": "Support"
   },
   "assignment": {
     "unassigned": "Awaiting Pilot",

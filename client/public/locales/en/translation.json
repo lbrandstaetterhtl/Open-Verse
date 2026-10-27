@@ -322,7 +322,15 @@
     },
     "eyebrow": "Account / Notifications",
     "someone": "Someone",
-    "privacy_note": "\"Your privacy is our priority. We only send notifications for the actions you choose to follow.\""
+    "privacy_note": "\"Your privacy is our priority. We only send notifications for the actions you choose to follow.\"",
+    "system": {
+      "account_warning": "Account warning",
+      "ticket_reply_title": "New reply on your ticket",
+      "ticket_reply_message": "There is a new reply on your ticket {{ticket}}.",
+      "join_approved_generic": "Your request to join a community was approved",
+      "kicked_generic": "You were removed from a community",
+      "generic": "System notification"
+    }
   },
   "ai_generator": {
     "title": "AI Post Generator",

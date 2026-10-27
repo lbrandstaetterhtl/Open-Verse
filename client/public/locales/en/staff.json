@@ -672,5 +672,8 @@
     "detail": {
       "selectStaff": "Select staff"
     }
+  },
+  "admin_paging": {
+    "range": "{{from}}–{{to}} of {{total}}"
   }
 }
