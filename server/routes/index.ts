@@ -42,6 +42,18 @@ import { parsePagination } from "../utils/pagination";
 import { DELETED_AUTHOR } from "../utils/post-extras";
 import { filterVisiblePosts, shadowCountScope } from "../utils/community-access";
 
+/** Shown to browser navigations while the database is unreachable. No details: they are only in the log. */
+const DB_UNAVAILABLE_PAGE = `                    <html>
+                        <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white; text-align: center;">
+                            <div>
+                                <h1 style="font-size: 3rem; margin-bottom: 1rem;">Database Issue</h1>
+                                <p style="font-size: 1.2rem; opacity: 0.8;">The platform is temporarily unavailable due to a database connection issue.</p>
+                                <p style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.5;">Please try again in a few minutes.</p>
+                            </div>
+                        </body>
+                    </html>
+                `;
+
 export async function registerRoutes(app: Express): Promise<Server> {
     // Compression is applied once in server/index.ts
 
@@ -65,18 +77,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     message: "The system is currently unable to communicate with the database.",
                 });
             }
-            // A simple HTML error page for direct browser requests
-            return res.status(503).send(`
-                    <html>
-                        <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white; text-align: center;">
-                            <div>
-                                <h1 style="font-size: 3rem; margin-bottom: 1rem;">Database Issue</h1>
-                                <p style="font-size: 1.2rem; opacity: 0.8;">The platform is temporarily unavailable due to a database connection issue.</p>
-                                <p style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.5;">Please try again in a few minutes.</p>
-                            </div>
-                        </body>
-                    </html>
-                `);
+            // A simple HTML error page for direct browser requests (same for every caller)
+            return res.status(503).type("html").send(DB_UNAVAILABLE_PAGE);
         }
         next();
     });

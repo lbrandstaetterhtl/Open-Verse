@@ -3,7 +3,7 @@
 // (server/db-maintenance/migrate.ts, docker-compose service `migrate`).
 import { logger } from "../logger";
 import { appRoleName, dbRoleMode, getMigrationPool, pool } from "../db";
-import { pendingMigrations, runSqlMigrations } from "./sql-migrations";
+import { pendingMigrations, runSqlMigrations, type MigrationResult } from "./sql-migrations";
 import { ensureAppRole } from "./app-role";
 
 /** True when this process may change the schema (not SQLite, not the app-only role). */
@@ -11,13 +11,13 @@ export function canRunDdl(): boolean {
   return process.env.USE_SQLITE !== "true" && getMigrationPool() !== null;
 }
 
-export async function runSchemaMigrations(): Promise<void> {
-  if (process.env.USE_SQLITE === "true") return;
+export async function runSchemaMigrations(): Promise<MigrationResult | null> {
+  if (process.env.USE_SQLITE === "true") return null;
 
   const migrationPool = getMigrationPool();
   if (!migrationPool) {
     await checkAppliedAsAppRole();
-    return;
+    return null;
   }
 
   const result = await runSqlMigrations(migrationPool as any);
@@ -35,6 +35,7 @@ export async function runSchemaMigrations(): Promise<void> {
       client.release();
     }
   }
+  return result;
 }
 
 /**
