@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { Redirect, useLocation } from "wouter";
@@ -318,6 +318,26 @@ function RegisterForm() {
     },
   });
 
+  // UI-17: blocked from the moment of submit (before the async validation), so a double click sends one request
+  const inFlight = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const release = () => {
+    inFlight.current = false;
+    setBusy(false);
+  };
+  const onRegister = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    let sent = false;
+    await form.handleSubmit((data) => {
+      sent = true;
+      registerMutation.mutate(data, { onSettled: release });
+    })(e);
+    if (!sent) release();
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -326,7 +346,7 @@ function RegisterForm() {
       <CardContent>
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit((data) => registerMutation.mutate(data))}
+            onSubmit={onRegister}
             className="space-y-4"
           >
             <FormField
@@ -385,7 +405,7 @@ function RegisterForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+            <Button type="submit" className="w-full" disabled={busy || registerMutation.isPending}>
               {t("auth.register", "Register")}
             </Button>
           </form>

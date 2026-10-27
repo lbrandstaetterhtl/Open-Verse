@@ -3,6 +3,14 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import Backend from "i18next-http-backend";
 
+/**
+ * Translations of the admin/owner area. They are not loaded for anyone else (client/src/lib/staff.tsx loads
+ * them together with the staff code) and the server answers them with 404 for non-staff
+ * (server/staff-assets.ts). Keys there are used as "staff:admin.x", "analytics:x", "modPerf:x".
+ * staffServer: error texts that only the admin API sends (looked up like "server", see lib/server-messages.ts).
+ */
+export const STAFF_NAMESPACES = ["staff", "analytics", "modPerf", "staffServer"] as const;
+
 i18n
   .use(Backend)
   .use(LanguageDetector)
@@ -16,7 +24,7 @@ i18n
       escapeValue: false, // not needed for react as it escapes by default
     },
 
-    ns: ["translation", "tickets", "analytics", "modPerf", "server"],
+    ns: ["translation", "tickets", "server"],
     defaultNS: "translation",
     backend: {
       // ?v= changes whenever a translation file changes (see vite.config.ts), so browsers never use stale texts

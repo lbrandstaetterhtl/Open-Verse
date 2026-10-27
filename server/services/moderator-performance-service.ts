@@ -259,7 +259,7 @@ class ModeratorPerformanceService {
       reports:       sql`SUM(${moderatorPerformanceSnapshots.reportsTotalHandled}) DESC`,
       tickets:       sql`SUM(${moderatorPerformanceSnapshots.ticketsResolved}) DESC`,
       response_time: sql`AVG(${moderatorPerformanceSnapshots.avgTicketResponseS}) ASC`, 
-    }[sortBy];
+    }[sortBy] ?? sql`SUM(${moderatorPerformanceSnapshots.performanceScore}) DESC`; // unknown key: default order
 
     return await db.select({
       moderatorId:          moderatorPerformanceSnapshots.moderatorId,

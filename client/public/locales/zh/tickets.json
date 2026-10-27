@@ -184,7 +184,7 @@
     "priorityLevel": "优先级",
     "relatedSignal": "相关信号",
     "assignedPersonnel": "负责人员",
-    "selectStaff": "选择工作人员"
+    "support": "客服"
   },
   "assignment": {
     "unassigned": "等待领航员",

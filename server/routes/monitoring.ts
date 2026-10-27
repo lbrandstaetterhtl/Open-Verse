@@ -5,6 +5,9 @@ import { count, eq, desc, and, inArray, sql, or, like } from "drizzle-orm";
 import { isOwner, isAdmin, hasPermission } from "../middleware/auth";
 
 import { sendInternalError } from "../utils/http-errors";
+import { parseId } from "../utils/params";
+import { queryInt, queryString } from "../utils/admin-input";
+import { toAdminLogRow, redactText, redactJsonText, maskIp } from "../utils/redact";
 const router = Router();
 
 // Admin permission for monitoring
@@ -13,21 +16,28 @@ router.use(hasPermission("logs"));
 // GET /api/admin/activity-logs
 router.get("/activity-logs", async (req, res) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const page = queryInt(req.query.page, 1, 1, 100000);
+    const limit = queryInt(req.query.limit, 50, 1, 200);
+    const category = queryString(req.query.category, 100);
+    const severity = queryString(req.query.severity, 50);
+    const status = queryString(req.query.status, 50);
+    const action = queryString(req.query.action, 100);
+    const search = queryString(req.query.search, 200);
+    const userIdRaw = queryString(req.query.userId, 20);
+    const userId = userIdRaw === undefined ? undefined : userIdRaw === false ? null : parseId(userIdRaw);
+    if (page === null || limit === null || userId === null || [category, severity, status, action, search].includes(false)) {
+      return res.status(400).json({ error: "Invalid input", code: "VALIDATION_ERROR" });
+    }
     const offset = (page - 1) * limit;
 
     const conditions = [];
-    if (req.query.category) conditions.push(eq(activityLogs.category, String(req.query.category)));
-    if (req.query.severity) conditions.push(eq(activityLogs.severity, String(req.query.severity)));
-    if (req.query.status) conditions.push(eq(activityLogs.status, String(req.query.status)));
-    if (req.query.action) conditions.push(eq(activityLogs.action, String(req.query.action)));
-    
-    if (req.query.userId) {
-       conditions.push(eq(activityLogs.userId, parseInt(req.query.userId as string)));
-    }
-    if (req.query.search) {
-       const term = `%${req.query.search}%`;
+    if (category) conditions.push(eq(activityLogs.category, category));
+    if (severity) conditions.push(eq(activityLogs.severity, severity));
+    if (status) conditions.push(eq(activityLogs.status, status));
+    if (action) conditions.push(eq(activityLogs.action, action));
+    if (userId) conditions.push(eq(activityLogs.userId, userId));
+    if (search) {
+       const term = `%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
        conditions.push(or(
            like(activityLogs.description, term),
            like(activityLogs.action, term),
@@ -40,7 +50,6 @@ router.get("/activity-logs", async (req, res) => {
       user: {
         id: users.id,
         username: users.username,
-        email: users.email
       }
     })
     .from(activityLogs)
@@ -61,7 +70,8 @@ router.get("/activity-logs", async (req, res) => {
       ? await countQuery.where(and(...conditions))
       : await countQuery;
 
-    res.json({ logs: items, total: totalResult?.total ?? 0, page });
+    // Only the displayed columns: masked IP, no user agent, no email, no session/fingerprint ids
+    res.json({ logs: items.map((i: any) => ({ log: toAdminLogRow(i.log), user: i.user })), total: totalResult?.total ?? 0, page });
   } catch (error: any) {
     sendInternalError(res, error, "monitoring.ts request failed");
   }
@@ -70,7 +80,8 @@ router.get("/activity-logs", async (req, res) => {
 // GET /api/admin/anomalies
 router.get("/anomalies", async (req, res) => {
   try {
-    const status = req.query.status as string;
+    const status = queryString(req.query.status, 50);
+    if (status === false) return res.status(400).json({ error: "Invalid input", code: "VALIDATION_ERROR" });
     const conditions = [];
     if (status) conditions.push(eq(anomalyEvents.status, status));
 
@@ -85,7 +96,18 @@ router.get("/anomalies", async (req, res) => {
       .limit(100)
       .execute();
 
-    res.json({ anomalies: items });
+    // Addresses in anomaly descriptions/evidence only masked
+    res.json({
+      anomalies: items.map((i: any) => ({
+        ...i,
+        anomaly: i.anomaly && {
+          ...i.anomaly,
+          ...("ipAddress" in i.anomaly ? { ipAddress: maskIp(i.anomaly.ipAddress) } : {}),
+          description: redactText(i.anomaly.description),
+          evidence: redactJsonText(i.anomaly.evidence),
+        },
+      })),
+    });
   } catch (error: any) {
     sendInternalError(res, error, "monitoring.ts request failed");
   }

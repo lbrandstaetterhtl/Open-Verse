@@ -1,0 +1,272 @@
+[
+  {
+    "id": "SOCIAL-1",
+    "severity": "critical",
+    "title": "GET /api/notifications returns the actor's full user row incl. bcrypt password hash and email",
+    "route": "GET /api/notifications",
+    "evidence": "B follows A; A GET /api/notifications -> 200 [{type:'new_follower', actor:{id, username, email:'pa_…@e2e.test', password:'$2b$12$…', role, isShadowBanned, …}}]",
+    "test": "tests/e2e/social.test.ts › notifications › notifications do not leak the actor's password hash or email",
+    "cause": "server/storage/notification-storage.ts:142-157 selects `actor: users` (every column) in the left join and returns it unchanged; server/routes/notifications.ts:18-24 sends it as is. Every recipient learns the hash and email of whoever triggered the notification. Moderators and owners leak theirs to anyone they approve or invite (community_join_approved has actorId = moderator). Users also leak theirs to anyone they follow, like, comment on or @mention, which makes it easy to collect hashes of staff accounts.",
+    "fix": "Select only public actor columns ({id, username, displayName, avatarUrl, profilePictureUrl}) in getNotifications, same shape as formatPushPayload in services/notification-service.ts."
+  },
+  {
+    "id": "SOCIAL-2",
+    "severity": "critical",
+    "title": "Unauthenticated WebSocket upgrade with an unparsable Origin header (e.g. 'Origin: null') crashes the whole server",
+    "route": "GET /ws (HTTP upgrade)",
+    "evidence": "Upgrade request with 'Origin: null' -> `new URL('null')` throws ERR_INVALID_URL inside the 'upgrade' listener -> uncaughtException -> shutdown('UncaughtException') -> process exits. Reproduced with the same handler code in isolation (scratchpad/probe/crash.mjs: 'uncaughtException -> ERR_INVALID_URL'); NOT run against the shared server.",
+    "test": "tests/e2e/social.global.test.ts › websocket upgrade robustness › an unparsable Origin header on /ws does not crash the server",
+    "cause": "server/routes/index.ts:303-317: `const originUrl = new URL(origin)` is not wrapped in try/catch and runs before any auth; server/index.ts:282-285 turns every uncaught exception into a full shutdown. Browsers send 'Origin: null' from sandboxed iframes/file:// pages, so a single request from anyone stops the service.",
+    "fix": "Wrap the origin parsing in try/catch and answer 403 on failure (or compare the raw origin string against an allow-list); also destroy the socket for upgrade paths other than /ws."
+  },
+  {
+    "id": "SOCIAL-3",
+    "severity": "high",
+    "title": "Posts of private communities are readable by anyone, including anonymous visitors",
+    "route": "GET /api/posts?communityId=:id, GET /api/posts/:id",
+    "evidence": "Member posts into private community; anonymous GET /api/posts?communityId=<id> -> 200 list containing the post (content, author); outsider GET /api/posts/<id> -> 200",
+    "test": "tests/e2e/social.test.ts › communities: private communities and join requests › posts of a private community are hidden from non-members",
+    "cause": "server/routes/posts.ts:228-235 (feed) and :163-170 (single post) never check community.isPrivate or membership.",
+    "fix": "When a post's community is private, require an authenticated member (or global staff); filter such posts out of the general feed for non-members."
+  },
+  {
+    "id": "SOCIAL-4",
+    "severity": "high",
+    "title": "Anyone can post into a private community; banned users can still post and comment in their community",
+    "route": "POST /api/posts (communityId), POST /api/comments",
+    "evidence": "Non-member POST /api/posts {communityId:<private>} -> 201; user banned via POST /api/communities/:id/ban then POST /api/posts {communityId} -> 201 and POST /api/comments on a community post -> 201",
+    "test": "tests/e2e/social.test.ts › communities: private communities and join requests › non-members cannot post into a private community; tests/e2e/social.test.ts › communities: roles and moderation › bans are enforced everywhere › a banned user cannot post into the community; … › a banned user cannot comment on the community's posts",
+    "cause": "server/routes/posts.ts:65-79 only checks that the community exists and the category is allowed; server/routes/comments.ts:19-27 creates comments without looking at the post's community. storage.isUserBannedFromCommunity is only used by /join.",
+    "fix": "In post creation require membership for private communities and reject banned users (403); in comment creation load the post, and if it belongs to a community reject banned users / non-members of private communities."
+  },
+  {
+    "id": "SOCIAL-5",
+    "severity": "medium",
+    "title": "IDOR: any user can mark read or delete (archive) any other user's notification",
+    "route": "POST /api/notifications/:id/read, DELETE /api/notifications/:id",
+    "evidence": "C POST /api/notifications/<B's id>/read -> 200 and B's notification read=1; C DELETE /api/notifications/<B's id> -> 200 and it disappears from B's list",
+    "test": "tests/e2e/social.test.ts › notifications › a user cannot mark someone else's notification as read; tests/e2e/social.test.ts › notifications › a user cannot delete someone else's notification",
+    "cause": "server/routes/notifications.ts:76-103 ignore req.user (userId is read but unused); server/storage/notification-storage.ts:177-184 and 204-211 update by id only. Ids are sequential, so all notifications can be wiped.",
+    "fix": "Pass userId to the storage methods and add `AND user_id = :userId` to both updates; answer 404 when no row matched."
+  },
+  {
+    "id": "SOCIAL-6",
+    "severity": "medium",
+    "title": "Notification preferences: mass assignment of userId lets a user take over another user's preferences; bad types cause 500",
+    "route": "PATCH /api/notifications/preferences",
+    "evidence": "Attacker PATCH {userId:<victim>, newFollower:0, …all 0} -> 200; victim GET preferences -> all 0 and follows no longer notify the victim. PATCH {likePost:'yes'} -> 500 'Failed to update preferences'",
+    "test": "tests/e2e/social.test.ts › notifications › preferences › userId in the body cannot move preferences onto another account; tests/e2e/social.test.ts › notifications › preferences › invalid value types answer 400, not 500",
+    "cause": "server/routes/notifications.ts:122-131 passes req.body unvalidated to storage; server/storage/notification-storage.ts:277-282 does `.set({ ...update })`, so userId/id/any column is writable and wrong types reach Postgres.",
+    "fix": "Validate with a zod schema of the 12 preference flags (boolean or 0/1, .strict() or pick) and never allow userId/id/updatedAt."
+  },
+  {
+    "id": "SOCIAL-7",
+    "severity": "medium",
+    "title": "Approve endpoint adds any user without a pending request (incl. declined, banned and non-existent users) and duplicates memberships",
+    "route": "POST /api/communities/:id/requests/:userId/approve",
+    "evidence": "Moderator approves user who never asked -> 200, user added; second call -> added twice (2 rows); declined request then approve -> member; approve 999999999 -> 200 (orphan row)",
+    "test": "tests/e2e/social.test.ts › communities: private communities and join requests › approving a user without a pending request does not add them; … › a declined request cannot be approved afterwards by replaying approve",
+    "cause": "server/routes/communities.ts:220-233 calls updateJoinRequestStatus (which only touches pending rows, community-storage.ts:423-442) and then unconditionally addCommunityMember; there is no unique constraint on community_members(community_id,user_id) (shared/schema.ts:166-172).",
+    "fix": "Load the pending request first and 404 if none; check the user exists and is not banned/already a member; add a unique index on (community_id, user_id)."
+  },
+  {
+    "id": "SOCIAL-8",
+    "severity": "medium",
+    "title": "Community bans can be bypassed: banned users can be invited, approved or made moderator again",
+    "route": "POST /api/communities/:id/invite, POST /api/communities/:id/moderators, POST /api/communities/:id/requests/:userId/approve",
+    "evidence": "After POST /ban {userId:X}: moderator POST /invite {userId:X} -> 200, owner POST /moderators {userId:X} -> 200; X listed twice as 'moderator' while still on the ban list",
+    "test": "tests/e2e/social.test.ts › communities: roles and moderation › bans are enforced everywhere › a banned user cannot be invited, approved or made moderator",
+    "cause": "server/routes/communities.ts:374-402 (invite), 321-353 (moderators) and 220-233 (approve) never call storage.isUserBannedFromCommunity.",
+    "fix": "Reject (409/403) when the target is banned; require an explicit unban first."
+  },
+  {
+    "id": "SOCIAL-9",
+    "severity": "medium",
+    "title": "Join-request routes return raw SQL (query text and parameters) in 500 error bodies",
+    "route": "GET /api/communities/:id/requests, POST /api/communities/:id/requests/:userId/approve|decline",
+    "evidence": "POST /api/communities/50/requests/abc/approve -> 500 {\"error\":\"Failed to approve request\",\"details\":\"Failed query: update \\\"community_join_requests\\\" set \\\"status\\\" = $1 where …\"}",
+    "test": "tests/e2e/social.test.ts › communities: private communities and join requests › request errors never echo SQL",
+    "cause": "server/routes/communities.ts:216, 251, 271 put `error.message` into `details`; ids are parseInt'ed without validation (NaN reaches the query).",
+    "fix": "Drop `details` from the responses (log it server-side) and validate the ids (400 for non-integers)."
+  },
+  {
+    "id": "SOCIAL-10",
+    "severity": "medium",
+    "title": "Member list of a private community is readable by any logged-in non-member",
+    "route": "GET /api/communities/:id/members",
+    "evidence": "Outsider GET /api/communities/<private id>/members -> 200 with usernames, roles and join dates",
+    "test": "tests/e2e/social.test.ts › communities: private communities and join requests › non-members cannot list the members of a private community",
+    "cause": "server/routes/communities.ts:477-486 only requires a login; no isPrivate/membership check.",
+    "fix": "For private communities require membership (or global staff), otherwise 403."
+  },
+  {
+    "id": "SOCIAL-11",
+    "severity": "medium",
+    "title": "Community moderators receive reporters' IP addresses (and reporter ids) in community reports",
+    "route": "GET /api/communities/:id/reports",
+    "evidence": "User reports a community post; community moderator (normal user) GET /reports -> [{…, reporterId, ipAddress:'10.0.82.33'}]",
+    "test": "tests/e2e/social.test.ts › communities: roles and moderation › community moderators do not see reporter IP addresses",
+    "cause": "server/storage/community-storage.ts:608-612 returns full report rows (`db.select().from(reports)`), served unchanged by server/routes/communities.ts:516-517; reports store the IP (server/routes/reports.ts:28).",
+    "fix": "Select only {id, reason, postId, commentId, status, createdAt} for community moderators; keep ipAddress for global staff only."
+  },
+  {
+    "id": "SOCIAL-12",
+    "severity": "medium",
+    "title": "Comments in private communities are broadcast over WebSocket to every connected user",
+    "route": "POST /api/comments (WebSocket broadcast new_comment)",
+    "evidence": "Outsider connected to /ws; owner comments on a private community post -> outsider receives {type:'new_comment', data:{content:'ws secret comment …', authorId, postId}}",
+    "test": "tests/e2e/social.test.ts › websocket › comments in a private community are not broadcast to outsiders",
+    "cause": "server/routes/comments.ts:50-53 calls broadcastMessage with the full comment for every comment; server/services/websocket.ts:6-12 sends to all connections.",
+    "fix": "Broadcast only ids (like new_post) or skip/limit the broadcast to members when the post belongs to a private community."
+  },
+  {
+    "id": "SOCIAL-13",
+    "severity": "medium",
+    "title": "Private profiles ('Only members can see your content') are not enforced: posts are served to anonymous visitors",
+    "route": "GET /api/users/:username/posts",
+    "evidence": "User sets isPrivate=true and posts; anonymous GET /api/users/<name>/posts -> 200 with the post",
+    "test": "tests/e2e/social.test.ts › follows › posts of a private profile are not visible to anonymous visitors",
+    "cause": "isPrivate is stored (server/storage/user-storage.ts) but never read by any route: server/routes/users.ts:110-150 (posts), :152-175 (comments), :204-216 (liked) serve everyone.",
+    "fix": "When user.isPrivate and the viewer is not logged in (per the UI text 'Only members can see your content'), return 403/empty for posts, comments and liked lists."
+  },
+  {
+    "id": "SOCIAL-14",
+    "severity": "low",
+    "title": "Follower/following lists expose other users' moderation state (shadow ban, freeze reason, admin group)",
+    "route": "GET /api/followers, GET /api/following",
+    "evidence": "Shadow-banned follower appears in target's GET /api/followers with isShadowBanned:1 (plus isFrozen, frozenUntil, freezeReason, adminGroupId, emailVerified)",
+    "test": "tests/e2e/social.test.ts › follows › follower and following lists hide emails, hashes and moderation state",
+    "cause": "server/routes/users.ts:93 and :103 strip only password and email from the full user rows returned by user-storage getFollowers/getFollowing (server/storage/user-storage.ts:399-404).",
+    "fix": "Map to an explicit public shape {id, username, displayName, avatarUrl, profilePictureUrl, verified, bio}."
+  },
+  {
+    "id": "SOCIAL-15",
+    "severity": "low",
+    "title": "WebSocket keeps delivering a user's notifications after logout",
+    "route": "GET /ws, POST /api/logout",
+    "evidence": "Open /ws as A, POST /api/logout -> 200, then C follows A -> the still-open socket receives A's notification",
+    "test": "tests/e2e/social.test.ts › websocket › a socket stops receiving events after logout",
+    "cause": "server/routes/index.ts:335-349 registers the socket once at upgrade; logout (server/auth.ts) never closes it and connections.get(userId) is used for every later push (services/websocket.ts:14-19).",
+    "fix": "Close the user's sockets on logout/session destroy (keep a sid->socket map) or re-validate the session periodically."
+  },
+  {
+    "id": "SOCIAL-16",
+    "severity": "low",
+    "title": "Only one WebSocket per user: closing an older tab silently stops notifications in the remaining tab",
+    "route": "GET /ws",
+    "evidence": "Open tab1 and tab2 as A, close tab1, C follows A -> tab2 receives 0 notifications",
+    "test": "tests/e2e/social.test.ts › websocket › closing one tab does not stop notifications in another tab",
+    "cause": "server/services/websocket.ts:4 `Map<number, WebSocket>`; server/routes/index.ts:345 overwrites the entry and :347-349 deletes it on any socket's close, even if it is no longer the registered one.",
+    "fix": "Store a Set<WebSocket> per user and remove only the closing socket."
+  },
+  {
+    "id": "SOCIAL-17",
+    "severity": "low",
+    "title": "Direct messages accept empty, whitespace-only and arbitrarily long (100k+) content",
+    "route": "POST /api/messages",
+    "evidence": "{receiverId, content:''} -> 201; content '   ' -> 201; content 'x'*100000 -> 201",
+    "test": "tests/e2e/social.test.ts › direct messages › empty and whitespace-only messages are rejected; tests/e2e/social.test.ts › direct messages › very long messages are rejected",
+    "cause": "shared/schema.ts:573-575 messageSchema = createInsertSchema(messages) with content as plain z.string().",
+    "fix": "messageSchema = z.object({ receiverId: z.number().int().positive(), content: z.string().trim().min(1).max(5000) })."
+  },
+  {
+    "id": "SOCIAL-18",
+    "severity": "low",
+    "title": "Messages are never marked read: the unread count only grows",
+    "route": "GET /api/messages/:userId, GET /api/messages/unread/count",
+    "evidence": "S sends R one message; R GET /api/messages/<S> -> 200; R GET /api/messages/unread/count -> {count:1} (stays 1)",
+    "test": "tests/e2e/social.test.ts › direct messages › opening a conversation clears its unread count",
+    "cause": "storage.markMessageAsRead (server/storage/message-storage.ts:81-88) is never called by any route; server/routes/messages.ts:62-74 only reads.",
+    "fix": "When the receiver loads a conversation, `UPDATE messages SET read=1 WHERE receiver_id=:me AND sender_id=:other AND read=0`."
+  },
+  {
+    "id": "SOCIAL-19",
+    "severity": "low",
+    "title": "Conversation endpoint returns the oldest 100 messages, so newer messages never show",
+    "route": "GET /api/messages/:userId",
+    "evidence": "101 messages sent; GET /api/messages/<sender> -> 100 items, last 'msg 100', 'msg 101' missing",
+    "test": "tests/e2e/social.test.ts › direct messages › a long conversation still shows the newest message",
+    "cause": "server/storage/message-storage.ts:37-65 orders ASC with LIMIT 100 and the route passes no offset/paging.",
+    "fix": "Select the latest N (ORDER BY created_at DESC LIMIT N, then reverse) and support before-id paging."
+  },
+  {
+    "id": "SOCIAL-20",
+    "severity": "low",
+    "title": "new_message notifications have no actor (sender) and bypass user preferences/WebSocket push",
+    "route": "POST /api/messages",
+    "evidence": "Receiver GET /api/notifications?type=new_message -> actorId:null, actor:null",
+    "test": "tests/e2e/social.test.ts › direct messages › the receiver gets a new_message notification naming the sender",
+    "cause": "server/routes/messages.ts:36-40 calls storage.createNotification with `fromUserId` (not a column, silently dropped) instead of notificationService.notify({actorId}).",
+    "fix": "Use notificationService.notify({ userId: receiverId, actorId: senderId, type: 'new_message', actionUrl: '/chat' })."
+  },
+  {
+    "id": "SOCIAL-21",
+    "severity": "low",
+    "title": "Saving notification preferences before they were ever loaded returns an empty 200 and saves nothing",
+    "route": "PATCH /api/notifications/preferences",
+    "evidence": "Fresh user PATCH {likePost:0} -> 200 with empty body; GET preferences -> likePost:1",
+    "test": "tests/e2e/social.test.ts › notifications › preferences › saving preferences before ever loading them persists the change",
+    "cause": "server/storage/notification-storage.ts:277-282 updates the row WHERE user_id=… without creating it first (the row is only created lazily by getNotificationPreferences).",
+    "fix": "Call getNotificationPreferences(userId) (or upsert) before the update."
+  },
+  {
+    "id": "SOCIAL-22",
+    "severity": "low",
+    "title": "Non-numeric or out-of-range ids crash social routes with HTTP 500",
+    "route": "POST|DELETE /api/follow/:userId, GET /api/messages/:userId, POST /api/notifications/:id/read, DELETE /api/notifications/:id, GET /api/notifications?offset=-1, /api/communities/:id/* (join, leave, members, bans, reports, requests, kick, role, unban, invite, moderators)",
+    "evidence": "POST /api/follow/abc -> 500; GET /api/messages/99999999999 -> 500; POST /api/notifications/abc/read -> 500; GET /api/notifications?offset=-1 -> 500; POST /api/communities/abc/join -> 500; DELETE /api/communities/50/ban/abc -> 500; POST /api/communities/50/invite {userId:99999999999} -> 500",
+    "test": "tests/e2e/social.test.ts › follows › non-numeric or out-of-range user ids answer 4xx, not 500; tests/e2e/social.test.ts › direct messages › invalid conversation ids answer 400, not 500; tests/e2e/social.test.ts › notifications › invalid notification ids answer 4xx, not 500; tests/e2e/social.test.ts › notifications › invalid paging parameters answer 4xx or are clamped, never 500; tests/e2e/social.test.ts › communities: public join and leave › non-numeric or out-of-range community and user ids answer 4xx, not 500",
+    "cause": "parseInt results are used without Number.isInteger / int4 range checks: server/routes/users.ts:15,59; messages.ts:64 (checks NaN only); notifications.ts:13-14,78,96; communities.ts:109,174,204,222-223,257-258,278-279,324,377,423-424,479,490,508,608-609. NaN/overflow values reach Postgres and throw.",
+    "fix": "Add a shared parseId helper (positive int <= 2147483647, else 400/404) and clamp limit/offset (e.g. reuse utils/pagination parsePagination for notifications)."
+  },
+  {
+    "id": "SOCIAL-23",
+    "severity": "low",
+    "title": "Community creation: client can choose the primary key; names/descriptions have no length limit; javascript: image URLs accepted",
+    "route": "POST /api/communities",
+    "evidence": "{name, id:1685101037} -> 201 with id 1685101037; name of 100k chars -> 201; {imageUrl:'javascript:alert(1)'} -> 201 stored as is",
+    "test": "tests/e2e/social.test.ts › communities: creation › the community id cannot be chosen by the client; tests/e2e/social.test.ts › communities: creation › overlong names and descriptions are rejected; tests/e2e/social.test.ts › communities: creation › javascript: image URLs are rejected",
+    "cause": "server/routes/communities.ts:36-39 validates with insertCommunitySchema = createInsertSchema(communities) (shared/schema.ts:531-535), which includes id, createdAt, imageUrl and allowedCategories without constraints; only creatorId/slug are omitted.",
+    "fix": "Use an explicit schema: { name: z.string().trim().min(3).max(50), description: z.string().max(500).optional(), isPrivate: z.boolean().optional(), imageUrl: own /uploads/ path only, allowedCategories: enum list } and never accept id/createdAt."
+  },
+  {
+    "id": "SOCIAL-24",
+    "severity": "low",
+    "title": "Names without ASCII letters/digits produce an empty slug: the first one creates an unreachable community, all later ones are refused as 'already exists'",
+    "route": "POST /api/communities",
+    "evidence": "{name:''} first created community 34 with slug '' (probe); afterwards '', '   ', '!!!', 'Ελληνικά', '🙂🙂' -> 400 'A community with this name already exists.'",
+    "test": "tests/e2e/social.test.ts › communities: creation › names without letters or digits are rejected with a validation error",
+    "cause": "server/routes/communities.ts:46-54 builds the slug with /[^a-z0-9]+/ and does not check for an empty result; name has no min length.",
+    "fix": "Reject names whose slug is empty with a 400 validation error (or transliterate / fall back to a random slug)."
+  },
+  {
+    "id": "SOCIAL-25",
+    "severity": "low",
+    "title": "Follow/unfollow toggling creates a new notification every time (notification spam)",
+    "route": "POST /api/follow/:userId",
+    "evidence": "follow, unfollow x3 by the same user -> target has 3 new_follower notifications",
+    "test": "tests/e2e/social.test.ts › follows › follow/unfollow toggling does not spam the target with notifications",
+    "cause": "server/routes/users.ts:34-39 notifies on every follow without dedupe; groupKey is never set.",
+    "fix": "Skip the notification if an unarchived new_follower from the same actor already exists (or set groupKey `follow:<actor>` and upsert)."
+  },
+  {
+    "id": "SOCIAL-26",
+    "severity": "low",
+    "title": "Error answers of social routes are sent as text/html",
+    "route": "POST /api/follow/:userId (and every res.status(...).send('text') in users.ts, messages.ts, communities.ts)",
+    "evidence": "POST /api/follow/<self> -> 400 'Cannot follow yourself' with Content-Type text/html; charset=utf-8",
+    "test": "tests/e2e/social.test.ts › error responses in social routes › plain error answers are not served as text/html",
+    "cause": "Express res.send(string) defaults to text/html (e.g. server/routes/users.ts:19, communities.ts:33,53,119). Strings are fixed, so not exploitable today, but any future interpolation becomes reflected HTML.",
+    "fix": "Answer with res.status(x).json({ error, code }) like utils/http-errors.ts, or res.type('text/plain')."
+  },
+  {
+    "id": "SOCIAL-27",
+    "severity": "info",
+    "title": "WebSocket origin check accepts any localhost origin on any port",
+    "route": "GET /ws",
+    "evidence": "Upgrade with session cookie and Origin: http://localhost:9999 -> socket opened (probe p5)",
+    "test": "",
+    "cause": "server/routes/index.ts:308-311 `isLocalhost` allows any page served from localhost/127.0.0.1 (other local dev servers) to open a socket with the user's cookie (CSWSH from local apps). Exposure is limited because the socket only pushes data.",
+    "fix": "Allow only the configured public origin(s); allow localhost only in development."
+  }
+]

@@ -1,0 +1,142 @@
+[
+  {
+    "id": "INPUT-1",
+    "severity": "high",
+    "title": "Notification list returns the actor's full user row including bcrypt password hash and email",
+    "route": "GET /api/notifications",
+    "evidence": "user B follows user A; A: GET /api/notifications → 200 [{type:'new_follower', actor:{id, username, email:'…@e2e.test', password:'$2b$12$…', karma, role, …}}]",
+    "test": "tests/e2e/input-fuzz.test.ts › input rules of individual routes › GET /api/notifications does not expose the actor's password hash or email ; tests/e2e/input-fuzz.test.ts › query parameters › GET /api/notifications: malformed query values are rejected or ignored",
+    "cause": "server/storage/notification-storage.ts:142-157 selects `actor: users` (every column of the users table) and returns it unchanged; server/routes/notifications.ts:18-24 sends it as is",
+    "fix": "select only public actor columns (id, username, displayName, avatarUrl/profilePictureUrl) in the join, or map the actor through sanitizeUser() and drop email"
+  },
+  {
+    "id": "INPUT-2",
+    "severity": "high",
+    "title": "One dislike from any user locks a new account out (karma < 0 is treated as a ban)",
+    "route": "POST /api/posts/:id/react",
+    "evidence": "new author posts; another new user POST /api/posts/:id/react {isLike:false} → 200; author GET /api/user → 401, POST /api/login → 401 'Your account has been banned'",
+    "test": "tests/e2e/input-fuzz.test.ts › input rules of individual routes › a single dislike does not lock a new author out of their account",
+    "cause": "server/routes/posts.ts:375-405 applies -1 to the author's karma via storage.updateUserKarma (server/storage/user-storage.ts:237-240, no lower bound); server/auth.ts:184 (login) and :222 (deserializeUser) treat karma < 0 as banned. Admin bans also use karma -9999 (server/routes/admin.ts:535)",
+    "fix": "do not use karma as the ban flag: check the bans table / a dedicated is_banned column in login and deserializeUser; optionally clamp karma at 0"
+  },
+  {
+    "id": "INPUT-3",
+    "severity": "medium",
+    "title": "Notification preferences update writes the raw request body (mass assignment of userId and id)",
+    "route": "PATCH /api/notifications/preferences",
+    "evidence": "attacker PATCH {userId:<victim id>, likePost:0} → 200; victim GET /api/notifications/preferences → likePost 0 (the attacker's row now belongs to the victim); {id:1} → 500",
+    "test": "tests/e2e/input-fuzz.test.ts › input rules of individual routes › PATCH /api/notifications/preferences cannot move the preferences row to another user ; tests/e2e/input-fuzz.test.ts › PATCH /api/notifications/preferences › extra fields (id, createdAt, owner ids, role …) do not cause errors",
+    "cause": "server/routes/notifications.ts:125 passes req.body to storage.updateNotificationPreferences, which does .set({ ...update, updatedAt }) (server/storage/notification-storage.ts:277-281) so userId and id columns are writable",
+    "fix": "validate with a zod schema that only allows the boolean preference keys (z.boolean() or 0/1), convert to 0/1, and never accept userId/id/updatedAt"
+  },
+  {
+    "id": "INPUT-4",
+    "severity": "medium",
+    "title": "Notification settings toggles always fail: booleans (and any non-integer) give HTTP 500",
+    "route": "PATCH /api/notifications/preferences",
+    "evidence": "PATCH {likePost:false} → 500 'Failed to update preferences' (the client sends exactly this from notifications-page.tsx:28-29); likePost null/\"abc\"/1.5/[]/{} → 500",
+    "test": "tests/e2e/input-fuzz.test.ts › input rules of individual routes › PATCH /api/notifications/preferences accepts the booleans a settings form sends ; tests/e2e/input-fuzz.test.ts › PATCH /api/notifications/preferences › wrong types, boundaries and hostile strings in every field",
+    "cause": "same raw pass-through (server/routes/notifications.ts:125, server/storage/notification-storage.ts:279): integer columns receive booleans/strings and Postgres rejects them; the error is caught as 500",
+    "fix": "schema-validate the body (boolean | 0 | 1 per key) and map booleans to 0/1 before the update; answer 400 for anything else"
+  },
+  {
+    "id": "INPUT-5",
+    "severity": "medium",
+    "title": "Report creation answers 500 with the full SQL query in the body",
+    "route": "POST /api/reports",
+    "evidence": "POST /api/reports {reason:'x', postId:1.5} (also 2147483648, -2147483649, 1e20, or reason with \\u0000) → 500 {\"message\":\"Failed to create report\",\"error\":\"Failed query: insert into \\\"reports\\\" (\\\"id\\\", \\\"reason\\\", …\"}",
+    "test": "tests/e2e/input-fuzz.test.ts › POST /api/reports › wrong types, boundaries and hostile strings in every field",
+    "cause": "server/routes/reports.ts:78-83 returns error.message to the client; shared/schema.ts:595-600 insertReportSchema uses z.number() (no .int(), no int4 bounds) for postId/commentId/discussionId",
+    "fix": "use sendInternalError() in the catch; make the ids z.number().int().positive().max(2147483647); reject \\u0000 (see INPUT-8)"
+  },
+  {
+    "id": "INPUT-6",
+    "severity": "medium",
+    "title": "Profile update never answers on an empty update or any database error (request hangs)",
+    "route": "PATCH /api/profile",
+    "evidence": "PATCH /api/profile {} (also {\"__proto__\":…}, unknown keys only, bio:'a\\u0000b', isPrivate:1.5, email:'' when taken) → no response within 10 s",
+    "test": "tests/e2e/input-fuzz.test.ts › input rules of individual routes › PATCH /api/profile without any field answers instead of hanging ; tests/e2e/input-fuzz.test.ts › PATCH /api/profile › malformed bodies are rejected or ignored ; tests/e2e/input-fuzz.test.ts › PATCH /api/profile › wrong types, boundaries and hostile strings in every field",
+    "cause": "server/auth.ts:468-502 is an async handler without try/catch (Express 4 does not catch rejected promises); storage.updateUserProfile → db.update().set({}) throws 'No values to set' (server/storage/user-storage.ts:190-200), DB errors likewise; the rejection is only logged as unhandledRejection",
+    "fix": "wrap the handler in try/catch with sendInternalError, return 400 when the parsed update is empty, and validate the values (see INPUT-7/8)"
+  },
+  {
+    "id": "INPUT-7",
+    "severity": "medium",
+    "title": "Profile edit bypasses all username/email rules of registration (empty, spaces, HTML, 300+ chars, invalid email, 200k bio)",
+    "route": "PATCH /api/profile",
+    "evidence": "PATCH {username:''} → 200, {username:'   '} → 200, {username:'a b x'} → 200, {username:'<b>x</b>'} → 200, {email:'not-an-email'} → 200, {bio|displayName|location|website: 200 000 chars} → 200",
+    "test": "tests/e2e/input-fuzz.test.ts › input rules of individual routes › PATCH /api/profile enforces the registration rules for username and email ; tests/e2e/input-fuzz.test.ts › PATCH /api/profile › 200 000-character strings are rejected",
+    "cause": "shared/schema.ts:555-568 updateProfileSchema is createInsertSchema(users).pick(...) with no constraints, while insertUserSchema (schema.ts:525-529) has min/max/regex/email; server/auth.ts:474 also skips the uniqueness check for an empty username",
+    "fix": "reuse the registration rules: username z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.-]+$/), email z.string().trim().email(), and max lengths for displayName/bio/location/website (e.g. 50/500/100/200)"
+  },
+  {
+    "id": "INPUT-8",
+    "severity": "low",
+    "title": "NUL bytes (\\u0000) in any text input cause HTTP 500 (or a hang) on nearly every route",
+    "route": "POST /api/login, POST /api/posts, POST /api/comments, POST /api/messages, POST /api/reports, POST /api/communities, POST /api/tickets, POST/PATCH /api/user/themes, GET /api/posts?category, GET /api/users/search?q, GET /api/tickets?status|priority|type|search, admin routes",
+    "evidence": "POST /api/comments {content:'before\\u0000after', postId} → 500; POST /api/login {username:'before\\u0000after'} → 500 {error:'Internal server error'}; GET /api/users/search?q=before%00after → 500; PATCH /api/profile {bio:'a\\u0000b'} → no answer",
+    "test": "tests/e2e/input-fuzz.test.ts › POST /api/comments › wrong types, boundaries and hostile strings in every field ; tests/e2e/input-fuzz.test.ts › POST /api/login › wrong types, boundaries and hostile strings in every field ; tests/e2e/input-fuzz.test.ts › query parameters › GET /api/users/search: malformed query values are rejected or ignored ; tests/e2e/input-fuzz.test.ts › query parameters › GET /api/tickets (as user): malformed query values are rejected or ignored",
+    "cause": "PostgreSQL text cannot store 0x00 ('invalid byte sequence for encoding UTF8: 0x00'); no layer strips or rejects it before the query (e.g. server/routes/comments.ts:24 → storage, server/storage/user-storage.ts:514 search, server/auth.ts:130-205 → done(err) → global error handler 500)",
+    "fix": "add one middleware after express.json that rejects (400) or strips \\u0000 in req.body/req.query strings recursively, or a shared zod string refinement"
+  },
+  {
+    "id": "INPUT-9",
+    "severity": "low",
+    "title": "Ids outside the int4 range or non-numeric ids reach the database and give HTTP 500 (public routes)",
+    "route": "POST /api/comments, POST /api/communities/:id/ban|invite|moderators, POST /api/posts, PATCH /api/tickets/:id, GET /api/posts, GET /api/feed/communities, GET /api/tickets",
+    "evidence": "POST /api/comments {postId:2147483648} → 500; POST /api/communities/:id/invite {userId:-2147483649} → 500; POST /api/posts {communityId:'abc'} (also true, [], {}, 'NaN') → 500; GET /api/posts?communityId=2147483648 → 500; GET /api/posts?offset=99999999999999999999 → 500; GET /api/tickets?assignedTo=2147483648 → 500; PATCH /api/tickets/:id as owner {assignedTo:'abc'} → 500",
+    "test": "tests/e2e/input-fuzz.test.ts › POST /api/comments › wrong types, boundaries and hostile strings in every field ; tests/e2e/input-fuzz.test.ts › POST /api/posts › wrong types, boundaries and hostile strings in every field ; tests/e2e/input-fuzz.test.ts › POST /api/communities/:id/invite › wrong types, boundaries and hostile strings in every field ; tests/e2e/input-fuzz.test.ts › query parameters › GET /api/posts (anonymous): malformed query values are rejected or ignored ; tests/e2e/input-fuzz.test.ts › query parameters › GET /api/feed/communities: malformed query values are rejected or ignored ; tests/e2e/input-fuzz.test.ts › PATCH /api/tickets/:id (as owner) › wrong types, boundaries and hostile strings in every field",
+    "cause": "shared/schema.ts:592 postId z.number().int().positive() without max; server/routes/communities.ts:324,377,557 parseInt/Number without range check; server/routes/posts.ts:62 `communityId ? parseInt(communityId) : undefined` stores NaN; server/routes/posts.ts:231 parseInt(communityId) unbounded; server/utils/pagination.ts:9 offset has no upper bound; server/routes/tickets.ts:58-59 and :157 (assignedTo copied raw)",
+    "fix": "one helper parseId(v) → integer in 1..2147483647 or 400, used for every body/query id; cap offset (e.g. ≤ 1e6) in parsePagination; validate assignedTo as an existing staff user id"
+  },
+  {
+    "id": "INPUT-10",
+    "severity": "low",
+    "title": "Non-string values reach string methods and crash handlers (TypeError → 500)",
+    "route": "POST /api/tickets, POST /api/tickets/:id/comments, PATCH /api/tickets/:id/comments/:cId, POST /api/ai/generate, GET /api/posts, PATCH /api/user/themes/:id",
+    "evidence": "POST /api/tickets {title:{length:20},…} or title:-1 → 500 (the ticket IS created first); POST /api/tickets/:id/comments {content:123} → 500; POST /api/ai/generate {topic:{}} or {language:null} → 500; GET /api/posts?category[$gt]= → 500; PATCH /api/user/themes/:id {} → 500",
+    "test": "tests/e2e/input-fuzz.test.ts › POST /api/tickets › wrong types, boundaries and hostile strings in every field ; tests/e2e/input-fuzz.test.ts › POST /api/tickets/:id/comments › wrong types, boundaries and hostile strings in every field ; tests/e2e/input-fuzz.test.ts › POST /api/ai/generate › wrong types, boundaries and hostile strings in every field ; tests/e2e/input-fuzz.test.ts › query parameters › GET /api/posts (anonymous): malformed query values are rejected or ignored ; tests/e2e/input-fuzz.test.ts › PATCH /api/user/themes/:id › malformed bodies are rejected or ignored",
+    "cause": "server/routes/tickets.ts:96-100 checks .length without typeof (so numbers/objects pass) and :119 calls title.slice after the insert; tickets.ts:215,256 content.trim(); server/services/openai.ts:82 language.toLowerCase(), :86 topic.replaceAll(); server/storage/content-storage.ts:99 category.includes(',') on a qs object; server/storage/theme-storage.ts:95 .set({}) for an empty partial",
+    "fix": "validate bodies with zod (z.string() with min/max) before use; in GET /api/posts accept category only when typeof === 'string'; return 400 for an empty theme update"
+  },
+  {
+    "id": "INPUT-11",
+    "severity": "low",
+    "title": "Client-chosen primary keys and timestamps reach INSERT/UPDATE (createInsertSchema includes id/createdAt; tickets spread req.body)",
+    "route": "POST /api/user/themes, PATCH /api/user/themes/:id, POST /api/communities, POST /api/tickets, POST /api/admin/auto-punishments/rules",
+    "evidence": "POST /api/user/themes {name, colors, id:<existing theme id>} → 500; POST /api/communities {name, id:1} → 500; POST /api/tickets {…valid, id:1 | createdAt:'not-a-date' | deletedAt:'2020-01-01' | assignedTo:'abc' | relatedPostId:'abc'} → 500; POST /api/admin/auto-punishments/rules {…, id:1} → 500",
+    "test": "tests/e2e/input-fuzz.test.ts › input rules of individual routes › POST /api/user/themes ignores a client-chosen theme id ; tests/e2e/input-fuzz.test.ts › POST /api/communities › extra fields (id, createdAt, owner ids, role …) do not cause errors ; tests/e2e/input-fuzz.test.ts › POST /api/tickets › extra fields (id, createdAt, owner ids, role …) do not cause errors ; tests/e2e/input-fuzz.test.ts › PATCH /api/user/themes/:id › extra fields (id, createdAt, owner ids, role …) do not cause errors ; tests/e2e/input-fuzz.test.ts › POST /api/admin/auto-punishments/rules › extra fields (id, createdAt, owner ids, role …) do not cause errors",
+    "cause": "shared/schema.ts:531-539 createInsertSchema(themes|communities|autoPunishmentRules) keeps id and createdAt; server/storage/theme-storage.ts:29-32 and :95 pass them to insert/update; server/services/ticket-service.ts:104-109 inserts { ...req.body } so every tickets column (id, assignedTo, deletedAt, relatedUserId…) is client-controlled",
+    "fix": ".omit({ id: true, createdAt: true }) on all insert schemas used for requests; in TicketService.createTicket pick only title/description/type/priority (and validated related ids)"
+  },
+  {
+    "id": "INPUT-12",
+    "severity": "low",
+    "title": "No length limits: 200 000-character strings are stored by most text fields",
+    "route": "POST /api/posts, POST /api/messages, POST /api/reports, POST /api/tickets, POST/PATCH /api/tickets/:id/comments, POST/PATCH /api/user/themes, POST /api/communities, PATCH /api/profile, POST /api/ai/generate, POST /api/admin/groups",
+    "evidence": "POST /api/posts {title|content|category: 'a'×200000} → 201; POST /api/messages {content: 200k} → 201; POST /api/reports {reason: 200k} → 201; POST /api/tickets {description: 200k} → 201; POST /api/communities {name: 200k} → 201; POST /api/user/themes {colors: 200k} → 200; POST /api/ai/generate {topic: 200k} → 200 (sent to the LLM when GROQ_API_KEY is set)",
+    "test": "tests/e2e/input-fuzz.test.ts › POST /api/posts › 200 000-character strings are rejected ; tests/e2e/input-fuzz.test.ts › POST /api/messages › 200 000-character strings are rejected ; tests/e2e/input-fuzz.test.ts › POST /api/reports › 200 000-character strings are rejected ; tests/e2e/input-fuzz.test.ts › POST /api/tickets › 200 000-character strings are rejected ; tests/e2e/input-fuzz.test.ts › POST /api/communities › 200 000-character strings are rejected ; tests/e2e/input-fuzz.test.ts › POST /api/user/themes › 200 000-character strings are rejected ; tests/e2e/input-fuzz.test.ts › POST /api/ai/generate › 200 000-character strings are rejected",
+    "cause": "only the 1 MB body limit (server/index.ts:48) applies; posts.ts:27 has no validation, messageSchema/insertReportSchema/insertThemeSchema/insertCommunitySchema (shared/schema.ts:531-600) have no .max(), tickets.ts:100 only a minimum for description (comments with 10000 and ticket titles with 200 are the exceptions)",
+    "fix": "add .max() per field (e.g. post title 300, content 40000, category 50, message 5000, report reason 1000, ticket description 10000, ticket comment 10000, theme name 100 / colors 20000, community name 100 / description 2000, AI topic 500)"
+  },
+  {
+    "id": "INPUT-13",
+    "severity": "low",
+    "title": "Admin write routes without input validation answer 500 for malformed bodies",
+    "route": "POST /api/admin/bans, PATCH /api/admin/groups/:id, POST /api/admin/groups/assign, PATCH /api/admin/users/:id, PATCH /api/admin/reports/:id, POST /api/admin/analytics/compute, POST /api/admin/performance/snapshot",
+    "evidence": "POST /api/admin/bans {} → 500, {…, duration_hours:'abc'} → 500; PATCH /api/admin/groups/:id {} → 500, {name:<existing name>} → 500, {createdAt:'x'} → 500; POST /api/admin/groups/assign {userId:-1} → 500; PATCH /api/admin/users/:id {username:'routeowner'} → 500, {isAdmin:1.5} → 500; PATCH /api/admin/reports/999999999 {status:'pending'} → 500, PATCH /api/admin/reports/:id {} → 500; POST /api/admin/analytics/compute {date:'abc'} → 500",
+    "test": "tests/e2e/input-fuzz.test.ts › POST /api/admin/bans › malformed bodies are rejected or ignored ; tests/e2e/input-fuzz.test.ts › PATCH /api/admin/groups/:id › malformed bodies are rejected or ignored ; tests/e2e/input-fuzz.test.ts › POST /api/admin/groups/assign › wrong types, boundaries and hostile strings in every field ; tests/e2e/input-fuzz.test.ts › input rules of individual routes › PATCH /api/admin/users/:id with a taken username or email answers 4xx ; tests/e2e/input-fuzz.test.ts › input rules of individual routes › PATCH /api/admin/reports/:id for a report that does not exist answers 404 ; tests/e2e/input-fuzz.test.ts › POST /api/admin/analytics/compute › wrong types, boundaries and hostile strings in every field",
+    "cause": "server/routes/admin.ts:510-542 inserts body fields unchecked; server/routes/admin-groups.ts:50 passes req.body to updateAdminGroup and :94 uses userId unchecked (user undefined → user.username); server/routes/admin.ts:202 no uniqueness check, shared/schema.ts:541-543 boolOrInt accepts any number; server/routes/admin.ts:311 .set({status: undefined}) and :319 updatedReport.id on undefined; server/routes/analytics.ts:86 and server/services/moderator-performance-service.ts:72 new Date(invalid)",
+    "fix": "zod schemas for bans (enum ban_type, positive int user_id, positive duration), admin-group updates (pick name/description/permissions/color), assign (int ids, 404 if user missing), boolOrInt → z.union([z.boolean(), z.literal(0), z.literal(1)]), 409 on duplicate username/email, 400 for empty report update, 404 when nothing was updated, 400 for invalid dates"
+  },
+  {
+    "id": "INPUT-14",
+    "severity": "low",
+    "title": "Admin query parameters are not validated: unknown sortBy, NaN ids, negative pages and huge days answer 500",
+    "route": "GET /api/admin/performance/leaderboard, GET /api/admin/logs, GET /api/admin/monitoring/activity-logs, GET /api/admin/analytics/overview, GET /api/admin/logs/export",
+    "evidence": "GET /api/admin/performance/leaderboard?sortBy=abc → 500; GET /api/admin/logs?adminId=abc → 500; GET /api/admin/monitoring/activity-logs?page=-1 → 500, ?userId=abc → 500; GET /api/admin/analytics/overview?days=2147483648 → 500; GET /api/admin/logs/export?offset=99999999999999999999 → 500",
+    "test": "tests/e2e/input-fuzz.test.ts › query parameters › GET /api/admin/performance/leaderboard: malformed query values are rejected or ignored ; tests/e2e/input-fuzz.test.ts › query parameters › GET /api/admin/logs: malformed query values are rejected or ignored ; tests/e2e/input-fuzz.test.ts › query parameters › GET /api/admin/monitoring/activity-logs: malformed query values are rejected or ignored ; tests/e2e/input-fuzz.test.ts › query parameters › GET /api/admin/analytics/overview: malformed query values are rejected or ignored ; tests/e2e/input-fuzz.test.ts › query parameters › GET /api/admin/logs/export: malformed query values are rejected or ignored",
+    "cause": "server/services/moderator-performance-service.ts:257-262 maps sortBy through an object literal, unknown keys give undefined ORDER BY; server/routes/admin.ts:342 parseInt(adminId) → NaN; server/routes/monitoring.ts:16-18 page/limit not clamped (negative OFFSET) and :27 parseInt(userId) → NaN; server/routes/analytics.ts:16 days unbounded → subDays gives an invalid Date; server/utils/pagination.ts:9 offset unbounded",
+    "fix": "whitelist sortBy/period (fall back to the default), parse ids with a shared parseId helper (400 when invalid), use parsePagination for monitoring and cap offset, clamp days to 1..365"
+  }
+]

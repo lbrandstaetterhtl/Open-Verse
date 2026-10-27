@@ -26,20 +26,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import type { UpdateProfile, User } from "@shared/schema";
-import { updateProfileSchema } from "@shared/schema";
+import { updateProfileSchema } from "@shared/validation";
 import { useTranslation } from "react-i18next";
-import { Loader2, Globe, MapPin, AtSign, User as UserIcon, Lock, Camera, Palette, Shield, Info, Image as ImageIcon } from "lucide-react";
+import { Loader2, Globe, MapPin, AtSign, User as UserIcon, Lock, Camera, Palette, Shield, Info, Image as ImageIcon, KeyRound } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeIn, scaleIn } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { LIMITS, tooLongMessage } from "@/lib/input-limits";
+import { safeExternalUrl } from "@/lib/safe-url";
+import { PasswordChangeForm } from "./PasswordChangeForm";
 
 // Must match PROFILE_IMAGE_MAX_BYTES on the server.
 const MAX_IMAGE_MB = 10;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-export type EditProfileTab = "general" | "appearance" | "privacy";
+export type EditProfileTab = "general" | "appearance" | "privacy" | "security";
 
 interface EditProfileModalProps {
   user: User;
@@ -51,9 +54,9 @@ interface EditProfileModalProps {
   initialTab?: EditProfileTab;
 }
 
+// Only the fields this dialog shows. Username and e-mail are not part of it: their stricter current rules
+// must not block saving the profile of an older account (e.g. "owner@localhost").
 const formValuesFor = (user: User) => ({
-  username: user.username,
-  email: user.email,
   displayName: user.displayName || "",
   bio: user.bio || "",
   location: user.location || "",
@@ -80,10 +83,27 @@ export function EditProfileModal({
   const coverInput = useRef<HTMLInputElement>(null);
 
   // Create a form-specific schema that allows boolean for the switch
+  // Length limits as on the server (lib/input-limits.ts); the website must be an http(s) address
+  const maxText = (field: string, max: number) => z.string().max(max, tooLongMessage(field, max)).optional().nullable();
   const formSchema = updateProfileSchema.extend({
+    // Not shown in the dialog, never validated or sent
+    username: z.any().optional(),
+    email: z.any().optional(),
+    profilePictureUrl: z.any().optional(),
     isPrivate: z.boolean().optional(),
     avatarUrl: z.string().optional(),
     coverUrl: z.string().optional(),
+    displayName: maxText(t("server:fields.displayName"), LIMITS.displayName),
+    bio: maxText(t("server:fields.bio"), LIMITS.bio),
+    location: maxText(t("server:fields.location"), LIMITS.location),
+    website: maxText(t("server:fields.website"), LIMITS.website).refine(
+      (value) => {
+        if (!value?.trim()) return true;
+        const url = safeExternalUrl(value, { assumeHttps: true });
+        return !!url && new URL(url).hostname.includes(".");
+      },
+      { message: t("server:validation.invalid_url", { field: t("server:fields.website") }) },
+    ),
   });
 
   const form = useForm<any>({
@@ -129,14 +149,35 @@ export function EditProfileModal({
   };
 
   const handleFormSubmit = (data: any) => {
-    console.log("Submitting Profile Data:", data);
     // Transform boolean back to integer for the backend schema
     const processedData = {
       ...data,
       isPrivate: data.isPrivate ? 1 : 0
     };
+    // The dialog has no username/e-mail fields: never send them
+    delete processedData.username;
+    delete processedData.email;
+    delete processedData.profilePictureUrl;
 
     onSubmit(processedData as any);
+  };
+
+  // A validation error must never block Save silently (e.g. on a field of another tab): show the field's
+  // tab and say what is wrong.
+  const FIELD_TABS: Record<string, EditProfileTab> = {
+    displayName: "general", bio: "general", location: "general", website: "general",
+    avatarUrl: "appearance", coverUrl: "appearance", isPrivate: "privacy",
+  };
+  const handleInvalid = (errors: Record<string, any>) => {
+    const [field, error] = Object.entries(errors)[0] ?? [];
+    if (field && FIELD_TABS[field]) setTab(FIELD_TABS[field]);
+    toast({
+      title: t("profile.form.invalid", "The profile could not be saved"),
+      description: typeof error?.message === "string" && error.message
+        ? error.message
+        : t("profile.form.invalid_hint", "Please check your entries."),
+      variant: "destructive",
+    });
   };
 
   return (
@@ -158,7 +199,7 @@ export function EditProfileModal({
 
         <div className="p-0 max-h-[80vh] overflow-hidden">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+            <form onSubmit={form.handleSubmit(handleFormSubmit, handleInvalid)}>
               <Tabs value={tab} onValueChange={(v) => setTab(v as EditProfileTab)} className="w-full">
                 <div className="ov-rule px-6 md:px-8">
                   <TabsList className="h-12 w-full justify-start gap-1 rounded-none bg-transparent p-0 shadow-none">
@@ -173,6 +214,10 @@ export function EditProfileModal({
                     <TabsTrigger value="privacy" className="h-full rounded-none px-3">
                       <Shield className="w-4 h-4 mr-2" />
                       {t("profile.edit_tabs.privacy", "Privacy")}
+                    </TabsTrigger>
+                    <TabsTrigger value="security" className="h-full rounded-none px-3">
+                      <KeyRound className="w-4 h-4 mr-2" />
+                      {t("profile.edit_tabs.security", "Security")}
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -192,7 +237,7 @@ export function EditProfileModal({
                                 {t('profile.form.name')}
                               </FormLabel>
                               <FormControl>
-                                <Input placeholder={t("profile.form.name_placeholder", "John Doe")} {...field} className="h-11 px-4" />
+                                <Input placeholder={t("profile.form.name_placeholder", "John Doe")} maxLength={LIMITS.displayName} {...field} className="h-11 px-4" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -209,12 +254,13 @@ export function EditProfileModal({
                               <FormControl>
                                 <Textarea
                                   placeholder={t('profile.form.bio_placeholder')}
+                                  maxLength={LIMITS.bio}
                                   className="resize-none p-4 min-h-[140px] leading-relaxed"
                                   {...field}
                                 />
                               </FormControl>
                               <FormDescription className="text-xs">
-                                {t('profile.form.bio_description')}
+                                {t("profile.form.bio_description", { defaultValue: "Displayed on your profile. Max. {{max}} characters.", max: LIMITS.bio })}
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -233,7 +279,7 @@ export function EditProfileModal({
                                   {t('profile.form.location')}
                                 </FormLabel>
                                 <FormControl>
-                                  <Input placeholder={t("profile.form.location_placeholder", "Berlin, Germany")} {...field} className="h-11 px-4" />
+                                  <Input placeholder={t("profile.form.location_placeholder", "Berlin, Germany")} maxLength={LIMITS.location} {...field} className="h-11 px-4" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -249,7 +295,7 @@ export function EditProfileModal({
                                   {t('profile.form.website')}
                                 </FormLabel>
                                 <FormControl>
-                                  <Input placeholder="example.com" {...field} className="h-11 px-4" />
+                                  <Input placeholder="example.com" maxLength={LIMITS.website} {...field} className="h-11 px-4" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -424,6 +470,13 @@ export function EditProfileModal({
                         />
                       </motion.div>
                     </TabsContent>
+
+                    {/* Password change: its own request and button, not part of the profile save */}
+                    <TabsContent value="security" className="mt-0 space-y-8 outline-none">
+                      <motion.div variants={fadeIn} initial="initial" animate="animate">
+                        <PasswordChangeForm />
+                      </motion.div>
+                    </TabsContent>
                   </AnimatePresence>
                 </div>
               </Tabs>
@@ -432,10 +485,12 @@ export function EditProfileModal({
                 <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
                   {t('common.cancel')}
                 </Button>
-                <Button type="submit" disabled={isSubmitting || isUploadingAvatar || isUploadingCover} className="px-6">
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-                  {t('common.save')}
-                </Button>
+                {tab !== "security" && (
+                  <Button type="submit" disabled={isSubmitting || isUploadingAvatar || isUploadingCover} className="px-6">
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                    {t('common.save')}
+                  </Button>
+                )}
               </div>
             </form>
           </Form>

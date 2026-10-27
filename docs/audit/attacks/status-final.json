@@ -1,0 +1,7 @@
+{
+  "ATK-AUTH-2": {"status": "accepted", "note": "Passwortänderung: behoben (5 falsche aktuelle Passwörter pro Konto und Stunde). Registrierung: Das Limit pro IP bleibt, eine X-Forwarded-For-Adresse wird aber nur noch von Proxys im lokalen Netz übernommen (TRUST_PROXY=true). Wer direkt aus dem Internet kommt, kann seine Adresse nicht mehr wählen. Der Angriffstest sendet aus dem lokalen Netz und bleibt deshalb rot. Ein globales Limit würde normale Anmeldewellen blockieren."},
+  "ATK-AUTH-16": {"status": "accepted", "note": "Die Registrierung sagt weiter, ob ein Benutzername oder eine E-Mail schon vergeben ist. Benutzernamen sind über öffentliche Profile ohnehin sichtbar, und die klare Meldung ist für Nutzer wichtiger. Brute Force ist pro Konto und pro IP begrenzt."},
+  "ATK-RT-4": {"status": "accepted", "note": "Eine WebSocket-Verbindung ohne Origin-Header wird weiter angenommen: Browser senden ihn immer, eine Anfrage ohne Origin kommt also nicht von einer fremden Webseite. Eine gültige Sitzung ist trotzdem nötig."},
+  "ATK-UPLOAD-5": {"status": "accepted", "note": "Kein festes Speicherkontingent pro Nutzer. Uploads sind begrenzt durch eine Datei pro Beitrag, 50 MB pro Datei und die Wartezeit zwischen Beiträgen; abgelehnte Uploads hinterlassen keine Dateien mehr."},
+  "UI-15": {"status": "fixed", "note": "Neues Formular „Sicherheit“ im Profil-Dialog."}
+}

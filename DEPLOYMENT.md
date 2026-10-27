@@ -30,12 +30,21 @@ nano .env
 
 > [!IMPORTANT]
 > Folgende Werte **müssen** gesetzt werden:
-> - `POSTGRES_PASSWORD` → starkes, zufälliges Passwort
-> - `SESSION_SECRET` → langer zufälliger String (mind. 64 Zeichen)
+> - `POSTGRES_PASSWORD` → starkes, zufälliges Passwort (nur Buchstaben und Ziffern, es steht in einer Verbindungs-URL)
 >   ```bash
->   node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+>   openssl rand -hex 24
+>   ```
+> - `SESSION_SECRET` → langer zufälliger String (mind. 32 Zeichen)
+>   ```bash
+>   openssl rand -hex 32
 >   ```
 > - `TRUST_PROXY=true` (da Nginx als Reverse Proxy läuft)
+>
+> Platzhalter aus `.env.example` (`change-me-…`) oder zu kurze Werte verhindern den Start nicht, aber die App
+> meldet sie bei jedem Start: `docker compose logs app | grep -i "weak secret"`.
+>
+> Empfohlen zusätzlich: `DB_APP_PASSWORD` (eigene Datenbankrolle mit minimalen Rechten, siehe
+> [Datenbank-Rollen](#datenbank-rollen-least-privilege-optional)).
 
 ### 3. Container starten
 
@@ -45,8 +54,12 @@ docker compose up -d
 
 Der Start-Ablauf:
 1. PostgreSQL-Datenbankcontainer startet (benötigt **PostgreSQL ≥ 15**, das Compose-Image nutzt 16)
-2. App-Container wartet auf DB (Health Check)
-3. App führt die SQL-Migrationen aus `migrations/` aus und ist unter Port 5000 erreichbar
+2. Der einmalige Container `migrate` wartet auf die DB (Health Check), wendet die SQL-Migrationen aus
+   `migrations/` an und beendet sich (Status `Exited (0)` in `docker compose ps -a` ist normal).
+   Jede Migrationsdatei läuft in einer eigenen Transaktion und wird in der Tabelle
+   `openverse_schema_migrations` vermerkt, also nur einmal ausgeführt.
+3. Erst danach startet der App-Container und ist unter Port 5000 erreichbar. Schlägt eine Migration fehl,
+   startet die App nicht: `docker compose logs migrate` zeigt den Grund.
 
 ### 4. Ersten Owner anlegen
 
@@ -115,10 +128,129 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-Daten (Datenbank-Volume `postgres_data`, Uploads-Volume `uploads_data`) bleiben dabei erhalten; Migrationen laufen beim Start automatisch. Gespeicherte Themes der Nutzer werden im Browser auf das neue Design umgestellt, eigene Farben bleiben erhalten.
+Daten (Datenbank-Volume `postgres_data`, Uploads-Volume `uploads_data`) bleiben dabei erhalten; Migrationen laufen beim Start automatisch (Service `migrate`). Gespeicherte Themes der Nutzer werden im Browser auf das neue Design umgestellt, eigene Farben bleiben erhalten.
+
+> [!NOTE]
+> **Upgrade auf die Version mit Migrations-Journal (Oktober 2026)** – mit der bestehenden `.env`, ohne neue Pflichtwerte:
+> - Neu ist der Container `migrate` (läuft vor jedem App-Start einmal und beendet sich).
+> - Beim ersten Start werden die bisherigen Migrationen `0000`/`0001` als „bereits angewendet“ im neuen
+>   Journal `openverse_schema_migrations` vermerkt, `0002`–`0005` laufen (idempotent) und danach nie wieder.
+> - `0004` legt Indizes auf die häufig abgefragten Tabellen an (Activity-Log, Bans, Posts, Nachrichten …).
+>   Bei einem sehr großen `activity_logs` dauert dieser erste Start entsprechend länger.
+> - `0005` löscht die gespeicherten IP-Adressen der Meldungen (`reports.ip_address`) und die alten, nie
+>   nutzbaren E-Mail-Bestätigungs-Tokens.
+> - Ein im Admin-Bereich eingetragenes SMTP-Passwort wird verschlüsselt gespeichert.
+> - Activity-Logs und Anomalien älter als 90 Tage werden ab jetzt täglich gelöscht (siehe
+>   [Datenaufbewahrung](#datenaufbewahrung)).
+> - Docker begrenzt die Container-Logs ab jetzt auf 5 × 10 MB je Container.
+> - Bei schwachen Secrets erscheint eine Warnung im Log (`Weak secret: …`); die App startet trotzdem.
 
 > [!IMPORTANT]
 > **Einmalig beim Upgrade von einer Version vor Oktober 2026:** Falls du dich bisher als `testadmin` eingeloggt hast, setze vor `docker compose up -d` in `.env` `INITIAL_OWNER_USERNAME` und `INITIAL_OWNER_PASSWORD` (siehe Abschnitt 4). Sonst hast du nach dem Upgrade keinen Owner-Zugang mehr, weil das öffentlich bekannte `testadmin`-Passwort deaktiviert wird.
+
+### Datenbank-Rollen (Least Privilege, optional)
+
+Ohne weitere Einstellung verbindet sich die App mit `POSTGRES_USER`. Dieser Benutzer ist im offiziellen
+Postgres-Image **Superuser**: eine Sicherheitslücke in der App hätte damit volle Kontrolle über die Datenbank
+(und über `COPY … TO PROGRAM` auch über den DB-Container).
+
+Mit `DB_APP_PASSWORD` in `.env` bekommt die App eine eigene Rolle `openverse_app`:
+
+```bash
+echo "DB_APP_PASSWORD=$(openssl rand -hex 24)" >> .env
+docker compose up -d
+```
+
+- Der Container `migrate` (mit `POSTGRES_USER`/`POSTGRES_PASSWORD`) legt die Rolle an bzw. setzt ihr
+  Passwort neu und vergibt nur `SELECT/INSERT/UPDATE/DELETE` auf alle Tabellen und `USAGE/SELECT` auf die
+  Sequenzen (auch für künftige Tabellen). Kein DDL, kein `TRUNCATE`, keine Superuser-Rechte; zusätzlich
+  gelten serverseitig `statement_timeout` und `idle_in_transaction_session_timeout` für die Rolle.
+- Der App-Container erhält **nur** noch Benutzer `openverse_app` und `DB_APP_PASSWORD`, nicht mehr
+  `POSTGRES_PASSWORD`, und führt selbst keine Schemaänderungen mehr aus.
+- Funktioniert bei neuen Installationen und bei bestehenden (vorhandenes Volume): einfach den Wert setzen
+  und `docker compose up -d` ausführen. Zurück zum alten Verhalten: Zeile entfernen, `docker compose up -d`
+  (die Rolle bleibt bestehen und stört nicht; entfernen mit
+  `docker compose exec db psql -U openverse -d openverse -c "DROP OWNED BY openverse_app; DROP ROLE openverse_app;"`).
+- Prüfen: `docker compose logs migrate | grep -i role` und
+  `docker compose exec db psql -U openverse -d openverse -c "SELECT usename, application_name FROM pg_stat_activity WHERE datname = current_database();"`
+  (die App erscheint als `openverse_app` / `open-verse`).
+
+Ohne Docker (eigene Postgres-Instanz): `DATABASE_URL` mit dem Owner-Benutzer und `DB_APP_PASSWORD` setzen.
+Die App führt die Migrationen dann mit `DATABASE_URL` aus und nutzt für alle Anfragen `openverse_app`
+(`DATABASE_URL`-Benutzer braucht `CREATEROLE`). Migrationen lassen sich auch separat ausführen:
+`npm run db:migrate`.
+
+Externe Datenbank (anderer Server, Managed Postgres): die Verbindung verschlüsseln und das Zertifikat prüfen,
+z. B. `DATABASE_URL=postgres://user:pw@host:5432/db?sslmode=verify-full` (bei eigener CA zusätzlich
+`&sslrootcert=/pfad/ca.pem`). Im Compose-Setup ist die DB nur im internen Docker-Netz erreichbar (kein Port
+nach außen), dort ist das nicht nötig.
+
+### Passwörter ändern
+
+- **`POSTGRES_PASSWORD`**: wird nur beim allerersten Start (leeres Volume) gesetzt. Später zuerst in der
+  Datenbank ändern, dann in `.env`:
+  ```bash
+  docker compose exec db psql -U openverse -d openverse -c "ALTER ROLE openverse PASSWORD '<neues-passwort>';"
+  # .env: POSTGRES_PASSWORD=<neues-passwort>
+  docker compose up -d
+  ```
+- **`DB_APP_PASSWORD`**: nur in `.env` ändern und `docker compose up -d` – `migrate` setzt es neu.
+- **`SESSION_SECRET`**: in `.env` ändern und `docker compose up -d`. Alle Nutzer werden abgemeldet, und ein
+  im Admin-Bereich gespeichertes SMTP-Passwort muss neu eingegeben werden (es ist mit einem daraus
+  abgeleiteten Schlüssel verschlüsselt).
+
+### Datenbank-Timeouts
+
+Die App bricht einzelne Abfragen nach 15 s ab (`DB_STATEMENT_TIMEOUT_MS`), beendet Transaktionen, die 30 s
+untätig offen sind (`DB_IDLE_IN_TRANSACTION_TIMEOUT_MS`), und wartet höchstens 10 s auf eine Verbindung
+(`DB_CONNECTION_TIMEOUT_MS`); Poolgröße `DB_POOL_MAX` (10). Migrationen sind davon ausgenommen. Ein Neustart
+oder kurzer Ausfall von Postgres beendet die App nicht mehr: Anfragen schlagen in der Zeit fehl, danach
+verbindet sich die App von selbst neu.
+
+### Datenaufbewahrung
+
+- Activity-Logs und Anomalie-Ereignisse (mit IP-Adressen und User-Agents) werden täglich gelöscht, sobald sie
+  älter als **90 Tage** sind. Einstellbar im Admin-Bereich unter *Settings → Security → Activity Log Retention
+  (Days)*; `0` = unbegrenzt aufbewahren. Anomalien, auf die ein Bann verweist, bleiben erhalten.
+- Abgelaufene Sitzungen und E-Mail-Bestätigungs-Tokens werden ebenfalls täglich entfernt.
+- Meldungen speichern keine IP-Adresse mehr; E-Mail-Bestätigungs-Tokens nur als SHA-256-Hash.
+- Wird ein Konto gelöscht, werden seine Activity-Logs und Anomalien gelöscht (Admin-Aktionen von Moderatoren
+  bleiben als Protokoll, aber ohne E-Mail, IP, User-Agent und Gerät), seine Meldungen, Sitzungen und Tokens
+  entfernt; Banns bleiben bestehen, verlieren aber IP und Geräte-ID, sofern es Konto-Banns sind.
+
+### Logs
+
+- `docker compose logs` zeigt Warnungen und Fehler; Docker rotiert die Container-Logs (5 × 10 MB je
+  Container, `logging:` in `docker-compose.yml`). Die Einstellung greift für Container, die nach dem Update
+  neu erstellt werden (`docker compose up -d` erledigt das).
+- Im Container schreibt die App zusätzlich Dateien nach `/app/logs` (Rechte `0640`, je Datei max.
+  `LOG_MAX_SIZE_MB` = 50 MB × 5 Rotationen); sie gehen beim Neuerstellen des Containers verloren.
+- Logs enthalten keine Abfrageparameter, Passwörter, Tokens oder Request-Bodies mehr; E-Mail-Adressen werden
+  maskiert (`a***@example.com`). Zugriffs-Logs enthalten weiterhin IP und User-Agent (gekürzt auf 256 Zeichen).
+- Für Postgres niemals `log_statement=all` oder `log_min_duration_statement` ohne
+  `log_parameter_max_length=0` aktivieren: die Parameter enthalten Passwort-Hashes und E-Mail-Adressen.
+
+### Backups
+
+```bash
+# Datenbank (komprimiertes Custom-Format), z. B. täglich per cron:
+docker compose exec -T db pg_dump -U openverse -d openverse -Fc > openverse-$(date +%F).dump
+# Uploads:
+docker run --rm -v open-verse_uploads_data:/data -v "$PWD":/backup alpine tar czf /backup/uploads-$(date +%F).tgz -C /data .
+# Wiederherstellen (in eine leere Datenbank):
+docker compose exec -T db pg_restore -U openverse -d openverse --clean --if-exists < openverse-YYYY-MM-DD.dump
+```
+
+Backups enthalten Passwort-Hashes, E-Mail-Adressen und Sitzungen: verschlüsselt und nicht auf demselben
+Server aufbewahren, Wiederherstellung regelmäßig testen. (Der Volume-Name hängt vom Projektnamen ab:
+`docker volume ls`.)
+
+### SQLite (nur Entwicklung)
+
+Mit `USE_SQLITE=true` liegt die Datenbank in `./local.db` bzw. `SQLITE_PATH`. Die Datei wird mit Rechten
+`0600` angelegt; ein Pfad im öffentlich ausgelieferten Ordner `uploads/` wird abgelehnt (die App startet
+dann nicht). Im Docker-Image ist dafür `/app/data` vorgesehen (`SQLITE_PATH=/app/data/local.db` und ein
+Volume auf `/app/data`). Backup: `sqlite3 local.db ".backup backup.db"`.
 
 ---
 

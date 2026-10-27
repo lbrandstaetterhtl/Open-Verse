@@ -1,14 +1,16 @@
 import type { Express } from "express";
 import { createServer, type Server } from "node:http";
 import session from 'express-session';
-import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { WebSocketServer } from 'ws';
-import compression from "compression";
 
-import { setupAuth, validateCsrf } from "../auth";
+import { setupSession, registerAuthRoutes, validateCsrf, isAccountBanned, createCsrfToken } from "../auth";
+import { staffOnly, sendApiNotFound } from "../middleware/auth";
+import { staffAssetGuard, isStaffAssetPath } from "../staff-assets";
 import { storage } from "../storage";
-import { connections } from "../services/websocket";
+import { addConnection, removeConnection } from "../services/websocket";
+import { passwordStamp } from "../utils/password-hash";
+import { isAllowedOrigin } from "../utils/origins";
 import { banCheckMiddleware } from "../middleware/ban-check";
 
 // Feature Routes
@@ -38,12 +40,25 @@ import { dbLogger } from "../logger/service-loggers";
 import { DbHealthService } from "../services/db-health";
 import { parsePagination } from "../utils/pagination";
 import { DELETED_AUTHOR } from "../utils/post-extras";
+import { filterVisiblePosts, shadowCountScope } from "../utils/community-access";
+
+/** Shown to browser navigations while the database is unreachable. No details: they are only in the log. */
+const DB_UNAVAILABLE_PAGE = `                    <html>
+                        <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white; text-align: center;">
+                            <div>
+                                <h1 style="font-size: 3rem; margin-bottom: 1rem;">Database Issue</h1>
+                                <p style="font-size: 1.2rem; opacity: 0.8;">The platform is temporarily unavailable due to a database connection issue.</p>
+                                <p style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.5;">Please try again in a few minutes.</p>
+                            </div>
+                        </body>
+                    </html>
+                `;
 
 export async function registerRoutes(app: Express): Promise<Server> {
-    // 0. Performance: Compression
-    app.use(compression());
+    // Compression is applied once in server/index.ts
 
-    // 0.5. DB Health Check Middleware
+    // 0.5. DB Health Check Middleware. The answer is the same for every path and every caller: what exactly
+    // is wrong (missing tables, the driver's error text) only goes to the server log (DbHealthService logs it).
     app.use(async (req, res, next) => {
         // Skip health check for public assets (files with extensions) and non-API routes
         // EXCEPT for the root "/" which we want to check
@@ -54,64 +69,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return next();
         }
 
-        // We only check health for API routes and the main entry points
         const health = await DbHealthService.checkHealth();
         if (!health.isHealthy) {
-            // We need to check if user is admin, but req.user might not be populated yet
-            // However, we can check the session later or just show a friendly error first
-            // and a detailed one if they are on an admin route
-            const isAdminRoute = req.path.startsWith("/api/admin") || req.path.startsWith("/admin");
-            
-            // At this stage req.user is NOT yet available (setupAuth runs later)
-            // So we show the friendly error, but for the /api/admin paths we could try to be more detailed
-            // if we really wanted to. For now, let's keep it simple:
-            
-            if (req.path.startsWith("/api")) {
+            if (isApiRoute) {
                 return res.status(503).json({
                     error: "Database Unavailable",
                     message: "The system is currently unable to communicate with the database.",
-                    details: isAdminRoute ? health.details : undefined
                 });
-            } else {
-                // Return a simple HTML error page if it's a direct browser request
-                return res.status(503).send(`
-                    <html>
-                        <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white; text-align: center;">
-                            <div>
-                                <h1 style="font-size: 3rem; margin-bottom: 1rem;">🗄️ Database Issue</h1>
-                                <p style="font-size: 1.2rem; opacity: 0.8;">The platform is temporarily unavailable due to a database connection issue.</p>
-                                ${isAdminRoute ? `<div style="margin-top: 2rem; padding: 1rem; background: #ef444420; border: 1px solid #ef444440; border-radius: 8px; color: #ef4444; font-family: monospace;">${health.details}</div>` : ""}
-                                <p style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.5;">Our engineers have been notified.</p>
-                            </div>
-                        </body>
-                    </html>
-                `);
             }
+            // A simple HTML error page for direct browser requests (same for every caller)
+            return res.status(503).type("html").send(DB_UNAVAILABLE_PAGE);
         }
         next();
     });
 
-    // 1. Security Headers (Helmet)
-    const scriptSrcDirective = process.env.NODE_ENV === 'production'
-        ? ["'self'"]
-        : ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
-    
-    app.use(helmet({
-        contentSecurityPolicy: {
-            directives: {
-                defaultSrc: ["'self'"],
-                imgSrc: ["'self'", "data:", "blob:"],
-                mediaSrc: ["'self'", "data:", "blob:"],
-                scriptSrc: scriptSrcDirective,
-                connectSrc: ["'self'", "ws:", "wss:"],
-                frameAncestors: ["'none'"],
-                objectSrc: ["'none'"], // SEC-FIX: Block plugins
-                upgradeInsecureRequests: null, // EXPLIZIT deaktivieren (sonst ist es per Default an)
-            },
-        },
-        hsts: false, // EXPLIZIT deaktivieren (sonst ist es per Default an)
-        referrerPolicy: { policy: "strict-origin-when-cross-origin" }
-    }));
+    // 1. Security headers (helmet) are set once for the whole app in server/index.ts
 
     // SEC-FIX [SEC-011]: Permissions-Policy to disable unneeded browser features
     app.use((req, res, next) => {
@@ -132,18 +104,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const sessionParser = session({
         secret: process.env.SESSION_SECRET,
         resave: false,
+        // No session row and no cookie for visitors that never needed one: a session is stored once something
+        // is put into it (login, registration, or the CSRF token from GET /api/csrf-token).
         saveUninitialized: false,
         store: storage.sessionStore,
         cookie: {
-            secure: process.env.REQUIRE_HTTPS === 'true', // Muss 'true' sein, wenn ein HTTPS Reverse Proxy genutzt wird
+            // REQUIRE_HTTPS=true: always Secure. Otherwise "auto": Secure whenever the request came over HTTPS,
+            // directly or via a trusted proxy's X-Forwarded-Proto (TRUST_PROXY), and still usable over plain
+            // HTTP on localhost.
+            secure: process.env.REQUIRE_HTTPS === 'true' ? true : 'auto',
             httpOnly: true, // SEC-FIX: Prevent XSS access to cookies
             sameSite: 'lax', // Geändert von 'strict' für besseres lokales Testen
             maxAge: 1000 * 60 * 60 * 24 // 24 hours
         }
     });
 
-    // 3. Setup Auth (Registers passport and populates req.user)
-    setupAuth(app, sessionParser);
+    // 2.5. One per-IP budget for the whole API, counted before anything else touches the session store or the
+    // database: also /api/csrf-token and requests that fail the CSRF check (403 floods) use it up. No
+    // X-RateLimit-* headers (they would publish the thresholds); clients only see the 429.
+    const apiLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 1000,
+        standardHeaders: false,
+        legacyHeaders: false,
+        message: { error: "Too many requests from this IP, please try again later", code: "RATE_LIMITED" },
+    });
+    app.use("/api", apiLimiter);
+
+    // 3. Session + passport (populates req.user) for the API and for the staff-only static files (their guard
+    // needs the role). Public static files (assets, translations, images) and the app's HTML never read or
+    // write the session store. The auth routes themselves are registered further down, after the ban check,
+    // maintenance mode and CSRF validation, so those apply to login, registration, logout and the profile
+    // routes too.
+    setupSession(app, sessionParser, (req) => req.path.startsWith("/api") || isStaffAssetPath(req.path));
+
+    // 3.2. Staff-only static files (assets/staff-*.js, staff translation namespaces): 404 unless the session
+    // belongs to an admin or owner. Must run before express.static (server/vite.ts serveStatic).
+    app.use(staffAssetGuard);
 
     // 3.5. Security & Ban Check Middleware (Block IPs, Devices, Accounts)
     app.use(banCheckMiddleware);
@@ -165,9 +162,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (maintenanceMode) {
             // Block registration entirely during maintenance
             if (req.path === "/api/register") {
-                return res.status(503).json({ 
-                    message: "Registration is temporarily disabled during maintenance.",
-                    maintenance: true 
+                return res.status(503).json({
+                    error: "Registration is temporarily disabled during maintenance.",
+                    code: "MAINTENANCE_REGISTRATION",
+                    maintenance: true
                 });
             }
 
@@ -185,18 +183,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const isAdmin = user && (user.isAdmin || user.role === "admin" || user.role === "owner");
             
             if (!isAdmin) {
-                return res.status(503).json({ 
-                    message: "Site is currently under maintenance. Please check back later.",
-                    maintenance: true 
+                return res.status(503).json({
+                    error: "Site is currently under maintenance. Please check back later.",
+                    code: "MAINTENANCE",
+                    maintenance: true
                 });
             }
         }
         next();
     });
 
-    // 5. CSRF Endpoint
+    // 5. CSRF Endpoint. The token is created here, on first use, so the session (row + cookie) only exists
+    // for visitors that are about to send a state-changing request (the client fetches it right before).
     app.get("/api/csrf-token", (req, res) => {
-        res.json({ csrfToken: (req.session as any)?.csrfToken });
+        const s = req.session as any;
+        if (!s.csrfToken) s.csrfToken = createCsrfToken();
+        res.json({ csrfToken: s.csrfToken });
     });
 
     // 6. Public Settings Endpoint
@@ -221,15 +223,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
     });
 
-    // 7. Protected Routes & Features
+    // 7. Protected Routes & Features (the API rate limit above already counted this request)
     app.use("/api", validateCsrf);
 
-    const apiLimiter = rateLimit({
-        windowMs: 15 * 60 * 1000,
-        max: 1000,
-        message: "Too many requests from this IP, please try again later",
+    // Login, registration, logout, own profile and password
+    registerAuthRoutes(app);
+
+    // Staff areas are invisible to everybody else: anonymous visitors and users who are not staff get the
+    // same answer as for an API path that does not exist (404 {"error":"Not found"}), so they cannot tell
+    // which staff routes exist. Staff without a route's permission still get 403 from hasPermission.
+    app.use(["/api/admin", "/api/security", "/api/monitoring"], staffOnly);
+
+    // Admin IP allowlist (setting security.admin_ip_allowlist, comma-separated; empty = off)
+    app.use("/api/admin", async (req, res, next) => {
+        try {
+            const raw = String((await SettingsService.get("security", "admin_ip_allowlist", "")) ?? "");
+            const allowed = raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+            if (allowed.length === 0) return next();
+            const ip = (req.ip || "").replace(/^::ffff:/, "");
+            if (allowed.some((a) => a.replace(/^::ffff:/, "") === ip)) return next();
+            logger.warn('security', "Admin request from an address outside admin_ip_allowlist", { ip, path: req.path });
+            return res.status(403).json({ error: "Forbidden" });
+        } catch (err) {
+            logger.error('security', "admin_ip_allowlist check failed", err);
+            return next();
+        }
     });
-    app.use("/api", apiLimiter);
 
     app.get("/api/feed/communities", async (req, res) => {
         if (!req.isAuthenticated()) {
@@ -239,7 +258,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
             const { limit, offset } = parsePagination(req.query);
 
-            const posts = await storage.getCommunityFeedPosts(userId, { limit, offset });
+            // Same visibility rule as every other post list (shadow-banned authors, private communities)
+            const posts = await filterVisiblePosts(req, await storage.getCommunityFeedPosts(userId, { limit, offset }));
             
             // Enrich posts with author and reaction details
             const authorIds = [...new Set(posts.map(p => p.authorId))];
@@ -248,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // PERF-FIX [OPT-002]: Batch fetch reactions (Prevents N+1)
             const postIds = posts.map(p => p.id);
-            const batchReactions = await storage.getBatchPostReactions(postIds);
+            const batchReactions = await storage.getContentStore().getBatchPostReactions(postIds, shadowCountScope(req));
 
             const postsWithDetails = await Promise.all(posts.map(async (post) => {
                 const author = authorsMap.get(post.authorId);
@@ -291,50 +311,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use("/api/user/themes", themeRoutes);
     app.use("/api/users", userRoutes);
     app.use("/api/user", userRoutes);
-    app.use("/api", userRoutes); // Fallback for any other legacy routes
+    // Legacy short paths of the users router (/api/follow/:id, /api/followers, /api/following, /api/search,
+    // /api/profile-upload). Its /:username routes only answer under /api/users (see users.ts), so unknown
+    // /api/<x> paths are not mistaken for usernames.
+    app.use("/api", userRoutes);
+
+    // Every other /api path: one generic answer (also what non-staff get for staff routes).
+    app.use("/api", (_req, res) => sendApiNotFound(res));
 
     // 8. WebSocket Setup
-    const wss = new WebSocketServer({ noServer: true });
+    // The server never reads client frames, so 64 KiB is plenty (the ws default would buffer up to 100 MiB).
+    const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
+    wss.on('error', (err) => logger.error('security', "[WS] server error", err));
 
     httpServer.on('upgrade', (req, socket, head) => {
-        const url = new URL(req.url || '', `http://${req.headers.host}`);
-        
-        // SEC-FIX [SEC-006]: Strict Origin Validation to prevent CSWSH
-        const origin = req.headers.origin;
-        const host = req.headers.host;
-        
-        if (origin) {
-            const originUrl = new URL(origin);
-            const isLocalhost = originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1';
-            const matchesHost = host && originUrl.host === host;
-
-            if (!matchesHost && !isLocalhost) {
-                logger.warn('security', `Blocked WebSocket upgrade from unauthorized origin: ${origin}`, { origin, host });
-                socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
-                socket.destroy();
-                return;
-            }
+        // Any throw in here would be an uncaught exception, so everything is guarded.
+        socket.on('error', () => socket.destroy());
+        const reject = (status: string) => {
+            try {
+                socket.write(`HTTP/1.1 ${status}\r\nConnection: close\r\n\r\n`);
+            } catch { /* socket already gone */ }
+            socket.destroy();
+        };
+        let url: URL;
+        try {
+            url = new URL(req.url || '/', 'http://localhost');
+        } catch {
+            return reject('400 Bad Request');
         }
 
-        if (url.pathname === '/ws') {
-            sessionParser(req as any, {} as any, () => {
+        if (url.pathname !== '/ws') {
+            // In development Vite's HMR server listens for its own upgrades on this server
+            if (process.env.NODE_ENV === 'development') return;
+            return reject('404 Not Found');
+        }
+
+        // SEC-FIX [SEC-006]: Origin validation against CSWSH. Browsers always send Origin on a WebSocket
+        // handshake; a request without one cannot come from a hostile web page, and it still needs a valid
+        // session cookie below.
+        const origin = req.headers.origin;
+        if (origin !== undefined && !isAllowedOrigin(origin, req)) {
+            logger.warn('security', `Blocked WebSocket upgrade from unauthorized origin`, { origin, host: req.headers.host });
+            return reject('403 Forbidden');
+        }
+
+        sessionParser(req as any, {} as any, async () => {
+            try {
                 const currentSession = (req as any).session;
                 const userId = currentSession?.passport?.user;
-                if (!userId) {
-                    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-                    socket.destroy();
-                    return;
+                if (!userId) return reject('401 Unauthorized');
+                // Same checks as for HTTP requests: the session must belong to the current password and the
+                // account must not be banned or deleted.
+                const user = await storage.getUser(userId);
+                if (!user || currentSession.authStamp !== passwordStamp(user.password) || (await isAccountBanned(user))) {
+                    return reject('401 Unauthorized');
                 }
                 wss.handleUpgrade(req, socket, head, (ws) => {
                     wss.emit('connection', ws, req);
                 });
-            });
-        }
+            } catch (err) {
+                logger.error('security', "[WS] upgrade failed", err);
+                reject('500 Internal Server Error');
+            }
+        });
     });
 
     wss.on('connection', (ws, req: any) => {
         const currentSession = req.session;
         const userId = currentSession?.passport?.user;
+
+        // A protocol error from the client (bad opcode, oversized frame, …) must only close this socket.
+        // Without a listener ws re-emits it as an uncaught exception.
+        ws.on('error', (err) => {
+            logger.warn('security', "[WS] client protocol error, closing socket", { userId, error: String((err as any)?.message ?? err) });
+            ws.terminate();
+        });
 
         if (!userId) {
             logger.warn('security', "[WS] Connection attempted without valid session/user");
@@ -342,10 +393,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return;
         }
 
-        connections.set(userId, ws);
+        // One entry per tab: closing one tab only removes that socket
+        addConnection(userId, ws, req.sessionID);
 
         ws.on('close', () => {
-            connections.delete(userId);
+            removeConnection(userId, ws);
         });
     });
 

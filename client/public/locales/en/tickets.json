@@ -184,7 +184,7 @@
     "priorityLevel": "Priority Level",
     "relatedSignal": "Related Signal",
     "assignedPersonnel": "Assigned Personnel",
-    "selectStaff": "Select staff"
+    "support": "Support"
   },
   "assignment": {
     "unassigned": "Awaiting Pilot",

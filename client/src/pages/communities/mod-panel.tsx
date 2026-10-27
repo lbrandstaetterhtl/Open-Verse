@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useState } from "react";
 import {
@@ -186,7 +187,8 @@ function ReportsManager({ communityId }: { communityId: number }) {
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const { data: reports, isLoading } = useQuery<Report[]>({
+  // Community moderators get reports without the reporter's identity and IP address
+  const { data: reports, isLoading, error: reportsError } = useQuery<Omit<Report, "ipAddress" | "reporterId">[]>({
     queryKey: ["/api/communities", communityId, "reports"],
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/communities/${communityId}/reports`);
@@ -247,6 +249,12 @@ function ReportsManager({ communityId }: { communityId: number }) {
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
                   <Spinner className="mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : reportsError ? (
+              <TableRow>
+                <TableCell colSpan={5} className="p-0">
+                  <ErrorState message={reportsError.message} />
                 </TableCell>
               </TableRow>
             ) : filteredReports.length === 0 ? (
@@ -327,8 +335,10 @@ function MembersManager({ communityId }: { communityId: number }) {
   const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: members, isLoading } = useQuery<any[]>({
+  // 403 for someone who may not see the member list (e.g. not a member of a private community)
+  const { data: members, isLoading, error: membersError } = useQuery<any[]>({
     queryKey: ["/api/communities", communityId, "members"],
+    retry: (count, error) => (error as { status?: number })?.status !== 403 && count < 1,
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/communities/${communityId}/members`);
       return res.json();
@@ -426,7 +436,7 @@ function MembersManager({ communityId }: { communityId: number }) {
     queryKey: ["/api/users/search", inviteSearchQuery],
     queryFn: async () => {
       if (!inviteSearchQuery || inviteSearchQuery.length < 2) return [];
-      const res = await apiRequest("GET", `/api/users/search?q=${inviteSearchQuery}`);
+      const res = await apiRequest("GET", `/api/users/search?q=${encodeURIComponent(inviteSearchQuery)}`);
       return res.json();
     },
     enabled: inviteSearchQuery.length >= 2,
@@ -586,6 +596,12 @@ function MembersManager({ communityId }: { communityId: number }) {
               <TableRow>
                 <TableCell colSpan={3} className="h-24 text-center">
                   <Spinner className="mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : membersError ? (
+              <TableRow>
+                <TableCell colSpan={3} className="p-0">
+                  <ErrorState message={membersError.message} />
                 </TableCell>
               </TableRow>
             ) : filteredMembers.length === 0 && filteredBans.length === 0 ? (
@@ -846,8 +862,10 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [modDialogOpen, setModDialogOpen] = useState(false);
 
-  const { data: members, isLoading } = useQuery<any[]>({
+  // 403 for someone who may not see the member list (e.g. not a member of a private community)
+  const { data: members, isLoading, error: membersError } = useQuery<any[]>({
     queryKey: ["/api/communities", communityId, "members"],
+    retry: (count, error) => (error as { status?: number })?.status !== 403 && count < 1,
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/communities/${communityId}/members`);
       return res.json();
@@ -858,7 +876,7 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
     queryKey: ["/api/users/search", searchQuery],
     queryFn: async () => {
       if (!searchQuery || searchQuery.length < 2) return [];
-      const res = await apiRequest("GET", `/api/users/search?q=${searchQuery}`);
+      const res = await apiRequest("GET", `/api/users/search?q=${encodeURIComponent(searchQuery)}`);
       return res.json();
     },
     enabled: searchQuery.length >= 2,
@@ -1026,6 +1044,12 @@ function ModeratorsManager({ communityId }: { communityId: number }) {
               <TableRow>
                 <TableCell colSpan={3} className="h-24 text-center">
                   <Spinner className="mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : membersError ? (
+              <TableRow>
+                <TableCell colSpan={3} className="p-0">
+                  <ErrorState message={membersError.message} />
                 </TableCell>
               </TableRow>
             ) : (

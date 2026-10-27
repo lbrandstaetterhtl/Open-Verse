@@ -1,0 +1,86 @@
+[
+  {
+    "id": "ATK-UPLOAD-1",
+    "severity": "high",
+    "title": "Path traversal in theme-background DELETE allows deleting any server-writable file",
+    "scenario": "A logged-in user deletes arbitrary files anywhere the server process can write (other users' uploads, logs, the SQLite DB, ...), causing data loss / DoS.",
+    "route": "DELETE /api/user/themes/background/:fileRef",
+    "evidence": "DELETE /api/user/themes/background/theme-bg-..%2f..%2f..%2f..%2ftmp%2f...%2fSENTINEL.txt -> 200 OK, and a sentinel file created outside /uploads was deleted (verified: fs.existsSync -> false).",
+    "test": "tests/attacks/upload.attack.test.ts › Angriff: Dateien anderer Nutzer oder des Servers loeschen › Pfad-Traversal im fileRef darf keine Datei ausserhalb von /uploads loeschen",
+    "cause": "server/routes/themes.ts:136 the only safety check is fileRef.startsWith('theme-bg-'); 'theme-bg-../../..' satisfies it. server/routes/themes.ts:155 path.join('./uploads', fileRef) then resolves outside the uploads folder. Express decodes %2F in the single :fileRef segment back to '/'.",
+    "fix": "Reject any fileRef containing '/', '\\\\' or '..' (or validate with /^theme-bg-[\\w.-]+$/), and verify path.resolve(UPLOADS_DIR, fileRef) still starts with UPLOADS_DIR + path.sep before unlinking.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-UPLOAD-2",
+    "severity": "high",
+    "title": "Missing file-ownership check lets a user delete another user's uploaded background",
+    "scenario": "A logged-in attacker who knows/guesses another user's theme-background file name (it is returned in a public /uploads URL) deletes that victim's file.",
+    "route": "DELETE /api/user/themes/background/:fileRef",
+    "evidence": "Victim uploads bg -> fileRef theme-bg-....png (exists on disk). Attacker (different account) DELETE /api/user/themes/background/<victim fileRef> -> 200 OK, victim's file removed (fs.existsSync -> false).",
+    "test": "tests/attacks/upload.attack.test.ts › Angriff: Dateien anderer Nutzer oder des Servers loeschen › ein Nutzer darf das Hintergrundbild eines anderen Nutzers nicht loeschen",
+    "cause": "server/routes/themes.ts:141-158 the 'isReferenced' guard only checks whether the CALLER's own themes reference the file; it never checks that the file belongs to the caller, so any authenticated user can delete any theme-bg file.",
+    "fix": "Bind uploaded background files to their owner (e.g. store ownerId, or prefix the filename with the user id) and refuse deletion unless the caller owns the file.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-UPLOAD-3",
+    "severity": "medium",
+    "title": "Decompression/pixel bomb: huge-dimension images decoded without an input-pixel limit",
+    "scenario": "A logged-in user uploads a tiny, highly-compressible image with enormous pixel dimensions; the server fully decodes it, burning CPU and large amounts of memory (potential OOM under concurrency).",
+    "route": "POST /api/posts (postUpload.any) and POST /api/user/themes/background",
+    "evidence": "A 776 KB 16000x16000 PNG (256 MP) uploaded as theme background -> 200 OK after ~63s of processing; a 202 KB 8000x8000 PNG (64 MP) -> 200 OK after ~13s. The server never rejects oversized dimensions.",
+    "test": "tests/attacks/upload.attack.test.ts › Angriff: Server mit einer Bild-Bombe lahmlegen › riesige Pixel-Dimensionen muessen beim Theme-Background schnell abgelehnt werden; … › riesige Pixel-Dimensionen muessen bei Post-Medien schnell abgelehnt werden",
+    "cause": "server/utils/file-upload.ts:66 sanitizeImage() calls sharp(filepath) with no limitInputPixels, so sharp's ~268 MP default applies (decoding ~268 MP RGB needs ~800 MB RAM). Used by server/routes/posts.ts:122 and server/routes/themes.ts:112. processProfileImage (file-upload.ts:205) caps at 100 MP, which is still very large.",
+    "fix": "Pass a strict limitInputPixels (e.g. 24-50 MP) to every sharp() call and read metadata() first to reject oversized width*height before decoding; lower the limit on processProfileImage too.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-UPLOAD-4",
+    "severity": "medium",
+    "title": "Rejected uploads leave orphan files on disk (no cleanup on early returns)",
+    "scenario": "A logged-in user repeatedly submits posts with media that is rejected after multer has written the file (moderation block, post cooldown, category/community errors); each rejected request leaves a file on disk, letting the attacker fill the disk despite the cooldown.",
+    "route": "POST /api/posts",
+    "evidence": "Post with content 'this is porn content' + image -> 400 CONTENT_BLOCKED, image file remains in /uploads (1 new orphan). Second post within cooldown -> 429 POST_COOLDOWN, image file remains in /uploads (1 new orphan). Neither path deletes req.files.",
+    "test": "tests/attacks/upload.attack.test.ts › Angriff: Festplatte mit Waisen-Dateien fluten › ein durch Moderation abgelehnter Post darf keine Waisen-Datei hinterlassen; … › ein durch Cooldown abgelehnter Post darf keine Waisen-Datei hinterlassen",
+    "cause": "server/routes/posts.ts:21 postUpload.any() writes the file to disk first; the cooldown return (posts.ts:44-49), moderation return (posts.ts:83-86), category return (posts.ts:70-74) and 'community not found' (posts.ts:77) all return before the file is ever written to a post and never unlink req.files.",
+    "fix": "Validate cooldown/moderation/category BEFORE accepting the file, or wrap the handler so any non-201 response unlinks every file in req.files (finally block).",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-UPLOAD-5",
+    "severity": "low",
+    "title": "No per-user upload quota or count limit (disk-exhaustion hardening)",
+    "scenario": "A logged-in user uploads an unbounded number of files (theme backgrounds have no cooldown at all; profile/post media only have per-file size limits), eventually filling the disk.",
+    "route": "POST /api/posts, POST /api/profile-upload, POST /api/user/themes/background",
+    "evidence": "Code review: the three multer configs in server/utils/file-upload.ts set only per-file 'limits.fileSize' (50/5/10 MB) and (profile) files:1. There is no per-user storage quota, no cap on number of stored files, and no rate limit on /api/user/themes/background. Combined with ATK-UPLOAD-4 orphans, a single account can write unbounded data.",
+    "test": "tests/attacks/upload.attack.test.ts › Angriff: Festplatte mit Waisen-Dateien fluten (orphan tests demonstrate the uncapped-write primitive)",
+    "cause": "server/utils/file-upload.ts:120,153,187 only per-file size limits exist; no quota accounting anywhere; POST /api/user/themes/background has no rate limiter (server/routes/themes.ts:94).",
+    "fix": "Add a per-user storage quota and/or max file count, and a rate limiter on the upload routes (especially theme backgrounds).",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-UPLOAD-6",
+    "severity": "low",
+    "title": "Uploaded GIFs are stored byte-for-byte (not re-encoded); metadata and polyglot payloads persist",
+    "scenario": "An attacker uploads a valid-header GIF carrying an HTML/JS polyglot or metadata payload as post media; it is stored verbatim on the app origin. It is NOT served as active HTML (see note), but the raw payload persists.",
+    "route": "POST /api/posts (and POST /api/user/themes/background, which also accept image/gif)",
+    "evidence": "A GIF89a header + '<html><script>/*ATK_POLYGLOT_SCRIPT*/alert(1)</script></html>' uploaded as image/gif -> 201; the stored file still contains the raw marker ATK_POLYGLOT_SCRIPT. Mitigated at serve time: GET /uploads/<file>.gif returns Content-Type image/gif + X-Content-Type-Options: nosniff, so it cannot be interpreted as a document.",
+    "test": "tests/attacks/upload.attack.test.ts › Angriff: aktives Script ueber einen Upload ausliefern › ein GIF-Polyglot wird nicht als aktives HTML ausgeliefert (und sollte re-encoded werden)",
+    "cause": "server/utils/file-upload.ts:56-59 sanitizeImage() returns early for GIFs (only .jpg/.jpeg/.png/.webp are re-encoded); the signature check (file-upload.ts:19) only validates the first bytes, so trailing/metadata bytes survive unchanged.",
+    "fix": "Re-encode GIFs too (sharp can transcode animated GIFs) or strip them to a safe canonical form; at minimum this removes embedded payloads and EXIF/XMP from GIF uploads.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-UPLOAD-7",
+    "severity": "info",
+    "title": "Post images keep their original extension while their bytes are re-encoded to WebP",
+    "scenario": "Not directly exploitable, but a JPEG/PNG post image is stored under a .jpg/.png name whose bytes are actually WebP, so the served Content-Type (derived from extension) does not match the real content.",
+    "route": "POST /api/posts",
+    "evidence": "Code review: sanitizeImage writes WebP bytes to '<file>.sanitized' then renames over the original '.jpg'/'.png' path, keeping the extension; express.static then serves it as image/jpeg/png. nosniff is set and <img> rendering still works, so there is no security impact, only a Content-Type/content mismatch.",
+    "test": "(code evidence only; no dedicated failing test)",
+    "cause": "server/utils/file-upload.ts:62-75 sanitizeImage keeps the original filename/extension deliberately so existing references stay valid, but converts the bytes to WebP.",
+    "fix": "Either keep the real format when re-encoding, or rename the stored file to .webp and update the post's mediaUrl accordingly.",
+    "sameAs": null
+  }
+]

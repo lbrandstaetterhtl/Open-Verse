@@ -28,7 +28,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { LIMITS } from "@/lib/input-limits";
 import { AuthorLink, authorName, isDeletedAuthor } from "@/components/post/author-link";
 
 import { useDateLocale } from "@/lib/date-locale";
@@ -138,6 +139,9 @@ export default function PostViewPage() {
     },
   });
 
+  const [commentText, setCommentText] = useState("");
+  // Set synchronously so a second Enter/click before the next render does not send the comment twice
+  const commentSending = useRef(false);
   const createCommentMutation = useMutation({
     mutationFn: async ({ content }: { content: string }) => {
       if (!postId) throw new Error("No post ID");
@@ -145,10 +149,24 @@ export default function PostViewPage() {
       return res.json();
     },
     onSuccess: () => {
+      // Clear the box only once the comment is saved, so a rejected comment is not lost
+      setCommentText("");
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({ title: t("common.success", "Success"), description: t("comments.added", "Your comment has been added.") });
     },
+    onError: (error: Error) => {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    },
+    onSettled: () => {
+      commentSending.current = false;
+    },
   });
+  const submitComment = () => {
+    const content = commentText.trim();
+    if (!content || commentSending.current) return;
+    commentSending.current = true;
+    createCommentMutation.mutate({ content });
+  };
 
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: number) => {
@@ -301,25 +319,18 @@ export default function PostViewPage() {
                       id="comment-input"
                       placeholder={t("comments.placeholder")}
                       className="text-sm"
+                      maxLength={LIMITS.comment}
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
-                          createCommentMutation.mutate({
-                            content: (e.target as HTMLInputElement).value.trim(),
-                          });
-                          (e.target as HTMLInputElement).value = "";
-                        }
+                        if (e.key === "Enter") submitComment();
                       }}
                     />
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        const input = document.querySelector("#comment-input") as HTMLInputElement;
-                        if (input?.value?.trim()) {
-                          createCommentMutation.mutate({ content: input.value.trim() });
-                          input.value = "";
-                        }
-                      }}
+                      disabled={createCommentMutation.isPending}
+                      onClick={submitComment}
                     >
                       {t("comments.post_button")}
                     </Button>

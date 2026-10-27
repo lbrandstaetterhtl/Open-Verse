@@ -15,7 +15,7 @@ export class SecurityStorage {
   async createReport(report: Omit<Report, "id" | "createdAt" | "status">): Promise<Report> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      const { reporterId, postId, commentId, discussionId, reason, ipAddress } = report;
+      const { reporterId, postId, commentId, discussionId, reason } = report;
       const createdAt = Math.floor(Date.now() / 1000);
       const res = sqlite
         .prepare(
@@ -26,7 +26,7 @@ export class SecurityStorage {
           postId || null,
           commentId || null,
           discussionId || null,
-          ipAddress || null,
+          null, // the reporter's IP address is not stored
           reason,
           "pending",
           createdAt,
@@ -37,7 +37,7 @@ export class SecurityStorage {
         postId: postId || null,
         commentId: commentId || null,
         discussionId: discussionId || null,
-        ipAddress: report.ipAddress || null,
+        ipAddress: null,
         reason,
         status: "pending",
         createdAt: new Date(createdAt * 1000),
@@ -45,7 +45,7 @@ export class SecurityStorage {
     }
 
     try {
-      console.log("[Storage] Attempting to insert report into Postgres:", { ...report, status: "pending" });
+
       const [newReport] = await db
         .insert(reports)
         .values({
@@ -54,7 +54,7 @@ export class SecurityStorage {
           postId: report.postId || null,
           commentId: report.commentId || null,
           discussionId: report.discussionId || null,
-          ipAddress: report.ipAddress || null,
+          ipAddress: null, // the reporter's IP address is not stored
           status: "pending",
         })
         .returning();

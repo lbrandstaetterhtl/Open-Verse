@@ -184,7 +184,7 @@
     "priorityLevel": "Livello di priorità",
     "relatedSignal": "Segnale correlato",
     "assignedPersonnel": "Personale assegnato",
-    "selectStaff": "Seleziona membro dello staff"
+    "support": "Assistenza"
   },
   "assignment": {
     "unassigned": "In attesa di un pilota",

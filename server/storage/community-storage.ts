@@ -215,11 +215,14 @@ export class CommunityStorage {
       };
     }
 
+    // One membership per user and community (unique index community_members_community_user_unique):
+    // a second insert keeps the existing row instead of creating a duplicate.
     const [member] = await db
       .insert(communityMembers)
       .values({ communityId, userId, role })
+      .onConflictDoNothing()
       .returning();
-    return member;
+    return member ?? (await this.getCommunityMember(communityId, userId))!;
   }
 
   async removeCommunityMember(communityId: number, userId: number): Promise<void> {
@@ -270,7 +273,7 @@ export class CommunityStorage {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const rows = sqlite.prepare(`
-        SELECT cm.*, u.username, u.created_at, u.email_verified, u.is_admin, u.verified, u.karma, u.bio
+        SELECT cm.*, u.username, u.bio, u.profile_picture_url
         FROM community_members cm
         JOIN users u ON cm.user_id = u.id
         WHERE cm.community_id = ?
@@ -282,16 +285,13 @@ export class CommunityStorage {
         userId: row.user_id,
         role: row.role,
         joinedAt: new Date(Number(row.joined_at) * 1000),
+        // Same public fields as the Postgres branch (no email status / admin flag)
         user: {
           id: row.user_id,
           username: row.username,
-          createdAt: new Date(Number(row.created_at) * 1000),
-          emailVerified: Boolean(row.email_verified),
-          isAdmin: Boolean(row.is_admin),
-          verified: Boolean(row.verified),
-          karma: row.karma,
           bio: row.bio,
-        },
+          profilePictureUrl: row.profile_picture_url,
+        } as any,
       }));
     }
 
@@ -420,25 +420,25 @@ export class CommunityStorage {
     await db.insert(communityJoinRequests).values({ communityId, userId, status: 'pending' });
   }
 
-  async updateJoinRequestStatus(communityId: number, userId: number, status: string): Promise<void> {
-    console.log(`[Storage] Updating join request status: cId=${communityId}, uId=${userId}, status=${status}`);
+  /**
+   * Moves a PENDING join request to `status`. Returns false when the user has no pending request
+   * (never asked, already approved or declined), so callers must not act on it.
+   */
+  async updateJoinRequestStatus(communityId: number, userId: number, status: string): Promise<boolean> {
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
-      sqlite.prepare("UPDATE community_join_requests SET status = ? WHERE community_id = ? AND user_id = ? AND status = 'pending'").run(status, communityId, userId);
-      return;
+      const res = sqlite.prepare("UPDATE community_join_requests SET status = ? WHERE community_id = ? AND user_id = ? AND status = 'pending'").run(status, communityId, userId);
+      return res.changes > 0;
     }
-    try {
-      await db.update(communityJoinRequests)
-        .set({ status })
-        .where(and(
-          eq(communityJoinRequests.communityId, communityId), 
-          eq(communityJoinRequests.userId, userId), 
-          eq(communityJoinRequests.status, "pending")
-        ));
-    } catch (err) {
-      console.error(`[Storage] Failed to update join request status:`, err);
-      throw err;
-    }
+    const rows = await db.update(communityJoinRequests)
+      .set({ status })
+      .where(and(
+        eq(communityJoinRequests.communityId, communityId),
+        eq(communityJoinRequests.userId, userId),
+        eq(communityJoinRequests.status, "pending")
+      ))
+      .returning({ id: communityJoinRequests.id });
+    return rows.length > 0;
   }
 
   async getJoinRequest(communityId: number, userId: number): Promise<any | undefined> {
@@ -494,8 +494,6 @@ export class CommunityStorage {
         eq(communityJoinRequests.status, "pending")
       ))
       .orderBy(desc(communityJoinRequests.createdAt));
-
-      console.log(`[Storage] Drizzle join request rows:`, result.length);
 
       return result.map(row => ({
         id: row.id,

@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ThemeBackground } from "@/components/theme/theme-background";
 import { CursorParticles } from "@/components/theme/cursor-particles";
 import { ProtectedRoute } from "./lib/protected-route";
+import { StaffArea } from "./lib/staff";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { NewUserDialog } from "@/components/profile/new-user-dialog";
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
@@ -21,21 +22,7 @@ const NotFound = lazy(() => import("@/pages/misc/not-found"));
 const ProfilePage = lazy(() => import("@/pages/profile/my-profile"));
 const UserProfilePage = lazy(() => import("@/pages/profile/user-profile"));
 const ChatPage = lazy(() => import("@/pages/chat/chat-page"));
-const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
-const ActivityLogsPageOld = lazy(() => import("@/pages/admin/activity-logs")); // Legacy, if keeping
-const AdminSettingsPage = lazy(() => import("@/pages/admin/settings"));
 const NotificationsPage = lazy(() => import("@/pages/notifications/notifications-page"));
-
-// Security Pages
-const BansPage = lazy(() => import("@/pages/admin/BansPage").then(m => ({ default: m.BansPage })));
-const AutoPunishmentPage = lazy(() => import("@/pages/admin/AutoPunishmentPage").then(m => ({ default: m.AutoPunishmentPage })));
-
-// Monitoring Pages
-const MonitoringOverview = lazy(() => import("@/pages/admin/monitoring/MonitoringOverview").then(m => ({ default: m.MonitoringOverview })));
-const ActivityLogsPage = lazy(() => import("@/pages/admin/monitoring/ActivityLogsPage").then(m => ({ default: m.ActivityLogsPage })));
-const GrowthDashboardPage = lazy(() => import("@/pages/admin/analytics/GrowthDashboardPage"));
-const ModeratorPerformancePage = lazy(() => import("@/pages/admin/analytics/ModeratorPerformancePage"));
-const StressTestPage = lazy(() => import("@/pages/admin/security/StressTestPage"));
 
 // Feed Pages
 const MediaFeedPage = lazy(() => import("@/pages/feed/media"));
@@ -63,7 +50,6 @@ const ModPanel = lazy(() => import("@/pages/communities/mod-panel"));
 const TicketsPage = lazy(() => import("@/pages/tickets/TicketsPage"));
 const CreateTicketPage = lazy(() => import("@/pages/tickets/CreateTicketPage"));
 const TicketDetailPage = lazy(() => import("@/pages/tickets/TicketDetailPage"));
-const AdminTicketsOverview = lazy(() => import("@/pages/admin/AdminTicketsOverview"));
 
 import { SkeletonFeed } from "@/components/layout/skeleton-loaders";
 
@@ -101,25 +87,10 @@ function Router() {
         <ProtectedRoute path="/tickets" component={TicketsPage} />
         <ProtectedRoute path="/tickets/new" component={CreateTicketPage} />
         <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} />
-        <ProtectedRoute path="/admin/tickets" component={AdminTicketsOverview} requiredRole="admin" />
 
-        {/* Admin Routes — require admin or owner role */}
-        <ProtectedRoute path="/admin" component={AdminDashboard} requiredRole="admin" />
-        <ProtectedRoute path="/admin/users" component={AdminDashboard} requiredRole="admin" />
-        <ProtectedRoute path="/admin/reports" component={AdminDashboard} requiredRole="admin" />
-        <ProtectedRoute path="/admin/groups" component={AdminDashboard} requiredRole="admin" />
-        <ProtectedRoute path="/admin/logs" component={ActivityLogsPageOld} requiredRole="admin" />
-        <ProtectedRoute path="/admin/settings" component={AdminSettingsPage} requiredRole="admin" />
-        <ProtectedRoute path="/admin/bans" component={BansPage} requiredRole="admin" />
-        <ProtectedRoute path="/admin/auto-punishments" component={AutoPunishmentPage} requiredRole="admin" />
-        
-        {/* Monitoring Routes — owner only */}
-        <ProtectedRoute path="/admin/monitoring" component={MonitoringOverview} requiredRole="owner" />
-        <ProtectedRoute path="/admin/monitoring/activity" component={ActivityLogsPage} requiredRole="owner" />
-        <ProtectedRoute path="/admin/analytics" component={GrowthDashboardPage} requiredRole="owner" />
-        <ProtectedRoute path="/admin/performance" component={ModeratorPerformancePage} requiredRole="owner" />
-        <ProtectedRoute path="/admin/security/stress-test" component={StressTestPage} requiredRole="owner" />
-        <ProtectedRoute path="/security/stress-test" component={StressTestPage} requiredRole="owner" />
+        {/* Admin area (admin/owner): its routes and pages are a separate staff bundle, see lib/staff.tsx */}
+        <Route path="/admin" component={StaffArea} />
+        <Route path="/admin/*" component={StaffArea} />
 
         {/* Community Routes */}
         <ProtectedRoute path="/create-community" component={CreateCommunityPage} />

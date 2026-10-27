@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { MutualFollowers } from "./MutualFollowers";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { EXTERNAL_LINK_REL, safeExternalUrl } from "@/lib/safe-url";
 
 import { useDateLocale } from "@/lib/date-locale";
 interface ProfileHeaderProps {
@@ -35,6 +36,7 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   const { t } = useTranslation();
   const dateLocale = useDateLocale();
+  const websiteUrl = safeExternalUrl(user.website, { assumeHttps: true });
   const joinedDate = user.createdAt ? format(new Date(user.createdAt), "LLLL yyyy", { locale: dateLocale }) : "";
 
   return (
@@ -129,16 +131,23 @@ export function ProfileHeader({
                   <span className="truncate">{user.location}</span>
                 </div>
               )}
-              {user.website && (
+              {user.website && (websiteUrl ? (
                 <a
-                  href={user.website.startsWith('http') ? user.website : `https://${user.website}`}
+                  href={websiteUrl}
                   target="_blank"
+                  rel={EXTERNAL_LINK_REL}
                   className="ov-chip ov-chip-primary transition-colors hover:bg-primary/15"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
-                  <span className="truncate max-w-[150px]">{user.website.replace(/^https?:\/\/(www\.)?/, '')}</span>
+                  <span className="truncate max-w-[150px]">{user.website.replace(/^https?:\/\/(www\.)?/i, '')}</span>
                 </a>
-              )}
+              ) : (
+                // Not an http(s) address: shown as text, never as a link
+                <div className="ov-chip max-w-full">
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                  <span className="truncate max-w-[150px]">{user.website}</span>
+                </div>
+              ))}
               <div className="ov-chip">
                 <Calendar className="h-3.5 w-3.5 text-primary/70" />
                 <span>{t('profile.joined')} {joinedDate}</span>

@@ -17,6 +17,21 @@ dist/
 # Uploads (werden als Volume gemountet)
 uploads/
 
+# Logs und lokale Daten (IPs, User-Agents, Datenbanken) – nie in den Build-Kontext
+logs/
+**/*.log
+data/
+coverage/
+.cache/
+tmp/
+*.pid
+*.sqlite
+*.sqlite3
+*.dump
+*.sql.gz
+*.pem
+*.key
+
 # Git
 .git/
 .gitignore

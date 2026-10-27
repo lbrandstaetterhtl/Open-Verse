@@ -2,19 +2,60 @@ import type { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { bans, users } from "@shared/schema";
 import { eq, and, or, gt, sql } from "drizzle-orm";
-import { activityLogger } from "../services/activity-logger";
 import crypto from "node:crypto";
+import { logger } from "../logger";
 
 /**
- * APE-FIX [SEC-010]: Stable Hardware Fingerprinting
- * Extracts OS and Browser Family to prevent fingerprint changes on browser updates.
+ * Device bans need an identifier for one browser. Earlier versions hashed OS + browser family + language
+ * from the request headers, so one "device" ban hit every user with the same setup (e.g. all German Chrome
+ * users on Windows). Each browser now gets a random id in an HttpOnly cookie instead; a hardware ban
+ * targets exactly that browser.
  */
+export const DEVICE_COOKIE = "ov_device";
+const DEVICE_ID = /^[a-f0-9]{32}$/;
+// Long enough to keep a device ban useful, short enough not to be a long-term tracking id.
+const DEVICE_COOKIE_MAX_AGE_MS = 180 * 24 * 3600 * 1000;
+
+function readCookie(req: Request, name: string): string | undefined {
+  const header = req.headers.cookie;
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const eqAt = part.indexOf("=");
+    if (eqAt < 0) continue;
+    if (part.slice(0, eqAt).trim() === name) {
+      try {
+        return decodeURIComponent(part.slice(eqAt + 1).trim());
+      } catch {
+        return undefined;
+      }
+    }
+  }
+  return undefined;
+}
+
+/** The browser's device id, if it has one. Anonymous browsing never creates one. */
+export function deviceIdFor(req: Request): string | undefined {
+  const existing = readCookie(req, DEVICE_COOKIE);
+  return existing && DEVICE_ID.test(existing) ? existing : undefined;
+}
+
+/**
+ * Gives the browser a device id (or renews the existing one) when an account signs in or registers, which
+ * is where device bans matter. Visitors who only browse never get this cookie.
+ */
+export function issueDeviceId(req: Request, res: Response): string {
+  const id = deviceIdFor(req) ?? crypto.randomBytes(16).toString("hex");
+  res.cookie(DEVICE_COOKIE, id, { httpOnly: true, sameSite: "lax", secure: req.secure, maxAge: DEVICE_COOKIE_MAX_AGE_MS, path: "/" });
+  return id;
+}
+
 export async function banCheckMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Logging out is always allowed (also for frozen or banned clients).
+  if (req.path === "/api/logout") return next();
+
   const ip = req.ip || req.socket.remoteAddress || "unknown";
-  const userAgent = (req.headers["user-agent"] as string) || "";
   const userId = (req.user as any)?.id;
-  
-  const deviceFingerprint = generateFingerprint(userAgent, req.headers);
+  const deviceId = deviceIdFor(req);
 
   try {
     const activeBans = await db.select()
@@ -23,7 +64,7 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
         eq(bans.isActive, 1),
         or(
           eq(bans.ipAddress, ip),
-          eq(bans.deviceFingerprint, deviceFingerprint),
+          deviceId ? eq(bans.deviceFingerprint, deviceId) : sql`1=0`,
           userId ? eq(bans.userId, userId) : sql`1=0`
         ),
         or(
@@ -34,18 +75,18 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
 
     if (activeBans.length > 0) {
       // IP Ban
-      if (activeBans.some(b => b.banType === 'ip' && b.ipAddress === ip)) {
+      if (activeBans.some((b: any) => b.banType === 'ip' && b.ipAddress === ip)) {
         return res.status(403).json({ error: "Access denied (IP ban)", code: "IP_BANNED" });
       }
 
       // Hardware Ban
-      if (activeBans.some(b => b.banType === 'hardware' && b.deviceFingerprint === deviceFingerprint)) {
+      if (deviceId && activeBans.some((b: any) => b.banType === 'hardware' && b.deviceFingerprint === deviceId)) {
         return res.status(403).json({ error: "This device is banned", code: "DEVICE_BANNED" });
       }
 
       // Account Ban
       if (userId) {
-        const userBan = activeBans.find(b => b.userId === userId && (b.banType === 'account' || b.banType === 'shadow'));
+        const userBan = activeBans.find((b: any) => b.userId === userId && (b.banType === 'account' || b.banType === 'shadow'));
         if (userBan) {
           if (userBan.isShadow) {
             (req as any).isShadowBanned = true;
@@ -65,7 +106,7 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
           ? user.frozenUntil.getTime()
           : Number(user.frozenUntil) * 1000;
         if (!user.frozenUntil || frozenUntilMs > Date.now()) {
-          if (req.method !== "GET") {
+          if (req.method !== "GET" && req.method !== "HEAD") {
             return res.status(403).json({
               error: "This account is temporarily frozen",
               code: "ACCOUNT_FROZEN",
@@ -79,29 +120,10 @@ export async function banCheckMiddleware(req: Request, res: Response, next: Next
       }
     }
 
-    (req as any).deviceFingerprint = deviceFingerprint;
+    (req as any).deviceFingerprint = deviceId;
     next();
   } catch (error) {
-    console.error("[BanCheck] Error:", error);
-    next(); 
+    logger.error('security', "[BanCheck] ban lookup failed", error);
+    next();
   }
-}
-
-function generateFingerprint(userAgent: string, headers: any): string {
-  // Extract stable components
-  const os = /Windows/.test(userAgent) ? 'Win' :
-             /Mac/.test(userAgent) ? 'Mac' :
-             /Linux/.test(userAgent) ? 'Lin' :
-             /Android/.test(userAgent) ? 'And' :
-             /iPhone|iPad/.test(userAgent) ? 'iOS' : 'Unk';
-             
-  const browser = /Firefox/.test(userAgent) ? 'FF' :
-                  /Edg/.test(userAgent) ? 'Edge' :
-                  /Chrome/.test(userAgent) ? 'Chr' :
-                  /Safari/.test(userAgent) ? 'Saf' : 'Oth';
-                  
-  const lang = (headers['accept-language'] || '').split(',')[0].split('-')[0];
-
-  const components = `${os}|${browser}|${lang}`;
-  return crypto.createHash('sha256').update(components).digest('hex').slice(0, 16);
 }

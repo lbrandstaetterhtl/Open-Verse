@@ -13,7 +13,9 @@ router.use(hasPermission("analytics"));
 
 router.get("/overview", async (req, res) => {
     try {
-        const days = parseInt(req.query.days as string) || 30;
+        // 1..365 days; anything else (negative, huge, "abc", arrays) falls back to the default.
+        const raw = typeof req.query.days === "string" && /^\d{1,4}$/.test(req.query.days) ? Number(req.query.days) : 30;
+        const days = Math.min(Math.max(raw || 30, 1), 365);
         const history = await analyticsService.getGrowthOverview(days);
         const latest = await analyticsService.getLatestSnapshot();
 
@@ -82,8 +84,15 @@ router.get("/top-creators", async (req, res) => {
 
 router.post("/compute", async (req, res) => {
     try {
-        const { date } = req.body;
-        const targetDate = date ? new Date(date) : subDays(new Date(), 1);
+        const date = req.body && typeof req.body === "object" ? req.body.date : undefined;
+        let targetDate = subDays(new Date(), 1);
+        if (date !== undefined && date !== null && date !== "") {
+            const parsed = typeof date === "string" && date.length <= 40 && /^\d{4}-\d{2}-\d{2}/.test(date) ? new Date(date) : null;
+            if (!parsed || Number.isNaN(parsed.getTime()) || parsed.getUTCFullYear() < 2000 || parsed.getTime() > Date.now() + 86400000) {
+                return res.status(400).json({ error: "Invalid date", code: "INVALID_DATE" });
+            }
+            targetDate = parsed;
+        }
         
         await analyticsService.computeDailySnapshot(targetDate);
         

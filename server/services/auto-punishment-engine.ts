@@ -145,14 +145,17 @@ class AutoPunishmentEngine {
       const expiresAtDate = rule.actionDurationHours ? new Date(Date.now() + (rule.actionDurationHours * 3600 * 1000)) : null;
 
       switch (rule.action) {
-        case 'warn':
-          await notificationService.createNotification({
+        case 'warn': {
+          // A system notification (no actor) with the rule's reason
+          const sent = await notificationService.notify({
             userId: anomaly.userId!,
             type: "system_warning",
-            title: "Account-Warnung",
+            title: "Account warning",
             message: rule.actionReason,
           });
+          if (!sent) throw new Error("warning notification could not be stored");
           break;
+        }
 
         case 'freeze':
           await db.update(users)
@@ -185,14 +188,14 @@ class AutoPunishmentEngine {
             userId: anomaly.userId,
             reason: rule.actionReason,
             severity: rule.action === 'permanent_ban' ? 'permanent' : 'high',
-            isPermanent: rule.action === 'permanent_ban' ? 1 : 0,
+            // without an end date a "temporary" ban would never be active (ban-check: permanent OR expiresAt > now)
+            isPermanent: rule.action === 'permanent_ban' || !expiresAtDate ? 1 : 0,
             expiresAt: expiresAtDate,
             createdByType: 'auto_punishment',
             anomalyId: anomaly.id || null,
             createdAt: new Date(),
             updatedAt: new Date()
           }).returning();
-          await db.update(users).set({ karma: -1000 }).where(eq(users.id, anomaly.userId!));
           banId = accountBan.id;
           break;
 
@@ -203,6 +206,7 @@ class AutoPunishmentEngine {
               ipAddress: anomaly.ipAddress,
               reason: rule.actionReason,
               severity: 'high',
+              isPermanent: expiresAtDate ? 0 : 1,
               expiresAt: expiresAtDate,
               createdByType: 'auto_punishment',
               anomalyId: anomaly.id || null,
@@ -222,7 +226,8 @@ class AutoPunishmentEngine {
 
     } catch (error) {
       success = false;
-      errorMessage = String(error);
+      // A fixed code for the admin screen; the exception itself only goes to the server log.
+      errorMessage = rule.action === 'warn' ? 'NOTIFY_FAILED' : 'ACTION_FAILED';
       logger.error('security', `AutoPunishment action execution failed: ${rule.action}`, error, { userId: anomaly.userId, ruleId: rule.id });
     }
 

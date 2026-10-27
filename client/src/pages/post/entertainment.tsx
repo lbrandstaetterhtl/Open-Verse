@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertMediaPostSchema } from "@shared/schema";
+import { insertMediaPostSchema } from "@shared/validation";
 import {
   Form,
   FormControl,
@@ -20,6 +20,7 @@ import { queryClient } from "@/lib/queryClient";
 import type * as z from "zod";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { LIMITS } from "@/lib/input-limits";
 
 type FormData = z.infer<typeof insertMediaPostSchema>;
 
@@ -119,7 +120,7 @@ export default function CreateEntertainmentPage() {
                       <FormItem>
                         <FormLabel>{t("create_post.entertainment.title_label")}</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input maxLength={LIMITS.postTitle} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -134,6 +135,7 @@ export default function CreateEntertainmentPage() {
                         <FormControl>
                           <Textarea
                             rows={6}
+                            maxLength={LIMITS.postContent}
                             placeholder={t("create_post.entertainment.placeholder")}
                             {...field}
                           />

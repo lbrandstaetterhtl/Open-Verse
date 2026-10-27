@@ -1,0 +1,98 @@
+[
+  {
+    "id": "ATK-INJECT-1",
+    "severity": "medium",
+    "title": "Array/object/duplicate query parameters crash the notifications list (type confusion → 500 DoS)",
+    "scenario": "A logged-in user sends ?type[]=x (or ?type=a&type=b, ?type[a]=b) so the handler receives an array/object where it expects a string, crashing the request.",
+    "route": "GET /api/notifications",
+    "evidence": "GET /api/notifications?type[]=a → 500 'Failed to get notifications'; same for type[]=a&type[]=b, type[a]=b, type=1&type=2, type[$gt]=, type[__proto__][isAdmin]=1. The baseline ?limit=5 works (200).",
+    "test": "tests/attacks/inject.attack.test.ts › Angriff: type-confused query parameters crash list endpoints › GET /api/notifications: array/object/operator values answer 4xx, not 5xx",
+    "cause": "server/routes/notifications.ts:16 does (req.query.type as string).split(',') with no type check; Express parses type[]=…/type=a&type=b into an array and type[a]=b into an object, so .split is called on a non-string → TypeError → the catch answers 500. The query value is never validated as a string.",
+    "fix": "Coerce query params to strings before use: const type = typeof req.query.type === 'string' ? req.query.type.split(',') : undefined; (or validate req.query with a zod schema). Apply to limit/offset/unreadOnly too.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-INJECT-2",
+    "severity": "medium",
+    "title": "Public posts feed crashes (500) on object-valued query parameters",
+    "scenario": "An anonymous visitor sends ?category[a]=b so category arrives as an object and is passed into the WHERE clause, crashing the request.",
+    "route": "GET /api/posts",
+    "evidence": "GET /api/posts?category[a]=b → 500 'Failed to fetch posts'; same for category[$gt]=, category[$ne]=x, category[__proto__][isAdmin]=1. Also GET /api/posts?category[a][a]…×60=1 → 500 and GET /api/posts?category[99999]=1 → 500 (the qs parser turns the scalar into an object/array).",
+    "test": "tests/attacks/inject.attack.test.ts › Angriff: type-confused query parameters crash list endpoints › GET /api/posts: array/object/operator values answer 4xx, not 5xx; and › Angriff: query-string structural abuse keeps the server alive",
+    "cause": "server/routes/posts.ts:230 reads req.query.category as string | undefined with no check; an object reaches storage.getPosts → eq(posts.category, {...}) → Drizzle/Postgres error → 500. The deep-key and huge-index variants exploit the default extended (qs) query parser to produce the object/array.",
+    "fix": "Validate req.query with zod (string/number coercion) and reject non-scalar values with 400; optionally set app.set('query parser', 'simple') and cap qs depth/parameterLimit to blunt the structural variants.",
+    "sameAs": "CONTENT-10"
+  },
+  {
+    "id": "ATK-INJECT-3",
+    "severity": "medium",
+    "title": "Admin log/monitoring/leaderboard endpoints crash (500) on object/array query values and unknown sortBy",
+    "scenario": "An admin (or anyone who reaches these admin routes) sends ?adminId[]=x / ?userId[a]=b / ?sortBy=bogus; the value is fed to parseInt or an undefined ORDER BY expression and crashes the request.",
+    "route": "GET /api/admin/logs, GET /api/admin/monitoring/activity-logs, GET /api/admin/performance/leaderboard",
+    "evidence": "logs?adminId[]=a → 500; monitoring/activity-logs?userId[]=a → 500; performance/leaderboard?sortBy[]=a and ?sortBy=abc (unknown key) → 500 'Internal server error'.",
+    "test": "tests/attacks/inject.attack.test.ts › Angriff: type-confused query parameters crash list endpoints › GET /api/admin/logs / GET /api/admin/monitoring/activity-logs / GET /api/admin/performance/leaderboard: array/object/operator values answer 4xx, not 5xx",
+    "cause": "server/routes/admin.ts:339 and server/routes/monitoring.ts:27 call parseInt(adminId/userId as string) on a value that may be an object/array → NaN → eq(column, NaN) → Postgres 'invalid input syntax' → 500. server/services/moderator-performance-service.ts:258-262 build a fixed map keyed by sortBy and index it with the raw req.query.sortBy (mod-performance.ts:16); an unknown or non-string key yields orderCol=undefined, and line 289 .orderBy(sql`${orderCol}`) then errors.",
+    "fix": "Validate each query param (zod enum for sortBy/period, numeric coercion for ids) and answer 400 on anything unexpected; default orderCol to a known column instead of undefined.",
+    "sameAs": "INPUT-14"
+  },
+  {
+    "id": "ATK-INJECT-4",
+    "severity": "medium",
+    "title": "Numeric path parameters without validateIdParams crash routes with 500 (out-of-range / non-numeric / NUL)",
+    "scenario": "A logged-in user puts an out-of-int4-range, non-numeric or NUL-containing value in an id/username path segment; the un-guarded parseInt result reaches the database and crashes the request.",
+    "route": "GET /api/messages/:userId, GET /api/tickets/:id/history, GET /api/communities/:id/members, GET /api/admin/performance/moderator/:id, GET /api/users/:username/posts",
+    "evidence": "GET /api/messages/2147483648 → 500; GET /api/tickets/9999999999/history → 500; GET /api/communities/abc/members → 500 (also NaN, Infinity, %00, ..%2f..%2fetc%2fpasswd, __proto__ all 500); GET /api/admin/performance/moderator/abc → 500; GET /api/users/%00/posts → 500. Valid ids answer normally.",
+    "test": "tests/attacks/inject.attack.test.ts › Angriff: hostile path ids crash unguarded routes › GET /api/messages/:userId / GET /api/tickets/:id/history / GET /api/communities/:id/members / GET /api/admin/performance/moderator/:id / GET /api/users/:username/posts: every hostile id answers a clean 4xx",
+    "cause": "These routers do not use validateIdParams (server/utils/params.ts). messages.ts:63 only rejects isNaN, so 2147483648/-2147483649 reach storage.getMessages → int4 out-of-range 500. communities.ts:478 and mod-performance.ts:37 do parseInt(req.params.id) with no range/NaN guard → NaN or overflow reaches the DB. tickets.ts router.param('id') accepts /^\\d+$/ so '9999999999' passes then overflows. getUserByUsername with a NUL byte (%00) hits a Postgres 'invalid message format' error.",
+    "fix": "Register validateIdParams(router, ['id','userId']) on these routers (as the posts/comments routers do), and reject usernames containing control characters; answer 404/400 before the handler runs.",
+    "sameAs": "SOCIAL-22"
+  },
+  {
+    "id": "ATK-INJECT-5",
+    "severity": "low",
+    "title": "Negative pagination offset reaches SQL OFFSET on the notifications list (500)",
+    "scenario": "A logged-in user requests ?offset=-5; the negative value is passed straight into the SQL OFFSET and errors.",
+    "route": "GET /api/notifications",
+    "evidence": "GET /api/notifications?offset=-5&limit=5 → 500 'Failed to get notifications' (limit=-1 is tolerated).",
+    "test": "tests/attacks/inject.attack.test.ts › Angriff: negative pagination reaches the database › GET /api/notifications?offset=-5 answers 2xx/4xx, not 5xx",
+    "cause": "server/routes/notifications.ts:14 uses offset = parseInt(req.query.offset) || 0 without clamping, and notification-storage.ts:152 applies .offset(offset); Postgres rejects a negative OFFSET. The route does not use parsePagination (server/utils/pagination.ts), which would clamp to >= 0.",
+    "fix": "Use parsePagination(req.query) here as other list routes do, or Math.max(0, offset).",
+    "sameAs": "SOCIAL-22"
+  },
+  {
+    "id": "ATK-INJECT-6",
+    "severity": "medium",
+    "title": "Oversized email bypasses profile validation and hangs the request forever (connection-exhaustion DoS)",
+    "scenario": "A logged-in user PATCHes an email that passes zod's email() check but is large enough that the UPDATE errors; because the handler has no try/catch, the failed query becomes an unhandled rejection and no response is ever sent, holding the connection open.",
+    "route": "PATCH /api/profile",
+    "evidence": "PATCH /api/profile {email: 'a@'+'a-'x250000+'x'} → no response within 10s (request hangs); server log records CRITICAL 'Unhandled Rejection: Failed query: update \"users\" set \"email\" = $1 …'. In production unhandledRejection only logs (does not exit), so each such request leaks a held connection. (A 100k email is accepted 200 — no length limit either.)",
+    "test": "tests/attacks/inject.attack.test.ts › Angriff: an oversized field value hangs PATCH /api/profile › a 200 000-char email is answered, not left hanging",
+    "cause": "server/auth.ts:468-502 — the PATCH /api/profile handler awaits storage.updateUserProfile without a try/catch and without ever sending a response on error; shared/schema.ts updateProfileSchema has no max length on email, so huge values pass validation and reach the DB. On a DB error the promise rejects unhandled, res is never written, and the socket stays open until the client gives up.",
+    "fix": "Wrap the handler body in try/catch and send a 400/500 on error (or use an async error-handling wrapper); add .max(254) to the email field and length caps to the other string fields in updateProfileSchema.",
+    "sameAs": "INPUT-6"
+  },
+  {
+    "id": "ATK-INJECT-7",
+    "severity": "medium",
+    "title": "Notification preferences write the raw body; an object-valued flag reaches the DB (500)",
+    "scenario": "A logged-in user PATCHes {\"likePost\":{\"a\":{\"b\":1}}}; the object is written straight into an integer column and the query errors.",
+    "route": "PATCH /api/notifications/preferences",
+    "evidence": "PATCH /api/notifications/preferences {likePost:{a:{b:1}}} → 500 'Failed to update preferences'.",
+    "test": "tests/attacks/inject.attack.test.ts › Angriff: oversized and deeply nested bodies are rejected, not fatal › PATCH /api/notifications/preferences with an object-valued flag answers 4xx, not 5xx",
+    "cause": "server/routes/notifications.ts:125 passes req.body unchanged to storage.updateNotificationPreferences — no schema validation — so an object-valued flag reaches the UPDATE and Postgres rejects it. (Same handler also mass-assigns userId/id per INPUT-3/SOCIAL-6.)",
+    "fix": "Validate the body with a zod schema of boolean/int flags (strip unknown keys and userId/id) before the update.",
+    "sameAs": "INPUT-4"
+  },
+  {
+    "id": "ATK-INJECT-8",
+    "severity": "low",
+    "title": "Profanity filter is a raw substring match: unicode (zero-width / fullwidth / homoglyph) evades it",
+    "scenario": "A user posts a banned word disguised with zero-width spaces, fullwidth letters or Cyrillic homoglyphs; the filter does a lowercase byte-substring match and does not detect it.",
+    "route": "POST /api/posts (also POST /api/comments via the same checkContent)",
+    "evidence": "Plain 'sex' → 400 CONTENT_BLOCKED, but 's\\u200be\\u200bx', fullwidth 'ｓｅｘ' and Cyrillic-homoglyph 'ѕex' / 's\\u0435x' → 201 (accepted).",
+    "test": "tests/attacks/inject.attack.test.ts › Angriff: unicode evades the profanity substring filter › disguised banned words are blocked like the plain word",
+    "cause": "server/services/moderation.ts:48-53 — checkContent lowercases the raw text and does lowerText.includes(word) over a fixed BANNED_WORDS list; no Unicode normalisation (NFKC), homoglyph folding or zero-width/space stripping, so any disguised form slips through.",
+    "fix": "Normalise before matching: NFKC-normalise, strip zero-width and combining marks, collapse whitespace, and fold common homoglyphs; or match on word boundaries over the normalised form. (Note the inverse false-positive issue CONTENT-12.)",
+    "sameAs": null
+  }
+]

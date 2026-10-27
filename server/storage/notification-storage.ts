@@ -10,6 +10,12 @@ import {
 import { db, getSqlite } from "../db";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 
+/** The user-settable notification preference flags (integer 0/1 columns). */
+export const PREFERENCE_FLAGS = [
+  "likePost", "likeComment", "commentPost", "replyComment", "mentionPost", "mentionComment", "newFollower",
+  "communityInvite", "communityPost", "postMilestone", "systemAnnouncement", "browserNotifications",
+] as const;
+
 export class NotificationStorage {
   async createNotification(notification: {
     userId: number;
@@ -139,22 +145,73 @@ export class NotificationStorage {
       whereClause = and(whereClause, inArray(notifications.type, type));
     }
 
+    // Only public actor fields: the recipient must never get the actor's email, password hash or moderation state.
     const result = await db
       .select({
         notification: notifications,
-        actor: users
+        actor: {
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+          profilePictureUrl: users.profilePictureUrl,
+        },
       })
       .from(notifications)
       .leftJoin(users, eq(notifications.actorId, users.id))
       .where(whereClause)
-      .orderBy(desc(notifications.createdAt))
+      .orderBy(desc(notifications.createdAt), desc(notifications.id))
       .limit(limit)
       .offset(offset);
 
-    return result.map(({ notification, actor }: { notification: Notification; actor: User | null }) => ({
+    return result.map(({ notification, actor }: { notification: Notification; actor: Partial<User> | null }) => ({
       ...notification,
-      actor: actor || null
+      actor: actor?.id ? (actor as User) : null
     }));
+  }
+
+  /** Marks one notification as read if it belongs to `userId`. Returns false when there is no such notification. */
+  async markNotificationAsReadForUser(notificationId: number, userId: number): Promise<boolean> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const res = sqlite.prepare("UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ? AND archived = 0").run(notificationId, userId);
+      return res.changes > 0;
+    }
+    const rows = await db
+      .update(notifications)
+      .set({ read: 1 })
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId), eq(notifications.archived, 0)))
+      .returning({ id: notifications.id });
+    return rows.length > 0;
+  }
+
+  /** Archives ("deletes") one notification if it belongs to `userId`. Returns false when there is no such notification. */
+  async archiveNotificationForUser(notificationId: number, userId: number): Promise<boolean> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      const res = sqlite.prepare("UPDATE notifications SET archived = 1 WHERE id = ? AND user_id = ? AND archived = 0").run(notificationId, userId);
+      return res.changes > 0;
+    }
+    const rows = await db
+      .update(notifications)
+      .set({ archived: 1 })
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId), eq(notifications.archived, 0)))
+      .returning({ id: notifications.id });
+    return rows.length > 0;
+  }
+
+  /** True if `userId` still has a (not archived) notification of this type from this actor, e.g. to avoid follow spam. */
+  async hasActiveNotification(userId: number, actorId: number, type: string): Promise<boolean> {
+    const sqlite = getSqlite();
+    if (process.env.USE_SQLITE === "true" && sqlite) {
+      return !!sqlite.prepare("SELECT 1 FROM notifications WHERE user_id = ? AND actor_id = ? AND type = ? AND archived = 0 LIMIT 1").get(userId, actorId, type);
+    }
+    const [row] = await db
+      .select({ id: notifications.id })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.actorId, actorId), eq(notifications.type, type), eq(notifications.archived, 0)))
+      .limit(1);
+    return !!row;
   }
 
   async getNotificationCounts(userId: number): Promise<{ unread: number; unseen: number }> {
@@ -254,14 +311,25 @@ export class NotificationStorage {
     return prefs;
   }
 
-  async updateNotificationPreferences(userId: number, update: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
+  /**
+   * Sets preference flags (0/1). Only the known flag columns are written: never id, userId or updatedAt.
+   * Creates the row first if the user never loaded their preferences.
+   */
+  async updateNotificationPreferences(userId: number, input: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
+    await this.getNotificationPreferences(userId);
+    const update: Record<string, number> = {};
+    for (const key of PREFERENCE_FLAGS) {
+      const value = (input as any)?.[key];
+      if (value === undefined) continue;
+      update[key] = value === true || value === 1 ? 1 : 0;
+    }
+    if (Object.keys(update).length === 0) return this.getNotificationPreferences(userId);
     const sqlite = getSqlite();
     if (process.env.USE_SQLITE === "true" && sqlite) {
       const sets: string[] = [];
       const params: any[] = [];
       
       for (const [key, value] of Object.entries(update)) {
-        if (key === 'userId' || key === 'updatedAt') continue;
         const dbKey = key.replaceAll(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
         sets.push(`${dbKey} = ?`);
         params.push(value ? 1 : 0);

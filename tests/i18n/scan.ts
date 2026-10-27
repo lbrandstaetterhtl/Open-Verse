@@ -320,10 +320,11 @@ export function findUsedKeys(files = sourceFiles()): UsedKey[] {
         }
         for (const [name, value] of props) {
           const m = name.match(/^(\w*?)Key$/);
-          if (!m || !/^[\w-]+(\.[\w-]+)+$/.test(value)) continue;
+          const km = value.match(/^(?:(\w+):)?([\w-]+(?:\.[\w-]+)+)$/);
+          if (!m || !km) continue;
           const base = m[1];
           const defaultValue = props.get(base === "label" || base === "" ? "fallback" : `${base}Fallback`) ?? props.get(`${base}Fallback`);
-          out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(node.getStart()).line + 1, ns: defaultNs, key: value, defaultValue });
+          out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(node.getStart()).line + 1, ns: km[1] ?? defaultNs, key: km[2], defaultValue });
         }
       }
       ts.forEachChild(node, visit);
@@ -356,11 +357,31 @@ export function supportedLanguages(): string[] {
   return [...m[1].matchAll(/["'](\w+)["']/g)].map((x) => x[1]);
 }
 
-export function namespaces(): string[] {
+/** Namespaces every visitor loads (`ns: [...]` in client/src/lib/i18n.ts). */
+export function publicNamespaces(): string[] {
   const src = fs.readFileSync(path.join(CLIENT_SRC, "lib/i18n.ts"), "utf8");
-  const m = src.match(/ns:\s*\[([^\]]+)\]/);
+  const m = src.match(/\bns:\s*\[([^\]]+)\]/);
   return m ? [...m[1].matchAll(/["'](\w+)["']/g)].map((x) => x[1]) : [DEFAULT_NS];
 }
+
+/** Namespaces only admins/owners load (STAFF_NAMESPACES in client/src/lib/i18n.ts; 404 for everyone else). */
+export function staffNamespaces(): string[] {
+  const src = fs.readFileSync(path.join(CLIENT_SRC, "lib/i18n.ts"), "utf8");
+  const m = src.match(/STAFF_NAMESPACES\s*=\s*\[([^\]]+)\]/);
+  return m ? [...m[1].matchAll(/["'](\w+)["']/g)].map((x) => x[1]) : [];
+}
+
+/** All namespaces, public and staff: every check (keys, parity, placeholders) covers both. */
+export function namespaces(): string[] {
+  return [...publicNamespaces(), ...staffNamespaces()];
+}
+
+/** Staff-only client code (admin/owner area), built into access-controlled staff chunks. */
+export const STAFF_DIR = "staff/";
+export const isStaffSource = (rel: string) => rel.split(path.sep).join("/").startsWith(STAFF_DIR);
+
+/** Server files whose error texts only staff can receive (admin API); they belong in the staffServer namespace. */
+export const STAFF_SERVER_FILES = /^server\/routes\/(admin|admin-groups|analytics|mod-performance|monitoring|security)\.ts$/;
 
 /** locales[lang][ns] = flattened keys, or undefined when the file is missing. */
 export function loadLocales(): Record<string, Record<string, Flat | undefined>> {

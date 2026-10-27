@@ -1,6 +1,5 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertDiscussionPostSchema } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -17,12 +16,24 @@ import { Loader2, MessagesSquare } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type * as z from "zod";
+import { z } from "zod";
+import { useMemo } from "react";
 import { useLocation } from "wouter";
-
-type FormData = z.infer<typeof insertDiscussionPostSchema>;
+import { LIMITS, requiredMessage, tooLongMessage } from "@/lib/input-limits";
 
 import { useTranslation } from "react-i18next";
+
+function discussionSchema(t: (key: string) => string) {
+  const title = t("server:fields.title");
+  const content = t("server:fields.content");
+  return z.object({
+    title: z.string().trim().min(1, requiredMessage(title)).max(LIMITS.postTitle, tooLongMessage(title, LIMITS.postTitle)),
+    content: z.string().trim().min(1, requiredMessage(content)).max(LIMITS.postContent, tooLongMessage(content, LIMITS.postContent)),
+    category: z.string().optional(),
+  });
+}
+
+type FormData = z.infer<ReturnType<typeof discussionSchema>>;
 
 export default function CreateDiscussionPage() {
   const { t } = useTranslation();
@@ -31,8 +42,9 @@ export default function CreateDiscussionPage() {
   const searchParams = new URLSearchParams(window.location.search);
   const communityId = searchParams.get("communityId");
 
+  const schema = useMemo(() => discussionSchema(t), [t]);
   const form = useForm<FormData>({
-    resolver: zodResolver(insertDiscussionPostSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       title: "",
       content: "",
@@ -69,6 +81,14 @@ export default function CreateDiscussionPage() {
         setLocation("/feed/discussions");
       }
     },
+    onError: (error: Error) => {
+      // e.g. the posting cooldown (429 POST_COOLDOWN) or a validation error, already translated by apiRequest
+      toast({
+        title: t("common.error"),
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   return (
@@ -95,7 +115,7 @@ export default function CreateDiscussionPage() {
                       <FormItem>
                         <FormLabel>{t("create_post.discussion.title_label")}</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input maxLength={LIMITS.postTitle} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -110,6 +130,7 @@ export default function CreateDiscussionPage() {
                         <FormControl>
                           <Textarea
                             rows={6}
+                            maxLength={LIMITS.postContent}
                             placeholder={t("create_post.discussion.placeholder")}
                             {...field}
                           />

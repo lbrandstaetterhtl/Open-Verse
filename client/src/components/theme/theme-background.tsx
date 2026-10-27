@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getBgBlobUrl } from "@/lib/theme-bg-store";
 import type { BackgroundConfig } from "@/lib/theme-utils";
-import { defaultBackground, defaultLightBackground } from "@/lib/theme-utils";
+import { defaultBackground, defaultLightBackground, sanitizeBackground } from "@/lib/theme-utils";
 import { ParticleBackground } from "./particle-background";
 
 interface ThemeBackgroundProps {
@@ -15,7 +15,9 @@ interface ThemeBackgroundProps {
  * Must be placed early in the component tree (App.tsx).
  */
 export function ThemeBackground({ background, isDark = true }: ThemeBackgroundProps) {
-    const bg = background || (isDark ? defaultBackground : defaultLightBackground);
+    const fallback = isDark ? defaultBackground : defaultLightBackground;
+    // Only safe values reach the styles below: gradient/color functions only, http(s) or same-origin image URLs
+    const bg = sanitizeBackground(background || fallback, fallback);
     const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null);
 
     // Resolve image URL based on type
@@ -92,7 +94,7 @@ export function ThemeBackground({ background, isDark = true }: ThemeBackgroundPr
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat will-change-[transform,opacity]"
                     style={{ 
-                        backgroundImage: `url(${resolvedImageUrl})`,
+                        backgroundImage: `url("${resolvedImageUrl.replaceAll(/["\\\n\r]/g, encodeURIComponent)}")`,
                         filter: filter
                     }}
                 />

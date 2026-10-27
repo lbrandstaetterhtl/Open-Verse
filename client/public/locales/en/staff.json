@@ -1,0 +1,679 @@
+{
+  "bans": {
+    "title": "Bans & Restrictions"
+  },
+  "autoPunishment": {
+    "title": "Auto-Punishment"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "eyebrow": "Admin / Analytics"
+  },
+  "modPerf": {
+    "nav": "Mod Performance",
+    "eyebrow": "Admin / Analytics"
+  },
+  "security": {
+    "stress_test": "Security Tests",
+    "eyebrow": "Admin / Security"
+  },
+  "admin": {
+    "title": "Admin Dashboard",
+    "back_to_site": "Back to Site",
+    "reset_roles": "Reset All Roles",
+    "stats": {
+      "total_users": "Total Users",
+      "active_users": "Active Users",
+      "verified_users": "Verified Users",
+      "banned_users": "Banned Users",
+      "deleted_users": "Deleted Users",
+      "total_posts": "Total Posts",
+      "total_reports": "Total Reports",
+      "pending_reports": "Pending Reports",
+      "resolved_reports": "Resolved Reports",
+      "rejected_reports": "Rejected Reports"
+    },
+    "tabs": {
+      "users": "Users",
+      "reports": "Reports",
+      "monitoring": "Monitoring System",
+      "logs": "Activity Logs",
+      "settings": "Settings"
+    },
+    "users_table": {
+      "username": "Username",
+      "email": "Email",
+      "status": "Status",
+      "role": "Role",
+      "karma": "Karma",
+      "joined": "Joined",
+      "actions": "Actions",
+      "make_admin": "Make Admin",
+      "make_owner": "Make Owner",
+      "remove_admin": "Remove Admin",
+      "remove_owner": "Remove Owner",
+      "ban_user": "Ban User",
+      "restore_user": "Restore Account",
+      "verify_user": "Verify User",
+      "unverify_user": "Remove Verification",
+      "verify_email": "Verified E-Mail",
+      "unverify_email": "Unverified E-Mail",
+      "verify_user_confirm": "Are you sure you want to verify {{username}}? This will display a verified badge next to their name.",
+      "unverify_user_confirm": "Are you sure you want to remove verification from {{username}}? This will remove their verified badge.",
+      "restore_user_confirm": "Are you sure you want to restore {{username}}'s account?",
+      "ban_user_confirm": "Are you sure you want to ban {{username}}? This will prevent them from accessing most features.",
+      "delete_user_confirm": "Are you sure you want to permanently delete {{username}}? This action cannot be undone and will delete all of the user's posts, comments, and other data.",
+      "make_admin_confirm": "Are you sure you want to make {{username}} an admin? This will give them administrative privileges.",
+      "make_owner_confirm": "Are you sure you want to promote {{username}} to Owner? This grants them full system access.",
+      "remove_owner_confirm": "Are you sure you want to remove Owner status from {{username}}? They will be demoted to an Admin.",
+      "remove_admin_confirm": "Are you sure you want to remove {{username}}'s admin privileges? They will be demoted to a regular user."
+    },
+    "reports_table": {
+      "reporter": "Reporter",
+      "ip_address": "IP Address",
+      "poster": "Poster",
+      "type": "Type",
+      "content": "Content",
+      "reason": "Reason",
+      "status": "Status",
+      "reported_on": "Reported On",
+      "actions": "Actions",
+      "resolve": "Resolve",
+      "reject": "Reject",
+      "resolve_title": "Resolve Report",
+      "resolve_desc": "Are you sure you want to resolve this report? This will delete the reported content.",
+      "reject_title": "Reject Report",
+      "reject_desc": "Are you sure you want to reject this report? The reported content will remain.",
+      "status_all": "All",
+      "status_pending": "Pending",
+      "status_resolved": "Resolved",
+      "status_rejected": "Rejected",
+      "type_post": "Post",
+      "type_discussion": "Discussion",
+      "type_comment": "Comment"
+    },
+    "overview_eyebrow": "Admin / Overview",
+    "command_center": "Command Center",
+    "settings_eyebrow": "Admin / Settings"
+  },
+  "monitoring": {
+    "title": "Monitoring Overview",
+    "events_today": "Events Today",
+    "open_anomalies": "Open Anomalies",
+    "critical": "Critical",
+    "error_rate": "Error Rate (1h)",
+    "active_users": "Active Users",
+    "in_last_5m": "in last 5m",
+    "activity_logs": "Activity Logs",
+    "anomalies": "Anomaly Detection",
+    "search_action": "Search action or description...",
+    "all_categories": "All Categories",
+    "all_severities": "All Severities",
+    "time": "Time",
+    "severity": "Severity",
+    "user": "User",
+    "action": "Action",
+    "description": "Description",
+    "ip": "IP",
+    "no_logs": "No logs found",
+    "status": "Status",
+    "type": "Type",
+    "auto_action": "Auto Action",
+    "no_anomalies": "No anomalies found",
+    "open": "Open",
+    "investigating": "Investigating",
+    "resolved": "Resolved",
+    "false_positive": "False Positive",
+    "metrics": {
+      "events_minute_chart": "Events Activity (24h)",
+      "errors_by_category": "Errors & Warnings by Category"
+    },
+    "eyebrow_audit": "Admin / Audit",
+    "eyebrow_monitoring": "Admin / Monitoring",
+    "eyebrow_moderation": "Admin / Moderation",
+    "activity_logs_desc": "Real-time audit trail of all platform operations.",
+    "category": "Category",
+    "categories": {
+      "auth": "Auth",
+      "content": "Content",
+      "admin": "Admin",
+      "security": "Security"
+    },
+    "severity_levels": {
+      "info": "Info",
+      "warning": "Warning",
+      "error": "Error",
+      "debug": "Debug",
+      "critical": "Critical"
+    },
+    "system": "System",
+    "anomaly_badge": "ANOMALY",
+    "access_restricted": "Access Restricted",
+    "access_restricted_desc": "You do not have the required permissions to access system monitoring logs.",
+    "not_available": "N/A",
+    "error_critical": "Error/Critical",
+    "no_recent_incidents": "No recent incidents"
+  },
+  "nav": {
+    "admin_overview": "Overview",
+    "admin_people": "Users & content",
+    "admin_moderation": "Moderation",
+    "admin_system": "System",
+    "tickets": "Tickets",
+    "groups": "Groups",
+    "bans": "Bans",
+    "auto_actions": "Automatic actions",
+    "mod_performance": "Moderator performance",
+    "logs": "Logs",
+    "analytics": "Analytics",
+    "stress_test": "Stress test",
+    "monitoring": "Monitoring"
+  },
+  "admin_bulk": {
+    "default": {
+      "title": "Confirm action",
+      "description_users": "Apply this action to {{count}} selected users.",
+      "description_reports": "Apply this action to {{count}} selected reports."
+    },
+    "count_users": "{{count}} users",
+    "count_reports": "{{count}} reports",
+    "toolbar": {
+      "selected": "selected",
+      "clear": "Clear selection",
+      "ban": "Ban selected",
+      "unban": "Unban selected",
+      "delete": "Delete selected",
+      "resolve": "Resolve all",
+      "reject": "Reject all"
+    }
+  },
+  "admin_groups": {
+    "toast": {
+      "success": "Success",
+      "created": "Admin group created.",
+      "updated": "Admin group updated.",
+      "deleted": "Admin group deleted."
+    },
+    "loading": "Loading groups...",
+    "title": "Admin groups",
+    "description": "Manage administrative roles and their granular access permissions.",
+    "create": "Create group",
+    "form": {
+      "create_title": "Create admin group",
+      "edit_title": "Edit admin group",
+      "name": "Group name",
+      "name_placeholder": "e.g. Content moderator",
+      "color": "Accent color",
+      "description": "Description",
+      "description_placeholder": "What is this group responsible for?",
+      "permissions": "Granular permissions",
+      "saving": "Saving...",
+      "save": "Save group"
+    },
+    "group_id": "Group ID: {{id}}",
+    "edit": "Edit group",
+    "delete": "Delete group",
+    "delete_confirm": "Are you sure you want to delete this group?",
+    "active_permissions": "Active permissions",
+    "no_members": "No members yet",
+    "view_members": "View {{count}} members",
+    "members_dialog": {
+      "title": "{{name}} members",
+      "description": "List of administrators assigned to this permission group.",
+      "member_id": "ID: {{id}}",
+      "close": "Close"
+    },
+    "permissions": {
+      "dashboard": {
+        "label": "Dashboard Access",
+        "description": "View admin overview and statistics"
+      },
+      "users": {
+        "label": "User Management",
+        "description": "Manage roles, verification, and profile data"
+      },
+      "reports": {
+        "label": "Content Moderation",
+        "description": "Handle reports and resolve content disputes"
+      },
+      "groups": {
+        "label": "Group Management",
+        "description": "Edit admin groups and permissions"
+      },
+      "security": {
+        "label": "Security & Bans",
+        "description": "Access ban system and security tools"
+      },
+      "auto_punishment": {
+        "label": "Auto-Punishment",
+        "description": "Manage automated rule enforcement systems"
+      },
+      "logs": {
+        "label": "Activity Monitoring",
+        "description": "View system logs and anomaly reports"
+      },
+      "analytics": {
+        "label": "Platform Analytics",
+        "description": "View growth charts and usage metrics"
+      },
+      "performance": {
+        "label": "Moderator Performance",
+        "description": "Track moderation efficiency and stats"
+      },
+      "tickets": {
+        "label": "Support Tickets",
+        "description": "Manage and resolve user support tickets"
+      },
+      "stress_test": {
+        "label": "Stress Testing",
+        "description": "Run system stress tests and performance audits"
+      },
+      "settings": {
+        "label": "System Settings",
+        "description": "Configure global platform parameters"
+      }
+    }
+  },
+  "admin_tickets": {
+    "open": "Open",
+    "critical_open": "Critical open",
+    "in_progress": "In progress",
+    "avg_hours_to_resolve": "Avg hrs to resolve"
+  },
+  "admin_autopunish": {
+    "access_restricted": {
+      "title": "Access restricted",
+      "description": "You do not have the required permissions to manage auto-punishment rules."
+    },
+    "toast": {
+      "updated": "Rule updated successfully",
+      "created": "Rule created successfully",
+      "deleted": "Rule deleted",
+      "validation_error": "Validation error",
+      "validation_required": "Name and action reason are required"
+    },
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "title": "Auto-punishment engine",
+    "description": "Automated threat response and mitigation rules.",
+    "rules": {
+      "title": "Active rules",
+      "new": "New rule",
+      "col_name": "Rule name",
+      "col_trigger": "Trigger (anomaly)",
+      "col_threshold": "Threshold",
+      "col_action": "Automated action",
+      "col_manage": "Manage",
+      "status_active": "Active",
+      "status_disabled": "Disabled",
+      "edit": "Edit rule",
+      "disable": "Disable rule",
+      "enable": "Enable rule",
+      "delete": "Delete rule",
+      "delete_confirm": "Delete this rule?"
+    },
+    "dialog": {
+      "edit_title": "Edit auto-punishment rule",
+      "create_title": "Create auto-punishment rule"
+    },
+    "form": {
+      "name": "Rule name",
+      "name_placeholder": "e.g. Strict API abuser block",
+      "description": "Description",
+      "optional": "(optional)",
+      "description_placeholder": "What exactly does this rule prevent?",
+      "anomaly_trigger": "Anomaly trigger",
+      "severity_threshold": "Severity threshold",
+      "action": "Action",
+      "duration_hours": "Duration (hours)",
+      "advanced": "Advanced configuration",
+      "escalate_after_count": "Triggers after (count)",
+      "escalate_after_count_help": "Number of incidents before the rule triggers.",
+      "escalation_window_hours": "Time window (hours)",
+      "escalation_window_hours_help": "Period in which incidents are counted.",
+      "cooldown_hours": "Cooldown (hours)",
+      "cooldown_hours_help": "Waiting time before the rule can trigger again.",
+      "action_reason": "Action reason",
+      "action_reason_placeholder": "Internal reason for this exact block...",
+      "saving": "Saving..."
+    },
+    "anomaly": {
+      "brute_force_login": "Brute-force login",
+      "api_abuse": "API abuse",
+      "spam_content": "Spam content",
+      "rapid_creation": "Rapid creation",
+      "suspicious_ip": "Suspicious IP",
+      "hardware_ban_evasion": "Hardware ban evasion"
+    },
+    "action": {
+      "warn": "Warn user",
+      "freeze": "Freeze account",
+      "shadow_ban": "Shadowban",
+      "temp_ban": "Temporary IP ban",
+      "ip_ban": "Permanent IP ban",
+      "hardware_ban": "Hardware ban"
+    },
+    "col_status": "Status",
+    "executions": {
+      "title": "Recent executions",
+      "col_time": "Time",
+      "col_rule": "Rule",
+      "col_target": "Target user",
+      "col_action": "Action taken",
+      "empty": "No recent executions",
+      "user": "User",
+      "success": "Success",
+      "failed": "Failed"
+    }
+  },
+  "admin_bans": {
+    "toast": {
+      "revoked": "Ban revoked"
+    },
+    "eyebrow": "Moderation core",
+    "title": "Ban management",
+    "description": "Manage IP, hardware, and account bans in zero gravity.",
+    "table": {
+      "type": "Type",
+      "target": "Target",
+      "reason": "Reason",
+      "status": "Status",
+      "source": "Source",
+      "operations": "Operations"
+    },
+    "loading": "Scanning transmission...",
+    "empty": "No active bans in this sector",
+    "status": {
+      "active": "Active",
+      "revoked": "Revoked"
+    },
+    "revoke": "Revoke",
+    "target_user": "USER::{{id}}"
+  },
+  "admin_logs": {
+    "title": "Activity Logs",
+    "description": "Immutable audit trail of all administrative operations.",
+    "export_json": "Export JSON",
+    "export_csv": "Export CSV",
+    "total_events": "Total events",
+    "high_severity": "High severity",
+    "search_placeholder": "Search description, target or admin…",
+    "category": "Category",
+    "categories": {
+      "users": "Users",
+      "content": "Content",
+      "settings": "Settings",
+      "system": "System"
+    },
+    "severity": "Severity",
+    "severity_levels": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical",
+      "debug": "Debug",
+      "info": "Info",
+      "warning": "Warning",
+      "error": "Error"
+    },
+    "col_timestamp": "Timestamp",
+    "col_administrator": "Administrator",
+    "system": "System",
+    "col_action": "Action",
+    "col_analysis": "Analysis",
+    "audit_entry": "Audit Entry • Event #{{id}}",
+    "detail_description": "Description",
+    "target_type": "Target type",
+    "not_available": "N/A",
+    "target_identifier": "Target identifier",
+    "origin_ip": "Origin IP",
+    "payload_delta": "Payload delta",
+    "previous_state": "Previous state",
+    "new_state": "New state",
+    "details": "Details",
+    "admin": "Admin",
+    "log_entry": "Log entry",
+    "target": "Target",
+    "ip_address": "IP address",
+    "new_state_delta": "New state delta",
+    "status": {
+      "success": "Success",
+      "failure": "Failed",
+      "warning": "Warning",
+      "blocked": "Blocked"
+    },
+    "actions": {
+      "admin": {
+        "bulk_action": "Bulk action",
+        "settings_change": "Settings changed",
+        "group_create": "Group created",
+        "group_delete": "Group deleted",
+        "group_update": "Group updated",
+        "user_group_assign": "User assigned to group"
+      },
+      "auth": {
+        "login": "Login",
+        "login_failed": "Failed login",
+        "logout": "Logout",
+        "register": "Registration"
+      },
+      "comment": {
+        "create": "Comment written",
+        "delete": "Comment deleted"
+      },
+      "community": {
+        "ban_member": "Member banned from community",
+        "unban_member": "Community ban lifted",
+        "create": "Community created",
+        "join": "Joined community",
+        "leave": "Left community"
+      },
+      "follow": {
+        "add": "Followed user",
+        "remove": "Unfollowed user"
+      },
+      "post": {
+        "create": "Post created",
+        "delete": "Post deleted"
+      },
+      "report": {
+        "resolve": "Report handled",
+        "submit": "Report submitted"
+      },
+      "security": {
+        "auth_bypass_attempt": "Auth bypass attempt",
+        "suspicious_request": "Suspicious request"
+      },
+      "system": {
+        "error": "System error"
+      },
+      "ticket": {
+        "comment": "Ticket comment",
+        "create": "Ticket created",
+        "status_change": "Ticket status changed"
+      },
+      "user": {
+        "upload_rejected": "Upload rejected",
+        "upload_avatar": "Profile picture uploaded",
+        "upload_cover": "Cover image uploaded",
+        "delete_account": "Account deleted",
+        "settings_change": "User settings changed",
+        "update_avatar": "Profile picture changed",
+        "update_cover": "Cover image changed"
+      }
+    },
+    "target_types": {
+      "User": "User",
+      "Post": "Post",
+      "Comment": "Comment",
+      "Community": "Community",
+      "Report": "Report",
+      "Setting": "Setting",
+      "AdminGroup": "Admin group",
+      "StressTest": "Stress test",
+      "Ticket": "Ticket"
+    }
+  },
+  "admin_dashboard": {
+    "user_update_success": "User updated.",
+    "user_deleted": "User permanently deleted.",
+    "report_update_success": "Report updated.",
+    "access_denied": "Access denied",
+    "owner_only_promote": "Only system owners can promote to Owner status.",
+    "bulk_success": "Bulk action executed successfully.",
+    "description": "Monitor platform health and manage operations in zero-gravity.",
+    "stats": {
+      "total_users_desc": "Cumulative registered users across the platform.",
+      "total_reports_desc": "Total report flags received across all content.",
+      "pending_reports_desc": "Awaiting manual review by the administration.",
+      "active_users_desc": "Unique users active within the last 24 hours.",
+      "verified_users_desc": "Trusted members who completed verification."
+    },
+    "tabs": {
+      "groups": "Groups"
+    },
+    "search_placeholder": "Search the Verse…",
+    "users": {
+      "title": "User Directory",
+      "description": "Manage authentication states and moderation levels.",
+      "filter_all": "All",
+      "filter_verified": "Verified",
+      "filter_banned": "Banned",
+      "col_user": "User",
+      "id": "ID: {{id}}",
+      "col_contact": "Contact",
+      "col_role": "Role",
+      "col_rep": "Rep",
+      "col_operations": "Operations",
+      "revoke_verification": "Revoke verification",
+      "assign_role": "Assign role",
+      "currently": "Currently:",
+      "assign_group": "Assign group",
+      "no_group": "No group",
+      "group_none": "None",
+      "revoke_shadowban": "Revoke shadowban",
+      "shadowban_user": "Shadowban user",
+      "shadowban_desc": "Silent moderation state",
+      "lift_restriction": "Lift restriction",
+      "restrict_account": "Restrict account",
+      "restore_access": "Restore access",
+      "restrict_desc": "Zero-gravity suspension",
+      "purge_entity": "Purge entity",
+      "verified": "Verified",
+      "verify": "Verify",
+      "toggle_shadowban": "Toggle shadowban",
+      "toggle_restriction": "Toggle restriction",
+      "purge_account": "Purge account",
+      "delete_confirm_title": "Delete this account permanently?",
+      "delete_confirm_desc": "The account of {{username}} will be deleted permanently. This cannot be undone.",
+      "ban_confirm_title": "Restrict {{username}}?",
+      "ban_confirm_desc": "The account is banned until an administrator lifts the restriction."
+    },
+    "reports": {
+      "title": "Content Integrity Queue",
+      "description": "Community flags requiring administrative adjudication.",
+      "col_source": "Source",
+      "internal": "INTERNAL",
+      "col_entity": "Entity",
+      "col_observation": "Observation",
+      "col_decisions": "Decisions",
+      "type_flag": "{{type}} flag",
+      "dismiss": "Dismiss"
+    }
+  },
+  "stress_test": {
+    "access_restricted": "Access Restricted",
+    "access_restricted_desc": "You do not have the required permissions to execute system stress tests.",
+    "toast_started": "Stress test initiated",
+    "toast_started_desc": "Starting {{module}} with {{intensity}} intensity.",
+    "toast_complete": "Test complete",
+    "toast_complete_desc": "The stress test finished successfully.",
+    "log_error": "ERROR: {{error}}",
+    "toast_failed": "Test failed",
+    "log_system_error": "System error: {{error}}",
+    "description": "Verify platform resilience under extreme load conditions.",
+    "test_modules": "Test modules",
+    "test_modules_desc": "Select a specific area of the platform to pressure test.",
+    "kill_test": "Kill active test",
+    "live_stream_active": "Live stream active",
+    "empty": "Select a module to begin the forge process",
+    "session_complete": "Test log session complete",
+    "clear": "Clear",
+    "stability_score": "Stability score",
+    "degraded": "DEGRADED",
+    "nominal": "NOMINAL",
+    "metrics_captured": "Metrics captured",
+    "system_status": "System status",
+    "live": "LIVE",
+    "modules": {
+      "api_endpoints": "API Load",
+      "api_endpoints_desc": "Floods REST endpoints with concurrent HTTP traffic.",
+      "database_connections": "Database Stress",
+      "database_connections_desc": "Concurrent Drizzle/SQLite query pressure.",
+      "websocket_flood": "WebSocket Flood",
+      "websocket_flood_desc": "Rapid connection establishment and message bursts.",
+      "file_upload": "File I/O",
+      "file_upload_desc": "Multipart file upload processing and disk pressure.",
+      "authentication": "Auth (Bcrypt)",
+      "authentication_desc": "Heavy Bcrypt computational cycles (Login/Register).",
+      "memory_leak": "Memory Pressure",
+      "memory_leak_desc": "Heap allocation monitoring and RSS tracking.",
+      "cpu_intensive": "CPU Burn",
+      "cpu_intensive_desc": "Math-heavy blocking loops to monitor event loop lag.",
+      "concurrent_users": "User Sessions",
+      "concurrent_users_desc": "Scripted multi-step user flows (Register -> Post).",
+      "all": "Full Suite",
+      "all_desc": "Sequential execution of all available stress tests."
+    },
+    "title": "Osiris Stress Forge",
+    "intensity": {
+      "low": "low",
+      "medium": "medium",
+      "high": "high",
+      "extreme": "extreme"
+    }
+  },
+  "admin_settings": {
+    "update_success": "Setting updated successfully.",
+    "title": "Admin Settings",
+    "description": "Configure global system behavior and interface defaults.",
+    "search_placeholder": "Search settings…",
+    "empty": "No settings found in this category.",
+    "sensitive": "Sensitive",
+    "readonly": "Read-only",
+    "no_description": "No description provided for this configuration value.",
+    "last_saved": "Last saved:",
+    "reset": "reset",
+    "danger_zone_title": "System Security Danger Zone",
+    "danger_zone_desc": "Changes here affect authentication and global access controls. Verify settings before applying.",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "save_changes": "Save changes",
+    "categories": {
+      "general": "General",
+      "general_desc": "Core site identification and status.",
+      "users": "Users",
+      "users_desc": "Authentication and member management.",
+      "content": "Content",
+      "content_desc": "Posting and moderation rules.",
+      "email": "Email",
+      "email_desc": "SMTP and notification delivery.",
+      "security": "Security",
+      "security_desc": "Access control and protection.",
+      "appearance": "Appearance",
+      "appearance_desc": "Themes and visual branding."
+    }
+  },
+  "tickets": {
+    "detail": {
+      "selectStaff": "Select staff"
+    }
+  },
+  "admin_paging": {
+    "range": "{{from}}–{{to}} of {{total}}"
+  }
+}

@@ -19,7 +19,8 @@ export type NotificationType =
   | "community_kick"
   | "report_resolved"
   | "report_rejected"
-  | "system_announcement";
+  | "system_announcement"
+  | "system_warning";
 
 export interface NotificationPayload {
   userId: number;
@@ -41,6 +42,17 @@ class NotificationService {
    */
   async notify(payload: NotificationPayload): Promise<Notification | null> {
     try {
+      // 0. A shadow-banned actor must not reach anybody: their comments, likes, mentions and follows stay
+      // invisible, so they create no notification (other than for staff and other shadow-banned users,
+      // who can see that content).
+      if (payload.actorId && payload.actorId !== payload.userId) {
+        const [actor, recipient] = await Promise.all([storage.getUser(payload.actorId), storage.getUser(payload.userId)]);
+        if (actor?.isShadowBanned && !(recipient && (recipient.isShadowBanned || recipient.role === "admin" || recipient.role === "owner"))) {
+          logger.debug(`Notification from a shadow-banned actor suppressed`, { type: payload.type });
+          return null;
+        }
+      }
+
       // 1. Check user preferences
       const preferences = await storage.getNotificationPreferences(payload.userId);
       if (!this.shouldNotify(payload.type, preferences)) {

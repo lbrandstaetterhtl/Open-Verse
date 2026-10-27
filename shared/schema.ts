@@ -1,6 +1,7 @@
-import { pgTable, text, serial, integer, timestamp, boolean, unique, index, real } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { pgTable, text, serial, integer, timestamp, boolean, unique, index, uniqueIndex, real } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { z } from "zod";
+import { reqText, reqFlag, reqInt } from "./validation";
 
 // APE-FIX [SCHEMA-001]: Universal Schema (Postgres-Native with SQLite Compatibility)
 // Using native timestamp types for Postgres compatibility while keeping integer/boolean logic for SQLite.
@@ -29,7 +30,12 @@ export const users = pgTable("users", {
   freezeReason: text("freeze_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(), 
   adminGroupId: integer("admin_group_id"),
-});
+}, (table) => ({
+  // Case-insensitive uniqueness, created by server/migrations/user_case_uniqueness.ts (declared here so
+  // `drizzle-kit push` keeps them)
+  usernameLowerUnique: uniqueIndex("users_username_lower_unique").on(sql`lower(${table.username})`),
+  emailLowerUnique: uniqueIndex("users_email_lower_unique").on(sql`lower(${table.email})`),
+}));
 
 export const sessions = pgTable("session", {
   sid: text("sid").primaryKey(),
@@ -45,7 +51,11 @@ export const verificationTokens = pgTable("verification_tokens", {
   userId: integer("user_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userIdx: index("verification_tokens_user_idx").on(table.userId),
+  expiresIdx: index("verification_tokens_expires_idx").on(table.expiresAt),
+}));
 
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
@@ -58,7 +68,12 @@ export const posts = pgTable("posts", {
   mediaType: text("media_type"),
   communityId: integer("community_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  authorCreatedIdx: index("posts_author_created_idx").on(table.authorId, table.createdAt),
+  communityCreatedIdx: index("posts_community_created_idx").on(table.communityId, table.createdAt),
+  createdIdx: index("posts_created_idx").on(table.createdAt),
+}));
 
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
@@ -67,7 +82,11 @@ export const comments = pgTable("comments", {
   postId: integer("post_id").notNull(),
   karma: integer("karma").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  postCreatedIdx: index("comments_post_created_idx").on(table.postId, table.createdAt),
+  authorIdx: index("comments_author_idx").on(table.authorId),
+}));
 
 export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
@@ -82,14 +101,22 @@ export const reports = pgTable("reports", {
   resolvedBy: integer("resolved_by"),
   resolvedAt: timestamp("resolved_at"),
   resolutionTimeSeconds: integer("resolution_time_seconds"),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  reporterIdx: index("reports_reporter_idx").on(table.reporterId),
+  statusCreatedIdx: index("reports_status_created_idx").on(table.status, table.createdAt),
+}));
 
 export const followers = pgTable("followers", {
   id: serial("id").primaryKey(),
   followerId: integer("follower_id").notNull(),
   followingId: integer("following_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  followerFollowingIdx: index("followers_follower_following_idx").on(table.followerId, table.followingId),
+  followingIdx: index("followers_following_idx").on(table.followingId),
+}));
 
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
@@ -108,7 +135,10 @@ export const notifications = pgTable("notifications", {
   archived: integer("archived").notNull().default(0),
   groupKey: text("group_key"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userCreatedIdx: index("notifications_user_created_idx").on(table.userId, table.createdAt),
+}));
 
 export const adminGroups = pgTable("admin_groups", {
   id: serial("id").primaryKey(),
@@ -126,7 +156,11 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   read: integer("read").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  senderReceiverCreatedIdx: index("messages_sender_receiver_created_idx").on(table.senderId, table.receiverId, table.createdAt),
+  receiverReadIdx: index("messages_receiver_read_idx").on(table.receiverId, table.read),
+}));
 
 export const postLikes = pgTable("post_likes", {
   id: serial("id").primaryKey(),
@@ -134,7 +168,12 @@ export const postLikes = pgTable("post_likes", {
   postId: integer("post_id").notNull(),
   isLike: integer("is_like").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // One reaction per user and post (migrations/0003_unique_reactions.sql)
+  userPostUnique: uniqueIndex("post_likes_user_post_unique").on(table.userId, table.postId),
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  postIdx: index("post_likes_post_idx").on(table.postId),
+}));
 
 // Bookmarks ("Merken"); unique per user and post (migrations/0002_saved_posts.sql).
 export const savedPosts = pgTable("saved_posts", {
@@ -142,14 +181,21 @@ export const savedPosts = pgTable("saved_posts", {
   userId: integer("user_id").notNull(),
   postId: integer("post_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  userPostUnique: uniqueIndex("saved_posts_user_post_unique").on(table.userId, table.postId),
+}));
 
 export const commentLikes = pgTable("comment_likes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   commentId: integer("comment_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // One like per user and comment (migrations/0003_unique_reactions.sql)
+  userCommentUnique: uniqueIndex("comment_likes_user_comment_unique").on(table.userId, table.commentId),
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  commentIdx: index("comment_likes_comment_idx").on(table.commentId),
+}));
 
 export const communities = pgTable("communities", {
   id: serial("id").primaryKey(),
@@ -169,7 +215,12 @@ export const communityMembers = pgTable("community_members", {
   userId: integer("user_id").notNull(),
   role: text("role").notNull().default('member'),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // One membership row per user and community (migrations/0003_community_members_unique.sql)
+  communityUserUnique: uniqueIndex("community_members_community_user_unique").on(table.communityId, table.userId),
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userIdx: index("community_members_user_idx").on(table.userId),
+}));
 
 export const communityBans = pgTable("community_bans", {
   id: serial("id").primaryKey(),
@@ -218,7 +269,15 @@ export const activityLogs = pgTable("activity_logs", {
   anomalyType: text("anomaly_type"),
   anomalyScore: real("anomaly_score"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userCreatedIdx: index("activity_logs_user_created_idx").on(table.userId, table.createdAt),
+  userActionCreatedIdx: index("activity_logs_user_action_created_idx").on(table.userId, table.action, table.createdAt),
+  ipCreatedIdx: index("activity_logs_ip_created_idx").on(table.ipAddress, table.createdAt),
+  actionCreatedIdx: index("activity_logs_action_created_idx").on(table.action, table.createdAt),
+  categoryCreatedIdx: index("activity_logs_category_created_idx").on(table.category, table.createdAt),
+  createdIdx: index("activity_logs_created_idx").on(table.createdAt),
+}));
 
 export const anomalyEvents = pgTable("anomaly_events", {
   id: serial("id").primaryKey(),
@@ -237,7 +296,11 @@ export const anomalyEvents = pgTable("anomaly_events", {
   autoAction: text("auto_action"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userTypeCreatedIdx: index("anomaly_events_user_type_created_idx").on(table.userId, table.anomalyType, table.createdAt),
+  createdIdx: index("anomaly_events_created_idx").on(table.createdAt),
+}));
 
 export const bans = pgTable("bans", {
   id: serial("id").primaryKey(),
@@ -260,7 +323,12 @@ export const bans = pgTable("bans", {
   revokeReason: text("revoke_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  userIdx: index("bans_user_idx").on(table.userId),
+  ipIdx: index("bans_ip_idx").on(table.ipAddress),
+  deviceIdx: index("bans_device_idx").on(table.deviceFingerprint),
+}));
 
 export const autoPunishmentRules = pgTable("auto_punishment_rules", {
   id: serial("id").primaryKey(),
@@ -316,7 +384,11 @@ export const tickets = pgTable("tickets", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  createdByIdx: index("tickets_created_by_idx").on(table.createdBy),
+  assignedToIdx: index("tickets_assigned_to_idx").on(table.assignedTo),
+}));
 
 export const ticketComments = pgTable("ticket_comments", {
   id: serial("id").primaryKey(),
@@ -353,7 +425,10 @@ export const systemMetrics = pgTable("system_metrics", {
   periodEnd: timestamp("period_end").notNull(),
   granularity: text("granularity").default("minute"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Hot-lookup indexes (migrations/0004_hot_indexes.sql)
+  namePeriodIdx: index("system_metrics_name_period_idx").on(table.metricName, table.periodStart),
+}));
 
 export const alertRules = pgTable("alert_rules", {
   id: serial("id").primaryKey(),
@@ -520,90 +595,82 @@ export const moderatorPerformanceSnapshots = pgTable("moderator_performance_snap
     .on(table.moderatorId, table.snapshotDate, table.period),
 }));
 
-// Zod schemas
-// Public registration may only set these fields; role, karma, verification etc. stay at their defaults.
-export const insertUserSchema = z.object({
-  username: z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, '.', '_' and '-' are allowed"),
-  email: z.string().trim().email(),
-  password: z.string().min(8).max(128),
+// Zod request schemas live in ./validation (no drizzle there, the browser imports it); re-exported here for the server.
+export * from "./validation";
+
+// Admin API request schemas: server only. They stay out of ./validation because the browser bundles that module
+// in full (zod schema objects cannot be tree-shaken), and these would describe the admin API to every visitor.
+/** Admin group create; `permissions` is validated against the known permission names in the route. */
+export const insertAdminGroupSchema = z.object({
+  name: reqText(50, 1),
+  description: z.union([reqText(500), z.null()]).optional(),
+  permissions: z.union([z.string().max(2000), z.array(z.string().max(50)).max(50)]),
+  // #rgb or #rrggbb, stored as #rrggbb (the UI appends alpha digits, e.g. `${color}20`)
+  color: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "Invalid color")
+    .transform((c) => (c.length === 4 ? `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}` : c))
+    .optional(),
 });
-export const insertAdminGroupSchema = createInsertSchema(adminGroups);
-export const insertCommunitySchema = createInsertSchema(communities).extend({
-  creatorId: z.number().nullable().optional(),
-  slug: z.string().nullable().optional(),
-  isPrivate: z.boolean().optional().default(false),
+export const AUTO_PUNISHMENT_ACTIONS = ["warn", "freeze", "shadow_ban", "temp_ban", "permanent_ban", "ip_ban", "hardware_ban"] as const;
+export const insertAutoPunishmentRuleSchema = z.object({
+  name: reqText(100, 1),
+  description: z.union([reqText(1000), z.null()]).optional(),
+  isActive: reqFlag.optional(),
+  anomalyType: reqText(100, 1),
+  severityThreshold: z.enum(["low", "medium", "high", "critical"]).optional(),
+  action: z.enum(AUTO_PUNISHMENT_ACTIONS),
+  actionDurationHours: z.union([reqInt(1, 87600), z.null()]).optional(),
+  actionReason: reqText(500, 1),
+  escalateAfterCount: reqInt(1, 1000).optional(),
+  escalationWindowHours: reqInt(1, 8760).optional(),
+  cooldownHours: reqInt(0, 8760).optional(),
 });
-export const insertThemeSchema = createInsertSchema(themes).extend({
-  userId: z.number().optional(),
-});
-export const insertAutoPunishmentRuleSchema = createInsertSchema(autoPunishmentRules);
 // Helper: accept boolean OR number for SQLite-style integer-boolean columns
 const boolOrInt = z.union([z.boolean(), z.number()])
   .transform(v => (typeof v === "boolean" ? (v ? 1 : 0) : v))
   .optional();
 
-export const adminUpdateUserSchema = createInsertSchema(users).omit({ id: true, password: true }).partial().extend({
-  verified:      boolOrInt,
-  emailVerified: boolOrInt,
-  isAdmin:       boolOrInt,
-  isPrivate:     boolOrInt,
-  isFrozen:      boolOrInt,
-  isShadowBanned: boolOrInt,
+// Fields an admin may edit on a user. Who may change role/isAdmin/adminGroupId or touch owners is decided
+// in server/routes/admin.ts. id, password and createdAt are never accepted.
+const reqOptionalText = (max: number) => z.union([reqText(max), z.null()]).optional().transform((v) => (v === "" ? null : v));
+export const adminUpdateUserSchema = z.object({
+  username: z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, '.', '_' and '-' are allowed").optional(),
+  email: z.string().trim().max(254).email().optional(),
+  displayName: reqOptionalText(100), // same limit as the profile edit (updateProfileSchema)
+  bio: reqOptionalText(500),
+  location: reqOptionalText(100),
+  website: reqOptionalText(200),
+  avatarUrl: reqOptionalText(2048),
+  profilePictureUrl: reqOptionalText(2048),
+  coverUrl: reqOptionalText(2048),
+  karma: reqInt(-1_000_000, 1_000_000).optional(),
+  role: z.enum(["user", "admin", "owner"]).optional(),
+  isAdmin: reqFlag.optional(),
+  verified: reqFlag.optional(),
+  emailVerified: reqFlag.optional(),
+  isPrivate: reqFlag.optional(),
+  isFrozen: reqFlag.optional(),
+  isShadowBanned: reqFlag.optional(),
+  frozenUntil: z
+    .union([z.string().max(40), z.null()])
+    .optional()
+    .transform((v, ctx) => {
+      if (v === undefined || v === null || v === "") return v === "" ? null : v;
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime()) || d.getUTCFullYear() < 1970 || d.getUTCFullYear() > 9999) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
+        return z.NEVER;
+      }
+      return d;
+    }),
+  freezeReason: reqOptionalText(500),
+  adminGroupId: z.union([reqInt(1, 2_147_483_647), z.null()]).optional(),
 });
-export const adminUpdateReportSchema = createInsertSchema(reports).partial();
-// Self-service profile edits are limited to cosmetic fields so users cannot change their own role or karma.
-export const updateProfileSchema = createInsertSchema(users)
-  .pick({
-    username: true,
-    email: true,
-    displayName: true,
-    bio: true,
-    location: true,
-    website: true,
-    avatarUrl: true,
-    coverUrl: true,
-    profilePictureUrl: true,
-  })
-  .extend({ isPrivate: boolOrInt })
-  .partial();
-export const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(128),
-});
-export const messageSchema = createInsertSchema(messages).extend({
-  senderId: z.number().optional(),
-});
-export const loginSchema = z.object({ username: z.string().min(1), password: z.string().min(1) });
-
-// Specialized Post Schemas for the Frontend
-export const insertMediaPostSchema = createInsertSchema(posts).extend({
-  mediaFile: z.any().optional(),
-  authorId: z.number().optional(),
-  category: z.string().optional(),
-});
-
-export const insertDiscussionPostSchema = createInsertSchema(posts).extend({
-  authorId: z.number().optional(),
-  category: z.string().optional(),
-});
-
-export const insertCommentSchema = z.object({
-  content: z.string().trim().min(1).max(10000),
-  postId: z.number().int().positive(),
-});
-
-export const insertReportSchema = z.object({
-  reason: z.string().min(1),
-  postId: z.number().optional().nullable(),
-  commentId: z.number().optional().nullable(),
-  discussionId: z.number().optional().nullable(),
-});
+export const REPORT_STATUSES = ["pending", "resolved", "rejected"] as const;
+export const adminUpdateReportSchema = z.object({ status: z.enum(REPORT_STATUSES) });
 
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-export type UpdateProfile = z.infer<typeof updateProfileSchema>;
-export type LoginCredentials = z.infer<typeof loginSchema>;
 export type Post = typeof posts.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Message = typeof messages.$inferSelect;

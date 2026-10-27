@@ -1,15 +1,35 @@
 import { Router } from 'express';
-import { isAdmin } from '../middleware/auth';
+import { z } from 'zod';
+import { hasPermission } from '../middleware/auth';
 import { StressTestRunner } from '../services/stress-test-runner';
 import { Logger } from '../utils/logger';
+import { sendValidationError } from '../utils/http-errors';
 
 const router = Router();
 const testRunner = new StressTestRunner();
 
-router.post('/stress-test/:testName?', isAdmin, async (req, res) => {
+// Stress tests load the live server (API, DB, CPU, memory, sockets): own permission, bounded input and
+// only one run at a time.
+const MAX_DURATION_S = 300;
+const stressSchema = z.object({
+  intensity: z.enum(['low', 'medium', 'high', 'extreme']).optional().default('medium'),
+  duration: z.number().int().min(1).max(MAX_DURATION_S).optional().default(30),
+}).strip();
+let running = false;
+
+router.post('/stress-test/:testName?', hasPermission('stress_test'), async (req, res) => {
   const { testName } = req.params;
-  const { intensity = 'medium', duration = 30, config = {} } = req.body;
+  if (testName && testName !== 'all' && !testRunner.getAvailableTests().includes(testName)) {
+    return res.status(404).json({ error: "Stress test not found", code: "STRESS_TEST_NOT_FOUND" });
+  }
+  const parsed = stressSchema.safeParse(req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {});
+  if (!parsed.success) return sendValidationError(res, parsed.error);
+  if (running) return res.status(409).json({ error: "A stress test is already running", code: "STRESS_TEST_RUNNING" });
+
+  const { intensity, duration } = parsed.data;
+  const config = {};
   const adminId = (req.user as any)?.id;
+  running = true;
 
   // Stream results to client using Server-Sent Events (SSE)
   res.writeHead(200, {
@@ -29,20 +49,21 @@ router.post('/stress-test/:testName?', isAdmin, async (req, res) => {
 
   try {
     if (testName && testName !== 'all') {
-      await testRunner.runTest(testName, { intensity, duration, config }, logger, adminId);
+      await testRunner.runTest(testName, { intensity, duration, config } as any, logger, adminId);
     } else {
-      await testRunner.runAllTests({ intensity, duration, config }, logger, adminId);
+      await testRunner.runAllTests({ intensity, duration, config } as any, logger, adminId);
     }
     res.write(`data: ${JSON.stringify({ complete: true })}\n\n`);
   } catch (error: any) {
     logger.error("Stress Test Framework Execution Failed", error);
-    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    res.write(`data: ${JSON.stringify({ error: "Stress test failed" })}\n\n`);
   } finally {
+    running = false;
     res.end();
   }
 });
 
-router.get('/stress-test/available', isAdmin, (req, res) => {
+router.get('/stress-test/available', hasPermission('stress_test'), (req, res) => {
   res.json({ tests: testRunner.getAvailableTests() });
 });
 

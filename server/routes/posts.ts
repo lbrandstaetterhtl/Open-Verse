@@ -1,142 +1,213 @@
-import { Router } from "express";
-import path from "node:path";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import fs from "node:fs";
+import multer from "multer";
+import { z } from "zod";
 import { storage } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
-import { postUpload, checkFileSignature, sanitizeImage } from "../utils/file-upload";
+import {
+    postUpload,
+    checkFileSignature,
+    sanitizeImage,
+    ImageRejectedError,
+    UploadTypeError,
+} from "../utils/file-upload";
 import { checkContent } from "../services/moderation";
 import { logSecurityEvent } from "../utils/logger";
-import { broadcastMessage } from "../services/websocket";
 import { notificationService } from "../services/notification-service";
-import { sanitizeUser } from "../storage";
-
 import { SettingsService } from "../services/settings";
 import { activityLogger } from "../services/activity-logger";
 import { parsePagination } from "../utils/pagination";
 import { getPostExtras, DELETED_AUTHOR } from "../utils/post-extras";
+import { parseId, validateIdParams } from "../utils/params";
+import { toPublicUser } from "../utils/public-user";
+import { sendValidationError, sendInternalError } from "../utils/http-errors";
+import { canDeleteContent } from "../utils/permissions";
+import {
+    isStaff,
+    canViewCommunity,
+    canViewPost,
+    canInteractWithPost,
+    filterVisiblePosts,
+    filterShadowHidden,
+    broadcastAboutPost,
+    shadowCountScope,
+    viewerIsShadowBanned,
+} from "../utils/community-access";
 
 const router = Router();
+// Malformed ids ("abc", "1.5", "-1", > int4) answer 404 before any handler runs (CONTENT-10, AUTHZ-12).
+validateIdParams(router, ["id", "postId"]);
+
+export const POST_CATEGORIES = ["news", "entertainment", "discussion", "general"] as const;
+export const POST_TITLE_MAX = 300;
+export const POST_CONTENT_MAX = 20_000;
+const IMAGE_LIMIT = 10 * 1024 * 1024; // 10 MB for images; videos may use the full 50 MB upload limit
+const MAX_OFFSET = 1_000_000;
+
+const noNul = (s: string) => !s.includes("\u0000");
+const emptyToUndefined = (v: unknown) => (v === "" || v === null ? undefined : v);
+
+// Body of POST /api/posts (JSON or multipart). Unknown fields (authorId, karma, mediaUrl, mediaType …) are dropped.
+const createPostSchema = z.object({
+    title: z.preprocess(emptyToUndefined, z.string().trim().max(POST_TITLE_MAX).refine(noNul, "Invalid characters").optional()),
+    content: z.preprocess(emptyToUndefined, z.string().max(POST_CONTENT_MAX).refine(noNul, "Invalid characters").optional()),
+    category: z.preprocess(emptyToUndefined, z.enum(POST_CATEGORIES).optional()),
+    // Forms send the id as a string: only plain positive integers are accepted ("abc", "1.5", true → 400).
+    communityId: z.preprocess(
+        (v) => (v === "" || v === null || v === undefined ? undefined : parseId(v) ?? v),
+        z.number().int().positive().max(2_147_483_647).optional(),
+    ),
+});
+
+const notFound = (res: Response) => res.status(404).json({ error: "Post not found", code: "NOT_FOUND" });
+const bannedFromCommunity = (res: Response) =>
+    res.status(403).json({ error: "You are banned from this community.", code: "COMMUNITY_BANNED" });
+
+/** Deletes every file multer stored for this request (rejected posts must not leave orphans, ATK-UPLOAD-4). */
+function removeUploadedFiles(req: Request) {
+    const files = Array.isArray(req.files) ? req.files : [];
+    for (const f of files) fs.promises.unlink(f.path).catch(() => {});
+}
+
+// Runs multer and turns its errors into clear 4xx answers instead of the generic 500 handler (CONTENT-13/16).
+function receivePostMedia(req: Request, res: Response, next: NextFunction) {
+    postUpload.any()(req, res, (err: unknown) => {
+        if (!err) return next();
+        removeUploadedFiles(req);
+        if (err instanceof UploadTypeError) {
+            logSecurityEvent({ type: "FILE_UPLOAD_REJECTED", details: { reason: "Type not allowed (Post)", mime: err.mimetype } });
+            return res.status(400).json({ error: "Only JPG, PNG, GIF, MP4 or WebM files are allowed", code: "INVALID_TYPE" });
+        }
+        if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+            return res.status(413).json({ error: "File too large (max. 50 MB)", code: "FILE_TOO_LARGE" });
+        }
+        // Other multer limits (several files, too many fields) and broken multipart bodies (busboy errors).
+        return res.status(400).json({ error: "Invalid upload", code: "INVALID_UPLOAD" });
+    });
+}
+
+/** Rejects array/object query values (?category[$ne]=x) with 400 instead of passing them to the database. */
+function nonStringQuery(req: Request, res: Response, names: string[]): boolean {
+    for (const name of names) {
+        const v = req.query[name];
+        if (v !== undefined && typeof v !== "string") {
+            res.status(400).json({ error: "Invalid input", code: "VALIDATION_ERROR", issues: [{ path: name, code: "invalid_type" }] });
+            return true;
+        }
+    }
+    return false;
+}
 
 // Create post with optional media upload
-router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
+router.post("/", isAuthenticated, receivePostMedia, async (req, res) => {
+    let keepFiles = false;
     try {
         const user = req.user as any;
-        console.log('POST /api/posts - Processing request');
-        console.log('User:', user.username);
+        const parsed = createPostSchema.safeParse(req.body ?? {});
+        if (!parsed.success) return sendValidationError(res, parsed.error);
+        const { title, communityId } = parsed.data;
+        const content = parsed.data.content ?? "";
+        const category = parsed.data.category ?? "general";
 
-        const { title, content, category, communityId } = req.body;
+        const files = Array.isArray(req.files) ? req.files : [];
+        const uploadedFile = files[0];
 
-        if (!content && !req.files) {
-            return res.status(400).send("Content or media is required");
+        // multer always sets req.files = [] for multipart bodies, so check the length (UI-4, CONTENT-9).
+        if (!content.trim() && !uploadedFile) {
+            return res.status(400).json({ error: "Content or media is required", code: "CONTENT_REQUIRED" });
         }
 
-        // FEATURE [SEC-010]: Post Cooldown Check
-        try {
-            const cooldownSeconds = await SettingsService.get("content", "post_cooldown_seconds", 30);
-            const userPosts = await storage.getPostsByUser(user.id);
-            if (userPosts.length > 0) {
-                const lastPost = userPosts[0]; // Already sorted by desc in storage
-                const now = new Date();
-                const diffSeconds = (now.getTime() - lastPost.createdAt.getTime()) / 1000;
-                
-                if (diffSeconds < cooldownSeconds) {
-                    const remaining = Math.ceil(cooldownSeconds - diffSeconds);
-                    return res.status(429).json({
-                        error: "Please wait before posting again",
-                        code: "POST_COOLDOWN",
-                        params: { seconds: remaining },
-                        remainingSeconds: remaining
-                    });
+        // Community rules: it must exist and be visible, the author must be a member and not banned (CONTENT-3/5).
+        if (communityId) {
+            const community = await storage.getCommunity(communityId);
+            if (!community || !(await canViewCommunity(user, communityId))) {
+                return res.status(404).json({ error: "Community not found", code: "NOT_FOUND" });
+            }
+            if (!isStaff(user)) {
+                if (await storage.isUserBannedFromCommunity(communityId, user.id)) return bannedFromCommunity(res);
+                if (!(await storage.getCommunityMember(communityId, user.id))) {
+                    return res.status(403).json({ error: "Not a member", code: "NOT_A_MEMBER" });
                 }
             }
-        } catch (error) {
-            console.error("Error checking post cooldown:", error);
-            // Non-blocking: continue if check fails
-        }
-
-        // Build post object
-        const postData: any = {
-            authorId: user.id,
-            content: content || "",
-            category: category || "general",
-            communityId: communityId ? parseInt(communityId) : undefined
-        };
-
-        if (postData.communityId) {
-            const community = await storage.getCommunity(postData.communityId);
-            if (community) {
-                const allowed = community.allowedCategories.split(',').map((c: string) => c.trim());
-                if (!allowed.includes(postData.category)) {
-                    return res.status(400).json({
-                        error: "This category is not allowed in this community",
-                        code: "CATEGORY_NOT_ALLOWED",
-                        params: { category: postData.category, allowed: allowed.join(", ") },
-                    });
-                }
-            } else {
-                return res.status(404).send("Community not found");
+            const allowed = community.allowedCategories.split(",").map((c: string) => c.trim());
+            if (!allowed.includes(category)) {
+                return res.status(400).json({
+                    error: "This category is not allowed in this community",
+                    code: "CATEGORY_NOT_ALLOWED",
+                    params: { category, allowed: allowed.join(", ") },
+                });
             }
         }
 
         // Moderation Check
-        const moderationResult = await checkContent(postData.content + " " + (title || ""));
+        const moderationResult = await checkContent(content + " " + (title || ""));
         if (!moderationResult.allowed) {
             // checkContent only ever reports this one reason; keep the text fixed so the client can translate it
             return res.status(400).json({ error: "Content violates community guidelines.", code: "CONTENT_BLOCKED" });
         }
 
-        if (title) {
-            postData.title = title;
-        } else {
-            // Generate a default title from content or use a placeholder
-            postData.title = content ? (content.length > 50 ? content.slice(0, 47) + "..." : content) : "New Post";
-        }
+        const postData: any = {
+            authorId: user.id,
+            content,
+            category,
+            communityId: communityId ?? undefined,
+            // Default title from the content or a placeholder
+            title: title || (content ? (content.length > 50 ? content.slice(0, 47) + "..." : content) : "New Post"),
+        };
 
-        if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-            const uploadedFile = req.files[0];
-            console.log('Media file uploaded:', uploadedFile.filename, 'Size:', uploadedFile.size, 'Mime:', uploadedFile.mimetype);
-
-            // Custom Size Validation
-            const IMAGE_LIMIT = 10 * 1024 * 1024; // 10MB
-
-            if (uploadedFile.mimetype.startsWith('image/') && uploadedFile.size > IMAGE_LIMIT) {
-                try {
-                    fs.unlinkSync(path.join("./uploads", uploadedFile.filename));
-                } catch (e) { console.error("Error deleting large file:", e); }
-                return res.status(400).send("Image size exceeds 10MB limit.");
+        if (uploadedFile) {
+            const isImage = uploadedFile.mimetype.startsWith("image/");
+            if (isImage && uploadedFile.size > IMAGE_LIMIT) {
+                return res.status(400).json({ error: "Image size exceeds 10MB limit.", code: "FILE_TOO_LARGE" });
             }
 
             // SEC-002: Verify file signature
-            const isValidSignature = await checkFileSignature(uploadedFile.path, uploadedFile.mimetype);
-            if (!isValidSignature) {
-                try {
-                    fs.unlinkSync(path.join("./uploads", uploadedFile.filename));
-                } catch (e) { console.error("Error deleting invalid file:", e); }
+            if (!(await checkFileSignature(uploadedFile.path, uploadedFile.mimetype))) {
                 logSecurityEvent({ type: 'FILE_UPLOAD_REJECTED', details: { reason: 'Invalid Magic Bytes', originalName: uploadedFile.originalname, mime: uploadedFile.mimetype } });
-                return res.status(400).send("File content does not match extension.");
+                return res.status(400).json({ error: "File content does not match extension.", code: "INVALID_TYPE" });
             }
 
-            // SEC-003: Sanitize Image (Strip EXIF, etc.) - only for images
-            if (uploadedFile.mimetype.startsWith('image/')) {
+            // SEC-003: decode and re-encode images (strips metadata and appended payloads, rejects pixel bombs)
+            if (isImage) {
                 try {
                     await sanitizeImage(uploadedFile.path);
                 } catch (error) {
-                    console.error("Image sanitization failed:", error);
-                    try {
-                        fs.unlinkSync(uploadedFile.path);
-                    } catch (e) { console.error("Error deleting failed sanitization file:", e); }
-                    return res.status(400).send("Failed to process image metadata.");
+                    if (error instanceof ImageRejectedError && error.code === "IMAGE_TOO_LARGE") {
+                        return res.status(400).json({ error: "The image dimensions are too large", code: "IMAGE_TOO_LARGE" });
+                    }
+                    return res.status(400).json({ error: "The file is not a valid image", code: "INVALID_IMAGE" });
                 }
             }
 
             postData.mediaUrl = uploadedFile.filename;
-            postData.mediaType = req.body.mediaType || (uploadedFile.mimetype.startsWith('image/') ? 'image' : 'video');
+            // Always derived from the verified MIME type, never from the body (CONTENT-17).
+            postData.mediaType = isImage ? "image" : "video";
         }
 
-        const post = await storage.createPost(postData);
+        // FEATURE [SEC-010]: Post cooldown, checked atomically with the insert (CONTENT-11)
+        let cooldownSeconds = 30;
+        try {
+            cooldownSeconds = Number(await SettingsService.get("content", "post_cooldown_seconds", 30)) || 0;
+        } catch (error) {
+            console.error("Error reading post cooldown:", error);
+        }
+        const created = await storage.getContentStore().createPostWithCooldown(postData, cooldownSeconds);
+        if ("remainingSeconds" in created) {
+            const remaining = created.remainingSeconds;
+            return res.status(429).json({
+                error: "Please wait before posting again",
+                code: "POST_COOLDOWN",
+                params: { seconds: remaining },
+                remainingSeconds: remaining,
+            });
+        }
+        const post = created.post;
+        keepFiles = true;
 
-        // Broadcast new post
-        broadcastMessage(JSON.stringify({ type: 'new_post', postId: post.id }));
+        // Ids only; members-only for private communities
+        broadcastAboutPost(post, JSON.stringify({ type: 'new_post', postId: post.id })).catch((err) =>
+            console.error("[WS] new_post broadcast failed:", err),
+        );
 
         activityLogger.logFromRequest(req, {
             action: 'post.create',
@@ -155,108 +226,121 @@ router.post("/", isAuthenticated, postUpload.any(), async (req, res) => {
 
         res.status(201).json(post);
     } catch (error) {
-        console.error('Error creating post:', error);
-        res.status(500).send("Failed to create post");
+        sendInternalError(res, error, "POST /api/posts");
+    } finally {
+        if (!keepFiles) removeUploadedFiles(req);
     }
 });
 
 router.get("/:id", async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
+        const id = parseId(req.params.id)!;
         const post = await storage.getPost(id);
 
-        if (!post) {
-            return res.status(404).send("Post not found");
-        }
+        // Private community posts and posts of shadow-banned authors look like missing posts (CONTENT-2).
+        if (!post || !(await canViewPost(req, post))) return notFound(res);
 
-        // PERF-FIX [ROUTES-002]: Batch fetch post details to avoid multiple DB roundtrips
-        const [author, comments, reactions] = await Promise.all([
+        const currentUserId = (req.user as any)?.id;
+        const scope = shadowCountScope(req);
+        const [author, allComments, reactions] = await Promise.all([
             storage.getUser(post.authorId),
             storage.getComments(post.id),
-            storage.getPostReactions(post.id)
+            storage.getContentStore().getPostReactions(post.id, scope)
         ]);
 
-        const commentAuthorIds = [...new Set(comments.map(c => c.authorId))];
-        const commentAuthors = await storage.getUsersByIds(commentAuthorIds);
+        const comments = await filterShadowHidden(req, allComments);
+        const commentIds = comments.map(c => c.id);
+        const commentAuthors = await storage.getUsersByIds(Array.from(new Set(comments.map(c => c.authorId))));
         const authorsMap = new Map(commentAuthors.map(u => [u.id, u]));
+        const [likeCounts, likedIds] = await Promise.all([
+            storage.getContentStore().getBatchCommentLikes(commentIds, scope),
+            currentUserId ? storage.getContentStore().getUserCommentLikeIds(currentUserId, commentIds) : Promise.resolve(new Set<number>()),
+        ]);
 
-        const userReaction = req.user ? await storage.getUserPostReaction((req.user as any).id, post.id) : null;
-        const isFollowing = req.user ? await storage.isFollowing((req.user as any).id, post.authorId) : false;
-
-        const isSelfShadowBanned = (req as any).isShadowBanned === true;
-        const currentUserId = (req.user as any)?.id;
-
-        // PERF-FIX [STAB-005]: Batch fetch comment details
-        const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
-            const commentAuthor = authorsMap.get(comment.authorId);
-            
-            if (commentAuthor?.isShadowBanned && !isSelfShadowBanned && comment.authorId !== currentUserId) {
-                return null;
-            }
-
-            // TODO: Batch these likes too
-            const likesCount = await storage.getCommentLikes(comment.id);
-            const isLiked = req.user ? await storage.getUserCommentLike((req.user as any).id, comment.id) : false;
-            return {
-                ...comment,
-                author: commentAuthor
-                    ? { username: commentAuthor.username, role: commentAuthor.role || 'user', verified: commentAuthor.verified || false }
-                    : DELETED_AUTHOR,
-                likes: likesCount,
-                isLiked
-            };
-        }));
-        
-        const filteredComments = commentsWithAuthors.filter(Boolean);
+        const userReaction = currentUserId ? await storage.getUserPostReaction(currentUserId, post.id) : null;
+        const isFollowing = currentUserId ? await storage.isFollowing(currentUserId, post.authorId) : false;
 
         res.json({
             ...post,
-            author: author ? sanitizeUser(author) : DELETED_AUTHOR,
-            comments: filteredComments,
+            // Other users' accounts: public fields only, no email or moderation state (CONTENT-4)
+            author: author ? toPublicUser(author) : DELETED_AUTHOR,
+            comments: comments.map(comment => {
+                const commentAuthor = authorsMap.get(comment.authorId);
+                return {
+                    ...comment,
+                    author: commentAuthor
+                        ? { id: commentAuthor.id, username: commentAuthor.username, role: commentAuthor.role || 'user', verified: commentAuthor.verified || false }
+                        : DELETED_AUTHOR,
+                    likes: likeCounts.get(comment.id) ?? 0,
+                    isLiked: likedIds.has(comment.id),
+                };
+            }),
             likes: reactions.likes - reactions.dislikes,
             userVote: userReaction,
             isFollowing,
-            isSaved: req.user ? (await storage.getSavedPostIds((req.user as any).id, [post.id])).has(post.id) : false
+            isSaved: currentUserId ? (await storage.getSavedPostIds(currentUserId, [post.id])).has(post.id) : false
         });
     } catch (error) {
-        console.error('Error fetching post:', error);
-        res.status(500).send("Failed to fetch post");
+        sendInternalError(res, error, "GET /api/posts/:id");
     }
 });
 
 router.get("/", async (req, res) => {
     try {
-        console.log("Fetching posts with query:", req.query);
-        const category = req.query.category as string | undefined;
-        const communityId = req.query.communityId ? parseInt(req.query.communityId as string) : undefined;
-        const { limit, offset } = parsePagination(req.query);
+        if (nonStringQuery(req, res, ["category", "communityId", "limit", "offset"])) return;
+        const rawCategory = req.query.category as string | undefined;
+        const rawCommunity = req.query.communityId as string | undefined;
+
+        let communityId: number | undefined;
+        if (rawCommunity) {
+            const parsed = parseId(rawCommunity);
+            if (parsed === null) {
+                return res.status(400).json({ error: "Invalid input", code: "VALIDATION_ERROR", issues: [{ path: "communityId", code: "invalid_type" }] });
+            }
+            communityId = parsed;
+            // A private community the viewer is not in has no visible posts (CONTENT-2).
+            if (!(await canViewCommunity(req.user, communityId))) return res.json([]);
+        }
+
+        // Only known categories reach the query; a filter without any known category matches nothing.
+        let category: string | undefined;
+        if (rawCategory) {
+            const wanted = rawCategory.split(",").map((c) => c.trim()).filter((c) => (POST_CATEGORIES as readonly string[]).includes(c));
+            if (wanted.length === 0) return res.json([]);
+            category = wanted.join(",");
+        }
+
+        const pagination = parsePagination(req.query);
+        const limit = pagination.limit;
+        const offset = Math.min(pagination.offset, MAX_OFFSET);
 
         // PERF-FIX [ROUTES-005]: Filtering and Pagination moved to DB level
-        const filteredPosts = await storage.getPosts({ category, communityId, limit, offset });
-
-        console.log("Retrieved posts count:", filteredPosts.length);
+        // PHASE 4: shadow-banned authors are hidden from everyone but themselves (and other shadow-banned users)
+        const filteredPosts = await filterVisiblePosts(req, await storage.getPosts({ category, communityId, limit, offset }));
 
         // PERF-FIX [ROUTES-003]: Optimized batch lookup for feed page
-        const authorIds = [...new Set(filteredPosts.map(p => p.authorId))];
+        const authorIds = Array.from(new Set(filteredPosts.map(p => p.authorId)));
         const authors = await storage.getUsersByIds(authorIds);
         const authorsMap = new Map(authors.map(u => [u.id, u]));
 
         // PERF-FIX [OPT-002]: Batch fetch reactions (Prevents N+1)
         const postIds = filteredPosts.map(p => p.id);
-        const batchReactions = await storage.getBatchPostReactions(postIds);
-        const extras = await getPostExtras(postIds, (req.user as any)?.id);
+        const scope = shadowCountScope(req);
+        const batchReactions = await storage.getContentStore().getBatchPostReactions(postIds, scope);
+        const currentUserId = (req.user as any)?.id;
+        const extras = await getPostExtras(postIds, currentUserId, scope);
 
-        let postsWithDetails = await Promise.all(filteredPosts.map(async (post) => {
+        const postsWithDetails = await Promise.all(filteredPosts.map(async (post) => {
             const author = authorsMap.get(post.authorId);
-            const isFollowing = req.user ? await storage.isFollowing((req.user as any).id, post.authorId) : false;
+            const isFollowing = currentUserId ? await storage.isFollowing(currentUserId, post.authorId) : false;
 
             const reactions = batchReactions.get(post.id) || { likes: 0, dislikes: 0 };
-            const userReaction = req.user ? await storage.getUserPostReaction((req.user as any).id, post.id) : null;
+            const userReaction = currentUserId ? await storage.getUserPostReaction(currentUserId, post.id) : null;
 
             return {
                 ...post,
                 author: author
-                    ? { id: author.id, username: author.username, verified: author.verified || false, isShadowBanned: author.isShadowBanned || 0, isFollowing }
+                    ? { id: author.id, username: author.username, verified: author.verified || false, isFollowing }
                     : DELETED_AUTHOR,
                 reactions,
                 userReaction,
@@ -264,39 +348,24 @@ router.get("/", async (req, res) => {
             };
         }));
 
-        // PHASE 4: Shadowban Filtering
-        const isSelfShadowBanned = (req as any).isShadowBanned === true;
-        const currentUserId = (req.user as any)?.id;
-        
-        postsWithDetails = postsWithDetails.filter(p => {
-             // Let the author see their own post always
-             if (p.author.id === currentUserId) return true;
-             // If author is shadowbanned, only other shadowbanned can see or nobody
-             // Standard shadowban: nobody else sees it.
-             if (p.author.isShadowBanned) return isSelfShadowBanned; 
-             return true;
-        });
-
         res.json(postsWithDetails);
     } catch (error) {
-        console.error('Error fetching posts:', error);
-        res.status(500).send("Failed to fetch posts");
+        sendInternalError(res, error, "GET /api/posts");
     }
 });
 
 router.delete("/:id", isAuthenticated, async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
+        const id = parseId(req.params.id)!;
         const post = await storage.getPost(id);
-
-        if (!post) {
-            return res.status(404).send("Post not found");
-        }
-
-        // Check permissions: Author, Owner, or Admin
         const user = req.user as any;
-        if (post.authorId !== user.id && user.role !== 'owner' && user.role !== 'admin') {
-            return res.status(403).send("Forbidden");
+
+        if (!post || !(await canViewPost(req, post))) return notFound(res);
+
+        // Same rule as for comments: author, owner, or an admin for content not written by an owner (AUTHZ-14)
+        const author = post.authorId ? await storage.getUser(post.authorId) : undefined;
+        if (!canDeleteContent(user, post.authorId, author?.role ?? "user")) {
+            return res.status(403).json({ error: "Forbidden", code: "FORBIDDEN" });
         }
 
         await storage.deletePost(id);
@@ -315,67 +384,57 @@ router.delete("/:id", isAuthenticated, async (req, res) => {
 
         res.sendStatus(204);
     } catch (error) {
-        console.error('Error deleting post:', error);
-        res.status(500).send("Failed to delete post");
+        sendInternalError(res, error, "DELETE /api/posts/:id");
     }
 });
 
 // Bookmarks ("Merken"): POST saves, DELETE removes. Both are idempotent.
 router.post("/:id/save", isAuthenticated, async (req, res) => {
     try {
-        const postId = parseInt(req.params.id);
-        if (!Number.isInteger(postId) || !(await storage.getPost(postId))) return res.status(404).send("Post not found");
+        const postId = parseId(req.params.id)!;
+        const post = await storage.getPost(postId);
+        if (!post || !(await canViewPost(req, post))) return notFound(res);
         await storage.savePost((req.user as any).id, postId);
         res.json({ saved: true });
     } catch (error) {
-        console.error("Error saving post:", error);
-        res.status(500).send("Failed to save post");
+        sendInternalError(res, error, "POST /api/posts/:id/save");
     }
 });
 
 router.delete("/:id/save", isAuthenticated, async (req, res) => {
     try {
-        const postId = parseInt(req.params.id);
-        if (!Number.isInteger(postId)) return res.status(404).send("Post not found");
-        await storage.unsavePost((req.user as any).id, postId);
+        await storage.unsavePost((req.user as any).id, parseId(req.params.id)!);
         res.json({ saved: false });
     } catch (error) {
-        console.error("Error removing saved post:", error);
-        res.status(500).send("Failed to remove saved post");
+        sendInternalError(res, error, "DELETE /api/posts/:id/save");
     }
 });
 
 router.post("/:id/react", isAuthenticated, async (req, res) => {
     try {
-        const postId = parseInt(req.params.id);
+        const postId = parseId(req.params.id)!;
         const userId = (req.user as any).id;
-        const { isLike } = req.body;
+        const isLike = req.body?.isLike;
 
         if (typeof isLike !== 'boolean') {
-            return res.status(400).send("Invalid reaction type");
+            return res.status(400).json({ error: "Invalid reaction type", code: "VALIDATION_ERROR" });
         }
 
         const post = await storage.getPost(postId);
-        if (!post) return res.status(404).send("Post not found");
+        if (!post) return notFound(res);
+        const access = await canInteractWithPost(req, post);
+        if (access === "not_found") return notFound(res);
+        if (access === "banned") return bannedFromCommunity(res);
 
-        const currentReaction = await storage.getUserPostReaction(userId, postId);
         // Posts of deleted users keep author_id 0; they can still be liked, nobody gets karma or a notification.
-        const postAuthor = await storage.getUser(post.authorId);
+        const postAuthor = post.authorId ? await storage.getUser(post.authorId) : undefined;
 
-        // Calculate reputation change
-        let reputationChange = 0;
+        // Reaction rows and the author's karma change in one locked transaction (CONTENT-22). A shadow-banned
+        // user's reactions are invisible to others, so they do not move the author's (public) karma either.
+        const karmaTarget = viewerIsShadowBanned(req) ? null : postAuthor?.id ?? null;
+        const { action } = await storage.getContentStore().togglePostReaction(userId, postId, isLike, karmaTarget);
 
-        // Remove reputation impact of previous reaction if it exists
-        if (currentReaction !== null) {
-            reputationChange += currentReaction.isLike ? -1 : 1; // Remove previous impact
-            await storage.removePostReaction(userId, postId);
-        }
-
-        // Add new reaction if different from current
-        if (currentReaction === null || currentReaction.isLike !== isLike) {
-            reputationChange += isLike ? 1 : -1; // Add new impact
-            await storage.createPostLike(userId, postId, isLike);
-            
+        if (action !== "removed") {
             activityLogger.logFromRequest(req, {
                 action: isLike ? 'like.add' : 'like.remove',
                 category: 'social',
@@ -386,7 +445,7 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
                 severity: 'info',
                 newValue: { action: isLike ? 'like' : 'unlike' }
             }).catch(err => console.error('[Monitor] post.react failed:', err));
-            
+
             // Phase 2: Notify author if it's a LIKE and not the author themselves
             if (isLike && postAuthor && post.authorId !== userId) {
                 await notificationService.notify({
@@ -400,47 +459,41 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
             }
         }
 
-        // Update author's reputation if there's a change
-        if (reputationChange !== 0 && postAuthor) {
-            await storage.updateUserKarma(postAuthor.id, reputationChange);
-        }
-
-        const reactions = await storage.getPostReactions(postId);
+        const reactions = await storage.getContentStore().getPostReactions(postId, shadowCountScope(req));
         const userReaction = await storage.getUserPostReaction(userId, postId);
 
         res.json({ ...post, reactions, userReaction });
     } catch (error) {
-        console.error('Error updating reaction:', error);
-        res.status(500).send("Failed to update reaction");
+        sendInternalError(res, error, "POST /api/posts/:id/react");
     }
 });
 
-// Comments sub-route (e.g. /api/posts/:postId/comments)
-// Or keep separate? The existing API is /api/posts/:postId/comments and /api/comments
-// I'll keep /api/comments separate for creation/deletion, but /api/posts/:id returns comments anyway.
-// But there IS a separate endpoint: app.get("/api/posts/:postId/comments"...)
-// I'll add it here.
-
+// Comments of a post, oldest first: /api/posts/:postId/comments?limit=&offset= (default and maximum: 1000)
 router.get("/:postId/comments", async (req, res) => {
     try {
-        const comments = await storage.getComments(parseInt(req.params.postId));
-        
+        const post = await storage.getPost(parseId(req.params.postId)!);
+        if (!post || !(await canViewPost(req, post))) return notFound(res);
+
+        const pagination = parsePagination(req.query, { defaultLimit: 1000, maxLimit: 1000 });
+        const comments = await filterShadowHidden(
+            req,
+            await storage.getContentStore().getComments(post.id, { limit: pagination.limit, offset: Math.min(pagination.offset, MAX_OFFSET) }),
+        );
+
         // SECURITY-FIX [SEC-003]: Batch fetch authors to prevent N+1 queries
-        const authorIds = [...new Set(comments.map(c => c.authorId))];
+        const authorIds = Array.from(new Set(comments.map(c => c.authorId)));
         const authors = await storage.getUsersByIds(authorIds);
         const authorsMap = new Map(authors.map(u => [u.id, u]));
 
-        const commentsWithAuthors = comments.map(comment => {
+        res.json(comments.map(comment => {
             const author = authorsMap.get(comment.authorId);
             return {
                 ...comment,
-                author: author ? { username: author.username } : DELETED_AUTHOR
+                author: author ? { id: author.id, username: author.username } : DELETED_AUTHOR
             };
-        });
-        res.json(commentsWithAuthors);
+        }));
     } catch (error) {
-        console.error('Error fetching comments:', error);
-        res.status(500).send("Failed to fetch comments");
+        sendInternalError(res, error, "GET /api/posts/:postId/comments");
     }
 });
 

@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { LIMITS } from "@/lib/input-limits";
 import { useParams } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "react-i18next";
@@ -9,7 +10,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { Loader2, Info, Menu, Send } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
@@ -35,6 +36,9 @@ type User = {
   id: number;
   username: string;
 };
+
+// Messages per request of GET /api/messages/:userId (server/routes/messages.ts)
+const PAGE_SIZE = 100;
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -105,6 +109,63 @@ export default function ChatPage() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // The query holds the newest PAGE_SIZE messages; older pages are loaded on demand (?before=<oldest id>)
+  // and kept here, together with the messages shown when they were loaded, so no gap opens when new
+  // messages push older ones out of the newest page.
+  const [older, setOlder] = useState<Message[]>([]);
+  const [olderDone, setOlderDone] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const keepScroll = useRef<{ height: number; top: number } | null>(null);
+  const conversationRef = useRef(selectedUserId);
+  conversationRef.current = selectedUserId;
+
+  useEffect(() => {
+    setOlder([]);
+    setOlderDone(false);
+  }, [selectedUserId]);
+
+  const allMessages = useMemo(() => {
+    const byId = new Map<number, Message>();
+    for (const m of older) byId.set(m.id, m);
+    for (const m of messages ?? []) byId.set(m.id, m);
+    return Array.from(byId.values()).sort((a, b) => a.id - b.id);
+  }, [older, messages]);
+
+  const canLoadOlder = !olderDone && (older.length > 0 || (messages?.length ?? 0) >= PAGE_SIZE);
+
+  const loadOlder = async () => {
+    const conversation = selectedUserId;
+    if (!conversation || !allMessages.length || loadingOlder) return;
+    const el = scrollRef.current;
+    keepScroll.current = el ? { height: el.scrollHeight, top: el.scrollTop } : null;
+    setLoadingOlder(true);
+    try {
+      const res = await fetch(`/api/messages/${conversation}?before=${allMessages[0].id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const page: Message[] = await res.json();
+      if (conversationRef.current !== conversation) return; // another chat was opened meanwhile
+      if (page.length < PAGE_SIZE) setOlderDone(true);
+      setOlder((prev) => [...page, ...prev, ...(messages ?? [])]);
+    } catch {
+      keepScroll.current = null;
+      toast({ title: t("common.error"), description: t("chat.load_older_failed", "Older messages could not be loaded."), variant: "destructive" });
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+
+  // Keep the messages that were on screen in place when older ones are prepended
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const kept = keepScroll.current;
+    if (!el || !kept) return;
+    keepScroll.current = null;
+    const behavior = el.style.scrollBehavior;
+    el.style.scrollBehavior = "auto";
+    el.scrollTop = el.scrollHeight - kept.height + kept.top;
+    el.style.scrollBehavior = behavior;
+  }, [older]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ receiverId, content }: { receiverId: number; content: string }) => {
@@ -226,8 +287,17 @@ export default function ChatPage() {
                 >
                   {messagesLoading ? (
                     <div className="flex justify-center py-20"><Spinner size="lg" /></div>
-                  ) : messages?.length ? (
-                    messages.map((message) => {
+                  ) : allMessages.length ? (
+                    <>
+                    {canLoadOlder && (
+                      <div className="flex justify-center">
+                        <Button variant="outline" size="sm" onClick={loadOlder} disabled={loadingOlder}>
+                          {loadingOlder && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {t("chat.load_older", "Load older messages")}
+                        </Button>
+                      </div>
+                    )}
+                    {allMessages.map((message) => {
                       const isMe = message.senderId === user?.id;
                       return (
                         <div
@@ -257,7 +327,8 @@ export default function ChatPage() {
                           </div>
                         </div>
                       );
-                    })
+                    })}
+                    </>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                       <p className="text-sm">{t("chat.conversation_start", "Start of conversation")}</p>
@@ -271,6 +342,7 @@ export default function ChatPage() {
                     <Input
                       placeholder={t("chat.input_placeholder", "Share your thoughts...")}
                       value={messageInput}
+                      maxLength={LIMITS.chatMessage}
                       onChange={(e) => setMessageInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && messageInput.trim()) handleSendMessage();

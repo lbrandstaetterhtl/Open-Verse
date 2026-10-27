@@ -3,6 +3,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { logger, generateRequestId } from '../logger';
+import { truncateUserAgent } from '../utils/redact';
 
 // Request-ID zum Request-Objekt hinzufügen
 declare global {
@@ -45,7 +46,7 @@ export function requestLoggerMiddleware(
         userId:     (req as any).user?.id ?? null,
         ip:         req.ip ?? req.socket.remoteAddress,
         requestId:  req.requestId,
-        userAgent:  req.headers['user-agent'] as string,
+        userAgent:  truncateUserAgent(req.headers['user-agent']),
       });
     }
 

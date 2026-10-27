@@ -1,0 +1,98 @@
+[
+  {
+    "id": "ATK-RT-1",
+    "severity": "high",
+    "title": "Any logged-in user crashes the entire server with one malformed WebSocket frame",
+    "scenario": "A user registers (open registration), opens /ws, and sends a single malformed frame to take the whole server process down for every user until a human restarts it.",
+    "route": "WS /ws",
+    "evidence": "Authenticated ws client -> raw masked frame with reserved opcode 0x3 -> server log: CRITICAL 'Uncaught Exception' RangeError: Invalid WebSocket frame: invalid opcode 3 (ws/lib/receiver.js) -> uncaughtException handler calls shutdown() -> process.exit. /api/health went from 200 to connection-refused within ~400ms; server had to be restarted via run-dev.sh. Reproduced in probe-ws-crash.mjs and the test below.",
+    "test": "tests/attacks/realtime.attack.test.ts › Angriff: crash the server for everyone with one malformed WebSocket frame › the server stays up after a client sends a malformed frame",
+    "cause": "server/routes/index.ts:349-364 — wss.on('connection') registers only a 'close' handler and no 'error' handler on the per-connection WebSocket; the ws receiver re-emits a protocol error as an unhandled 'error' event (node_modules/ws/lib/websocket.js:1199). With no listener, Node turns it into an uncaughtException, and server/index.ts:282-285 handles uncaughtException by calling shutdown(), which closes the HTTP server and exits the process. The same crash path is reachable with a frame larger than the 100 MiB ws default (Max payload size exceeded).",
+    "fix": "Add ws.on('error', ...) in the connection handler (and on wss itself) to log-and-close the socket instead of throwing; do NOT exit the process on uncaughtException from a single socket. Prefer removing the shutdown()-on-uncaughtException behaviour (server/index.ts:282) in favour of logging; a bad client frame must never terminate the server.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-RT-2",
+    "severity": "low",
+    "title": "new_comment is broadcast with full content to every connected socket regardless of relationship",
+    "scenario": "A logged-in user with no relationship to a victim (not following, no shared community) keeps a /ws socket open and passively receives every comment's full content as soon as it is posted anywhere on the platform.",
+    "route": "POST /api/comments (fan-out over WS /ws)",
+    "evidence": "Stranger's socket received '{\"type\":\"new_comment\",\"data\":{...\"content\":\"HARVEST-...\"...}}' immediately after an unrelated user commented. Contrast new_post, which broadcasts only {type:'new_post',postId} (server/routes/posts.ts:139) and defers to fetch-time authz. Severity is low today because GET /api/posts/:id is itself unauthenticated (posts/comments are already public); it becomes a privacy leak the moment post-level authz (e.g. private communities) is enforced, because this WS path bypasses it.",
+    "test": "tests/attacks/realtime.attack.test.ts › Angriff: real-time harvesting of other users' content over /ws › a stranger's socket receives another user's comment content verbatim",
+    "cause": "server/routes/comments.ts:49-52 broadcasts the whole comment object via broadcastMessage(); server/services/websocket.ts:6-12 fans it out to every entry in the connections map with no author/community/visibility scoping.",
+    "fix": "Broadcast only an id (like new_post) and let clients fetch through the authorized route, or scope the fan-out to users who may see the post (author, followers, community members). Never push full user content indiscriminately to all sockets.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-RT-3",
+    "severity": "info",
+    "title": "WebSocket server sets no maxPayload; a single frame may buffer up to 100 MiB",
+    "scenario": "A logged-in user streams very large frames (up to the ws 100 MiB default) over one or many /ws sockets to amplify memory use, while HTTP bodies are capped at 1 MB.",
+    "route": "WS /ws",
+    "evidence": "new WebSocketServer({ noServer: true }) passes no maxPayload, so the ws default of 104857600 bytes applies (node_modules/ws/lib/websocket-server.js:65). HTTP JSON/urlencoded bodies are limited to 1mb (server/index.ts:48-49) — the WS path is 100x larger and has no application-level cap. An 8 MiB frame was accepted and silently discarded (no server-side message handler); a frame above 100 MiB additionally triggers the ATK-RT-1 crash path. Not filed with a load test to avoid heavy local load; code-evidence only.",
+    "test": "tests/attacks/realtime.attack.test.ts › Angriff: real-time harvesting ... (8 MiB send kept the server up; see probe-ws-behaviors.mjs)",
+    "cause": "server/routes/index.ts:297 — WebSocketServer created without a maxPayload option; defaults to 100 MiB.",
+    "fix": "Set a small maxPayload (e.g. 64 KiB) on the WebSocketServer; the server reads no client frames, so even that is generous. Combine with the ATK-RT-1 error handler so an oversized frame closes the socket instead of crashing.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-RT-4",
+    "severity": "info",
+    "title": "WebSocket Origin check is skipped entirely when the Origin header is absent",
+    "scenario": "A non-browser client (or any client that omits Origin) with a valid session cookie connects to /ws without the origin guard ever running.",
+    "route": "WS /ws",
+    "evidence": "Handshake with a valid cookie and no Origin header connected successfully; with Origin: http://evil.example.com it was refused (403). Browsers always send Origin on WS handshakes, so this is not browser-driven CSWSH, but the guard is only as strong as the client's willingness to send Origin.",
+    "test": "tests/attacks/realtime.attack.test.ts › Angriff: Cross-Site WebSocket Hijacking (CSWSH) › missing Origin header: handshake is NOT additionally rejected (documents weak guard)",
+    "cause": "server/routes/index.ts:316 — the origin validation is wrapped in `if (origin)`, so a missing Origin bypasses the matchesHost/isLocalhost checks.",
+    "fix": "Treat a missing Origin as untrusted in production (reject), or keep allowing it only because WS auth already requires a valid session — but document that decision; do not rely on Origin presence.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-RT-5",
+    "severity": "info",
+    "title": "Upgrade requests to any path other than /ws leak the socket (never destroyed)",
+    "scenario": "A client sends an Upgrade: websocket request to a path other than /ws; the socket is neither upgraded nor closed, lingering until an OS/proxy timeout.",
+    "route": "HTTP upgrade (WS)",
+    "evidence": "In the upgrade handler only `url.pathname === '/ws'` is handled; there is no else branch and no socket.destroy() for other paths, so the half-open connection is held open. A flood of such requests ties up sockets. Code-evidence only (not load-tested locally).",
+    "test": "n/a (code review)",
+    "cause": "server/routes/index.ts:333-346 — the `if (url.pathname === '/ws')` block has no else that destroys the socket for non-matching paths.",
+    "fix": "Add an else that writes 404 and calls socket.destroy() for any non-/ws upgrade target.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-RT-6",
+    "severity": "low",
+    "title": "Production dependencies have known high/critical advisories (npm audit --omit=dev)",
+    "scenario": "The running server ships dependencies with published advisories; an attacker leverages one against the runtime (WebSocket, proxy address parsing, compression, uploads, image processing).",
+    "route": "(dependencies) package-lock.json",
+    "evidence": "`npm audit --omit=dev` reports 2 critical + 17 high. Most runtime-relevant: proxy-addr (critical, GHSA-jqcg-44mw-7w3h), tar (critical, GHSA-vmf3-w455-68vh + others), ws (high, GHSA-58qx-3vcg-4xpx, GHSA-96hv-2xvq-fx4p), compression (high, GHSA-vc2v-76pw-4v95), multer (high, GHSA-wc9g-mqfw-jrwm + others), sharp (high, GHSA-rgj7-g3m4-5g8c), axios (high, multiple). Installed versions are already current (ws 8.18.0, proxy-addr 2.0.7, compression 1.8.1, multer 2.0.2, express 4.22.1, sharp 0.34.5), so some advisories are newer than these patched releases and may need an upstream fix; verify each against the installed version before acting. Full output: scratchpad/audit2/npm-audit.json.",
+    "test": "n/a (npm audit --omit=dev)",
+    "cause": "package.json / package-lock.json dependency versions vs. the advisory database.",
+    "fix": "Run `npm audit fix` where a fixed version exists; for advisories newer than the installed (already-patched) version, track upstream and pin when a fix ships. Also move build-only packages (tailwindcss, postcss, chokidar, etc.) out of dependencies into devDependencies so they are not in the production image.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-RT-7",
+    "severity": "info",
+    "title": "CSP connect-src allows WebSocket connections to any host (ws:/wss: scheme-only)",
+    "scenario": "If any XSS is present, injected script may open a WebSocket to an attacker-controlled host to exfiltrate data, because the CSP permits the ws:/wss: schemes globally rather than 'self'.",
+    "route": "(config) server/index.ts / server/routes/index.ts (helmet CSP)",
+    "evidence": "connectSrc: [\"'self'\", \"ws:\", \"wss:\"] (server/index.ts:32 and server/routes/index.ts:106) — the bare ws:/wss: schemes allow connections to any origin over those schemes. Served CSP header confirmed: connect-src 'self' ws: wss:.",
+    "test": "n/a (code review / header inspection)",
+    "cause": "Overly broad connect-src in the helmet CSP config.",
+    "fix": "Replace ws:/wss: with the specific same-origin WebSocket origin (e.g. wss://your-host) instead of the whole scheme.",
+    "sameAs": null
+  },
+  {
+    "id": "ATK-RT-8",
+    "severity": "info",
+    "title": "Stress-test endpoint takes unvalidated duration/intensity/config (admin self-DoS tool)",
+    "scenario": "An admin (or anyone who escalates to admin) starts a stress test against the live server with an arbitrarily large duration, degrading service for all users from within.",
+    "route": "POST /api/security/stress-test/:testName?",
+    "evidence": "duration/intensity/config are read straight from req.body with defaults only and no upper bound (server/routes/security.ts:11); the runner streams CPU/DB/memory/websocket load against the running process. The endpoint is correctly isAdmin-gated (confirmed: a normal user gets 401/403 in the test below), so this is a defence-in-depth note, not an unprivileged DoS.",
+    "test": "tests/attacks/realtime.attack.test.ts › Angriff: expensive/admin endpoints reachable by non-privileged users › stress-test runner is not reachable by a normal user",
+    "cause": "server/routes/security.ts:9-11 — no validation/clamping of intensity (enum), duration (max seconds) or config.",
+    "fix": "Validate testName against the known set, clamp duration to a small maximum, restrict intensity to an allow-list, and reject in production or require an explicit confirmation flag.",
+    "sameAs": null
+  }
+]

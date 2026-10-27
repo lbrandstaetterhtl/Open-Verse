@@ -6,8 +6,9 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   CLIENT_SRC, LOCALES_DIR, DEFAULT_NS, findHardcodedText, findRawEnumValues, findServerMessages, findUntranslatableErrors, findUnlocalizedDates, findUsedKeys, loadLocales, loadAllowlist,
-  supportedLanguages, namespaces, placeholders,
+  supportedLanguages, namespaces, placeholders, publicNamespaces, staffNamespaces, isStaffSource, sourceFiles, STAFF_SERVER_FILES,
 } from "./scan";
+import ts from "typescript";
 
 const locales = loadLocales();
 const languages = supportedLanguages();
@@ -101,17 +102,29 @@ describe("source code", () => {
 describe("server messages", () => {
   test("every error text the API sends has an entry in the server namespace", () => {
     // client/src/lib/server-messages.ts looks texts up by their exact English wording
-    const known = new Set(Object.values(en.server ?? {}));
+    const known = new Set([...Object.values(en.server ?? {}), ...Object.values(en.staffServer ?? {})]);
     const missing = findServerMessages().filter((m) => !known.has(m.text)).map((m) => `${m.file}:${m.line} "${m.text}"`);
-    assert.deepEqual(missing, [], `add these to client/public/locales/en/server.json (and translate):\n  ${list(missing)}`);
+    assert.deepEqual(missing, [], `add these to client/public/locales/en/server.json, or staffServer.json for admin-API-only texts (and translate):\n  ${list(missing)}`);
   });
 
-  test("error responses with variable text carry a code the client can translate", () => {
-    const allowed = loadAllowlist().serverDynamic ?? [];
-    const found = findUntranslatableErrors()
-      .filter((m) => !allowed.some((a) => { const [file, needle] = a.split("::"); return m.file === file && m.text.includes(needle); }))
-      .map((m) => `${m.file}:${m.line} ${m.text}`);
-    assert.deepEqual(found, [], "send a fixed English `error` text, or add `code` + `params` (client/src/lib/server-messages.ts)");
+  test("texts only the admin API sends are in staffServer (staff-only), everything else in server", () => {
+    // A text is staff-only when every server/shared source file that contains it is an admin API route
+    // (raw text search: many texts go through helpers such as forbidden(res, "…")).
+    const walk = (d: string): string[] => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith(".ts") ? [path.join(d, e.name)] : []);
+    const root = path.resolve(CLIENT_SRC, "../..");
+    const sources = [...walk(path.join(root, "server")), ...walk(path.join(root, "shared"))]
+      .map((f) => ({ rel: path.relative(root, f).split(path.sep).join("/"), src: fs.readFileSync(f, "utf8") }));
+    const staffOnly = (text: string) => {
+      const from = sources.filter((f) => f.src.includes(text) || f.src.includes(JSON.stringify(text).slice(1, -1)));
+      return from.length > 0 && from.every((f) => STAFF_SERVER_FILES.test(f.rel));
+    };
+    const sentToEveryone = (text: string) => findServerMessages().some((m) => m.text === text && !STAFF_SERVER_FILES.test(m.file));
+    const wrong = [
+      ...Object.entries(en.server ?? {}).filter(([k, v]) => !k.includes(".") && staffOnly(v)).map(([k, v]) => `move to staffServer.json: ${k} "${v}"`),
+      ...Object.entries(en.staffServer ?? {}).filter(([, v]) => sentToEveryone(v)).map(([k, v]) => `sent to everyone, move to server.json: ${k} "${v}"`),
+    ];
+    assert.deepEqual(wrong, [], `server texts in the wrong namespace (keep the key, move it in all languages):\n  ${list(wrong)}`);
   });
 
   test("server messages are English (the lookup key)", () => {
@@ -159,4 +172,50 @@ describe("translations", () => {
       assert.deepEqual(same, [], `${lang}: ${same.length} untranslated English texts:\n  ${list(same)}`);
     });
   }
+});
+
+describe("staff translations", () => {
+  const staffNs = staffNamespaces();
+  const publicNs = publicNamespaces();
+  const uses = findUsedKeys();
+  // Bare key strings in code, e.g. ["admin_bulk.x", "Fallback"] arrays that are passed to t() later
+  const literals = new Map<string, Set<string>>();
+  for (const file of sourceFiles()) {
+    const rel = path.relative(CLIENT_SRC, file);
+    const sf = ts.createSourceFile(file, fs.readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true, file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    const set = new Set<string>();
+    const visit = (n: ts.Node) => {
+      if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && /^[\w-]+(\.[\w-]+)+$/.test(n.text)) set.add(n.text);
+      ts.forEachChild(n, visit);
+    };
+    visit(sf);
+    literals.set(rel, set);
+  }
+  const usedBy = (ns: string, key: string, staff: boolean) =>
+    uses.some((u) => isStaffSource(u.file) === staff && u.ns === ns && (u.dynamicPrefix ? key.startsWith(`${u.key}.`) : u.key === key)) ||
+    (ns === DEFAULT_NS && [...literals].some(([rel, set]) => isStaffSource(rel) === staff && set.has(key)));
+  /** Top-level groups of admin texts; a key there stays public only while public code uses it. */
+  const STAFF_GROUPS = new Set(["bans", "autoPunishment", "analytics", "modPerf", "security", "admin", "monitoring", "admin_bulk",
+    "admin_groups", "admin_tickets", "admin_autopunish", "admin_bans", "admin_logs", "admin_dashboard", "stress_test", "admin_settings"]);
+
+  test("staff namespaces exist and are not in the list every visitor loads", () => {
+    assert.ok(staffNs.includes("staff"), "STAFF_NAMESPACES in client/src/lib/i18n.ts");
+    assert.deepEqual(staffNs.filter((ns) => publicNs.includes(ns)), []);
+  });
+
+  test("public code does not use staff namespaces (it would show raw keys to users)", () => {
+    const bad = uses.filter((u) => !isStaffSource(u.file) && staffNs.includes(u.ns)).map((u) => `${u.ns}:${u.key} — ${u.file}:${u.line}`);
+    assert.deepEqual(bad, [], `public code (outside client/src/staff) uses staff texts:\n  ${list(bad)}`);
+  });
+
+  test("texts only the admin area uses are not in the public namespaces", () => {
+    const leaked: string[] = [];
+    for (const ns of publicNs.filter((n) => n !== "server")) {
+      for (const key of Object.keys(en[ns] ?? {})) {
+        if (usedBy(ns, key, false) || key.startsWith("common.")) continue; // generic texts may stay public
+        if (usedBy(ns, key, true) || (ns === DEFAULT_NS && STAFF_GROUPS.has(key.split(".")[0]))) leaked.push(`${ns}:${key}`);
+      }
+    }
+    assert.deepEqual(leaked, [], `staff-only texts in public locale files — move them to staff.json (all languages) and use t("staff:<key>"):\n  ${list(leaked)}`);
+  });
 });

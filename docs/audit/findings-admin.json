@@ -1,0 +1,152 @@
+[
+ {
+  "id": "ADMIN-1",
+  "severity": "critical",
+  "title": "Path traversal in theme background delete: any user can delete arbitrary writable files",
+  "route": "DELETE /api/user/themes/background/:fileRef",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "server/routes/themes.ts:136-158 only checks the 'theme-bg-' prefix, then path.join('./uploads', fileRef) + unlinkSync; '%2F' is decoded in params; no owner check",
+  "fix": "Accept only ^theme-bg-[\\w-]+\\.(png|jpe?g|gif|webp)$, verify the resolved path is inside uploads, check ownership (a theme of the caller references it)"
+ },
+ {
+  "id": "ADMIN-2",
+  "severity": "critical",
+  "title": "Anyone who can see a ticket can edit/delete any ticket comment (incl. other users' and internal ones)",
+  "route": "PATCH/DELETE /api/tickets/:id/comments/:cId",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "ticket-service.ts:208-217 ignores the author; support-storage updateComment/deleteComment filter only by comment id",
+  "fix": "Require author or owner, and that the comment belongs to :id"
+ },
+ {
+  "id": "ADMIN-3",
+  "severity": "high",
+  "title": "Bulk user action trusts its input: a string user_ids is iterated per character (\"12\" banned users 1 and 2 incl. the owner), unknown actions create bans, owners/self can be banned, SQL leaks in errors",
+  "route": "POST /api/admin/bulk/users",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "admin.ts:457-470, bulk-action-service.ts:26",
+  "fix": "zod schema: int array (max 100), enum action; refuse owners and self; generic errors"
+ },
+ {
+  "id": "ADMIN-4",
+  "severity": "high",
+  "title": "Admin groups only require the admin role: any admin can create a group with all permissions and assign it to themselves; PATCH passes the body to the DB",
+  "route": "/api/admin/groups*",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "server/routes/admin-groups.ts",
+  "fix": "hasPermission('groups'); assigning owner-only; validate permissions as known names; 404 for missing groups"
+ },
+ {
+  "id": "ADMIN-5",
+  "severity": "high",
+  "title": "Device bans are far too broad: fingerprint = OS + browser family + language",
+  "route": "ban-check middleware",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "server/middleware/ban-check.ts:92-107",
+  "fix": "Use a random device id cookie issued at login instead of a header-derived fingerprint"
+ },
+ {
+  "id": "ADMIN-6",
+  "severity": "medium",
+  "title": "PATCH /api/admin/users/:id accepts any role string and lets non-owner admins edit owners and set adminGroupId",
+  "route": "PATCH /api/admin/users/:id",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "shared/schema.ts:545-552, admin.ts:159-186",
+  "fix": "Enum roles; only owners may change owners/roles to admin/owner and adminGroupId"
+ },
+ {
+  "id": "ADMIN-7",
+  "severity": "medium",
+  "title": "Ticket creation copies the whole body (e.g. assignedTo); relatedUrl accepts javascript: and is rendered as a link",
+  "route": "POST /api/tickets",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "ticket-service.ts:103-108, support-storage.ts:28, TicketDetailPage.tsx:318",
+  "fix": "Whitelist fields; only http(s) URLs"
+ },
+ {
+  "id": "ADMIN-8",
+  "severity": "medium",
+  "title": "Temporary account bans never expire (karma -9999 + login rejects karma<0)",
+  "route": "POST /api/admin/bans",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "admin.ts:535, auth.ts:184",
+  "fix": "Check active bans with expiry at login instead of karma"
+ },
+ {
+  "id": "ADMIN-9",
+  "severity": "medium",
+  "title": "Stress tests and ticket admin views only check the admin role, not stress_test / tickets permissions",
+  "route": "/api/security/stress-test*, /api/tickets*",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "security.ts:9,45; tickets.ts",
+  "fix": "hasPermission('stress_test'/'tickets')"
+ },
+ {
+  "id": "ADMIN-10",
+  "severity": "low",
+  "title": "Many admin endpoints answer 500 on bad input (report PATCH, logs adminId, monitoring page/userId, ban without type, revoke 'abc', rules/groups with bad ids, performance sortBy, analytics days/date, AI non-string topic, duplicate username)",
+  "route": "various admin routes",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "see INPUT-13/14",
+  "fix": "Validate with zod and strict ids"
+ },
+ {
+  "id": "ADMIN-11",
+  "severity": "low",
+  "title": "Revoking a non-existent ban returns 200; revoking resets karma to 0; report status accepts any string",
+  "route": "PATCH /api/admin/bans/:id/revoke, PATCH /api/admin/reports/:id",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "admin.ts",
+  "fix": "404 for missing; restore karma correctly; enum status"
+ },
+ {
+  "id": "ADMIN-12",
+  "severity": "low",
+  "title": "Rule toggle in the UI sends booleans the server rejects; frozenUntil cannot be set from JSON",
+  "route": "PATCH /api/admin/auto-punishments/rules/:id, PATCH /api/admin/users/:id",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "schema coercion",
+  "fix": "Accept booleans; coerce ISO dates"
+ },
+ {
+  "id": "ADMIN-13",
+  "severity": "low",
+  "title": "Bulk endpoints count missing ids as success; action 'hide' on posts deletes them permanently",
+  "route": "POST /api/admin/bulk/*",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "bulk-action-service.ts",
+  "fix": "Report missing ids; implement hide or remove the option"
+ },
+ {
+  "id": "ADMIN-14",
+  "severity": "low",
+  "title": "Logs: CSV Admin column always 'undefined'; target/old/new values never stored; monitoring limit uncapped; report resolution doesn't set resolvedBy/At; ticket list page ignored; stats avg resolution always 0",
+  "route": "admin logs/reports/tickets",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "admin.ts:389, activity-logger.ts:78-97",
+  "fix": "Fix field mapping"
+ },
+ {
+  "id": "ADMIN-15",
+  "severity": "info",
+  "title": "Settings stored but never enforced: registration_enabled, admin_ip_allowlist, max_login_attempts, session_timeout_minutes, require_email_verification, max_usernames_per_ip, max_upload_size_mb, default_user_karma; CSV export does not neutralise =+-@ (not exploitable today)",
+  "route": "admin settings",
+  "evidence": "code review + probes by the admin test agent",
+  "test": "to be written with the fix",
+  "cause": "server/services/settings.ts",
+  "fix": "Enforce or remove from the UI; neutralise CSV cells"
+ }
+]

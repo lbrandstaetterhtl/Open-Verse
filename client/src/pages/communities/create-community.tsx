@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import type { InsertCommunity } from "@shared/schema";
-import { insertCommunitySchema } from "@shared/schema";
+import { insertCommunitySchema } from "@shared/validation";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
+import { LIMITS, invalidUrlMessage, requiredMessage, tooLongMessage, tooShortMessage } from "@/lib/input-limits";
+import { safeExternalUrl } from "@/lib/safe-url";
+import { translateServerMessage } from "@/lib/server-messages";
 
 export default function CreateCommunityPage() {
   const { t } = useTranslation();
@@ -26,8 +30,31 @@ export default function CreateCommunityPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Same limits as the server; the name must not be blank
+  const nameField = t("server:fields.name");
+  const descriptionField = t("server:fields.description");
+  const imageField = t("server:fields.imageUrl");
+  const formSchema = insertCommunitySchema.extend({
+    name: z.string().trim()
+      .min(1, requiredMessage(nameField))
+      .min(3, tooShortMessage(nameField, 3))
+      .max(LIMITS.communityName, tooLongMessage(nameField, LIMITS.communityName))
+      // Same rule and (server-translated) text as the server schema
+      .refine((v) => new RegExp("[\\p{L}\\p{N}]", "u").test(v), translateServerMessage("The name must contain letters or digits")),
+    description: z.string()
+      .max(LIMITS.communityDescription, tooLongMessage(descriptionField, LIMITS.communityDescription))
+      .optional().nullable(),
+    // Empty, an http(s) address or an uploaded file; the error is shown below the field
+    imageUrl: z.string().trim().max(LIMITS.communityImageUrl, tooLongMessage(imageField, LIMITS.communityImageUrl))
+      .refine((v) => !v || safeExternalUrl(v) !== null || /^\/uploads\/[\w.-]+$/.test(v), invalidUrlMessage(imageField))
+      .optional().nullable(),
+    // At least one feed; an empty value would silently mean "all three" on the server
+    allowedCategories: z.string()
+      .refine((v) => v.split(",").some((c) => c.trim()), t("community.create.categories_required", "Select at least one category.")),
+  });
+
   const form = useForm<InsertCommunity>({
-    resolver: zodResolver(insertCommunitySchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -59,6 +86,13 @@ export default function CreateCommunityPage() {
       });
     },
   });
+
+  // Comma list without empty entries or duplicates (unticking all and ticking one must give "news", not ",news")
+  const toggleCategory = (category: string, checked: boolean) => {
+    const current = (form.getValues("allowedCategories") ?? "").split(",").map((c) => c.trim()).filter(Boolean);
+    const next = checked ? Array.from(new Set([...current, category])) : current.filter((c) => c !== category);
+    form.setValue("allowedCategories", next.join(","), { shouldValidate: true });
+  };
 
   if (!user) return null;
 
@@ -121,6 +155,7 @@ export default function CreateCommunityPage() {
                     id="name"
                     placeholder={t("community.create.name_placeholder")}
                     className="h-11"
+                    maxLength={LIMITS.communityName}
                     {...form.register("name")}
                   />
                   {form.formState.errors.name && (
@@ -135,6 +170,7 @@ export default function CreateCommunityPage() {
                     placeholder={t("community.create.desc_placeholder")}
                     rows={6}
                     className="leading-relaxed"
+                    maxLength={LIMITS.communityDescription}
                     {...form.register("description")}
                   />
                   {form.formState.errors.description && (
@@ -146,7 +182,10 @@ export default function CreateCommunityPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="imageUrl">{t("community.create.image_label")}</Label>
-                  <Input id="imageUrl" placeholder="https://..." className="h-11" {...form.register("imageUrl")} />
+                  <Input id="imageUrl" placeholder="https://..." className="h-11" maxLength={LIMITS.communityImageUrl} {...form.register("imageUrl")} />
+                  {form.formState.errors.imageUrl && (
+                    <p className="text-xs font-medium text-destructive">{form.formState.errors.imageUrl.message}</p>
+                  )}
                 </div>
 
                 <div className="ov-panel space-y-4 p-5">
@@ -159,20 +198,7 @@ export default function CreateCommunityPage() {
                         value="news"
                         defaultChecked
                         className="h-4 w-4 cursor-pointer accent-primary"
-                        onChange={(e) => {
-                          const current = form.getValues("allowedCategories")?.split(",") || [
-                            "news",
-                            "entertainment",
-                            "discussion",
-                          ];
-                          let newCats;
-                          if (e.target.checked) {
-                            newCats = [...current, "news"];
-                          } else {
-                            newCats = current.filter((c) => c !== "news");
-                          }
-                          form.setValue("allowedCategories", newCats.join(","));
-                        }}
+                        onChange={(e) => toggleCategory("news", e.target.checked)}
                       />
                       <Label htmlFor="cat-news" className="cursor-pointer text-muted-foreground transition-colors group-hover:text-foreground">
                         {t("feed.news")}
@@ -185,20 +211,7 @@ export default function CreateCommunityPage() {
                         value="entertainment"
                         defaultChecked
                         className="h-4 w-4 cursor-pointer accent-primary"
-                        onChange={(e) => {
-                          const current = form.getValues("allowedCategories")?.split(",") || [
-                            "news",
-                            "entertainment",
-                            "discussion",
-                          ];
-                          let newCats;
-                          if (e.target.checked) {
-                            newCats = [...current, "entertainment"];
-                          } else {
-                            newCats = current.filter((c) => c !== "entertainment");
-                          }
-                          form.setValue("allowedCategories", newCats.join(","));
-                        }}
+                        onChange={(e) => toggleCategory("entertainment", e.target.checked)}
                       />
                       <Label htmlFor="cat-entertainment" className="cursor-pointer text-muted-foreground transition-colors group-hover:text-foreground">
                         {t("feed.entertainment")}
@@ -211,20 +224,7 @@ export default function CreateCommunityPage() {
                         value="discussion"
                         defaultChecked
                         className="h-4 w-4 cursor-pointer accent-primary"
-                        onChange={(e) => {
-                          const current = form.getValues("allowedCategories")?.split(",") || [
-                            "news",
-                            "entertainment",
-                            "discussion",
-                          ];
-                          let newCats;
-                          if (e.target.checked) {
-                            newCats = [...current, "discussion"];
-                          } else {
-                            newCats = current.filter((c) => c !== "discussion");
-                          }
-                          form.setValue("allowedCategories", newCats.join(","));
-                        }}
+                        onChange={(e) => toggleCategory("discussion", e.target.checked)}
                       />
                       <Label htmlFor="cat-discussion" className="cursor-pointer text-muted-foreground transition-colors group-hover:text-foreground">
                         {t("community.page.tabs.discussion")}
@@ -232,6 +232,9 @@ export default function CreateCommunityPage() {
                     </div>
                   </div>
                   <p className="text-xs leading-relaxed text-muted-foreground">{t("community.create.feed_hint")}</p>
+                  {form.formState.errors.allowedCategories && (
+                    <p className="text-xs font-medium text-destructive">{form.formState.errors.allowedCategories.message}</p>
+                  )}
                 </div>
 
                 <div className="ov-panel space-y-2 p-5">

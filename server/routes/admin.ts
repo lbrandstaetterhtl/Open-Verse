@@ -1,29 +1,49 @@
 import { Router } from "express";
+import net from "node:net";
+import { z } from "zod";
 import { db } from "../db";
 import { users, posts, reports, comments, activityLogs, adminSettings } from "@shared/schema";
 import { adminUpdateUserSchema, adminUpdateReportSchema } from "@shared/schema";
-import { eq, desc, count, sql, and, or, inArray, like } from "drizzle-orm";
+import { eq, desc, count, sql, and, or, inArray, like, getTableColumns } from "drizzle-orm";
 import { activityLogger } from "../services/activity-logger";
 import rateLimit from "express-rate-limit";
 import { SettingsService } from "../services/settings";
-import { bulkActionService } from "../services/bulk-action-service";
+import { bulkActionService, liftUserBanEffects, activeBanCondition, startBanExpirySweep } from "../services/bulk-action-service";
 import { bans, autoPunishmentRules, autoPunishmentExecutions, insertAutoPunishmentRuleSchema } from "@shared/schema";
 import { hasPermission, isAdmin, isOwner } from "../middleware/auth";
 import { sanitizeUser } from "../storage";
 import { parsePagination } from "../utils/pagination";
+import { parseId, validateIdParams } from "../utils/params";
+import { userHasPermission } from "../utils/permissions";
+import { dbId, text, isPlainBody, queryString } from "../utils/admin-input";
+import { checkGroupAssignment } from "./admin-groups";
+import { logger } from "../logger";
+import { maskIp, toAdminLogRow } from "../utils/redact";
+import { purgeAccountData } from "../db-maintenance/account-data";
 
 import { sendValidationError, sendInternalError, isZodError } from "../utils/http-errors";
 const router = Router();
 
 // Every admin route requires an admin or owner; routes below add their specific permission on top.
 router.use(isAdmin);
+// Malformed ids ("abc", "-1", "1.5", > 2^31-1) are answered with 404 before any handler runs.
+validateIdParams(router, ["id"]);
+// Temporary bans end at their end date (marks them inactive and lifts shadow-ban flags).
+startBanExpirySweep();
+
+/** Ids of users with an active (not revoked, not expired) account ban. */
+async function bannedUserIds(): Promise<Set<number>> {
+    const rows = await db.select({ userId: bans.userId }).from(bans).where(and(eq(bans.banType, "account"), activeBanCondition()));
+    return new Set(rows.map((r: any) => r.userId).filter((id: any): id is number => typeof id === "number"));
+}
 
 router.get("/stats", hasPermission("dashboard"), async (req, res) => {
     try {
         // Use sql`` comparisons for SQLite integer booleans (true=1, false=0)
         const totalUsersResult = await db.select({ count: count() }).from(users);
         const verifiedUsersResult = await db.select({ count: count() }).from(users).where(sql`verified = 1`);
-        const bannedUsersResult = await db.select({ count: count() }).from(users).where(sql`karma < 0`);
+        // Banned = an active account ban in the bans table (karma is not a ban state).
+        const bannedCount = (await bannedUserIds()).size;
         const totalPostsResult = await db.select({ count: count() }).from(posts);
         const pendingResult = await db.select({ count: count() }).from(reports).where(sql`status = 'pending'`);
         const resolvedResult = await db.select({ count: count() }).from(reports).where(sql`status = 'resolved'`);
@@ -35,7 +55,7 @@ router.get("/stats", hasPermission("dashboard"), async (req, res) => {
             totalUsers: toNum(totalUsersResult[0].count),
             activeUsers: toNum(totalUsersResult[0].count),
             verifiedUsers: toNum(verifiedUsersResult[0].count),
-            bannedUsers: toNum(bannedUsersResult[0].count),
+            bannedUsers: bannedCount,
             deletedUsers: 0,
             totalPosts: toNum(totalPostsResult[0].count),
             totalReports: toNum(pendingResult[0].count) + toNum(resolvedResult[0].count) + toNum(rejectedResult[0].count),
@@ -50,20 +70,50 @@ router.get("/stats", hasPermission("dashboard"), async (req, res) => {
     }
 });
 
+/**
+ * Admin lists are paged: ?limit= (default and maximum 500) and ?offset=; the total number of rows matching
+ * the filters is in the X-Total-Count header. The answer stays a plain array.
+ */
+const adminPage = (req: any) => parsePagination(req.query, { defaultLimit: 500, maxLimit: 500 });
+const sendPage = (res: any, total: number, rows: unknown[]) => {
+    res.setHeader("X-Total-Count", String(total));
+    res.json(rows);
+};
+// Every users column except the password hash
+const { password: _passwordColumn, ...userColumns } = getTableColumns(users);
+
+// GET /api/admin/users?limit=&offset=&role=staff|admin|owner|user&q=<username part>
 router.get("/users", hasPermission("users"), async (req, res) => {
     try {
-        const allUsers = await db.select().from(users).orderBy(desc(users.id));
+        const { limit, offset } = adminPage(req);
+        const role = queryString(req.query.role, 20);
+        const q = queryString(req.query.q, 100);
+        if (role === false || q === false || (role && !["staff", "admin", "owner", "user"].includes(role))) return badQuery(res);
+        const conditions = [];
+        if (role === "staff") conditions.push(inArray(users.role, ["admin", "owner"]));
+        else if (role) conditions.push(eq(users.role, role));
+        if (q && q.trim()) {
+            const pattern = `%${q.trim().toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+            conditions.push(sql`lower(${users.username}) LIKE ${pattern} ESCAPE '\\'`);
+        }
+        const where = conditions.length ? and(...conditions) : undefined;
+        const [allUsers, [{ total }]] = await Promise.all([
+            db.select(userColumns).from(users).where(where).orderBy(desc(users.id)).limit(limit).offset(offset),
+            db.select({ total: count() }).from(users).where(where),
+        ]);
+        const banned = await bannedUserIds();
         // Normalize: SQLite stores timestamps as Unix seconds integers.
         // If createdAt is null or 0, provide a fallback ISO string.
-        const normalized = allUsers.map(({ password: _password, ...u }: any) => ({
+        const normalized = allUsers.map((u: any) => ({
             ...u,
+            isBanned: banned.has(u.id),
             createdAt: u.createdAt
                 ? (typeof u.createdAt === "number"
                     ? new Date(u.createdAt * 1000).toISOString()
                     : u.createdAt)
                 : new Date().toISOString(),
         }));
-        res.json(normalized);
+        sendPage(res, Number(total), normalized);
     } catch (error) {
         console.error("Failed to fetch users:", error);
         // SECURITY FIX [VULN-006]: Return generic error, don't leak internals
@@ -71,9 +121,17 @@ router.get("/users", hasPermission("users"), async (req, res) => {
     }
 });
 
+// GET /api/admin/reports?limit=&offset=&status=pending|resolved|rejected
 router.get("/reports", hasPermission("reports"), async (req, res) => {
     try {
-        const allReports = await db.select().from(reports).orderBy(desc(reports.createdAt));
+        const { limit, offset } = adminPage(req);
+        const status = queryString(req.query.status, 20);
+        if (status === false || (status && !["pending", "resolved", "rejected"].includes(status))) return badQuery(res);
+        const where = status ? eq(reports.status, status) : undefined;
+        const [allReports, [{ total }]] = await Promise.all([
+            db.select().from(reports).where(where).orderBy(desc(reports.createdAt), desc(reports.id)).limit(limit).offset(offset),
+            db.select({ total: count() }).from(reports).where(where),
+        ]);
 
         // PERF-FIX [N+1-001]: Batch fetch all users and content to prevent N+1 queries
         const reporterIds = [...new Set(allReports.map(r => r.reporterId))];
@@ -81,7 +139,7 @@ router.get("/reports", hasPermission("reports"), async (req, res) => {
         const commentIds = [...new Set(allReports.filter(r => r.commentId).map(r => r.commentId))];
 
         const [reportersData, postsData, commentsData] = await Promise.all([
-            reporterIds.length > 0 ? db.select().from(users).where(inArray(users.id, reporterIds)) : [],
+            reporterIds.length > 0 ? db.select({ id: users.id, username: users.username }).from(users).where(inArray(users.id, reporterIds)) : [],
             postIds.length > 0 ? db.select().from(posts).where(inArray(posts.id, postIds)) : [],
             commentIds.length > 0 ? db.select().from(comments).where(inArray(comments.id, commentIds)) : []
         ]);
@@ -92,7 +150,7 @@ router.get("/reports", hasPermission("reports"), async (req, res) => {
             ...commentsData.map(c => c.authorId)
         ])];
         const authorsData = authorIds.length > 0
-            ? await db.select().from(users).where(inArray(users.id, authorIds))
+            ? await db.select({ id: users.id, username: users.username }).from(users).where(inArray(users.id, authorIds))
             : [];
 
         // Create maps for O(1) lookups
@@ -120,92 +178,104 @@ router.get("/reports", hasPermission("reports"), async (req, res) => {
                 }
             }
 
+            // The reporter's address only masked (network, not device): enough to spot a report wave
+            // from one network, not to identify or track the reporter.
+            const { ipAddress, ...rest } = report;
             return {
-                ...report,
+                ...rest,
+                ipAddress: maskIp(ipAddress),
                 reporter: reporter ? { username: reporter.username } : undefined,
                 content
             };
         });
 
-        res.json(extendedReports);
+        sendPage(res, Number(total), extendedReports);
     } catch (error) {
         console.error("Failed to fetch reports:", error);
         res.status(500).send("Internal Server Error");
     }
 });
 
+const forbidden = (res: any, error: string, code: string) => res.status(403).json({ error, code });
+
 router.patch("/users/:id", hasPermission("users"), async (req, res) => {
     try {
-        const userId = parseInt(req.params.id);
-        if (isNaN(userId)) {
-            return res.status(400).send("Invalid user ID");
-        }
+        const userId = Number(req.params.id);
+        if (!isPlainBody(req.body)) return res.status(400).json({ error: "No valid fields provided for update" });
 
         const result = adminUpdateUserSchema.safeParse(req.body);
         if (!result.success) {
             return sendValidationError(res, result.error);
         }
 
-        // Prevent crash on empty update object
-        if (Object.keys(result.data).length === 0) {
-            return res.status(400).send("No valid fields provided for update");
+        const updateData: Record<string, any> = Object.fromEntries(Object.entries(result.data).filter(([, v]) => v !== undefined));
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ error: "No valid fields provided for update" });
         }
 
         const currentAdmin = req.user as any;
-        const targetId = userId;
-        const updateData = { ...result.data };
+        const callerIsOwner = currentAdmin.role === "owner";
+        const [target] = await db.select().from(users).where(eq(users.id, userId));
+        if (!target) return res.status(404).json({ error: "User not found" });
 
-        // Role/isAdmin synchronization and security checks
+        // SECURITY [OWNER-PROTECTION]: only owners may change anything on an owner account
+        // (role, karma < 0 = locked out, freeze, email …), mirroring the DELETE rule below.
+        if (target.role === "owner" && !callerIsOwner) {
+            return forbidden(res, "Only owners can change owner accounts", "OWNER_PROTECTED");
+        }
+
+        // SECURITY [ROLES]: roles are granted by owners only (an admin role already allows moderation).
         if (updateData.role !== undefined || updateData.isAdmin !== undefined) {
+            if (!callerIsOwner) {
+                if (updateData.role === "owner") return res.status(403).json({ error: "Only system owners can promote others to owner status" });
+                return forbidden(res, "Only owners can change roles", "ROLE_CHANGE_OWNER_ONLY");
+            }
             // SYNC [ADMIN-ROLE]: Ensure isAdmin and role are consistent
-            if (updateData.role === "admin" || updateData.role === "owner") {
-                updateData.isAdmin = true;
-            } else if (updateData.role === "user") {
-                updateData.isAdmin = false;
-            } else if (updateData.isAdmin === true && updateData.role === undefined) {
-                // If only isAdmin set to true, default role to admin if it was user
-                const [target] = await db.select().from(users).where(eq(users.id, targetId));
-                if (target && target.role === "user") updateData.role = "admin";
-            } else if (updateData.isAdmin === false && updateData.role === undefined) {
-                updateData.role = "user";
-            }
-
-            // SECURITY [OWNER-PROMOTION]: Only owners can promote to owner
-            if (updateData.role === "owner" && currentAdmin.role !== "owner") {
-                return res.status(403).send("Only system owners can promote others to owner status");
-            }
+            if (updateData.role === "admin" || updateData.role === "owner") updateData.isAdmin = 1;
+            else if (updateData.role === "user") updateData.isAdmin = 0;
+            else if (updateData.isAdmin === 1) updateData.role = target.role === "user" ? "admin" : target.role;
+            else if (updateData.isAdmin === 0) updateData.role = "user";
 
             // SECURITY [LAST-OWNER]: Prevent demoting the last system owner
-            const [target] = await db.select().from(users).where(eq(users.id, targetId));
-            if (target && target.role === "owner" && updateData.role !== "owner") {
+            if (target.role === "owner" && updateData.role !== "owner") {
                 const ownersResults = await db.select({ count: count() }).from(users).where(eq(users.role, "owner"));
-                if (ownersResults[0].count <= 1) {
-                    return res.status(400).send("The platform must have at least one owner");
+                if (Number(ownersResults[0].count) <= 1) {
+                    return res.status(400).json({ error: "The platform must have at least one owner" });
                 }
             }
         }
 
-        // Remove undefined fields and handle SQLite boolean mapping
-        const isSqlite = process.env.USE_SQLITE === "true";
-        const cleanUpdateData = Object.fromEntries(
-            Object.entries(updateData)
-                .filter(([_, v]) => v !== undefined)
-                .map(([k, v]) => {
-                    // DB columns are integers (0/1), so we must convert booleans
-                    if (typeof v === "boolean") {
-                        return [k, v ? 1 : 0];
-                    }
-                    return [k, v];
-                })
-        );
+        // SECURITY [GROUPS]: changing the admin group needs the groups permission and follows the same
+        // rules as POST /api/admin/groups/assign (never your own group, never more than you hold).
+        if (updateData.adminGroupId !== undefined && updateData.adminGroupId !== target.adminGroupId) {
+            if (!callerIsOwner && !(await userHasPermission(currentAdmin, "groups"))) {
+                return res.status(403).json({ error: "Forbidden", code: "PERMISSION_DENIED", permission: "groups" });
+            }
+            const denied = await checkGroupAssignment(currentAdmin, target as any, updateData.adminGroupId);
+            if (denied) return res.status(denied.status).json(denied.body);
+        } else if (updateData.adminGroupId !== undefined) {
+            delete updateData.adminGroupId; // unchanged
+        }
+
+        // Unique columns: answer 409 instead of a database error.
+        if (updateData.username !== undefined && updateData.username.toLowerCase() !== target.username.toLowerCase()) {
+            const [taken] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.username}) = lower(${updateData.username})`).limit(1);
+            if (taken && taken.id !== userId) return res.status(409).json({ error: "Username already taken" });
+        }
+        if (updateData.email !== undefined && updateData.email.toLowerCase() !== target.email.toLowerCase()) {
+            const [taken] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = lower(${updateData.email})`).limit(1);
+            if (taken && taken.id !== userId) return res.status(409).json({ error: "Email already registered" });
+        }
+
+        if (Object.keys(updateData).length === 0) return res.json(sanitizeUser(target));
 
         const [updatedUser] = await db.update(users)
-            .set(cleanUpdateData)
+            .set(updateData)
             .where(eq(users.id, userId))
             .returning();
 
         if (!updatedUser) {
-            return res.status(404).send("User not found");
+            return res.status(404).json({ error: "User not found" });
         }
 
         // FEATURE [AL-004]: Log the user update
@@ -216,29 +286,34 @@ router.patch("/users/:id", hasPermission("users"), async (req, res) => {
             targetId: String(updatedUser.id),
             targetLabel: updatedUser.username,
             description: `Admin updated user profile for ${updatedUser.username}`,
-            newValue: result.data,
+            oldValue: Object.fromEntries(Object.keys(updateData).map((k) => [k, (target as any)[k]])),
+            newValue: updateData,
             severity: "warning",
             status: "success",
         }).catch(err => console.error('[Monitor] user.settings_change failed:', err));
 
         res.json(sanitizeUser(updatedUser));
-    } catch (error) {
-        console.error("Failed to update user:", error);
-        res.status(500).send("Internal Server Error");
+    } catch (error: any) {
+        if (error?.code === "23505" || error?.cause?.code === "23505") {
+            return res.status(409).json({ error: "Username already taken" });
+        }
+        sendInternalError(res, error, "admin user update failed");
     }
 });
 
 router.delete("/users/:id", hasPermission("users"), async (req, res) => {
     try {
-        const userId = parseInt(req.params.id);
-        if (isNaN(userId)) return res.status(400).send("Invalid user ID");
+        const userId = Number(req.params.id);
 
         const [targetUser] = await db.select().from(users).where(eq(users.id, userId));
-        if (!targetUser) return res.status(404).send("User not found");
+        if (!targetUser) return res.status(404).json({ error: "User not found" });
 
         // SECURITY: Prevent deleting owners via this endpoint
         if (targetUser.role === "owner") {
-            return res.status(403).send("System owners cannot be deleted through the dashboard.");
+            return res.status(403).json({ error: "System owners cannot be deleted through the dashboard." });
+        }
+        if (targetUser.id === (req.user as any).id) {
+            return forbidden(res, "You cannot delete your own account here", "SELF_DELETE");
         }
 
         // Handle dependencies to prevent Foreign Key violations
@@ -246,11 +321,11 @@ router.delete("/users/:id", hasPermission("users"), async (req, res) => {
             // 1. Delete notifications and messages (Fix: receiver_id instead of recipient_id)
             await tx.delete(sql`notifications` as any).where(sql`user_id = ${userId}`);
             await tx.delete(sql`messages` as any).where(or(sql`sender_id = ${userId}`, sql`receiver_id = ${userId}`));
-            
+
             // 2. Delete likes and reactions
             await tx.delete(sql`post_likes` as any).where(sql`user_id = ${userId}`);
             await tx.delete(sql`comment_likes` as any).where(sql`user_id = ${userId}`);
-            
+
             // 3. Delete community memberships and requests
             await tx.delete(sql`community_members` as any).where(sql`user_id = ${userId}`);
             await tx.delete(sql`community_join_requests` as any).where(sql`user_id = ${userId}`);
@@ -258,15 +333,19 @@ router.delete("/users/:id", hasPermission("users"), async (req, res) => {
 
             // 4. Delete followers/following data
             await tx.delete(sql`followers` as any).where(or(sql`follower_id = ${userId}`, sql`following_id = ${userId}`));
-            
+
             // 5. Nullify posts and comments
             await tx.update(posts).set({ authorId: 0 as any }).where(eq(posts.authorId, userId));
             await tx.update(comments).set({ authorId: 0 as any }).where(eq(comments.authorId, userId));
-            
+
             // 6. Delete reports made by user
             await tx.delete(reports).where(eq(reports.reporterId, userId));
-            
-            // 7. Finally delete the user
+
+            // 7. Personal data in logs, anomalies, bans, tokens, sessions, saved posts, themes, ...
+            // (server/db-maintenance/account-data.ts)
+            await purgeAccountData(tx, userId);
+
+            // 8. Finally delete the user
             await tx.delete(users).where(eq(users.id, userId));
         });
 
@@ -283,11 +362,8 @@ router.delete("/users/:id", hasPermission("users"), async (req, res) => {
 
         res.json({ success: true });
     } catch (error: any) {
-        console.error("Failed to delete user:", error);
-        res.status(500).json({ 
-            error: "Failed to delete user due to database dependencies.",
-            details: error.message 
-        });
+        logger.error("security", "admin user delete failed", error);
+        if (!res.headersSent) res.status(500).json({ error: "Failed to delete user due to database dependencies." });
     }
 });
 
@@ -307,45 +383,69 @@ router.patch("/reports/:id", hasPermission("reports"), async (req, res) => {
         const result = adminUpdateReportSchema.safeParse(req.body);
         if (!result.success) return sendValidationError(res, result.error);
 
+        const reportId = Number(req.params.id);
+        const [existing] = await db.select().from(reports).where(eq(reports.id, reportId));
+        if (!existing) return res.status(404).json({ error: "Report not found" });
+
+        const status = result.data.status;
+        const now = new Date();
+        const closing = status !== "pending";
         const [updatedReport] = await db.update(reports)
-            .set({ status: result.data.status })
-            .where(eq(reports.id, parseInt(req.params.id)))
+            .set({
+                status,
+                resolvedBy: closing ? (req.user as any).id : null,
+                resolvedAt: closing ? now : null,
+                resolutionTimeSeconds: closing && existing.createdAt
+                    ? Math.max(0, Math.floor((now.getTime() - new Date(existing.createdAt).getTime()) / 1000))
+                    : null,
+            })
+            .where(eq(reports.id, reportId))
             .returning();
+        if (!updatedReport) return res.status(404).json({ error: "Report not found" });
 
         activityLogger.logFromRequest(req, {
             action: "report.resolve",
             category: "moderation",
             targetType: "Report",
             targetId: String(updatedReport.id),
-            description: `Admin updated report status to ${result.data.status}`,
-            severity: result.data.status === "rejected" ? "info" : "warning",
+            description: `Admin updated report status to ${status}`,
+            severity: status === "rejected" ? "info" : "warning",
             status: "success",
-            newValue: { status: result.data.status }
+            oldValue: { status: existing.status },
+            newValue: { status }
         }).catch(err => console.error('[Monitor] report.resolve failed:', err));
 
-        res.json(updatedReport);
+        const { ipAddress: _ip, ...withoutIp } = updatedReport as any;
+        res.json(withoutIp);
     } catch (error) {
-        console.error("Failed to update report:", error);
-        res.status(500).send("Internal Server Error");
+        sendInternalError(res, error, "admin report update failed");
     }
 });
+
+const badQuery = (res: any) => res.status(400).json({ error: "Invalid input", code: "VALIDATION_ERROR" });
 
 // FEATURE [AL-005]: Activity Log Endpoints
 router.get("/logs", hasPermission("logs"), async (req, res) => {
     try {
-        const { category, severity, status, search, adminId } = req.query;
-        const conditions = [];
+        const category = queryString(req.query.category, 100);
+        const severity = queryString(req.query.severity, 50);
+        const status = queryString(req.query.status, 50);
+        const search = queryString(req.query.search, 200);
+        const adminIdRaw = queryString(req.query.adminId, 20);
+        if ([category, severity, status, search, adminIdRaw].includes(false)) return badQuery(res);
+        const adminId = adminIdRaw === undefined ? undefined : parseId(adminIdRaw);
+        if (adminId === null) return badQuery(res);
 
-        if (category) conditions.push(eq(activityLogs.category, category as string));
-        if (severity) conditions.push(eq(activityLogs.severity, severity as any));
-        if (status) conditions.push(eq(activityLogs.status, status as any));
-        if (adminId) conditions.push(eq(activityLogs.userId, parseInt(adminId as string)));
+        const conditions = [];
+        if (category) conditions.push(eq(activityLogs.category, category));
+        if (severity) conditions.push(eq(activityLogs.severity, severity));
+        if (status) conditions.push(eq(activityLogs.status, status));
+        if (adminId) conditions.push(eq(activityLogs.userId, adminId));
         if (search) {
-            const pattern = `%${search}%`;
+            const pattern = `%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
             conditions.push(or(
                 like(activityLogs.description, pattern),
                 like(activityLogs.targetLabel, pattern),
-                like(activityLogs.userEmail, pattern),
                 like(activityLogs.userUsername, pattern),
             ));
         }
@@ -356,10 +456,10 @@ router.get("/logs", hasPermission("logs"), async (req, res) => {
             .orderBy(desc(activityLogs.createdAt))
             .limit(100);
 
-        res.json(logs);
+        // Only the displayed columns: masked IP, no user agent, no email, no session/fingerprint ids
+        res.json(logs.map(toAdminLogRow));
     } catch (error) {
-        console.error("Failed to fetch activity logs:", error);
-        res.status(500).send("Internal Server Error");
+        sendInternalError(res, error, "admin logs failed");
     }
 });
 
@@ -367,12 +467,22 @@ router.get("/logs", hasPermission("logs"), async (req, res) => {
 router.use(rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 200,
-    message: "Admin request limit reached. Please wait 15 minutes."
+    standardHeaders: false,
+    legacyHeaders: false,
+    message: { error: "Admin request limit reached. Please wait 15 minutes." }
 }));
+
+/** One CSV field (RFC 4180), with spreadsheet formulas neutralised. */
+function csvField(value: unknown): string {
+    let s = value === null || value === undefined ? "" : value instanceof Date ? value.toISOString() : String(value);
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+    return /[",\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+}
 
 router.get("/logs/export", hasPermission("logs"), async (req, res) => {
     try {
         const { limit, offset } = parsePagination(req.query, { defaultLimit: 5000, maxLimit: 5000 });
+        if (offset > 10_000_000) return badQuery(res);
 
         // SEC-FIX [SEC-010]: Prevent DoS by capping export size
         const pagedLogs = await db.select()
@@ -384,19 +494,19 @@ router.get("/logs/export", hasPermission("logs"), async (req, res) => {
         const format = req.query.format === "csv" ? "csv" : "json";
 
         if (format === "csv") {
-            const header = "ID,Timestamp,Admin,Action,Category,Description,Severity,Status\n";
-            const rows = pagedLogs.map((l: any) => 
-                `${l.id},${l.createdAt},${l.adminEmail},${l.action},${l.category},"${l.description.replaceAll('"', '""')}",${l.severity},${l.status}`
-            ).join("\n");
-            res.setHeader("Content-Type", "text/csv");
+            const header = "ID,Timestamp,Admin,Action,Category,Target,Description,Severity,Status\n";
+            const rows = pagedLogs.map((l: any) => [
+                l.id, l.createdAt, l.userUsername || (l.userId ? `#${l.userId}` : ""), l.action, l.category,
+                [l.targetType, l.targetLabel || l.targetId].filter(Boolean).join(" "), l.description, l.severity, l.status,
+            ].map(csvField).join(",")).join("\n");
+            res.setHeader("Content-Type", "text/csv; charset=utf-8");
             res.setHeader("Content-Disposition", `attachment; filename=activity_logs_${Date.now()}.csv`);
             return res.send(header + rows);
         }
 
-        res.json(pagedLogs);
+        res.json(pagedLogs.map(toAdminLogRow));
     } catch (error) {
-        console.error("Failed to export logs:", error);
-        res.status(500).send("Internal Server Error");
+        sendInternalError(res, error, "admin log export failed");
     }
 });
 
@@ -454,137 +564,273 @@ router.post("/settings/seed", hasPermission("settings"), async (req, res) => {
 });
 
 // BULK ACTIONS
-router.post("/bulk/users", hasPermission("security"), async (req, res) => {
+const idList = z.array(dbId).min(1).max(100).transform((ids) => Array.from(new Set(ids)));
+const bulkUsersSchema = z.object({
+    user_ids: idList,
+    // "ban" is what the dashboard toolbar sends; it is an account ban.
+    action: z.enum(["ban", "account", "shadow", "unban"]),
+    reason: text(500, 1).optional().default("Bulk action"),
+    duration_hours: z.union([z.number().int().min(1).max(87600), z.null()]).optional(),
+});
+const bulkReportsSchema = z.object({
+    report_ids: idList,
+    action: z.enum(["resolve", "reject", "dismiss"]),
+    reason: text(500).optional(),
+});
+const bulkPostsSchema = z.object({
+    post_ids: idList,
+    action: z.literal("delete").optional().default("delete"),
+    reason: text(500).optional(),
+});
+const performer = (req: any) => ({ id: req.user.id as number, role: req.user.role as string });
+
+// The bulk toolbar of the user list: account/shadow bans of the selected users ("users", like the list).
+router.post("/bulk/users", hasPermission("users"), async (req, res) => {
     try {
-        const result = await bulkActionService.bulkBanUsers({
-            userIds: req.body.user_ids,
-            performedBy: (req.user as any).id,
-            reason: req.body.reason,
-            banType: req.body.action as any,
-            durationHours: req.body.duration_hours,
-        });
+        const parsed = bulkUsersSchema.safeParse(req.body);
+        if (!parsed.success) return sendValidationError(res, parsed.error);
+        const { user_ids, action, reason, duration_hours } = parsed.data;
+        const result = action === "unban"
+            ? await bulkActionService.bulkUnbanUsers({ userIds: user_ids, performedBy: performer(req), reason })
+            : await bulkActionService.bulkBanUsers({
+                userIds: user_ids,
+                performedBy: performer(req),
+                reason,
+                banType: action === "shadow" ? "shadow" : "account",
+                durationHours: duration_hours,
+            });
         res.json(result);
     } catch (e: any) {
-        sendInternalError(res, e, "admin.ts request failed");
+        sendInternalError(res, e, "admin bulk users failed");
     }
 });
 
 router.post("/bulk/reports", hasPermission("reports"), async (req, res) => {
     try {
+        const parsed = bulkReportsSchema.safeParse(req.body);
+        if (!parsed.success) return sendValidationError(res, parsed.error);
         const result = await bulkActionService.bulkCloseReports({
-            reportIds: req.body.report_ids,
-            performedBy: (req.user as any).id,
-            action: req.body.action as any,
-            reason: req.body.reason,
+            reportIds: parsed.data.report_ids,
+            performedBy: performer(req),
+            action: parsed.data.action,
+            reason: parsed.data.reason,
         });
         res.json(result);
     } catch (e: any) {
-        sendInternalError(res, e, "admin.ts request failed");
+        sendInternalError(res, e, "admin bulk reports failed");
     }
 });
 
 router.post("/bulk/posts", hasPermission("reports"), async (req, res) => {
     try {
+        const parsed = bulkPostsSchema.safeParse(req.body);
+        if (!parsed.success) return sendValidationError(res, parsed.error);
         const result = await bulkActionService.bulkDeletePosts({
-            postIds: req.body.post_ids,
-            performedBy: (req.user as any).id,
-            action: req.body.action as any,
-            reason: req.body.reason,
+            postIds: parsed.data.post_ids,
+            performedBy: performer(req),
+            reason: parsed.data.reason,
         });
         res.json(result);
     } catch (e: any) {
-        sendInternalError(res, e, "admin.ts request failed");
+        sendInternalError(res, e, "admin bulk posts failed");
     }
 });
 
 // BAN MANAGEMENT
+// GET /api/admin/bans?limit=&offset=&active=1. The bans registry is the "security" screen whose purpose is
+// the ban targets, so IP/device bans keep their full address there.
 router.get("/bans", hasPermission("security"), async (req, res) => {
     try {
-        const allBans = await db.select().from(bans).orderBy(desc(bans.createdAt));
-        res.json(allBans);
+        const { limit, offset } = adminPage(req);
+        const where = req.query.active === "1" || req.query.active === "true" ? and(eq(bans.isActive, 1), activeBanCondition()) : undefined;
+        const [allBans, [{ total }]] = await Promise.all([
+            db.select().from(bans).where(where).orderBy(desc(bans.createdAt), desc(bans.id)).limit(limit).offset(offset),
+            db.select({ total: count() }).from(bans).where(where),
+        ]);
+        sendPage(res, Number(total), allBans);
     } catch (e: any) {
-        sendInternalError(res, e, "admin.ts request failed");
+        sendInternalError(res, e, "admin bans list failed");
+    }
+});
+
+const createBanSchema = z.object({
+    ban_type: z.enum(["account", "shadow", "ip", "hardware"]),
+    user_id: z.union([dbId, z.null()]).optional(),
+    ip_address: z.union([text(64).refine((s) => net.isIP(s) !== 0, { message: "Invalid IP address" }), z.null()]).optional(),
+    device_fingerprint: z.union([text(128, 1), z.null()]).optional(),
+    reason: text(500, 1),
+    severity: z.union([z.enum(["low", "medium", "high", "critical", "permanent"]), z.null()]).optional(),
+    // 0 / null / missing = permanent
+    duration_hours: z.union([z.number().int().min(0).max(87600), z.null()]).optional(),
+}).superRefine((b, ctx) => {
+    if ((b.ban_type === "account" || b.ban_type === "shadow") && !b.user_id) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["user_id"], message: "Required" });
+    }
+    if (b.ban_type === "ip" && !b.ip_address) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ip_address"], message: "Required" });
+    if (b.ban_type === "hardware" && !b.device_fingerprint) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["device_fingerprint"], message: "Required" });
     }
 });
 
 router.post("/bans", hasPermission("security"), async (req, res) => {
     try {
-        const body = req.body;
-        const now = new Date();
-        const expiresAt = body.duration_hours ? new Date(now.getTime() + body.duration_hours * 3600 * 1000) : null;
-        const newBan = await db.insert(bans).values({
-            banType: body.ban_type,
-            userId: body.user_id,
-            ipAddress: body.ip_address,
-            deviceFingerprint: body.device_fingerprint,
-            reason: body.reason,
-            severity: body.severity || "medium",
-            isPermanent: !body.duration_hours ? 1 : 0,
-            expiresAt,
-            isShadow: body.ban_type === "shadow" ? 1 : 0,
-            createdBy: (req.user as any).id,
-            createdByType: "admin",
-            createdAt: now,
-            updatedAt: now,
-        }).returning();
-        
-        if (body.user_id) {
-            if (body.ban_type === "shadow") {
-                await db.update(users).set({ isShadowBanned: 1 }).where(eq(users.id, body.user_id));
-            } else if (body.ban_type === "account") {
-                await db.update(users).set({ karma: -9999 }).where(eq(users.id, body.user_id));
-            }
-        }
-        res.json(newBan[0]);
+        const parsed = createBanSchema.safeParse(req.body);
+        if (!parsed.success) return sendValidationError(res, parsed.error);
+        await createBan(req, res, parsed.data);
     } catch (e: any) {
-        sendInternalError(res, e, "admin.ts request failed");
+        sendInternalError(res, e, "admin ban create failed");
     }
 });
+
+/** Creates a validated ban (POST /bans, POST /users/:id/ban) and answers the request. */
+async function createBan(req: any, res: any, body: z.infer<typeof createBanSchema>) {
+    const caller = req.user as any;
+
+    let target: any = null;
+    if (body.user_id) {
+        [target] = await db.select().from(users).where(eq(users.id, body.user_id));
+        if (!target) return res.status(404).json({ error: "User not found" });
+        if (target.id === caller.id) return forbidden(res, "You cannot ban yourself", "SELF_BAN");
+        if (target.role === "owner") return forbidden(res, "Owners cannot be banned", "OWNER_PROTECTED");
+    }
+
+    const now = new Date();
+    const expiresAt = body.duration_hours ? new Date(now.getTime() + body.duration_hours * 3600 * 1000) : null;
+    const [newBan] = await db.insert(bans).values({
+        banType: body.ban_type,
+        userId: body.user_id ?? null,
+        ipAddress: body.ip_address ?? null,
+        deviceFingerprint: body.device_fingerprint ?? null,
+        reason: body.reason,
+        severity: body.severity || "medium",
+        isPermanent: body.duration_hours ? 0 : 1,
+        expiresAt,
+        isShadow: body.ban_type === "shadow" ? 1 : 0,
+        createdBy: caller.id,
+        createdByType: "admin",
+        createdAt: now,
+        updatedAt: now,
+    }).returning();
+
+    // Account bans live in the bans table only (enforced by ban-check and the login); karma is untouched.
+    if (target && body.ban_type === "shadow") {
+        await db.update(users).set({ isShadowBanned: 1 }).where(eq(users.id, target.id));
+    }
+
+    activityLogger.logFromRequest(req, {
+        action: "user.ban",
+        category: "security",
+        targetType: target ? "User" : "Ban",
+        targetId: String(target ? target.id : newBan.id),
+        targetLabel: target?.username ?? body.ip_address ?? undefined,
+        description: `Admin created a ${body.ban_type} ban`,
+        newValue: { banType: body.ban_type, durationHours: body.duration_hours ?? null },
+        severity: "warning",
+    }).catch(err => console.error('[Monitor] ban create log failed:', err));
+
+    res.json(newBan);
+}
+
+const revokeSchema = z.object({ reason: z.union([text(500), z.null()]).optional() });
 
 router.patch("/bans/:id/revoke", hasPermission("security"), async (req, res) => {
     try {
+        const parsed = revokeSchema.safeParse(isPlainBody(req.body) ? req.body : {});
+        if (!parsed.success) return sendValidationError(res, parsed.error);
         const now = new Date();
-        const updated = await db.update(bans).set({
+        const [updated] = await db.update(bans).set({
             isActive: 0,
             revokedBy: (req.user as any).id,
             revokedAt: now,
-            revokeReason: req.body.reason,
+            revokeReason: parsed.data.reason ?? null,
             updatedAt: now,
-        }).where(eq(bans.id, parseInt(req.params.id))).returning();
-        
-        // Also unban user if it was an account/shadow ban
-        if (updated[0] && updated[0].userId) {
-            if (updated[0].banType === "shadow") {
-               await db.update(users).set({ isShadowBanned: 0 }).where(eq(users.id, updated[0].userId));
-            } else if (updated[0].banType === "account") {
-               // We don't restore karma fully but let's reset to 0
-               await db.update(users).set({ karma: 0 }).where(eq(users.id, updated[0].userId));
-            }
-        }
-        res.json(updated[0]);
+        }).where(eq(bans.id, Number(req.params.id))).returning();
+        if (!updated) return res.status(404).json({ error: "Ban not found", code: "BAN_NOT_FOUND" });
+
+        // A shadow ban also clears the user's shadow flag (unless another shadow ban is still active); karma is never changed.
+        await liftUserBanEffects(updated);
+        res.json(updated);
     } catch (e: any) {
-        sendInternalError(res, e, "admin.ts request failed");
+        sendInternalError(res, e, "admin ban revoke failed");
     }
 });
 
-// AUTO-PUNISHMENT
-router.get("/auto-punishments", hasPermission("security"), async (req, res) => {
+// Restricting a single account from the user list is user moderation, like freezing or shadow-banning it
+// via PATCH /users/:id, so it needs the "users" permission. The bans registry itself (all bans, IP and
+// device bans, revoking any ban) stays with "security".
+const userBanSchema = z.object({
+    reason: text(500, 1),
+    // 0 / null / missing = permanent
+    duration_hours: z.union([z.number().int().min(0).max(87600), z.null()]).optional(),
+});
+
+router.post("/users/:id/ban", hasPermission("users"), async (req, res) => {
+    try {
+        const parsed = userBanSchema.safeParse(req.body);
+        if (!parsed.success) return sendValidationError(res, parsed.error);
+        await createBan(req, res, { ban_type: "account", user_id: Number(req.params.id), ...parsed.data });
+    } catch (e: any) {
+        sendInternalError(res, e, "admin user ban failed");
+    }
+});
+
+/** Lifts the user's active account bans (shadow bans are toggled separately via PATCH /users/:id). */
+router.post("/users/:id/unban", hasPermission("users"), async (req, res) => {
+    try {
+        const parsed = revokeSchema.safeParse(isPlainBody(req.body) ? req.body : {});
+        if (!parsed.success) return sendValidationError(res, parsed.error);
+        const userId = Number(req.params.id);
+        const [target] = await db.select({ id: users.id, username: users.username }).from(users).where(eq(users.id, userId));
+        if (!target) return res.status(404).json({ error: "User not found" });
+        const now = new Date();
+        const revoked = await db.update(bans).set({
+            isActive: 0,
+            revokedBy: (req.user as any).id,
+            revokedAt: now,
+            revokeReason: parsed.data.reason ?? null,
+            updatedAt: now,
+        }).where(and(eq(bans.userId, userId), eq(bans.banType, "account"), eq(bans.isActive, 1))).returning({ id: bans.id });
+
+        activityLogger.logFromRequest(req, {
+            action: "user.unban",
+            category: "security",
+            targetType: "User",
+            targetId: String(target.id),
+            targetLabel: target.username,
+            description: `Admin lifted ${revoked.length} account ban(s)`,
+            severity: "warning",
+        }).catch(err => console.error('[Monitor] unban log failed:', err));
+
+        res.json({ success: true, revoked: revoked.length });
+    } catch (e: any) {
+        sendInternalError(res, e, "admin user unban failed");
+    }
+});
+
+// AUTO-PUNISHMENT (its own permission in the admin UI: AutoPunishmentPage / AppSidebar "auto_punishment")
+router.get("/auto-punishments", hasPermission("auto_punishment"), async (req, res) => {
     try {
         const rules = await db.select().from(autoPunishmentRules).orderBy(desc(autoPunishmentRules.id));
         const executions = await db.select().from(autoPunishmentExecutions).orderBy(desc(autoPunishmentExecutions.createdAt)).limit(50);
-        res.json({ rules, executions });
+        // Failures carry a fixed code; older rows may still hold a raw exception text, which stays in the log.
+        res.json({
+            rules,
+            executions: executions.map((e: any) => ({
+                ...e,
+                errorMessage: e.errorMessage ? (/^[A-Z_]+$/.test(e.errorMessage) ? e.errorMessage : "ACTION_FAILED") : null,
+            })),
+        });
     } catch (e: any) {
-        sendInternalError(res, e, "admin.ts request failed");
+        sendInternalError(res, e, "auto-punishment list failed");
     }
 });
 
-router.post("/auto-punishments/rules", hasPermission("security"), async (req, res) => {
+router.post("/auto-punishments/rules", hasPermission("auto_punishment"), async (req, res) => {
     try {
         const payload = insertAutoPunishmentRuleSchema.parse(req.body);
         const now = new Date();
         const newRule = await db.insert(autoPunishmentRules).values({
             ...payload,
-            createdBy: (req.user as any).id,
             createdAt: now,
             updatedAt: now
         }).returning();
@@ -595,22 +841,19 @@ router.post("/auto-punishments/rules", hasPermission("security"), async (req, re
     }
 });
 
-router.patch("/auto-punishments/rules/:id", hasPermission("security"), async (req, res) => {
+router.patch("/auto-punishments/rules/:id", hasPermission("auto_punishment"), async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
+        const id = Number(req.params.id);
+        if (!isPlainBody(req.body)) return res.status(400).json({ error: "No valid fields provided for update" });
         const payload = insertAutoPunishmentRuleSchema.partial().parse(req.body);
-        const now = new Date();
-        
-        const updateData: any = { ...payload, updatedAt: now };
-        if (typeof payload.isActive === 'boolean') {
-            updateData.isActive = payload.isActive ? 1 : 0;
-        }
+        const fields = Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined));
+        if (Object.keys(fields).length === 0) return res.status(400).json({ error: "No valid fields provided for update" });
 
         const updated = await db.update(autoPunishmentRules)
-            .set(updateData)
+            .set({ ...fields, updatedAt: new Date() })
             .where(eq(autoPunishmentRules.id, id))
             .returning();
-        
+
         if (updated.length === 0) return res.status(404).json({ error: "Rule not found" });
         res.json(updated[0]);
     } catch (e: any) {
@@ -619,17 +862,17 @@ router.patch("/auto-punishments/rules/:id", hasPermission("security"), async (re
     }
 });
 
-router.delete("/auto-punishments/rules/:id", hasPermission("security"), async (req, res) => {
+router.delete("/auto-punishments/rules/:id", hasPermission("auto_punishment"), async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
+        const id = Number(req.params.id);
         const deleted = await db.delete(autoPunishmentRules)
             .where(eq(autoPunishmentRules.id, id))
             .returning();
-            
+
         if (deleted.length === 0) return res.status(404).json({ error: "Rule not found" });
         res.json({ success: true });
     } catch (e: any) {
-        sendInternalError(res, e, "admin.ts request failed");
+        sendInternalError(res, e, "auto-punishment rule delete failed");
     }
 });
 

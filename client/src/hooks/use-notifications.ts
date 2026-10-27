@@ -84,7 +84,18 @@ export function useNotificationMutations() {
     },
   });
 
-  return { markAsRead, markAllAsRead, markAsSeen, deleteNotification };
+  // Deletes (archives) all of the caller's notifications
+  const deleteAllNotifications = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", "/api/notifications");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/counts"] });
+    },
+  });
+
+  return { markAsRead, markAllAsRead, markAsSeen, deleteNotification, deleteAllNotifications };
 }
 
 export function useNotificationPreferences() {

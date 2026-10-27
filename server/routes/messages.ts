@@ -1,11 +1,19 @@
-import { Router } from "express";
+import { Router, type Response } from "express";
 import { storage } from "../storage";
 import { isAuthenticated } from "../middleware/auth";
 import { messageSchema } from "@shared/schema";
-import { z } from "zod";
-
+import { notificationService } from "../services/notification-service";
+import { validateIdParams, parseId } from "../utils/params";
 import { sendValidationError } from "../utils/http-errors";
+import { viewerIsShadowBanned, isStaff } from "../utils/community-access";
+
 const router = Router();
+
+// Malformed conversation ids ("abc", "-5", "99999999999") answer 404 before any handler runs.
+validateIdParams(router, ["userId"]);
+
+const fail = (res: Response, status: number, error: string, code?: string) =>
+    res.status(status).json(code ? { error, code } : { error });
 
 router.post("/", isAuthenticated, async (req, res) => {
     try {
@@ -22,30 +30,36 @@ router.post("/", isAuthenticated, async (req, res) => {
         const isFollowedBy = await storage.isFollowing(receiverId, senderId);
 
         if (!isFollowing || !isFollowedBy) {
-            return res
-                .status(403)
-                .send("You can only message users who follow you and whom you follow");
+            return fail(res, 403, "You can only message users who follow you and whom you follow");
         }
 
-        const message = await storage.createMessage({
+        // A shadow-banned sender's messages are silently withheld from the receiver (unless the receiver is
+        // staff or shadow-banned too): the sender sees them as sent, the receiver gets nothing.
+        let withheld = false;
+        if (viewerIsShadowBanned(req)) {
+            const receiver = await storage.getUser(receiverId);
+            withheld = !(receiver && (isStaff(receiver) || receiver.isShadowBanned));
+        }
+
+        const message = await storage.getMessageStore().createMessage({
             senderId,
             receiverId,
             content,
-        });
+        }, { withheld });
 
-        await storage.createNotification({
+        // Goes through the notification service: names the sender, respects preferences, pushes via WebSocket.
+        if (!withheld) await notificationService.notify({
             userId: receiverId,
+            actorId: senderId,
             type: "new_message",
-            fromUserId: senderId,
+            preview: content.slice(0, 100),
+            actionUrl: `/chat/${senderId}`,
         });
 
         res.status(201).json(message);
     } catch (error) {
-        if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: "Invalid message data", details: (error as any).errors });
-        }
         console.error("Error sending message:", error);
-        res.status(500).send("Failed to send message");
+        fail(res, 500, "Failed to send message");
     }
 });
 
@@ -55,21 +69,25 @@ router.get("/unread/count", isAuthenticated, async (req, res) => {
         res.json({ count });
     } catch (error) {
         console.error("Error getting unread message count:", error);
-        res.status(500).send("Failed to get unread message count");
+        fail(res, 500, "Failed to get unread message count");
     }
 });
 
+/**
+ * The newest messages of the conversation with :userId (oldest first). ?before=<messageId> pages back.
+ * Opening a conversation marks the messages received in it as read.
+ */
 router.get("/:userId", isAuthenticated, async (req, res) => {
     try {
-        const otherUserId = parseInt(req.params.userId);
-        if (isNaN(otherUserId)) {
-            return res.status(400).send("Invalid user ID");
-        }
-        const messages = await storage.getMessages((req.user as any).id, otherUserId);
+        const me = (req.user as any).id;
+        const otherUserId = Number(req.params.userId);
+        const beforeId = typeof req.query.before === "string" ? parseId(req.query.before) ?? undefined : undefined;
+        const messages = await storage.getMessageStore().getConversation(me, otherUserId, { limit: 100, beforeId });
+        await storage.getMessageStore().markConversationAsRead(me, otherUserId);
         res.json(messages);
     } catch (error) {
         console.error("Error getting messages:", error);
-        res.status(500).send("Failed to get messages");
+        fail(res, 500, "Failed to get messages");
     }
 });
 

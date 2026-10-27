@@ -159,14 +159,101 @@ export const galaxyGradients = [
   { name: "Solar Flare", value: "linear-gradient(135deg, hsl(15 70% 12%), hsl(340 60% 18%), hsl(280 50% 14%))" },
 ];
 
-// Sanitize a URL string — reject dangerous schemes
-function isSafeUrl(url: string): boolean {
-  if (!url) return false;
-  const trimmed = url.trim().toLowerCase();
-  if (trimmed.startsWith("javascript:")) return false;
-  if (trimmed.startsWith("data:") && !trimmed.startsWith("data:image/")) return false;
-  if (trimmed.startsWith("vbscript:")) return false;
-  return true;
+// --- CSS value validation -------------------------------------------------------------------------
+// Theme values come from localStorage, imported files and the server, and end up in inline styles and CSS
+// variables. Only plain values are accepted, so a theme can never make CSS load a resource (url(), image-set(),
+// …) or break out of its declaration.
+
+const GRADIENT_FUNCTION = /^(repeating-)?(linear|radial|conic)-gradient$/;
+const COLOR_FUNCTIONS = new Set(["hsl", "hsla", "rgb", "rgba", "hwb", "lab", "lch", "oklab", "oklch", "calc"]);
+
+/** A CSS gradient built only from gradient and color functions: no url(), no quotes, no ";" or escapes. */
+export function isSafeGradient(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const v = value.trim();
+  if (!v || v.length > 1000) return false;
+  if (!/^[a-z0-9#%.,\s()/+-]+$/i.test(v)) return false;
+  if (!/^(repeating-)?(linear|radial|conic)-gradient\(/i.test(v)) return false;
+  for (const m of Array.from(v.matchAll(/([a-z][a-z0-9-]*)\s*\(/gi))) {
+    const name = m[1].toLowerCase();
+    if (!GRADIENT_FUNCTION.test(name) && !COLOR_FUNCTIONS.has(name)) return false;
+  }
+  let depth = 0;
+  for (const ch of v) {
+    if (ch === "(") depth++;
+    else if (ch === ")" && --depth < 0) return false;
+  }
+  return depth === 0;
+}
+
+/** A color value as stored in themes ("262 70% 37%", "#aabbcc"): no functions, no quotes, no ";". */
+export function isSafeColorValue(value: unknown): value is string {
+  return typeof value === "string" && /^[a-z0-9#%.\s/,-]{1,64}$/i.test(value.trim());
+}
+
+/**
+ * The URL of a background image of type "url", or null: only http(s) URLs or same-origin paths ("/…").
+ * The result is the normalized href (quotes, spaces and line breaks percent-encoded), safe inside url("…").
+ */
+export function safeBackgroundImageUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const v = value.trim();
+  if (!v || v.length > 2048) return null;
+  const absolute = /^https?:\/\//i.test(v);
+  const samePath = v.startsWith("/") && !v.startsWith("//") && !v.startsWith("/\\");
+  if (!absolute && !samePath) return null;
+  try {
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+    const url = new URL(v, origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (samePath && url.origin !== origin) return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+/** File name of an uploaded background (served from /uploads/) or a guest IndexedDB key. */
+function isSafeImageRef(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(value) && !value.includes("..");
+}
+
+/** The background image if it is safe to render, otherwise undefined. */
+export function sanitizeBackgroundImage(image: unknown): BackgroundImage | undefined {
+  if (!image || typeof image !== "object") return undefined;
+  const { type, value } = image as Partial<BackgroundImage>;
+  if (type === "url") {
+    const href = safeBackgroundImageUrl(value);
+    return href ? { type, value: href } : undefined;
+  }
+  if ((type === "fileRef" || type === "dataRef") && isSafeImageRef(value)) return { type, value };
+  return undefined;
+}
+
+const BACKGROUND_MODES: BackgroundMode[] = ["solid", "gradient", "image"];
+
+/**
+ * A background config whose values are safe to put into styles: an unsafe gradient falls back to the default
+ * gradient, an unsafe image is dropped, the tint must be a plain color and the numbers are clamped.
+ */
+export function sanitizeBackground(background: BackgroundConfig, fallback: BackgroundConfig = defaultBackground): BackgroundConfig {
+  const overlay: Partial<BackgroundOverlay> = background.overlay && typeof background.overlay === "object" ? background.overlay : {};
+  const result: BackgroundConfig = {
+    ...background,
+    mode: BACKGROUND_MODES.includes(background.mode) ? background.mode : fallback.mode,
+    gradient: background.gradient === undefined || isSafeGradient(background.gradient) ? background.gradient : defaultBackground.gradient,
+    image: sanitizeBackgroundImage(background.image),
+    overlay: {
+      ...overlay,
+      opacity: clamp(finiteOr(overlay.opacity, 0), 0, 1),
+      blur: clamp(finiteOr(overlay.blur, 0), 0, 24),
+      tint: isSafeColorValue(overlay.tint) ? overlay.tint : fallback.overlay.tint,
+    },
+  };
+  if (overlay.brightness !== undefined) result.overlay.brightness = clamp(finiteOr(overlay.brightness, 1), 0, 2);
+  if (overlay.contrast !== undefined) result.overlay.contrast = clamp(finiteOr(overlay.contrast, 1), 0, 2);
+  if (result.image === undefined) delete result.image;
+  return result;
 }
 
 // Clamp a number within a range
@@ -247,9 +334,9 @@ function isLegacyDefaultPalette(theme: CustomTheme): boolean {
 }
 
 function normalizeBackground(background: BackgroundConfig | undefined, legacyPalette: boolean): BackgroundConfig {
-  if (!background) return { ...defaultBackground, overlay: { ...defaultBackground.overlay } };
+  if (!background || typeof background !== "object") return { ...defaultBackground, overlay: { ...defaultBackground.overlay } };
   const gradient = legacyPalette && background.gradient === LEGACY_DEFAULT_GRADIENT ? defaultBackground.gradient : background.gradient;
-  return {
+  return sanitizeBackground({
     ...defaultBackground,
     ...background,
     gradient,
@@ -259,7 +346,18 @@ function normalizeBackground(background: BackgroundConfig | undefined, legacyPal
       opacity: clamp(finiteOr(background.overlay?.opacity, 0), 0, 1),
       blur: clamp(finiteOr(background.overlay?.blur, 0), 0, 24),
     },
-  };
+  });
+}
+
+/** Only the known palette keys, each a plain color value; anything else falls back to the given palette. */
+function normalizeColors(colors: unknown, fallback: ThemeColors): ThemeColors {
+  const given = colors && typeof colors === "object" ? (colors as Record<string, unknown>) : {};
+  const out = {} as Record<string, string>;
+  for (const key of Object.keys(fallback) as (keyof ThemeColors)[]) {
+    const value = given[key];
+    out[key] = isSafeColorValue(value) ? value.trim() : (fallback[key] as string);
+  }
+  return out as unknown as ThemeColors;
 }
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
@@ -283,15 +381,15 @@ export function normalizeParticles(particles?: Partial<ParticleConfig>): Require
 export function migrateTheme(theme: CustomTheme): CustomTheme {
   const legacyPalette = (theme.version ?? 0) < THEME_VERSION && isLegacyDefaultPalette(theme);
   const legacyFont = !theme.fonts && theme.font && !["Outfit", "Inter"].includes(theme.font) ? theme.font : undefined;
-  const light = legacyPalette || !theme.light ? defaultTheme.light : theme.light;
-  const dark = legacyPalette || !theme.dark ? defaultTheme.dark : theme.dark;
+  const light = legacyPalette || !theme.light ? defaultTheme.light : normalizeColors(theme.light, defaultTheme.light);
+  const dark = legacyPalette || !theme.dark ? defaultTheme.dark : normalizeColors(theme.dark, defaultTheme.dark);
   const fonts = normalizeFonts(theme.fonts, legacyFont);
 
   return {
     ...theme,
     version: THEME_VERSION,
-    light: { ...light, star: light.star ?? defaultTheme.light.star },
-    dark: { ...dark, star: dark.star ?? defaultTheme.dark.star },
+    light: { ...light },
+    dark: { ...dark },
     font: fonts.body,
     background: normalizeBackground(theme.background, legacyPalette),
     particles: normalizeParticles(theme.particles),
@@ -557,9 +655,13 @@ const FONT_WEIGHTS = "400;500;600;700";
 
 // One stylesheet per family. Families that lack one of the weights make Google reject the whole request,
 // so a failed load retries with the family's default weight only.
+// The default fonts are self-hosted (client/src/fonts/fonts.css): no request to Google for them. Only fonts
+// a user picks in the theme builder are loaded from Google Fonts, on demand.
+const SELF_HOSTED_FONTS = new Set([defaultFonts.display, defaultFonts.body, defaultFonts.data]);
+
 function loadFontFamily(family: string): void {
   const name = safeFontName(family, "");
-  if (!name) return;
+  if (!name || SELF_HOSTED_FONTS.has(name)) return;
   const existing = document.querySelector(`link[data-ov-font="${name}"]`);
   if (existing) return;
   const link = document.createElement("link");
@@ -628,13 +730,17 @@ export function applyDesign(design: DesignSettings): void {
 export function applyTheme(colors: ThemeColors, isDark: boolean, font?: string, background?: BackgroundConfig, design?: DesignSettings): void {
   const root = document.documentElement;
 
-  Object.entries(colors).forEach(([key, value]) => {
+  // Only the known palette keys, and only plain color values (a stored theme may come from anywhere)
+  const fallbackColors = isDark ? defaultTheme.dark : defaultTheme.light;
+  (Object.keys(fallbackColors) as (keyof ThemeColors)[]).forEach((key) => {
+    const value = colors?.[key];
     const cssVarName = `--${key.replaceAll(/([A-Z])/g, "-$1").toLowerCase()}`;
-    root.style.setProperty(cssVarName, value);
+    root.style.setProperty(cssVarName, isSafeColorValue(value) ? value : (fallbackColors[key] as string));
   });
 
   // Apply background CSS variables
-  const bg = background || (isDark ? defaultBackground : defaultLightBackground);
+  const fallbackBg = isDark ? defaultBackground : defaultLightBackground;
+  const bg = sanitizeBackground(background || fallbackBg, fallbackBg);
   root.style.setProperty("--bg-mode", bg.mode);
   root.style.setProperty("--bg-gradient", bg.gradient || "none");
   root.style.setProperty("--bg-overlay-opacity", String(bg.overlay.opacity));
@@ -861,17 +967,12 @@ export function exportTheme(theme: CustomTheme): string {
 export function importTheme(jsonString: string): CustomTheme | null {
   try {
     const theme = JSON.parse(jsonString);
-    // Validate basic structure
-    if (!theme.light || !theme.dark) return null;
+    // Validate basic structure: an object with a light and a dark palette object
+    const isObject = (v: unknown) => !!v && typeof v === "object" && !Array.isArray(v);
+    if (!isObject(theme) || !isObject(theme.light) || !isObject(theme.dark)) return null;
 
+    // migrateTheme keeps only safe colors, gradients and background images (see sanitizeBackground)
     const migrated = migrateTheme(theme);
-
-    // Sanitize background image URL if present
-    if (migrated.background?.image) {
-      if (migrated.background.image.type === "url" && !isSafeUrl(migrated.background.image.value)) {
-        migrated.background.image = undefined;
-      }
-    }
 
     // Clamp overlay values
     if (migrated.background) {

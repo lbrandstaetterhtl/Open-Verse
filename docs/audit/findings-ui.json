@@ -1,0 +1,189 @@
+[
+  {
+    "id": "UI-1",
+    "severity": "high",
+    "title": "Ticket 'Externe URL' accepts javascript: and the ticket page renders it as a clickable <a href=\"javascript:…\"> for the owner/admin",
+    "route": "POST /api/tickets → GET /tickets/:id (TicketDetailPage)",
+    "evidence": "Form: Externe URL = javascript:window.__xss=1 → POST /api/tickets 201 (relatedUrl stored as is); owner opens /tickets/:id → DOM contains <a href=\"javascript:window.__xss=1\" target=\"_blank\">. In this headless Chromium the click opened a blank popup without running it, but the link is a stored script URL shown to the most privileged account (other browsers / copy-link / future removal of target=_blank execute it).",
+    "test": "tests/browser/forms.test.mjs › ticket › javascript: related URL is rejected by the form; tests/browser/forms.test.mjs › ticket › the javascript: related URL is not a clickable javascript link for the owner",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/ticket-the-javascript-related-url-is-not-a-clickable-javascript-link-for-the-owner.png",
+    "cause": "client/src/pages/tickets/CreateTicketPage.tsx:118-124 uses <input type=url> (javascript: is a valid URL for the browser); server/routes/tickets.ts:87-115 validates title/description/type/priority only and passes req.body (incl. relatedUrl) to TicketService.createTicket; client/src/pages/tickets/TicketDetailPage.tsx:318 renders href={ticket.relatedUrl} unfiltered (React 18 only warns about javascript: URLs).",
+    "fix": "Server: validate relatedUrl with z.string().url() and require protocol http/https (reject otherwise, 400 with a translated message). Client: only render the <a> when /^https?:\\/\\//i matches, otherwise show plain text; add the same check to the create form."
+  },
+  {
+    "id": "UI-2",
+    "severity": "high",
+    "title": "Deleting the newest ticket makes every following ticket creation fail with 500 (ticket number collision); parallel creates collide too",
+    "route": "DELETE /api/tickets/:id, POST /api/tickets",
+    "evidence": "Owner clicks 'Signal stilllegen' on the newest ticket (soft delete) → next form submit: POST /api/tickets 500 {\"error\":\"Internal server error\"}, toast 'Ticket konnte nicht erstellt werden / Interner Serverfehler'. Log: insert into tickets … TKT-2026-0036 fails (unique ticket_number held by the deleted row). Stays broken for all users until a ticket is restored (happened on the shared server 12:30–12:37Z during this audit; I restored tickets 36/37). Earlier run: a sub-80 ms double submit also gave 201 + 500.",
+    "test": "tests/browser/forms.test.mjs › ticket › after the owner deletes the newest ticket, new tickets can still be created",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/ticket-after-the-owner-deletes-the-newest-ticket-new-tickets-can-still-be-created.png",
+    "cause": "server/services/ticket-service.ts:7-21 generateTicketNumber() takes the newest ticket from supportStore.getTickets({search: prefix, limit: 1}), which filters deleted_at IS NULL (server/storage/support-storage.ts:73) and sorts by created_at; soft-deleted rows keep their unique ticket_number, and two concurrent creates compute the same number (read-then-insert race).",
+    "fix": "Derive the number from a DB sequence (or SELECT max(ticket_number) over ALL rows incl. deleted inside the insert transaction) and retry on unique violation; never 500 on a collision."
+  },
+  {
+    "id": "UI-3",
+    "severity": "medium",
+    "title": "Discussion form fails silently: empty submit (400) and posting during the cooldown (429) show nothing",
+    "route": "POST /api/posts (client/src/pages/post/discussions.tsx)",
+    "evidence": "Empty submit → POST /api/posts 400 'Content or media is required', no toast/inline message. Second post 5 s after the first → 429 {code:POST_COOLDOWN, params:{seconds}} — the German text 'Bitte warte N Sekunden…' exists (server.json codes.POST_COOLDOWN) but is never shown; the button just re-enables.",
+    "test": "tests/browser/forms.test.mjs › post › discussion: empty submit shows a message and creates nothing; tests/browser/forms.test.mjs › post › discussion: second post inside the cooldown shows the translated wait message",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/post-discussion-second-post-inside-the-cooldown-shows-the-translated-wait-message.png",
+    "cause": "client/src/pages/post/discussions.tsx:43-72 createPostMutation has onSuccess only, no onError (news.tsx/entertainment.tsx have one). The client schema insertDiscussionPostSchema (shared/schema.ts:585) has no min length, so empty input is not caught client-side.",
+    "fix": "Add onError → toast({title: t('common.error'), description: error.message, variant:'destructive'}) like news.tsx; add .trim().min(1) for title/content in a client form schema with translated messages."
+  },
+  {
+    "id": "UI-4",
+    "severity": "medium",
+    "title": "Empty news/entertainment submit creates a post ('New Post', empty content)",
+    "route": "POST /api/posts (multipart)",
+    "evidence": "/post/news, click 'Artikel veröffentlichen' with all fields empty → POST /api/posts 201 {\"title\":\"New Post\",\"content\":\"\",\"category\":\"news\",\"mediaUrl\":null}.",
+    "test": "tests/browser/forms.test.mjs › post › news: empty submit is blocked and creates no post",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/post-news-empty-submit-is-blocked-and-creates-no-post.png",
+    "cause": "server/routes/posts.ts:29 `if (!content && !req.files)` — postUpload.any() always sets req.files = [] for multipart bodies, so the check never fires for the media forms; title falls back to 'New Post' (posts.ts:88-93). Client schema insertMediaPostSchema (shared/schema.ts:579) has no min, so the button (disabled only when !isValid) stays enabled.",
+    "fix": "Server: require non-empty trimmed content or a file: `if (!content?.trim() && !(Array.isArray(req.files) && req.files.length))`; validate the body with a zod schema (title/content min/max). Client: min(1) rules with translated messages."
+  },
+  {
+    "id": "UI-5",
+    "severity": "medium",
+    "title": "Comment over 10 000 characters is lost silently: input cleared before the request, 400 not shown",
+    "route": "POST /api/comments (client/src/pages/feed/post-view.tsx)",
+    "evidence": "Type 10 050 chars, click 'Senden' → POST /api/comments 400 VALIDATION_ERROR too_big; no toast, the text box is already empty (0 chars left).",
+    "test": "tests/browser/forms.test.mjs › comment › comment over 10 000 characters: limited or a message is shown and the text is kept",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/comment-comment-over-10-000-characters-limited-or-a-message-is-shown-and-the-text-is-kep.png",
+    "cause": "post-view.tsx:300-320 clears input.value right after mutate(); createCommentMutation (post-view.tsx:141-150) has no onError; the <Input> has no maxLength although the server limit is 10 000 (shared/schema.ts:591).",
+    "fix": "Add maxLength={10000} (and a counter), clear the input in onSuccess only, add onError with the translated message (the client already turns VALIDATION_ERROR into 'Inhalt darf höchstens 10000 Zeichen lang sein')."
+  },
+  {
+    "id": "UI-6",
+    "severity": "medium",
+    "title": "Theme import gives no feedback: malformed / invalid JSON is ignored silently, success is not confirmed either",
+    "route": "client only (theme builder 'Importieren')",
+    "evidence": "Import '{ this is: not json', '{\"name\":\"x\"}' or '{\"light\":1,\"dark\":\"zwei\"}' → nothing happens, no toast, no error (no crash either). Importing a valid theme also shows nothing although theme_builder.import_success ('Theme erfolgreich importiert') is translated.",
+    "test": "tests/browser/forms.test.mjs › theme › import malformed JSON: the user is told the file is invalid, nothing crashes (+2 variants); tests/browser/forms.test.mjs › theme › import of a valid exported theme works and gives feedback",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/theme-import-malformed-json-the-user-is-told-the-file-is-invalid-nothing-crashes.png",
+    "cause": "client/src/pages/theme/theme-builder.tsx:576-595 handleImport: `if (theme) {…}` has no else branch and no success toast; importTheme (client/src/lib/theme-utils.ts:839-864) returns null on any error without a reason.",
+    "fix": "Show toast t('theme_builder.import_success') on success and a destructive toast (new key, e.g. theme_builder.import_invalid) when importTheme returns null; also handle reader.onerror."
+  },
+  {
+    "id": "UI-7",
+    "severity": "medium",
+    "title": "Admin 'Vollständig löschen' permanently deletes a user with one click, no confirmation",
+    "route": "DELETE /api/admin/users/:id (client/src/pages/admin/dashboard.tsx)",
+    "evidence": "/admin/users → row menu → 'Vollständig löschen' → DELETE /api/admin/users/<id> 200 immediately; no confirm()/AlertDialog shown (bulk delete has one).",
+    "test": "tests/browser/forms.test.mjs › admin › users: 'Vollständig löschen' asks for confirmation before deleting",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/admin-users-vollst-ndig-l-schen-asks-for-confirmation-before-deleting.png",
+    "cause": "client/src/pages/admin/dashboard.tsx:604 and :679 `onClick={() => deleteUserMutation.mutate(u.id)}` directly in the DropdownMenuItem.",
+    "fix": "Open an AlertDialog (like BulkActionModal 'delete') naming the user and requiring confirmation before calling deleteUserMutation."
+  },
+  {
+    "id": "UI-8",
+    "severity": "low",
+    "title": "Admin groups: duplicate name → silent 500; whitespace-only name accepted",
+    "route": "POST /api/admin/groups",
+    "evidence": "Create group with an existing name → 500 {\"message\":\"Failed to create admin group\"}, no toast, dialog stays open without explanation. Name '   ' → 201 (group created; deleted by the test).",
+    "test": "tests/browser/forms.test.mjs › admin › groups: XSS name shown as text; a duplicate name shows a readable error; tests/browser/forms.test.mjs › admin › groups: whitespace-only name is not accepted",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/admin-groups-xss-name-shown-as-text-a-duplicate-name-shows-a-readable-error.png",
+    "cause": "server/routes/admin-groups.ts:22-43 turns the unique violation (admin_groups.name UNIQUE, shared/schema.ts:115) into 500; insertAdminGroupSchema (shared/schema.ts:530) has no trim/min; client GroupsManagement.tsx:77-87 createMutation has no onError and :381 only checks `!name`.",
+    "fix": "Check for an existing name first and answer 400/409 with a translatable text; add .trim().min(1).max(..) to the schema; add onError toasts to create/update/delete mutations; disable save when !name.trim()."
+  },
+  {
+    "id": "UI-9",
+    "severity": "low",
+    "title": "Free-text inputs have no length limit (no maxLength, no server max): post title, bio (UI says 'Max. 160 Zeichen'), display name, chat message, community name, theme name",
+    "route": "POST /api/posts, PATCH /api/profile, POST /api/messages, POST /api/communities, POST /api/user/themes",
+    "evidence": "Post title 100 000 chars → 201 stored; bio 500 chars → 200 although the hint says max. 160; display name 5 000 → 200; chat message 100 000 → 201; community name 1 000 → sent by the client (intercepted by the test, server schema has no max); theme name 1 000 → 200.",
+    "test": "tests/browser/forms.test.mjs › post › entertainment: 100 000-character title…; profile › bio longer than the stated 160 characters…; profile › display name of 5 000 characters…; chat › 100 000-character message…; community › 1 000-character name…; theme › 1 000-character theme name…",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/profile-bio-longer-than-the-stated-160-characters-is-limited-or-rejected.png",
+    "cause": "Schemas are createInsertSchema(...) of text columns without .max(): shared/schema.ts:555-568 (updateProfileSchema), 573 (messageSchema), 579/585 (posts), 531 (communities), 536 (themes); the inputs have no maxLength attribute.",
+    "fix": "Add .max() limits (e.g. title 300, content 20 000, bio 160, displayName 50, location 100, website 200, message 5 000, community name 100 / description 2 000, theme name 60) on the server schemas and the same maxLength on the inputs; the client already translates too_long errors."
+  },
+  {
+    "id": "UI-10",
+    "severity": "low",
+    "title": "Create community sends an empty name; the server would create a community with empty name and slug ''",
+    "route": "POST /api/communities",
+    "evidence": "Empty form → client sends {\"name\":\"\",…} without any inline message (the test answered the request itself to avoid junk data). Server: insertCommunitySchema name = z.string() (no min), slug = '' (communities.ts:43-46), getCommunityBySlug('') → creates it.",
+    "test": "tests/browser/forms.test.mjs › community › empty name: client shows a message and sends nothing",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/community-empty-name-client-shows-a-message-and-sends-nothing.png",
+    "cause": "shared/schema.ts:531-535 insertCommunitySchema from createInsertSchema (text notNull → z.string()); server/routes/communities.ts:36-48 builds slug from name without checking it is non-empty; also a name of only symbols gives slug ''.",
+    "fix": "name: z.string().trim().min(3).max(100) with translated client messages; reject when the generated slug is empty."
+  },
+  {
+    "id": "UI-11",
+    "severity": "low",
+    "title": "Theme with an empty/whitespace name can be saved",
+    "route": "POST /api/user/themes",
+    "evidence": "Theme builder → Neu → name '   ' → Speichern → 200 {\"name\":\"   \"} (appears as a blank entry in the theme list).",
+    "test": "tests/browser/forms.test.mjs › theme › empty theme name cannot be saved",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/theme-empty-theme-name-cannot-be-saved.png",
+    "cause": "insertThemeSchema (shared/schema.ts:536) has no trim/min; theme-builder.tsx:526-540 handleSave does not check themeName.",
+    "fix": "Require a trimmed non-empty name (client + .trim().min(1).max(60) on the server), show a translated message."
+  },
+  {
+    "id": "UI-12",
+    "severity": "low",
+    "title": "Profile website accepts any text (no URL validation)",
+    "route": "PATCH /api/profile",
+    "evidence": "Website 'das ist keine url' → 200, profile shows a link to https://das ist keine url. (javascript: is neutralised: ProfileHeader prefixes https://.)",
+    "test": "tests/browser/forms.test.mjs › profile › website that is not a URL is rejected with a message",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/profile-website-that-is-not-a-url-is-rejected-with-a-message.png",
+    "cause": "updateProfileSchema (shared/schema.ts:555-568) website = z.string() from createInsertSchema; EditProfileModal.tsx website field has no format rule; ProfileHeader.tsx:134 builds the href from any text.",
+    "fix": "Validate website as an http(s) URL or bare domain (z.string().url() after adding https:// when missing), translated error message; empty string allowed."
+  },
+  {
+    "id": "UI-13",
+    "severity": "low",
+    "title": "Mod panel user search does not URL-encode the query",
+    "route": "GET /api/users/search",
+    "evidence": "Invite dialog search 'a&b#c' → request /api/users/search?q=a&b (server searches for 'a').",
+    "test": "tests/browser/forms.test.mjs › community › mod panel: user search encodes the query (& and #)",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/community-mod-panel-user-search-encodes-the-query-and-.png",
+    "cause": "client/src/pages/communities/mod-panel.tsx:429 and :861 build `/api/users/search?q=${query}` without encodeURIComponent.",
+    "fix": "Use `?q=${encodeURIComponent(query)}` (or URLSearchParams)."
+  },
+  {
+    "id": "UI-14",
+    "severity": "low",
+    "title": "The same post can be reported repeatedly by the same user",
+    "route": "POST /api/reports",
+    "evidence": "Report post (Spam) → 201 'Meldung gesendet'; open the dialog again, Spam → 201 again (second report row).",
+    "test": "tests/browser/forms.test.mjs › report › reporting the same post again is refused with a message",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/report-reporting-the-same-post-again-is-refused-with-a-message.png",
+    "cause": "server/routes/reports.ts:18-40 creates a report without checking for an existing report by reporterId+postId/commentId.",
+    "fix": "Reject (409, translated 'Du hast diesen Inhalt bereits gemeldet') when a pending report from the same reporter for the same target exists; optionally a unique index."
+  },
+  {
+    "id": "UI-15",
+    "severity": "info",
+    "title": "No password change form in the client although PATCH /api/profile/password exists",
+    "route": "PATCH /api/profile/password",
+    "evidence": "Edit-profile dialog tabs Allgemein/Bilder/Privatsphäre contain no password field; no other page calls /api/profile/password.",
+    "test": "tests/browser/forms.test.mjs › profile › a password change form is reachable from the profile",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/profile-a-password-change-form-is-reachable-from-the-profile.png",
+    "cause": "server/auth.ts:504-525 implements the endpoint; client/src has no caller (grep profile/password).",
+    "fix": "Add a 'Passwort ändern' section (current/new/repeat, min 8 / max 128, translated server errors such as 'Current password is incorrect')."
+  },
+  {
+    "id": "UI-16",
+    "severity": "info",
+    "title": "Ticket form checks description >= 20 characters, server requires 50 (message says 50)",
+    "route": "POST /api/tickets",
+    "evidence": "Description of 30 chars passes the client check, server answers 400 'Die Beschreibung muss mindestens 50 Zeichen lang sein' (translated, readable) — inconsistent but not broken.",
+    "test": "tests/browser/forms.test.mjs › ticket › description shorter than the server minimum (50) is explained before or by the server (passes)",
+    "screenshot": "",
+    "cause": "client/src/pages/tickets/CreateTicketPage.tsx:32 `formData.description.length < 20` vs server/routes/tickets.ts:100 `< 50`.",
+    "fix": "Use 50 on the client too; also check title max 200 and add maxLength attributes."
+  },
+  {
+    "id": "UI-17",
+    "severity": "info",
+    "title": "Registration under a near-simultaneous double submit: second request 500, user sees 'Registrierung fehlgeschlagen' although the account was created",
+    "route": "POST /api/register",
+    "evidence": "Playwright dblclick (two clicks within a few ms) → POST /api/register 500 'Registration failed' + 201; toast 'Registrierung fehlgeschlagen'. With a realistic 80 ms double click only one request is sent (test passes), so only a scripted / very fast double submit triggers it.",
+    "test": "tests/browser/forms.test.mjs › auth › register: fast double click on submit sends one request (passes at 80 ms)",
+    "screenshot": "/tmp/claude-0/-home-user-Open-Verse/e504c76b-dbc8-5619-9e7c-0e4053e6add3/scratchpad/audit/shots/auth-register-double-click-sends-one-request-and-creates-one-account-onboarding-bio-d.png",
+    "cause": "Button disabled={registerMutation.isPending} (auth-page.tsx:388) flips only after the async zod resolver; server auth.ts register catch-all returns 500 on the unique-constraint race instead of 400 'Username already exists'.",
+    "fix": "Disable on form.formState.isSubmitting as well; map unique violations in /api/register to the existing 400 messages."
+  }
+]

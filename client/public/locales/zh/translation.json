@@ -95,24 +95,6 @@
       "password_max": "密码最多 {{count}} 个字符"
     }
   },
-  "bans": {
-    "title": "封禁与限制"
-  },
-  "autoPunishment": {
-    "title": "自动处罚"
-  },
-  "analytics": {
-    "title": "数据分析",
-    "eyebrow": "管理 / 数据分析"
-  },
-  "modPerf": {
-    "nav": "版主绩效",
-    "eyebrow": "管理 / 数据分析"
-  },
-  "security": {
-    "stress_test": "安全测试",
-    "eyebrow": "管理 / 安全"
-  },
   "profile": {
     "pro": "Pro",
     "joined": "加入于",
@@ -155,13 +137,15 @@
       "name": "显示名称",
       "bio": "个人简介",
       "bio_placeholder": "介绍一下你自己…",
-      "bio_description": "显示在你的个人资料中，最多 160 个字符。",
+      "bio_description": "显示在你的个人资料中，最多 {{max}} 个字符。",
       "location": "所在地",
       "website": "网站",
       "privacy": "私密账户",
       "privacy_description": "只有成员可以查看你的内容。",
       "name_placeholder": "张三",
-      "location_placeholder": "中国，北京"
+      "location_placeholder": "中国，北京",
+      "invalid": "无法保存个人资料",
+      "invalid_hint": "请检查你的输入。"
     },
     "update_success_title": "个人资料已更新",
     "update_success_desc": "你的更改已成功保存。",
@@ -172,7 +156,8 @@
     "edit_tabs": {
       "general": "常规",
       "images": "图片",
-      "privacy": "隐私"
+      "privacy": "隐私",
+      "security": "安全"
     },
     "image": {
       "avatar": "头像",
@@ -195,7 +180,22 @@
     },
     "follows_you": "关注了你",
     "on_post": "评论于",
-    "user_not_found": "未找到用户"
+    "user_not_found": "未找到用户",
+    "private_account_title": "该账户为私密账户",
+    "private_account_desc": "登录后即可查看此账户的帖子、评论和点赞。",
+    "password": {
+      "title": "修改密码",
+      "current": "当前密码",
+      "new": "新密码",
+      "rules": "至少 {{count}} 个字符。不接受过于常见的密码。",
+      "confirm": "再次输入新密码",
+      "mismatch": "两次输入的新密码不一致",
+      "sessions_hint": "修改后你在此处保持登录，其他所有会话都将被注销。",
+      "submit": "修改密码",
+      "changed_title": "密码已修改",
+      "changed_desc": "你在此处保持登录，其他所有会话均已注销。",
+      "change_failed": "无法修改密码"
+    }
   },
   "common": {
     "loading": "加载中…",
@@ -265,89 +265,14 @@
     "delete_comment_confirm": "确定要删除此评论吗？此操作无法撤销。"
   },
   "admin": {
-    "title": "管理仪表盘",
-    "back_to_site": "返回网站",
-    "reset_roles": "重置所有角色",
-    "stats": {
-      "total_users": "用户总数",
-      "active_users": "活跃用户",
-      "verified_users": "已认证用户",
-      "banned_users": "被封禁用户",
-      "deleted_users": "已删除用户",
-      "total_posts": "帖子总数",
-      "total_reports": "举报总数",
-      "pending_reports": "待处理举报",
-      "resolved_reports": "已解决举报",
-      "rejected_reports": "已驳回举报"
-    },
-    "tabs": {
-      "users": "用户",
-      "reports": "举报",
-      "monitoring": "监控系统",
-      "logs": "活动日志",
-      "settings": "设置"
-    },
     "roles": {
       "owner": "所有者",
       "admin": "管理员",
       "user": "用户"
     },
     "users_table": {
-      "search_placeholder": "搜索用户…",
-      "username": "用户名",
-      "email": "邮箱",
-      "status": "状态",
-      "role": "角色",
-      "karma": "声望",
-      "joined": "加入时间",
-      "actions": "操作",
-      "make_admin": "设为管理员",
-      "make_owner": "设为所有者",
-      "remove_admin": "移除管理员",
-      "remove_owner": "移除所有者",
-      "ban_user": "封禁用户",
-      "restore_user": "恢复账户",
-      "verify_user": "认证用户",
-      "unverify_user": "取消认证",
-      "verify_email": "邮箱已验证",
-      "unverify_email": "邮箱未验证",
-      "verify_user_confirm": "确定要认证 {{username}} 吗？其名字旁将显示认证徽章。",
-      "unverify_user_confirm": "确定要取消 {{username}} 的认证吗？其认证徽章将被移除。",
-      "restore_user_confirm": "确定要恢复 {{username}} 的账户吗？",
-      "ban_user_confirm": "确定要封禁 {{username}} 吗？封禁后其将无法使用大多数功能。",
-      "delete_user_confirm": "确定要永久删除 {{username}} 吗？此操作无法撤销，并将删除该用户的所有帖子、评论和其他数据。",
-      "make_admin_confirm": "确定要将 {{username}} 设为管理员吗？其将获得管理权限。",
-      "make_owner_confirm": "确定要将 {{username}} 晋升为所有者吗？其将获得完整的系统访问权限。",
-      "remove_owner_confirm": "确定要移除 {{username}} 的所有者身份吗？其将被降级为管理员。",
-      "remove_admin_confirm": "确定要移除 {{username}} 的管理员权限吗？其将被降级为普通用户。"
-    },
-    "reports_table": {
-      "reporter": "举报人",
-      "ip_address": "IP 地址",
-      "poster": "发布者",
-      "type": "类型",
-      "content": "内容",
-      "reason": "原因",
-      "status": "状态",
-      "reported_on": "举报时间",
-      "actions": "操作",
-      "resolve": "解决",
-      "reject": "驳回",
-      "resolve_title": "解决举报",
-      "resolve_desc": "确定要解决此举报吗？被举报的内容将被删除。",
-      "reject_title": "驳回举报",
-      "reject_desc": "确定要驳回此举报吗？被举报的内容将被保留。",
-      "status_all": "全部",
-      "status_pending": "待处理",
-      "status_resolved": "已解决",
-      "status_rejected": "已驳回",
-      "type_post": "帖子",
-      "type_discussion": "讨论",
-      "type_comment": "评论"
-    },
-    "overview_eyebrow": "管理 / 概览",
-    "command_center": "指挥中心",
-    "settings_eyebrow": "管理 / 设置"
+      "search_placeholder": "搜索用户…"
+    }
   },
   "notifications": {
     "title": "通知",
@@ -397,7 +322,15 @@
     },
     "eyebrow": "账户 / 通知",
     "someone": "某人",
-    "privacy_note": "“你的隐私是我们的首要任务。我们只会针对你选择关注的操作发送通知。”"
+    "privacy_note": "“你的隐私是我们的首要任务。我们只会针对你选择关注的操作发送通知。”",
+    "system": {
+      "account_warning": "账户警告",
+      "ticket_reply_title": "你的工单有新回复",
+      "ticket_reply_message": "你的工单 {{ticket}} 有一条新回复。",
+      "join_approved_generic": "你加入社区的申请已通过",
+      "kicked_generic": "你已被移出一个社区",
+      "generic": "系统通知"
+    }
   },
   "ai_generator": {
     "title": "AI 帖子生成器",
@@ -491,7 +424,8 @@
       "restriction_desc": "你需要至少 200 声望才能创建社区。",
       "current_rep": "你当前的声望：",
       "eyebrow": "社区 / 新建",
-      "success_desc": "欢迎来到 {{name}}！"
+      "success_desc": "欢迎来到 {{name}}！",
+      "categories_required": "请至少选择一个分类。"
     },
     "page": {
       "not_found_title": "未找到社区",
@@ -840,69 +774,12 @@
     "preview_btn_destructive": "危险",
     "pro_tip": "专业提示",
     "mobile_settings": "设置",
-    "mobile_preview_tab": "预览"
+    "mobile_preview_tab": "预览",
+    "import_invalid": "此文件不是有效的主题。"
   },
   "footer": {
     "default_tagline": "释放你的创造力，构建你的宇宙。",
     "copyright": "© {{year}} Osiris Platform。保留所有权利。"
-  },
-  "monitoring": {
-    "title": "监控概览",
-    "events_today": "今日事件",
-    "open_anomalies": "未处理异常",
-    "critical": "严重",
-    "error_rate": "错误率（1 小时）",
-    "active_users": "活跃用户",
-    "in_last_5m": "过去 5 分钟内",
-    "activity_logs": "活动日志",
-    "anomalies": "异常检测",
-    "search_action": "搜索操作或描述…",
-    "all_categories": "所有类别",
-    "all_severities": "所有严重程度",
-    "time": "时间",
-    "severity": "严重程度",
-    "user": "用户",
-    "action": "操作",
-    "description": "描述",
-    "ip": "IP",
-    "no_logs": "未找到日志",
-    "status": "状态",
-    "type": "类型",
-    "auto_action": "自动操作",
-    "no_anomalies": "未发现异常",
-    "open": "未处理",
-    "investigating": "调查中",
-    "resolved": "已解决",
-    "false_positive": "误报",
-    "metrics": {
-      "events_minute_chart": "事件活动（24 小时）",
-      "errors_by_category": "按类别统计的错误与警告"
-    },
-    "eyebrow_audit": "管理 / 审计",
-    "eyebrow_monitoring": "管理 / 监控",
-    "eyebrow_moderation": "管理 / 审核",
-    "activity_logs_desc": "平台所有操作的实时审计记录。",
-    "category": "类别",
-    "categories": {
-      "auth": "认证",
-      "content": "内容",
-      "admin": "管理",
-      "security": "安全"
-    },
-    "severity_levels": {
-      "info": "信息",
-      "warning": "警告",
-      "error": "错误",
-      "debug": "调试",
-      "critical": "严重"
-    },
-    "system": "系统",
-    "anomaly_badge": "异常",
-    "access_restricted": "访问受限",
-    "access_restricted_desc": "你没有访问系统监控日志所需的权限。",
-    "not_available": "不适用",
-    "error_critical": "错误/严重",
-    "no_recent_incidents": "近期无事件"
   },
   "post_actions": {
     "comment": "评论",
@@ -938,18 +815,6 @@
     "help_tickets": "帮助与工单",
     "moderation": "审核",
     "admin_area": "管理后台",
-    "admin_overview": "概览",
-    "admin_people": "用户与内容",
-    "admin_moderation": "审核",
-    "admin_system": "系统",
-    "tickets": "工单",
-    "groups": "群组",
-    "bans": "封禁",
-    "auto_actions": "自动操作",
-    "mod_performance": "版主绩效",
-    "logs": "日志",
-    "analytics": "数据分析",
-    "stress_test": "压力测试",
     "back_to_app": "返回应用",
     "to_app": "应用",
     "create_post": "创建帖子",
@@ -959,8 +824,7 @@
     "open_menu": "打开菜单",
     "account_menu": "账户菜单",
     "bottom_feed": "动态",
-    "bottom_discussions": "讨论",
-    "monitoring": "监控"
+    "bottom_discussions": "讨论"
   },
   "theme": {
     "mode_dark": "深色",
@@ -976,111 +840,6 @@
   "language": {
     "switch": "切换语言",
     "select": "选择语言"
-  },
-  "admin_bulk": {
-    "default": {
-      "title": "确认操作",
-      "description_users": "将此操作应用于已选的 {{count}} 名用户。",
-      "description_reports": "将此操作应用于已选的 {{count}} 条举报。"
-    },
-    "count_users": "{{count}} 名用户",
-    "count_reports": "{{count}} 条举报",
-    "toolbar": {
-      "selected": "已选择",
-      "clear": "清除选择",
-      "ban": "封禁所选",
-      "unban": "解封所选",
-      "delete": "删除所选",
-      "resolve": "全部解决",
-      "reject": "全部驳回"
-    }
-  },
-  "admin_groups": {
-    "toast": {
-      "success": "成功",
-      "created": "管理组已创建。",
-      "updated": "管理组已更新。",
-      "deleted": "管理组已删除。"
-    },
-    "loading": "正在加载管理组…",
-    "title": "管理组",
-    "description": "管理各管理角色及其细粒度访问权限。",
-    "create": "创建管理组",
-    "form": {
-      "create_title": "创建管理组",
-      "edit_title": "编辑管理组",
-      "name": "组名称",
-      "name_placeholder": "例如：内容审核员",
-      "color": "强调色",
-      "description": "描述",
-      "description_placeholder": "该组负责哪些工作？",
-      "permissions": "细粒度权限",
-      "saving": "保存中…",
-      "save": "保存管理组"
-    },
-    "group_id": "组 ID：{{id}}",
-    "edit": "编辑管理组",
-    "delete": "删除管理组",
-    "delete_confirm": "确定要删除此管理组吗？",
-    "active_permissions": "已启用权限",
-    "no_members": "暂无成员",
-    "view_members": "查看 {{count}} 名成员",
-    "members_dialog": {
-      "title": "{{name}} 的成员",
-      "description": "分配到此权限组的管理员列表。",
-      "member_id": "ID：{{id}}",
-      "close": "关闭"
-    },
-    "permissions": {
-      "dashboard": {
-        "label": "仪表盘访问",
-        "description": "查看管理概览和统计数据"
-      },
-      "users": {
-        "label": "用户管理",
-        "description": "管理角色、认证和个人资料数据"
-      },
-      "reports": {
-        "label": "内容审核",
-        "description": "处理举报并解决内容争议"
-      },
-      "groups": {
-        "label": "管理组管理",
-        "description": "编辑管理组和权限"
-      },
-      "security": {
-        "label": "安全与封禁",
-        "description": "访问封禁系统和安全工具"
-      },
-      "auto_punishment": {
-        "label": "自动处罚",
-        "description": "管理自动规则执行系统"
-      },
-      "logs": {
-        "label": "活动监控",
-        "description": "查看系统日志和异常报告"
-      },
-      "analytics": {
-        "label": "平台数据分析",
-        "description": "查看增长图表和使用指标"
-      },
-      "performance": {
-        "label": "版主绩效",
-        "description": "跟踪审核效率和统计数据"
-      },
-      "tickets": {
-        "label": "支持工单",
-        "description": "管理并解决用户支持工单"
-      },
-      "stress_test": {
-        "label": "压力测试",
-        "description": "运行系统压力测试和性能审计"
-      },
-      "settings": {
-        "label": "系统设置",
-        "description": "配置平台全局参数"
-      }
-    }
   },
   "report": {
     "description_post": "请选择举报此帖子的原因。我们将依据社区准则对其进行审核。",
@@ -1127,385 +886,6 @@
     "deleted_success": "帖子已删除",
     "delete_title": "删除帖子"
   },
-  "admin_tickets": {
-    "open": "待处理",
-    "critical_open": "待处理（紧急）",
-    "in_progress": "处理中",
-    "avg_hours_to_resolve": "平均解决时长（小时）"
-  },
-  "admin_autopunish": {
-    "access_restricted": {
-      "title": "访问受限",
-      "description": "你没有管理自动处罚规则所需的权限。"
-    },
-    "toast": {
-      "updated": "规则已更新",
-      "created": "规则已创建",
-      "deleted": "规则已删除",
-      "validation_error": "验证错误",
-      "validation_required": "名称和处罚原因为必填项"
-    },
-    "severity": {
-      "low": "低",
-      "medium": "中",
-      "high": "高",
-      "critical": "严重"
-    },
-    "title": "自动处罚引擎",
-    "description": "自动化威胁响应与缓解规则。",
-    "rules": {
-      "title": "生效规则",
-      "new": "新建规则",
-      "col_name": "规则名称",
-      "col_trigger": "触发条件（异常）",
-      "col_threshold": "阈值",
-      "col_action": "自动操作",
-      "col_manage": "管理",
-      "status_active": "已启用",
-      "status_disabled": "已停用",
-      "edit": "编辑规则",
-      "disable": "停用规则",
-      "enable": "启用规则",
-      "delete": "删除规则",
-      "delete_confirm": "确定删除此规则？"
-    },
-    "dialog": {
-      "edit_title": "编辑自动处罚规则",
-      "create_title": "创建自动处罚规则"
-    },
-    "form": {
-      "name": "规则名称",
-      "name_placeholder": "例如：严格封锁 API 滥用者",
-      "description": "描述",
-      "optional": "（可选）",
-      "description_placeholder": "这条规则具体要防止什么？",
-      "anomaly_trigger": "异常触发条件",
-      "severity_threshold": "严重程度阈值",
-      "action": "操作",
-      "duration_hours": "持续时间（小时）",
-      "advanced": "高级配置",
-      "escalate_after_count": "触发次数",
-      "escalate_after_count_help": "规则触发前需要发生的事件次数。",
-      "escalation_window_hours": "时间窗口（小时）",
-      "escalation_window_hours_help": "统计事件次数的时间段。",
-      "cooldown_hours": "冷却时间（小时）",
-      "cooldown_hours_help": "规则再次触发前的等待时间。",
-      "action_reason": "处罚原因",
-      "action_reason_placeholder": "本次封锁的内部原因…",
-      "saving": "保存中…"
-    },
-    "anomaly": {
-      "brute_force_login": "暴力破解登录",
-      "api_abuse": "API 滥用",
-      "spam_content": "垃圾内容",
-      "rapid_creation": "快速批量创建",
-      "suspicious_ip": "可疑 IP",
-      "hardware_ban_evasion": "规避硬件封禁"
-    },
-    "action": {
-      "warn": "警告用户",
-      "freeze": "冻结账户",
-      "shadow_ban": "影子封禁",
-      "temp_ban": "临时 IP 封禁",
-      "ip_ban": "永久 IP 封禁",
-      "hardware_ban": "硬件封禁"
-    },
-    "col_status": "状态",
-    "executions": {
-      "title": "最近执行记录",
-      "col_time": "时间",
-      "col_rule": "规则",
-      "col_target": "目标用户",
-      "col_action": "已执行操作",
-      "empty": "暂无执行记录",
-      "user": "用户",
-      "success": "成功",
-      "failed": "失败"
-    }
-  },
-  "admin_bans": {
-    "toast": {
-      "revoked": "封禁已撤销"
-    },
-    "eyebrow": "审核核心",
-    "title": "封禁管理",
-    "description": "在零重力环境中管理 IP、硬件和账户封禁。",
-    "table": {
-      "type": "类型",
-      "target": "目标",
-      "reason": "原因",
-      "status": "状态",
-      "source": "来源",
-      "operations": "操作"
-    },
-    "loading": "正在扫描信号…",
-    "empty": "此星区暂无生效的封禁",
-    "status": {
-      "active": "生效中",
-      "revoked": "已撤销"
-    },
-    "revoke": "撤销",
-    "target_user": "USER::{{id}}"
-  },
-  "admin_logs": {
-    "title": "活动日志",
-    "description": "所有管理操作的不可篡改审计记录。",
-    "export_json": "导出 JSON",
-    "export_csv": "导出 CSV",
-    "total_events": "事件总数",
-    "high_severity": "高严重程度",
-    "search_placeholder": "搜索描述、目标或管理员…",
-    "category": "类别",
-    "categories": {
-      "users": "用户",
-      "content": "内容",
-      "settings": "设置",
-      "system": "系统"
-    },
-    "severity": "严重程度",
-    "severity_levels": {
-      "low": "低",
-      "medium": "中",
-      "high": "高",
-      "critical": "严重",
-      "debug": "调试",
-      "info": "信息",
-      "warning": "警告",
-      "error": "错误"
-    },
-    "col_timestamp": "时间戳",
-    "col_administrator": "管理员",
-    "system": "系统",
-    "col_action": "操作",
-    "col_analysis": "分析",
-    "audit_entry": "审计条目 • 事件 #{{id}}",
-    "detail_description": "描述",
-    "target_type": "目标类型",
-    "not_available": "不适用",
-    "target_identifier": "目标标识",
-    "origin_ip": "来源 IP",
-    "payload_delta": "数据变更",
-    "previous_state": "先前状态",
-    "new_state": "新状态",
-    "details": "详情",
-    "admin": "管理员",
-    "log_entry": "日志条目",
-    "target": "目标",
-    "ip_address": "IP 地址",
-    "new_state_delta": "新状态变更",
-    "status": {
-      "success": "成功",
-      "failure": "失败",
-      "warning": "警告",
-      "blocked": "已拦截"
-    },
-    "actions": {
-      "admin": {
-        "bulk_action": "批量操作",
-        "settings_change": "设置已更改",
-        "group_create": "已创建分组",
-        "group_delete": "已删除分组",
-        "group_update": "已更新分组",
-        "user_group_assign": "已将用户分配到分组"
-      },
-      "auth": {
-        "login": "登录",
-        "login_failed": "登录失败",
-        "logout": "退出登录",
-        "register": "注册"
-      },
-      "comment": {
-        "create": "发表了评论",
-        "delete": "删除了评论"
-      },
-      "community": {
-        "ban_member": "封禁了社区成员",
-        "unban_member": "解封了社区成员",
-        "create": "创建了社区",
-        "join": "加入了社区",
-        "leave": "退出了社区"
-      },
-      "follow": {
-        "add": "关注了用户",
-        "remove": "取消关注了用户"
-      },
-      "post": {
-        "create": "发布了帖子",
-        "delete": "删除了帖子"
-      },
-      "report": {
-        "resolve": "已处理举报",
-        "submit": "提交了举报"
-      },
-      "security": {
-        "auth_bypass_attempt": "试图绕过身份验证",
-        "suspicious_request": "可疑请求"
-      },
-      "system": {
-        "error": "系统错误"
-      },
-      "ticket": {
-        "comment": "工单评论",
-        "create": "创建了工单",
-        "status_change": "工单状态已更改"
-      },
-      "user": {
-        "upload_rejected": "上传被拒绝",
-        "upload_avatar": "上传了头像",
-        "upload_cover": "上传了封面图",
-        "delete_account": "删除了账号",
-        "settings_change": "用户设置已更改",
-        "update_avatar": "更换了头像",
-        "update_cover": "更换了封面图"
-      }
-    }
-  },
-  "admin_dashboard": {
-    "user_update_success": "用户已更新。",
-    "user_deleted": "用户已被永久删除。",
-    "report_update_success": "举报已更新。",
-    "access_denied": "拒绝访问",
-    "owner_only_promote": "只有系统所有者才能将用户晋升为所有者。",
-    "bulk_success": "批量操作已成功执行。",
-    "description": "在零重力环境中监控平台健康状况并管理运营。",
-    "stats": {
-      "total_users_desc": "平台累计注册用户数。",
-      "total_reports_desc": "所有内容收到的举报总数。",
-      "pending_reports_desc": "等待管理团队人工审核。",
-      "active_users_desc": "过去 24 小时内的独立活跃用户数。",
-      "verified_users_desc": "已完成认证的可信成员。"
-    },
-    "tabs": {
-      "groups": "管理组"
-    },
-    "search_placeholder": "搜索 Verse…",
-    "users": {
-      "title": "用户目录",
-      "description": "管理认证状态和审核级别。",
-      "filter_all": "全部",
-      "filter_verified": "已认证",
-      "filter_banned": "已封禁",
-      "col_user": "用户",
-      "id": "ID：{{id}}",
-      "col_contact": "联系方式",
-      "col_role": "角色",
-      "col_rep": "声望",
-      "col_operations": "操作",
-      "revoke_verification": "撤销认证",
-      "assign_role": "分配角色",
-      "currently": "当前：",
-      "assign_group": "分配管理组",
-      "no_group": "无管理组",
-      "group_none": "无",
-      "revoke_shadowban": "撤销影子封禁",
-      "shadowban_user": "影子封禁用户",
-      "shadowban_desc": "静默审核状态",
-      "lift_restriction": "解除限制",
-      "restrict_account": "限制账户",
-      "restore_access": "恢复访问",
-      "restrict_desc": "零重力停用",
-      "purge_entity": "彻底清除",
-      "verified": "已认证",
-      "verify": "认证",
-      "toggle_shadowban": "切换影子封禁",
-      "toggle_restriction": "切换限制",
-      "purge_account": "清除账户"
-    },
-    "reports": {
-      "title": "内容审核队列",
-      "description": "需要管理团队裁定的社区举报。",
-      "col_source": "来源",
-      "internal": "内部",
-      "col_entity": "对象",
-      "col_observation": "观察",
-      "col_decisions": "决定",
-      "type_flag": "{{type}} 举报",
-      "dismiss": "忽略"
-    }
-  },
-  "stress_test": {
-    "access_restricted": "访问受限",
-    "access_restricted_desc": "你没有执行系统压力测试所需的权限。",
-    "toast_started": "压力测试已启动",
-    "toast_started_desc": "正在以{{intensity}}强度启动 {{module}}。",
-    "toast_complete": "测试完成",
-    "toast_complete_desc": "压力测试已成功完成。",
-    "log_error": "错误：{{error}}",
-    "toast_failed": "测试失败",
-    "log_system_error": "系统错误：{{error}}",
-    "description": "验证平台在极端负载条件下的稳定性。",
-    "test_modules": "测试模块",
-    "test_modules_desc": "选择要进行压力测试的平台模块。",
-    "kill_test": "终止当前测试",
-    "live_stream_active": "实时输出中",
-    "empty": "选择一个模块，开始锻造流程",
-    "session_complete": "测试日志会话已结束",
-    "clear": "清空",
-    "stability_score": "稳定性评分",
-    "degraded": "性能下降",
-    "nominal": "正常",
-    "metrics_captured": "已采集指标",
-    "system_status": "系统状态",
-    "live": "实时",
-    "modules": {
-      "api_endpoints": "API 负载",
-      "api_endpoints_desc": "用并发 HTTP 流量冲击 REST 端点。",
-      "database_connections": "数据库压力",
-      "database_connections_desc": "并发 Drizzle/SQLite 查询压力。",
-      "websocket_flood": "WebSocket 洪泛",
-      "websocket_flood_desc": "快速建立连接并突发发送消息。",
-      "file_upload": "文件 I/O",
-      "file_upload_desc": "Multipart 文件上传处理与磁盘压力。",
-      "authentication": "认证 (Bcrypt)",
-      "authentication_desc": "高强度 Bcrypt 计算循环（登录/注册）。",
-      "memory_leak": "内存压力",
-      "memory_leak_desc": "堆内存分配监控与 RSS 跟踪。",
-      "cpu_intensive": "CPU 满载",
-      "cpu_intensive_desc": "大量数学运算的阻塞循环，用于监测事件循环延迟。",
-      "concurrent_users": "用户会话",
-      "concurrent_users_desc": "脚本化的多步骤用户流程（注册 -> 发帖）。",
-      "all": "完整套件",
-      "all_desc": "依次执行所有可用的压力测试。"
-    },
-    "title": "Osiris 压力熔炉",
-    "intensity": {
-      "low": "低",
-      "medium": "中",
-      "high": "高",
-      "extreme": "极限"
-    }
-  },
-  "admin_settings": {
-    "update_success": "设置已更新。",
-    "title": "管理设置",
-    "description": "配置全局系统行为和界面默认值。",
-    "search_placeholder": "搜索设置…",
-    "empty": "此类别中没有设置项。",
-    "sensitive": "敏感",
-    "readonly": "只读",
-    "no_description": "此配置项暂无说明。",
-    "last_saved": "上次保存：",
-    "reset": "重置",
-    "danger_zone_title": "系统安全危险区",
-    "danger_zone_desc": "此处的更改会影响身份认证和全局访问控制。应用前请仔细核对设置。",
-    "enabled": "已启用",
-    "disabled": "已停用",
-    "save_changes": "保存更改",
-    "categories": {
-      "general": "常规",
-      "general_desc": "站点核心标识与状态。",
-      "users": "用户",
-      "users_desc": "身份认证与成员管理。",
-      "content": "内容",
-      "content_desc": "发帖与审核规则。",
-      "email": "邮件",
-      "email_desc": "SMTP 与通知发送。",
-      "security": "安全",
-      "security_desc": "访问控制与防护。",
-      "appearance": "外观",
-      "appearance_desc": "主题与视觉品牌。"
-    }
-  },
   "chat": {
     "message_sent": "消息已发送",
     "mutual_connections": "互相关注",
@@ -1516,7 +896,9 @@
     "send": "发送",
     "none_selected": "未选择聊天",
     "none_selected_desc": "从列表中选择一位好友，开始畅聊吧。",
-    "view_connections": "查看互关好友"
+    "view_connections": "查看互关好友",
+    "load_older": "加载更早的消息",
+    "load_older_failed": "无法加载更早的消息。"
   },
   "communities": {
     "roles": {

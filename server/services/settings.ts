@@ -1,9 +1,16 @@
 import { db } from "../db";
 import { adminSettings } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, not, like, ne } from "drizzle-orm";
 import { activityLogger } from "./activity-logger";
 import { type Request } from "express";
 import { logger } from "../logger";
+import { decryptSecret, encryptSecret, isEncryptedSecret } from "../db-maintenance/secret-box";
+
+/** What GET /api/admin/settings shows instead of a secret value; saving it back keeps the stored value. */
+export const MASKED_SECRET = "********";
+
+const SMTP_PASSWORD_DESCRIPTION = "Password or API key for the SMTP server. Stored encrypted (key derived from SESSION_SECRET) and never shown again; changing SESSION_SECRET requires entering it again. Currently not used: email is sent via SENDGRID_API_KEY.";
+const OLD_SMTP_PASSWORD_DESCRIPTION = "Password or API Key for the SMTP server. This value is encrypted and hidden.";
 
 /* FEATURE [AS-003]: Admin Settings – Implementation of the central settings service. */
 export class SettingsService {
@@ -31,7 +38,12 @@ export class SettingsService {
 
       if (!setting) return defaultValue ?? null;
 
-      let parsedValue: any = setting.value;
+      // Secret settings are stored encrypted (legacy clear text is read as is)
+      const rawValue = setting.isSensitive ? decryptSecret(setting.value) : setting.value;
+      if (setting.isSensitive && setting.value && rawValue === null) {
+        logger.warn('system', `Setting ${cacheKey} cannot be decrypted (SESSION_SECRET changed?); enter it again`);
+      }
+      let parsedValue: any = rawValue;
       if (setting.valueType === "boolean") parsedValue = setting.value === "true";
       else if (setting.valueType === "integer") parsedValue = parseInt(setting.value || "0");
       else if (setting.valueType === "json") {
@@ -50,9 +62,18 @@ export class SettingsService {
     const user = req.user as any;
     const adminId = user?.id;
 
+    const [current] = await db
+      .select({ isSensitive: adminSettings.isSensitive })
+      .from(adminSettings)
+      .where(and(eq(adminSettings.category, category), eq(adminSettings.key, key)));
+    const sensitive = !!current?.isSensitive;
+    // The settings page shows secrets masked; saving the mask unchanged must not overwrite the secret
+    if (sensitive && value === MASKED_SECRET) return;
+
     // Get current value for logging
-    const oldValue = await this.get(category, key);
-    const stringValue = typeof value === "string" ? value : JSON.stringify(value);
+    const oldValue = sensitive ? null : await this.get(category, key);
+    const plainValue = typeof value === "string" ? value : JSON.stringify(value);
+    const stringValue = sensitive ? encryptSecret(plainValue) : plainValue;
 
     await db
       .update(adminSettings)
@@ -79,8 +100,8 @@ export class SettingsService {
       targetId: key,
       targetLabel: `${category}.${key}`,
       description: `Updated setting ${category}.${key}`,
-      oldValue: setting?.isSensitive ? "********" : oldValue,
-      newValue: setting?.isSensitive ? "********" : value,
+      oldValue: setting?.isSensitive ? MASKED_SECRET : oldValue,
+      newValue: setting?.isSensitive ? MASKED_SECRET : value,
       severity: "warning",
       status: "success",
     }).catch(err => logger.error('system', 'admin.settings_change activity log failed', err));
@@ -96,26 +117,27 @@ export class SettingsService {
       
       // Users
       { category: "users", key: "registration_enabled", label: "Allow Registration", value: "true", valueType: "boolean", description: "Toggle whether new users can create accounts on the platform." },
-      { category: "users", key: "require_email_verification", label: "Require Email Verification", value: "false", valueType: "boolean", description: "If enabled, users must verify their email before they can post, comment, or vote." },
+      { category: "users", key: "require_email_verification", label: "Require Email Verification", value: "false", valueType: "boolean", description: "Not enforced: there is no email verification link endpoint yet, so enforcing it would lock every new user out." },
       { category: "users", key: "default_user_karma", label: "Default User Karma", value: "0", valueType: "integer", description: "The starting amount of Karma given to newly registered users." },
-      { category: "users", key: "max_usernames_per_ip", label: "Max Accounts per IP", value: "5", valueType: "integer", description: "Limit the number of accounts that can be registered from a single IP address to prevent spam." },
+      { category: "users", key: "max_usernames_per_ip", label: "Max Accounts per IP", value: "5", valueType: "integer", description: "Not enforced: registration is limited to 5 attempts per IP and hour. A lifetime per-IP account limit would need the registration address stored per account." },
       
       // Content
       { category: "content", key: "ai_generation_enabled", label: "AI Post Generation", value: "true", valueType: "boolean", description: "Enable or disable the built-in AI post generator tool for users." },
-      { category: "content", key: "max_upload_size_mb", label: "Max Upload Size (MB)", value: "10", valueType: "integer", description: "Maximum file size allowed for media uploads (images and videos)." },
+      { category: "content", key: "max_upload_size_mb", label: "Max Upload Size (MB)", value: "10", valueType: "integer", description: "Not enforced yet: the upload routes use fixed limits (10 MB for images)." },
       { category: "content", key: "post_cooldown_seconds", label: "Post Cooldown (Seconds)", value: "30", valueType: "integer", description: "Required wait time between creating new posts to prevent flooding." },
       { category: "content", key: "profanity_filter_enabled", label: "Enable Profanity Filter", value: "true", valueType: "boolean", description: "Automatically censor known profanity and slurs in posts and comments." },
       
       // Security
-      { category: "security", key: "session_timeout_minutes", label: "Session Timeout", value: "60", valueType: "integer", description: "How long an inactive user session remains valid before requiring them to log in again." },
-      { category: "security", key: "max_login_attempts", label: "Max Login Attempts", value: "5", valueType: "integer", description: "Number of failed login attempts allowed before temporarily locking the account." },
+      { category: "security", key: "session_timeout_minutes", label: "Session Timeout", value: "0", valueType: "integer", description: "Minutes of inactivity after which a session ends (minimum 5, 0 = off; sessions end after 24 hours in any case)." },
+      { category: "security", key: "max_login_attempts", label: "Max Login Attempts", value: "5", valueType: "integer", description: "Not enforced: an account is locked for 15 minutes after 20 failed logins (a low value would let anyone lock other users out)." },
       { category: "security", key: "admin_ip_allowlist", label: "Admin IP Allowlist", value: "", valueType: "text", description: "Comma-separated list of IP addresses allowed to access the admin dashboard. Leave blank to disable." },
+      { category: "security", key: "data_retention_days", label: "Activity Log Retention (Days)", value: "90", valueType: "integer", description: "Activity logs and anomaly events (with IP addresses and user agents) older than this are deleted once a day. 0 = keep forever." },
       
       // Email
       { category: "email", key: "smtp_host", label: "SMTP Host", value: "smtp.sendgrid.net", valueType: "string", description: "Hostname of the outgoing mail server used for system notifications." },
       { category: "email", key: "smtp_port", label: "SMTP Port", value: "587", valueType: "integer", description: "Port number for the SMTP server (usually 587 for TLS or 465 for SSL)." },
       { category: "email", key: "smtp_user", label: "SMTP User", value: "apikey", valueType: "string", description: "Username used to authenticate with the SMTP server." },
-      { category: "email", key: "smtp_password", label: "SMTP Password", value: "", valueType: "string", description: "Password or API Key for the SMTP server. This value is encrypted and hidden." },
+      { category: "email", key: "smtp_password", label: "SMTP Password", value: "", valueType: "string", description: SMTP_PASSWORD_DESCRIPTION },
       
       // Appearance
       { category: "appearance", key: "theme", label: "Default Site Theme", value: "dark", valueType: "string", description: "The default visual theme applied for guests and new registrations." },
@@ -145,6 +167,59 @@ export class SettingsService {
           updatedAt: new Date(),
         });
       }
+    }
+
+    await this.disableUnchangedSessionTimeout();
+    await this.encryptStoredSecrets();
+  }
+
+  /**
+   * Secret settings used to be stored in clear text: encrypt any such value (idempotent, only values without
+   * the "enc:v1:" prefix) and correct the old description that claimed it was encrypted.
+   */
+  private static async encryptStoredSecrets() {
+    try {
+      const plain = await db
+        .select({ id: adminSettings.id, category: adminSettings.category, key: adminSettings.key, value: adminSettings.value })
+        .from(adminSettings)
+        .where(and(eq(adminSettings.isSensitive, 1), ne(adminSettings.value, ""), not(like(adminSettings.value, "enc:v1:%"))));
+      for (const row of plain) {
+        if (!row.value || isEncryptedSecret(row.value)) continue;
+        await db.update(adminSettings).set({ value: encryptSecret(row.value) }).where(eq(adminSettings.id, row.id));
+        this.cache.delete(`${row.category}:${row.key}`);
+        logger.info('system', `Setting ${row.category}.${row.key} is now stored encrypted`);
+      }
+      await db.update(adminSettings)
+        .set({ description: SMTP_PASSWORD_DESCRIPTION })
+        .where(and(eq(adminSettings.category, "email"), eq(adminSettings.key, "smtp_password"), eq(adminSettings.description, OLD_SMTP_PASSWORD_DESCRIPTION)));
+    } catch (error) {
+      logger.error('system', 'Failed to encrypt stored secret settings', error);
+    }
+  }
+
+  /**
+   * The idle timeout used to be seeded with "60" but was never enforced (sessions lasted 24 hours). Now that it
+   * is enforced, the default is "0" (off); installations that still have the untouched seed value get "0" as
+   * well, so nobody is suddenly logged out after an hour. An admin's own value is kept: SettingsService.set
+   * always records updatedBy, the seed never does. Idempotent.
+   */
+  private static async disableUnchangedSessionTimeout() {
+    try {
+      const changed = await db.update(adminSettings)
+        .set({ value: "0" })
+        .where(and(
+          eq(adminSettings.category, "security"),
+          eq(adminSettings.key, "session_timeout_minutes"),
+          eq(adminSettings.value, "60"),
+          isNull(adminSettings.updatedBy),
+        ))
+        .returning({ id: adminSettings.id });
+      if (changed.length > 0) {
+        this.cache.delete("security:session_timeout_minutes");
+        logger.info('system', 'Idle session timeout: the unchanged default of 60 minutes was replaced by 0 (off)');
+      }
+    } catch (error) {
+      logger.error('system', 'Failed to migrate the session timeout default', error);
     }
   }
 }

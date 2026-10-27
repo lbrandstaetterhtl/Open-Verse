@@ -1,0 +1,154 @@
+{
+ "UI-1": {
+  "status": "fixed",
+  "note": "Server: relatedUrl validated as http(s) only on POST /api/tickets and owner PATCH /api/tickets/:id (javascript:/data:/vbscript:/ftp \u2192 400, '' \u2192 null). Client render guard is the client agent's (TicketDetailPage already changed in WIP commit)."
+ },
+ "UI-2": {
+  "status": "fixed",
+  "note": "Ticket number = highest number of the year over ALL tickets incl. soft-deleted (support-storage getHighestTicketNumber), insert retried with the next number on unique violation (parallel creates). Regression test in admin.fix.test.ts."
+ },
+ "UI-8": {
+  "status": "fixed",
+  "note": "Server: group name trimmed 1..50, case-insensitive duplicate \u2192 409 'A group with this name already exists' (GROUP_NAME_TAKEN). Client onError toasts / disabling save for blank names: client agent."
+ },
+ "UI-11": {
+  "status": "fixed",
+  "note": "Server: insertThemeSchema name trimmed 1..60 (blank \u2192 400), colors must be a JSON object. Client-side check in theme-builder: client agent."
+ },
+ "ADMIN-1": {
+  "status": "fixed",
+  "note": "DELETE /api/user/themes/background/:fileRef: strict name pattern theme-bg-u<uid>-<ts>-<rand>.<ext>, uid must be the caller (403 otherwise), path.resolve must stay directly inside uploads/. Uploads are renamed to carry the owner id. Legacy files without owner can no longer be deleted via the API."
+ },
+ "ADMIN-2": {
+  "status": "fixed",
+  "note": "Ticket comment edit/delete: comment must belong to :id, not be a system entry, internal ones owner-only; only the author or ticket staff (owner / 'tickets' permission) may change it; storage updates filter by id AND ticket_id."
+ },
+ "ADMIN-3": {
+  "status": "fixed",
+  "note": "POST /api/admin/bulk/users: zod (int id array 1..100, action enum ban|account|shadow|unban, reason, duration 1..87600); owners and the caller are refused per id; error list contains only fixed texts, no SQL."
+ },
+ "ADMIN-4": {
+  "status": "fixed",
+  "note": "admin-groups router: hasPermission('groups'); validateIdParams; create/patch validated (known permission names only, JSON string or array), 404 for missing groups, 409 duplicate name; non-owners can only create/edit/delete/assign groups whose permissions they hold, never their own group or an owner's; group delete clears adminGroupId of members."
+ },
+ "ADMIN-6": {
+  "status": "fixed",
+  "note": "adminUpdateUserSchema rewritten (enum role, 0/1 flags, length limits, no id/password/createdAt); role/isAdmin changes owner-only; owner accounts untouchable for non-owners; adminGroupId change needs 'groups' + the assignment rules."
+ },
+ "ADMIN-7": {
+  "status": "fixed",
+  "note": "POST /api/tickets: zod whitelist (title, description, type, priority, relatedUrl http(s), relatedUserId/relatedPostId ids); TicketService.createTicket inserts only those fields."
+ },
+ "ADMIN-9": {
+  "status": "fixed",
+  "note": "Stress tests: hasPermission('stress_test'); /api/tickets/stats: hasPermission('tickets'); ticket list/detail show all tickets only to owner or 'tickets' holders."
+ },
+ "ADMIN-10": {
+  "status": "fixed",
+  "note": "All listed admin routes validate input (zod bodies, strict ids via validateIdParams, whitelisted query values) and answer 4xx; 500s go through sendInternalError."
+ },
+ "ADMIN-11": {
+  "status": "fixed",
+  "note": "Revoke of a missing ban \u2192 404; revoke no longer touches karma (bans are not karma, per coordination note INPUT-2/ADMIN-8), it only clears the shadow flag when no other active shadow ban remains; report status is an enum."
+ },
+ "ADMIN-12": {
+  "status": "fixed",
+  "note": "Rule isActive accepts true/false/0/1; frozenUntil accepts ISO strings (and null)."
+ },
+ "ADMIN-13": {
+  "status": "fixed",
+  "note": "Bulk reports/posts/users report missing ids as failures; posts action 'hide' removed (only 'delete'); admins cannot bulk-delete owners' posts."
+ },
+ "ADMIN-14": {
+  "status": "fixed",
+  "note": "Activity logger now stores targetType/Id/Label and old/new values; CSV export Admin = username/email, all fields RFC-4180 escaped + formula-neutralised; monitoring limit capped (200) and pages validated; report resolution sets resolvedBy/resolvedAt/resolutionTimeSeconds; ticket list honours page (offset); stats avg resolution handles Postgres Date rows."
+ },
+ "INPUT-10": {
+  "status": "fixed",
+  "note": "tickets, ticket comments, ai/generate (topic/language/imageContext zod), themes PATCH validated with zod; empty theme update \u2192 400. GET /api/posts category is the content agent's."
+ },
+ "INPUT-11": {
+  "status": "fixed",
+  "note": "Theme, auto-punishment-rule and ticket schemas no longer accept id/createdAt/owner fields (themes/communities: themes part done; communities is the content/social agent's)."
+ },
+ "INPUT-13": {
+  "status": "fixed",
+  "note": "bans (enum ban_type, id, IP check, duration), group patch/assign, users patch (409 duplicate username/email), reports (404/enum), analytics compute and performance snapshot (invalid date \u2192 400)."
+ },
+ "INPUT-14": {
+  "status": "fixed",
+  "note": "leaderboard sortBy/period whitelisted with defaults (service also defaults), logs adminId parseId \u2192 400, monitoring page/limit/userId validated, analytics days clamped 1..365, logs export offset > 10M \u2192 400 (pagination.ts offset cap was also added by core)."
+ },
+ "AUTHZ-1": {
+  "status": "fixed",
+  "note": "See ADMIN-4."
+ },
+ "AUTHZ-2": {
+  "status": "fixed",
+  "note": "adminGroupId via PATCH /api/admin/users/:id needs 'groups' and follows checkGroupAssignment (never own group, subset of own permissions)."
+ },
+ "AUTHZ-3": {
+  "status": "fixed",
+  "note": "Non-owners get 403 OWNER_PROTECTED for any change to an owner account."
+ },
+ "AUTHZ-6": {
+  "status": "fixed",
+  "note": "hasPermission('stress_test') on both stress-test routes."
+ },
+ "AUTHZ-7": {
+  "status": "fixed",
+  "note": "hasPermission('tickets') on stats; TicketService.getTickets/getTicketById take canSeeAll = owner or 'tickets' permission."
+ },
+ "AUTHZ-8": {
+  "status": "fixed",
+  "note": "Auto-punishment routes use hasPermission('auto_punishment')."
+ },
+ "AUTHZ-11": {
+  "status": "fixed",
+  "note": "validateIdParams in admin.ts, admin-groups.ts, tickets.ts (id, cId), themes.ts, mod-performance.ts; update/delete of missing rows \u2192 404. Other routers (posts, comments, communities, follow, messages, notifications, reports) are the other agents' \u2014 authz suite now 378/378 on my server."
+ },
+ "ATK-XSS-1": {
+  "status": "fixed",
+  "note": "Same as UI-1 (server side)."
+ },
+ "ATK-UPLOAD-1": {
+  "status": "fixed",
+  "note": "Same as ADMIN-1 (pattern + resolve inside uploads)."
+ },
+ "ATK-UPLOAD-2": {
+  "status": "fixed",
+  "note": "Same as ADMIN-1 (owner id in file name, 403 for others)."
+ },
+ "ATK-RT-8": {
+  "status": "fixed",
+  "note": "Stress test: test name must exist (404), intensity enum, duration 1..300 s, one run at a time (409), error texts generic."
+ },
+ "ATK-INJECT-3": {
+  "status": "fixed",
+  "note": "Same as INPUT-14."
+ },
+ "ATK-AUTHZ-1": {
+  "status": "fixed",
+  "note": "Same as ADMIN-2."
+ },
+ "ATK-AUTHZ-2": {
+  "status": "fixed",
+  "note": "Same as ADMIN-2."
+ },
+ "ATK-AUTHZ-6": {
+  "status": "fixed",
+  "note": "Same as AUTHZ-1."
+ },
+ "ATK-AUTHZ-7": {
+  "status": "fixed",
+  "note": "Same as AUTHZ-2."
+ },
+ "ATK-AUTHZ-8": {
+  "status": "fixed",
+  "note": "Same as AUTHZ-3."
+ },
+ "ATK-AUTHZ-12": {
+  "status": "fixed",
+  "note": "Same as AUTHZ-7."
+ }
+}
