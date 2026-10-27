@@ -149,6 +149,8 @@ import {
 
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { GroupsManagement } from "@/staff/components/admin/GroupsManagement";
+import { ListPager } from "@/staff/components/admin/ListPager";
+import { useAdminList, useDebounced, ADMIN_PAGE_SIZE } from "@/staff/hooks/use-admin-list";
 
 import { useDateLocale } from "@/lib/date-locale";
 /** /api/admin/users rows: the user plus whether an account ban is active (karma is reputation only). */
@@ -198,13 +200,18 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/stats"],
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery<AdminUser[]>({
-    queryKey: ["/api/admin/users"],
+  // Server-paged lists (?limit/&offset, total in X-Total-Count); the user search runs on the server
+  const [userPage, setUserPage] = useState(0);
+  const [reportPage, setReportPage] = useState(0);
+  const userSearch = useDebounced(searchQuery.trim());
+  useEffect(() => setUserPage(0), [userSearch]);
+  useEffect(() => setReportPage(0), [reportFilter]);
+  const { data: usersPage, isLoading: usersLoading } = useAdminList<AdminUser>("/api/admin/users", userPage, { q: userSearch || undefined });
+  const { data: reportsPage, isLoading: reportsLoading } = useAdminList<AdminReport>("/api/admin/reports", reportPage, {
+    status: reportFilter === "all" ? undefined : reportFilter,
   });
-
-  const { data: reports, isLoading: reportsLoading } = useQuery<AdminReport[]>({
-    queryKey: ["/api/admin/reports"],
-  });
+  const users = usersPage?.rows;
+  const reports = reportsPage?.rows;
 
   const { data: adminGroups } = useQuery<any[]>({
     queryKey: ["/api/admin/groups"],
@@ -251,14 +258,9 @@ export default function AdminDashboard() {
     },
   });
 
+  // Search is done by the server (?q=); "verified"/"banned" filter the current page
   const filteredUsers = (users || [])
     .filter((u) => {
-      const matchesSearch =
-        u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (u.email || "").toLowerCase().includes(searchQuery.toLowerCase());
-
-      if (!matchesSearch) return false;
-
       switch (userFilter) {
         case "verified": return u.verified;
         case "banned": return !!u.isBanned;
@@ -453,7 +455,7 @@ export default function AdminDashboard() {
                     <Users className="h-4 w-4" />
                     {t("staff:admin.tabs.users", "Users")}
                     <span className={cn("ov-data ml-1 text-xs", currentTab === "users" ? "text-primary" : "text-muted-foreground")}>
-                      {users?.length || 0}
+                      {usersPage?.total ?? 0}
                     </span>
                   </TabsTrigger>
                 )}
@@ -467,7 +469,7 @@ export default function AdminDashboard() {
                       </span>
                     ) : (
                       <span className={cn("ov-data ml-1 text-xs", currentTab === "reports" ? "text-primary" : "text-muted-foreground")}>
-                        {reports?.length || 0}
+                        {reportsPage?.total ?? 0}
                       </span>
                     )}
                   </TabsTrigger>
@@ -747,7 +749,7 @@ export default function AdminDashboard() {
                     )}
                   />
                 </CardContent>
-
+                <ListPager page={userPage} pageSize={ADMIN_PAGE_SIZE} total={usersPage?.total ?? 0} onPageChange={setUserPage} />
               </Card>
             </TabsContent>
 
@@ -869,6 +871,7 @@ export default function AdminDashboard() {
                     )}
                   />
                 </CardContent>
+                <ListPager page={reportPage} pageSize={ADMIN_PAGE_SIZE} total={reportsPage?.total ?? 0} onPageChange={setReportPage} />
               </Card>
             </TabsContent>
 

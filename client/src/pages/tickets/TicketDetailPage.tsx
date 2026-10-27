@@ -24,6 +24,10 @@ import { cn } from "@/lib/utils";
 import { TicketAssignSelect } from "@/lib/staff";
 
 import { useDateLocale } from "@/lib/date-locale";
+
+/** Name the server gives staff in a ticket creator's view (server/services/ticket-service.ts). */
+const SUPPORT_NAME = "Support";
+
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -34,7 +38,8 @@ export default function TicketDetailPage() {
   const systemMessage = (c: { content: string; changeType?: string | null; changeFrom?: string | null; changeTo?: string | null }) => {
     if (!c.changeType) return c.content;
     const label = (v?: string | null) =>
-      !v ? "" : c.changeType === "status_change" ? t(`status.${v}`, v) : c.changeType === "priority_change" ? t(`priority.${v}`, v) : v;
+      !v ? "" : c.changeType === "status_change" ? t(`status.${v}`, v) : c.changeType === "priority_change" ? t(`priority.${v}`, v)
+        : v === SUPPORT_NAME ? t("detail.support", "Support") : v;
     return t(`systemMessages.${c.changeType}`, { from: label(c.changeFrom), to: label(c.changeTo), defaultValue: c.content });
   };
   const { user } = useAuth();
@@ -215,7 +220,8 @@ export default function TicketDetailPage() {
                       </div>
                       <div className="flex-1 min-w-0 space-y-2">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <span className="text-sm font-semibold">{comment.authorUsername}</span>
+                          {/* Ticket creators see staff replies under one team name (authorRole "staff", no account name) */}
+                          <span className="text-sm font-semibold">{comment.authorRole === "staff" ? t("detail.support", "Support") : comment.authorUsername}</span>
                           {comment.authorRole === 'owner' && <span className="ov-chip ov-chip-danger">{t("detail.commanderBadge", "COMMANDER")}</span>}
                           <span className="ov-data text-xs text-muted-foreground" title={format(new Date(comment.createdAt), "PPpp", { locale: dateLocale })}>
                             {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: dateLocale })}
@@ -324,7 +330,7 @@ export default function TicketDetailPage() {
                     <span className="ov-label">{t("detail.assignedPersonnel", "Assigned Personnel")}</span>
                     {isOwner ? (
                       <Suspense fallback={<div className="h-10" />}>
-                        <TicketAssignSelect assignedTo={ticket.assignedTo} disabled={isUpdating} onChange={handleUpdateAssignment} />
+                        <TicketAssignSelect assignedTo={typeof ticket.assignedTo === "number" ? ticket.assignedTo : null} disabled={isUpdating} onChange={handleUpdateAssignment} />
                       </Suspense>
                     ) : (
                       <div className="flex items-center gap-3">

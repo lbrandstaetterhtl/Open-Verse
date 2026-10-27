@@ -31,6 +31,7 @@ import {
     filterShadowHidden,
     broadcastAboutPost,
     shadowCountScope,
+    viewerIsShadowBanned,
 } from "../utils/community-access";
 
 const router = Router();
@@ -428,8 +429,10 @@ router.post("/:id/react", isAuthenticated, async (req, res) => {
         // Posts of deleted users keep author_id 0; they can still be liked, nobody gets karma or a notification.
         const postAuthor = post.authorId ? await storage.getUser(post.authorId) : undefined;
 
-        // Reaction rows and the author's karma change in one locked transaction (CONTENT-22)
-        const { action } = await storage.getContentStore().togglePostReaction(userId, postId, isLike, postAuthor?.id ?? null);
+        // Reaction rows and the author's karma change in one locked transaction (CONTENT-22). A shadow-banned
+        // user's reactions are invisible to others, so they do not move the author's (public) karma either.
+        const karmaTarget = viewerIsShadowBanned(req) ? null : postAuthor?.id ?? null;
+        const { action } = await storage.getContentStore().togglePostReaction(userId, postId, isLike, karmaTarget);
 
         if (action !== "removed") {
             activityLogger.logFromRequest(req, {

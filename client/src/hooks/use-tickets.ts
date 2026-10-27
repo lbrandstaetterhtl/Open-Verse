@@ -14,8 +14,10 @@ export interface TicketFilters {
   limit?: number;
 }
 
-export type TicketWithMeta = Ticket & {
+export type TicketWithMeta = Omit<Ticket, "assignedTo"> & {
   creatorUsername?: string;
+  /** Staff see the assignee's id; the ticket's creator only whether someone is assigned (true) or not (null). */
+  assignedTo: number | true | null;
 };
 
 export type CommentWithMeta = TicketComment & {

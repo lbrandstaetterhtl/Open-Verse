@@ -354,6 +354,43 @@ describe("shadow-banned accounts", () => {
     const own = await (await shadow.client.get("/api/posts?limit=100")).json();
     assert.equal(own.find((p: any) => p.id === hostPostId)?.commentCount, 1);
   });
+
+  test("their likes do not change the author's public karma", async () => {
+    const karmaOf = async () => (await (await new Client().get(`/api/users/${host.username}`)).json()).karma;
+    assert.equal(await karmaOf(), 0, "the post like of the shadow-banned user (earlier test) gave karma");
+    const c = await host.client.post("/api/comments", { postId: hostPostId, content: "host comment to like" });
+    await expectStatus(c, 201);
+    const commentId = (await c.json()).id;
+    const like = await shadow.client.post(`/api/comments/${commentId}/like`);
+    await expectStatus(like, 200);
+    assert.equal((await like.json()).likes, 1, "the shadow-banned user sees their own like");
+    assert.equal(await karmaOf(), 0, "the comment like of the shadow-banned user gave karma");
+    // switching the post reaction (like → dislike) must not move it either
+    await expectStatus(await shadow.client.post(`/api/posts/${hostPostId}/react`, { isLike: false }), 200);
+    assert.equal(await karmaOf(), 0);
+  });
+
+  test("their direct messages are silently withheld from the receiver", async () => {
+    await expectStatus(await host.client.post(`/api/follow/${shadow.id}`), 200); // mutual follow (shadow follows host)
+    const sent = await shadow.client.post("/api/messages", { receiverId: host.id, content: `withheld dm ${RUN_ID}` });
+    await expectStatus(sent, 201);
+    const msg = await sent.json();
+    assert.equal(msg.read, 0);
+    // the sender sees it as sent
+    const own = await (await shadow.client.get(`/api/messages/${host.id}`)).json();
+    assert.ok(own.some((m: any) => m.id === msg.id && m.read === 0), "the sender does not see their message");
+    // the receiver gets nothing: no message, no unread count, no notification
+    const conv = await (await host.client.get(`/api/messages/${shadow.id}`)).json();
+    assert.ok(!conv.some((m: any) => m.id === msg.id), "the receiver sees the withheld message");
+    assert.equal((await (await host.client.get("/api/messages/unread/count")).json()).count, 0);
+    const notes = await (await host.client.get("/api/notifications")).json();
+    assert.ok(!notes.some((n: any) => n.type === "new_message"), "the receiver got a new_message notification");
+    // the receiver's reply still reaches the shadow-banned user
+    const reply = await host.client.post("/api/messages", { receiverId: shadow.id, content: `reply ${RUN_ID}` });
+    await expectStatus(reply, 201);
+    const back = await (await shadow.client.get(`/api/messages/${host.id}`)).json();
+    assert.ok(back.some((m: any) => m.content === `reply ${RUN_ID}`));
+  });
 });
 
 // ---------------------------------------------------------------------------------------------

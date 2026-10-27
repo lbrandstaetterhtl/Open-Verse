@@ -110,7 +110,7 @@ export function ActivityLogsPage() {
               key: "user",
               label: t("staff:monitoring.user", "User"),
               render: ({ log, user }) => (
-                <span className="text-sm font-semibold">{user?.username || log.userEmail || t("staff:monitoring.system", "System")}</span>
+                <span className="text-sm font-semibold">{user?.username || log.userUsername || t("staff:monitoring.system", "System")}</span>
               )
             },
             {
@@ -146,7 +146,7 @@ export function ActivityLogsPage() {
                  <span className="text-sm font-semibold text-primary" title={log.action}>{t(`staff:admin_logs.actions.${log.action}`, String(log.action))}</span>
               </div>
               <div>
-                 <p className="text-xs font-semibold mb-1">{user?.username || log.userEmail || t("staff:monitoring.system", "System")}</p>
+                 <p className="text-xs font-semibold mb-1">{user?.username || log.userUsername || t("staff:monitoring.system", "System")}</p>
                  <p className="text-sm font-medium text-foreground/90">{log.description}</p>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-border">

@@ -5,6 +5,7 @@ import { messageSchema } from "@shared/schema";
 import { notificationService } from "../services/notification-service";
 import { validateIdParams, parseId } from "../utils/params";
 import { sendValidationError } from "../utils/http-errors";
+import { viewerIsShadowBanned, isStaff } from "../utils/community-access";
 
 const router = Router();
 
@@ -32,14 +33,22 @@ router.post("/", isAuthenticated, async (req, res) => {
             return fail(res, 403, "You can only message users who follow you and whom you follow");
         }
 
-        const message = await storage.createMessage({
+        // A shadow-banned sender's messages are silently withheld from the receiver (unless the receiver is
+        // staff or shadow-banned too): the sender sees them as sent, the receiver gets nothing.
+        let withheld = false;
+        if (viewerIsShadowBanned(req)) {
+            const receiver = await storage.getUser(receiverId);
+            withheld = !(receiver && (isStaff(receiver) || receiver.isShadowBanned));
+        }
+
+        const message = await storage.getMessageStore().createMessage({
             senderId,
             receiverId,
             content,
-        });
+        }, { withheld });
 
         // Goes through the notification service: names the sender, respects preferences, pushes via WebSocket.
-        await notificationService.notify({
+        if (!withheld) await notificationService.notify({
             userId: receiverId,
             actorId: senderId,
             type: "new_message",

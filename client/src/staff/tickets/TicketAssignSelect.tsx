@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useStaffUsers } from "@/staff/hooks/use-admin-list";
 import { useTranslation } from "react-i18next";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -9,7 +9,8 @@ export function TicketAssignSelect({ assignedTo, disabled, onChange }: {
   onChange: (assignedTo: number | null) => void;
 }) {
   const { t } = useTranslation("tickets");
-  const { data: usersData } = useQuery<any[]>({ queryKey: ["/api/admin/users"] });
+  // Only admins and owners can be assigned; the server filters (the full user list is paged)
+  const { data: usersData } = useStaffUsers();
   const staffUsers = usersData?.filter((u) => u.role === "admin" || u.role === "owner") || [];
 
   return (

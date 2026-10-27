@@ -7,7 +7,7 @@ import { notificationService } from "../services/notification-service";
 import { activityLogger } from "../services/activity-logger";
 import { parseId, validateIdParams } from "../utils/params";
 import { sendValidationError, sendInternalError } from "../utils/http-errors";
-import { canViewPost, canInteractWithPost, broadcastAboutPost, shadowCountScope } from "../utils/community-access";
+import { canViewPost, canInteractWithPost, broadcastAboutPost, shadowCountScope, viewerIsShadowBanned } from "../utils/community-access";
 
 const router = Router();
 // Malformed ids answer 404 before any handler runs (CONTENT-10, AUTHZ-12).
@@ -98,7 +98,9 @@ router.post("/:id/like", isAuthenticated, async (req, res) => {
         const commentAuthor = comment.authorId ? await storage.getUser(comment.authorId) : undefined;
 
         // Like row and karma change in one locked transaction: parallel clicks count once (CONTENT-22)
-        const { liked } = await storage.getContentStore().toggleCommentLike(userId, commentId, commentAuthor?.id ?? null);
+        // A shadow-banned user's likes are invisible to others and do not change the author's public karma.
+        const karmaTarget = viewerIsShadowBanned(req) ? null : commentAuthor?.id ?? null;
+        const { liked } = await storage.getContentStore().toggleCommentLike(userId, commentId, karmaTarget);
 
         if (liked && commentAuthor && comment.authorId !== userId) {
             await notificationService.notify({
@@ -142,8 +144,8 @@ router.delete("/:id", isAuthenticated, async (req, res) => {
             return res.status(403).json({ error: "Forbidden", code: "FORBIDDEN" });
         }
 
-        // Take back the karma the comment's likes gave its author
-        const likes = await storage.getCommentLikes(id);
+        // Take back the karma the comment's likes gave its author (likes of shadow-banned users gave none)
+        const likes = await storage.getContentStore().getCommentLikes(id, { includeShadowBanned: false });
         if (likes > 0 && targetUser) {
             await storage.updateUserKarma(targetUser.id, -likes);
         }

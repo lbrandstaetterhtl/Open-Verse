@@ -1,4 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ListPager } from "@/staff/components/admin/ListPager";
+import { useAdminList, ADMIN_PAGE_SIZE } from "@/staff/hooks/use-admin-list";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
@@ -13,9 +16,10 @@ export function BansPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: bans, isLoading } = useQuery<any[]>({
-    queryKey: ["/api/admin/bans"],
-  });
+  // Paged on the server (?limit=&offset=, total in X-Total-Count)
+  const [page, setPage] = useState(0);
+  const { data: bansPage, isLoading } = useAdminList<any>("/api/admin/bans", page);
+  const bans = bansPage?.rows;
 
   const revokeMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -92,6 +96,7 @@ export function BansPage() {
               )}
             </TableBody>
           </Table>
+          <ListPager page={page} pageSize={ADMIN_PAGE_SIZE} total={bansPage?.total ?? 0} onPageChange={setPage} />
         </div>
       </div>
   );

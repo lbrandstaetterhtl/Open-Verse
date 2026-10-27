@@ -42,6 +42,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { useStaffUsers } from "@/staff/hooks/use-admin-list";
 
 const AVAILABLE_PERMISSIONS = [
     { id: "dashboard", labelKey: "staff:admin_groups.permissions.dashboard.label", fallback: "Dashboard Access", descriptionKey: "staff:admin_groups.permissions.dashboard.description", icon: Activity, descriptionFallback: "View admin overview and statistics" },
@@ -70,9 +71,9 @@ export function GroupsManagement() {
         queryKey: ["/api/admin/groups"],
     });
 
-    const { data: users } = useQuery<any[]>({
-        queryKey: ["/api/admin/users"],
-    });
+    // Group permissions only take effect for admins/owners, so the members list is the staff list (the user
+    // list itself is paged on the server, 500 per request)
+    const { data: users } = useStaffUsers();
 
     // 409 GROUP_NAME_TAKEN, 403 PERMISSION_ESCALATION etc.: the server text, translated by apiRequest (server namespace)
     const showError = (error: Error) => {

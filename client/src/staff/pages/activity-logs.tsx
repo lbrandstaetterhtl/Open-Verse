@@ -204,10 +204,10 @@ export default function ActivityLogsPage() {
                 render: (log) => (
                   <div className="flex items-center gap-3">
                      <div className="ov-avatar h-10 w-10 shrink-0 bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">{(log.userEmail || "S").charAt(0).toUpperCase()}</span>
+                        <span className="text-sm font-semibold text-primary">{(log.userUsername || "S").charAt(0).toUpperCase()}</span>
                      </div>
                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold leading-tight">{log.userEmail || t("staff:admin_logs.system", "System")}</span>
+                        <span className="text-sm font-semibold leading-tight">{log.userUsername || t("staff:admin_logs.system", "System")}</span>
                         <span className="ov-chip ov-chip-primary capitalize mt-1 h-5 w-fit px-1.5">
                            {log.userRole ? t(`admin.roles.${log.userRole}`, log.userRole) : t("admin.roles.admin", "Admin")}
                         </span>
@@ -257,7 +257,7 @@ export default function ActivityLogsPage() {
                           </div>
                           <div className="flex flex-wrap gap-2">
                              <span className="ov-chip"><Calendar className="h-3.5 w-3.5" /> <span className="ov-data">{format(new Date(log.createdAt), "PPpp", { locale: dateLocale })}</span></span>
-                             <span className="ov-chip"><User className="h-3.5 w-3.5" /> {log.userEmail || t("staff:admin_logs.system", "System")}</span>
+                             <span className="ov-chip"><User className="h-3.5 w-3.5" /> {log.userUsername || t("staff:admin_logs.system", "System")}</span>
                              <span className={cn("ov-chip capitalize", statusColors[log.status as keyof typeof statusColors])}>
                                {statusIcons[log.status as keyof typeof statusIcons]}
                                {t(`staff:admin_logs.status.${log.status}`, log.status)}
@@ -326,7 +326,7 @@ export default function ActivityLogsPage() {
                      <code className="font-data text-xs text-primary">{log.action}</code>
                   </div>
                   <div>
-                     <p className="text-xs font-semibold mb-1">{log.userEmail || t("staff:admin_logs.system", "System")}</p>
+                     <p className="text-xs font-semibold mb-1">{log.userUsername || t("staff:admin_logs.system", "System")}</p>
                      <p className="text-sm leading-relaxed text-foreground/80">"{log.description}"</p>
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-border">
@@ -348,7 +348,7 @@ export default function ActivityLogsPage() {
                               </div>
                               <div className="space-y-1">
                                  <p className="ov-label">{t("staff:admin_logs.admin", "Admin")}</p>
-                                 <p className="font-semibold">{log.userEmail || t("staff:admin_logs.system", "System")}</p>
+                                 <p className="font-semibold">{log.userUsername || t("staff:admin_logs.system", "System")}</p>
                               </div>
                               <div className="space-y-2">
                                  <p className="ov-label">{t("staff:admin_logs.log_entry", "Log entry")}</p>
